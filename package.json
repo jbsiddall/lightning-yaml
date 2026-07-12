@@ -20,6 +20,7 @@
     "test:unit": "node --import tsx --test test/parser.unit.ts",
     "test:watch": "vitest",
     "test:suite": "pnpm gen:suite && node --import tsx bench/conformance/run.ts",
+    "test:compat": "node --import tsx bench/conformance/compat.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
