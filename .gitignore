@@ -6,3 +6,6 @@ bench/fixtures/data/
 # Benchmark output
 results/
 *.log
+
+# Local calibration/scratch scripts (not part of the committed harness)
+.scratch/

@@ -154,3 +154,25 @@ export function candidateSupports(candidate: Candidate, op: Op): boolean {
     return !(err instanceof NotImplementedError);
   }
 }
+
+/**
+ * Whether `candidate` can actually process this *specific* fixture without
+ * throwing. `candidateSupports` answers "is this op implemented at all" with a
+ * one-token canary; this answers "does it handle THIS input", which differs
+ * while a parser is partial: lightning-yaml reads flow/JSON before it reads
+ * block YAML, so we benchmark it only on the fixtures it genuinely handles today
+ * rather than publishing an error row for input it can't read yet. This gates
+ * only the *speed* benchmark's candidate list (the memory harness already skips
+ * workers that fail); correctness is still enforced — loudly, no swallowing — by
+ * the vitest consistency suite.
+ */
+export function candidateHandles(candidate: Candidate, op: Op, input: string | unknown): boolean {
+  try {
+    if (op === "parse") candidate.parse(input as string);
+    else if (candidate.stringify) candidate.stringify(input);
+    else return false;
+    return true;
+  } catch {
+    return false;
+  }
+}

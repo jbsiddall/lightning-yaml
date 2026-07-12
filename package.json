@@ -16,6 +16,7 @@
     "bench:competition": "node --expose-gc --import tsx bench/report.ts competition",
     "bench": "pnpm gen:fixtures && pnpm bench:competition && pnpm bench:self",
     "test": "vitest run",
+    "test:unit": "node --import tsx --test test/parser.unit.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },

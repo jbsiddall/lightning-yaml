@@ -27,9 +27,10 @@ import {
   scopeFromEnv,
   candidateAppliesTo,
   candidateSupports,
+  candidateHandles,
   type Scope,
 } from "../candidates.ts";
-import { datasets } from "../fixtures/datasets.ts";
+import { datasets, loadFixtureText } from "../fixtures/datasets.ts";
 import { formatBytes, ratio, padEnd, padStart } from "../util/format.ts";
 
 export const ITERS = Number(process.env.BENCH_ITERS) || 25;
@@ -76,10 +77,16 @@ export function runMemoryMatrix(opts: MatrixOptions = {}): Result[] {
   const results: Result[] = [];
   for (const ds of datasets) {
     for (const op of OPS) {
+      // Cheap parse-capability probe (mirrors the speed harness): skip a partial
+      // parser on a fixture it can't read yet instead of spawning a worker that
+      // throws. Only for parse — stringify has no partial candidate, and loading
+      // its value goes through the heavy oracle.
+      const probeText = op === "parse" ? loadFixtureText(ds) : null;
       for (const c of cands) {
         // Skip candidates that don't apply to this fixture (e.g. JSON on block
         // YAML) or aren't implemented yet — no need to spawn a worker for them.
         if (!candidateAppliesTo(c, ds, op) || !candidateSupports(c, op)) continue;
+        if (probeText !== null && !candidateHandles(c, "parse", probeText)) continue;
         const r = runWorker(c.name, ds.name, op);
         if (r) results.push(r);
       }
