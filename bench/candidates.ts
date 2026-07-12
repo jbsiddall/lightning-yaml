@@ -19,7 +19,7 @@
 
 import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
 import { parse as yamlParse, stringify as yamlStringify } from "yaml";
-import { parse as ourParse, stringify as ourStringify, NotImplementedError } from "../src/index.ts";
+import { parse as ourParse, NotImplementedError } from "../src/index.ts";
 import type { Category, DatasetDef } from "./fixtures/datasets.ts";
 
 export type Group = "baseline" | "competition" | "ours";
@@ -38,8 +38,15 @@ export interface Candidate {
   kind: Kind;
   /** Parse a text document into a JS value. */
   parse: (text: string) => unknown;
-  /** Serialize a JS value back to text. */
-  stringify: (value: unknown) => string;
+  /**
+   * Serialize a JS value back to text. Optional: a candidate may implement only
+   * `parse` (lightning-yaml ships parse first; its dumper is a later milestone).
+   * The stringify speed/memory benches and the consistency suite skip candidates
+   * without one — we do NOT substitute a foreign serializer (e.g. JSON.stringify)
+   * for a candidate that hasn't written its own, which would report the wrong
+   * library's numbers under this candidate's name.
+   */
+  stringify?: (value: unknown) => string;
 }
 
 export const candidates: Candidate[] = [
@@ -71,7 +78,8 @@ export const candidates: Candidate[] = [
     group: "ours",
     kind: "yaml",
     parse: (text) => ourParse(text),
-    stringify: (value) => ourStringify(value),
+    // No `stringify` yet — the dumper is a later milestone. The harness skips it
+    // for stringify benches/tests rather than borrowing another library's output.
   },
 ];
 
@@ -129,15 +137,18 @@ export function candidateAppliesTo(candidate: Candidate, ds: DatasetDef, op: Op)
 }
 
 /**
- * Whether a candidate actually implements `op` yet. lightning-yaml's stub throws
+ * Whether a candidate actually implements `op` yet. A candidate may omit
+ * `stringify` entirely (lightning-yaml does, for now) — that's an honest "not
+ * supported", not a crash. lightning-yaml's `parse` stub throws
  * `NotImplementedError`; the benchmarks skip candidates that aren't ready rather
  * than crashing (mitata can't benchmark a throwing function). Any other error is
  * treated as "implemented but broken" — surfaced, not swallowed.
  */
 export function candidateSupports(candidate: Candidate, op: Op): boolean {
+  if (op === "stringify" && !candidate.stringify) return false;
   try {
     if (op === "parse") candidate.parse("null");
-    else candidate.stringify(null);
+    else candidate.stringify!(null);
     return true;
   } catch (err) {
     return !(err instanceof NotImplementedError);

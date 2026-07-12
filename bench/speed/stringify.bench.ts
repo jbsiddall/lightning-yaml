@@ -25,7 +25,10 @@ for (const ds of datasets) {
   const value = loadFixtureValue(ds);
   group(`stringify · ${ds.name}`, () => {
     for (const c of cands) {
-      bench(c.name, () => do_not_optimize(c.stringify(value)));
+      // `candidateSupports(c, "stringify")` above guarantees `c.stringify` here;
+      // candidates without a dumper were already filtered out.
+      const stringify = c.stringify!;
+      bench(c.name, () => do_not_optimize(stringify(value)));
     }
   });
 }
