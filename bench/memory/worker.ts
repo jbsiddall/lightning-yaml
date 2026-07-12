@@ -14,7 +14,7 @@
  */
 
 import { candidateByName } from "../candidates.ts";
-import { loadFixture } from "../fixtures/datasets.ts";
+import { datasetByName, loadFixtureText, loadFixtureValue } from "../fixtures/datasets.ts";
 
 const [, , candidateName, dataset, op, itersArg] = process.argv;
 const iters = Number(itersArg) || 20;
@@ -28,9 +28,9 @@ if (typeof globalThis.gc !== "function") {
 const gc = globalThis.gc as () => void;
 
 const candidate = candidateByName(candidateName);
-const text = loadFixture(dataset);
+const ds = datasetByName(dataset);
 // For stringify, the input is the in-memory value; for parse, the raw text.
-const input: unknown = op === "stringify" ? JSON.parse(text) : text;
+const input: unknown = op === "stringify" ? loadFixtureValue(ds) : loadFixtureText(ds);
 
 // Settle the baseline after loading the fixture.
 gc();

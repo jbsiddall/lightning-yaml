@@ -22,7 +22,13 @@
 
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { selectCandidates, scopeFromEnv, type Scope } from "../candidates.ts";
+import {
+  selectCandidates,
+  scopeFromEnv,
+  candidateAppliesTo,
+  candidateSupports,
+  type Scope,
+} from "../candidates.ts";
 import { datasets } from "../fixtures/datasets.ts";
 import { formatBytes, ratio, padEnd, padStart } from "../util/format.ts";
 
@@ -71,6 +77,9 @@ export function runMemoryMatrix(opts: MatrixOptions = {}): Result[] {
   for (const ds of datasets) {
     for (const op of OPS) {
       for (const c of cands) {
+        // Skip candidates that don't apply to this fixture (e.g. JSON on block
+        // YAML) or aren't implemented yet — no need to spawn a worker for them.
+        if (!candidateAppliesTo(c, ds, op) || !candidateSupports(c, op)) continue;
         const r = runWorker(c.name, ds.name, op);
         if (r) results.push(r);
       }

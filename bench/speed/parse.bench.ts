@@ -5,18 +5,26 @@
  *   node --expose-gc --import tsx bench/speed/parse.bench.ts
  *
  * `--expose-gc` lets mitata report GC/heap columns alongside timing.
+ *
+ * Candidates that don't apply to a dataset (e.g. JSON.parse can't read block
+ * YAML) or aren't implemented yet (lightning-yaml's stub) are skipped, so YAML
+ * fixtures benchmark only the parsers that can actually read them.
  */
 
 import { bench, group, run, do_not_optimize } from "mitata";
-import { selectCandidates, scopeFromEnv } from "../candidates.ts";
-import { datasets, loadFixture } from "../fixtures/datasets.ts";
+import { selectCandidates, scopeFromEnv, candidateAppliesTo, candidateSupports } from "../candidates.ts";
+import { datasets, loadFixtureText } from "../fixtures/datasets.ts";
 
 const candidates = selectCandidates(scopeFromEnv());
 
 for (const ds of datasets) {
-  const text = loadFixture(ds.name);
+  const cands = candidates.filter(
+    (c) => candidateAppliesTo(c, ds, "parse") && candidateSupports(c, "parse"),
+  );
+  if (cands.length === 0) continue;
+  const text = loadFixtureText(ds);
   group(`parse · ${ds.name}`, () => {
-    for (const c of candidates) {
+    for (const c of cands) {
       bench(c.name, () => do_not_optimize(c.parse(text)));
     }
   });

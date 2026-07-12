@@ -14,5 +14,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["bench/**/*.ts"]
+  "include": ["bench/**/*.ts", "src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
 }
