@@ -27,7 +27,8 @@ bench/conformance/run.ts [--dump-failures]`).
 | F2 block scalars | **62.2%** (232/373) | 86.6%→94.9%¹ | 97.1% | pos 62.4% (+49) / neg 61.5% (flat) |
 | ↑ js-yaml **v5** upgrade | 62.2% (unchanged) | **94.9%** (354/373) | 97.1% | js-yaml v5 default schema → 1.2 CORE |
 | F3 anchors/aliases | 67.6% (252/373) | 94.9% | 97.1% | pos 68.8% (+18) / neg 63.7% (+2). vitest 6→3 red |
-| F4 tags + `!!binary` | **76.1%** (284/373) | 94.9% | 97.1% | pos 79.4% (+30) / neg 65.9% (+2). **vitest 43/43 GREEN** ✓ |
+| F4 tags + `!!binary` | 76.1% (284/373) | 94.9% | 97.1% | pos 79.4% (+30) / neg 65.9% (+2). **vitest 43/43 GREEN** ✓ |
+| M-checkpoint diag+fix | **88.7%** (331/373) | 94.9% | 97.1% | pos 91.1% (+33) / neg 81.3% (+14). 0 regressions |
 
 ¹ **TARGET MOVED. js-yaml upgraded v4.3.0 → v5.2.1** (user request): v5's default
 schema is now YAML-1.2 CORE (was 1.1-ish), so js-yaml jumped 86.6%→**94.9%**. Our
@@ -109,19 +110,34 @@ Closing this is required to reach js-yaml's overall rate — track as its own bu
 ## STOP-condition tracker
 
 - [x] yaml-rich consistency cases GREEN (vitest 43/43) — met at F4.
-- [ ] ours suite pass rate ≥ js-yaml (94.9%) — at 76.1%, need +70.
+- [ ] ours suite pass rate ≥ js-yaml (94.9%, 354/373) — at **88.7% (331)**, need **+23**.
 - [x] full gate green (typecheck + test + test:unit) — currently green.
 
-## Next (milestone checkpoint at F4, then continue)
+Ceiling check: 42 failures, **33 clearly-fixable** (both competitors pass) + 9 spec-corners
+`yaml` itself fails (skip). 331 + 33 = 364 possible → target 354 reachable by closing ~23.
 
-- **Milestone checkpoint (NOW):** (1) opus diagnostic+fix pass on the two big buckets
-  (plain-typing 32 + doc-markers 27) + the 3 flagged pre-existing bugs — find shared root
-  causes, fix genuine bugs vs oracle (not new features), tighten negatives; (2) then
-  `bench:competition` refresh (justified: v5 dep change + rich-feature milestone).
-- **F5 · explicit `?`/`:` block keys** (complex-key 7 + unblocks 2XXW/35KP/L94M/ZWK4).
-- **Negative-strictness pass** (neg 60/91 vs js-yaml 91/91 — 31 gap; biggest single lever
-  after plain-typing since js-yaml v5 rejects ALL invalid inputs).
-- flow-only (6), residual block-scalar (7), directive (2).
+## Loop log (cont.)
+
+- **Milestone diagnostic+fix (done, `9b032cf`):** suite 76.1%→88.7% (+47; pos +33, neg +14),
+  0 regressions, vitest 43/43, test:unit 334. Root causes collapsed the plain-typing(32) +
+  doc-markers(27) buckets: **quoted multi-line flow folding** (~27 cases, `foldFlowBreak`),
+  escaped-tab, plain-fold-across-comment, multiline-quoted-as-implicit-key (invalid),
+  col-0 marker inside quoted scalar, mapping-value-inlining-block-collection (invalid),
+  reserved-indicator plain start. Fixed all 3 pre-existing bugs (9HCY, FH7J, empty-dash-comment).
+  Deferred bench:competition to final milestone (efficiency; README head-to-head is STALE
+  re: js-yaml v5 until then). VERIFIED.
+
+## Remaining failures (42; 33 fixable) → path to 94.9%
+
+- **F5 · explicit `?`/`:` block keys** — 13 cases (5WE3, 7W2P, A2M4, CT4Q, GH63, JTV5, L94M,
+  RR7F, S9E8, X8DW, UT92, 35KP, ZWK4). Biggest lever. `parseBlockNode` `?`-stub throws today.
+- **Cleanup pass** (independent small clusters): flow-plain multiline folding (8KB6, NJ66, 8UDB);
+  flow-pair single-line implicit keys (DK4H, ZXT5, C2SP, VJP3/00); comment-separation (SU5Z,
+  CVW2, 9JBA); tab-as-indentation negatives (4EJS, Y79Y/003-005 — strictness); doc-markers-in-
+  flow (N782); misc (QB6E, 4JVG, G5U8, YJV2, 9C9N).
+- **Skip (spec-corners `yaml` fails):** 565N, M7A3, 2XXW, J7PZ, 9MQT/01, HWV9, QT73, DK95/01,
+  DK95/06 (9).
+- **Final milestone:** `bench:competition` (v5 head-to-head) once feature-complete.
 
 ## Known bugs (pre-existing, to fix in a cleanup / adversarial pass)
 
