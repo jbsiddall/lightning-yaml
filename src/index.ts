@@ -8,10 +8,11 @@
  *                       for now — `---`/`...` splitting arrives with M5)
  *   - `stringify(value)` — the dumper is a later milestone; still a stub.
  *
- * Implementation status: the flow-level parser (JSON subset + YAML flow) is
- * landing incrementally (milestones M1, M2, …). Block structure (M3+) and the
- * rich surface — anchors, tags, `!!binary`, merge keys — are not here yet and
- * throw a controlled parse error rather than mis-parsing.
+ * Implementation status: the flow layer (JSON subset + YAML flow — plain scalars
+ * with 1.2 core-schema typing, single quotes, comments, single-pair maps) is
+ * implemented. Block structure (M3+) and the rich surface — anchors, tags,
+ * `!!binary`, merge keys — are not here yet and throw a controlled parse error
+ * rather than mis-parsing.
  *
  * Design invariants enforced throughout (V8 rules, see doc 12):
  *   - scan the flat JS string with `charCodeAt` (never `str[i]`) and hop long
@@ -19,15 +20,24 @@
  *   - materialize each scalar with exactly one `slice` from integer offsets;
  *   - accumulate small integers as Smis (`v*10 + d`), no intermediate string;
  *   - many small monomorphic functions, cold paths (errors, escapes) out of line;
+ *   - char classification via a Uint8Array(256) flag table (V8's json scan flags);
  *   - module-level scalar state (non-reentrant, reset on entry) — no god-object
  *     with a polymorphic `result` field;
  *   - security from day one: `__proto__` never pollutes a prototype, and a hard
  *     recursion-depth cap turns deep-nesting attacks into a controlled throw.
+ *
+ * Scalar typing follows YAML 1.2 **core schema** (the repo oracle, `yaml`): so
+ * `null|Null|NULL|~` and empty → null; `true|True|TRUE|false|False|FALSE` → bool
+ * (exact case; `yes/no/on/off` stay strings); decimal/`0o`/`0x` ints, floats,
+ * and `.inf`/`.nan` are numbers; timestamps are NOT resolved (`2026-08-02` is a
+ * string). Quoted scalars are never typed. This deliberately diverges from
+ * js-yaml's 1.1-flavoured defaults (binary `0b`, `_` separators, sexagesimals,
+ * timestamp→Date); those divergences are covered by differential tests.
  */
 
 // ---------------------------------------------------------------------------
-// Character codes (named for the ones that recur; keyword letters are inlined
-// as hex at their single use site with a comment).
+// Character codes (named for the ones that recur; keyword/escape letters are
+// inlined as hex at their single use site with a comment).
 // ---------------------------------------------------------------------------
 
 const TAB = 9;
@@ -35,6 +45,8 @@ const LF = 10;
 const CR = 13;
 const SPACE = 32;
 const DQUOTE = 34; // "
+const HASH = 35; // #
+const SQUOTE = 39; // '
 const PLUS = 43; // +
 const COMMA = 44; // ,
 const MINUS = 45; // -
@@ -42,6 +54,7 @@ const DOT = 46; // .
 const ZERO = 48; // 0
 const NINE = 57; // 9
 const COLON = 58; // :
+const QUESTION = 63; // ?
 const UPPER_E = 69; // E
 const LBRACKET = 91; // [
 const BACKSLASH = 92; // \
@@ -50,6 +63,7 @@ const UNDERSCORE = 95; // _
 const LOWER_E = 101; // e
 const LBRACE = 123; // {
 const RBRACE = 125; // }
+const TILDE = 126; // ~
 const BOM = 0xfeff;
 
 /**
@@ -59,6 +73,30 @@ const BOM = 0xfeff;
  * parse error well before the engine stack limit. js-yaml ships the same guard.
  */
 const MAX_DEPTH = 1000;
+
+// ---------------------------------------------------------------------------
+// Character-class flag table — the analog of V8's `character_json_scan_flags`
+// (json-parser.cc). One 256-entry Uint8Array, branchless bit tests. All YAML
+// flow indicators are ASCII, so codes ≥ 256 read out of bounds as `undefined`
+// and `(undefined & BIT) === 0` is the correct "not special" answer.
+// ---------------------------------------------------------------------------
+
+const F_FLOW_INDICATOR = 1; // , [ ] { }
+const F_PLAIN_STOP = 2; // may terminate a flow plain scalar: , [ ] { } : # LF CR
+
+const CH = new Uint8Array(256);
+CH[COMMA] |= F_FLOW_INDICATOR | F_PLAIN_STOP;
+CH[LBRACKET] |= F_FLOW_INDICATOR | F_PLAIN_STOP;
+CH[RBRACKET] |= F_FLOW_INDICATOR | F_PLAIN_STOP;
+CH[LBRACE] |= F_FLOW_INDICATOR | F_PLAIN_STOP;
+CH[RBRACE] |= F_FLOW_INDICATOR | F_PLAIN_STOP;
+CH[COLON] |= F_PLAIN_STOP;
+CH[HASH] |= F_PLAIN_STOP;
+CH[LF] |= F_PLAIN_STOP;
+CH[CR] |= F_PLAIN_STOP;
+
+/** Sentinel returned by the number recognizers for "this span isn't a number". */
+const NOT_NUMERIC: unique symbol = Symbol("not-numeric");
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -177,13 +215,17 @@ export function stringify(_value: unknown): string {
 }
 
 // ---------------------------------------------------------------------------
-// Whitespace
+// Whitespace + comments (flow context)
 // ---------------------------------------------------------------------------
 
+function isWsOrEol(c: number): boolean {
+  return c === SPACE || c === TAB || c === LF || c === CR;
+}
+
 /**
- * Skip inter-token whitespace in flow context: spaces, tabs, and line breaks
- * (flow collections may span lines). A local cursor keeps the loop off the
- * module global until it writes back once.
+ * Skip inter-token whitespace in flow context: spaces, tabs, line breaks (flow
+ * collections may span lines) and `#` comments (to end of line). A local cursor
+ * keeps the loop off the module global until it writes back once.
  */
 function skipFlowWs(): void {
   let p = pos;
@@ -191,6 +233,11 @@ function skipFlowWs(): void {
     const c = src.charCodeAt(p);
     if (c === SPACE || c === TAB || c === LF || c === CR) {
       p++;
+      continue;
+    }
+    if (c === HASH) {
+      const nl = src.indexOf("\n", p);
+      p = nl === -1 ? len : nl + 1;
       continue;
     }
     break;
@@ -211,20 +258,26 @@ function parseFlowValue(): unknown {
       return parseFlowSeq();
     case DQUOTE:
       return parseDoubleQuoted();
-    case 0x74: // t → true
-    case 0x66: // f → false
-    case 0x6e: // n → null
-      return parseKeyword();
-    case MINUS:
-      return parseNumber();
-    default:
-      if (c >= ZERO && c <= NINE) return parseNumber();
-      fail("unexpected character");
+    case SQUOTE:
+      return parseSingleQuoted();
   }
+  // Number fast path: number-starters parse in a single forward scan. On success
+  // this skips the plain-scan + resolve double pass entirely (the hot case on
+  // JSON-shaped data). A number-starter that fails the number grammar can only be
+  // a plain string — null/bool never start with a digit/sign/dot — so we slice it
+  // directly instead of routing back through typing.
+  if ((c >= ZERO && c <= NINE) || c === MINUS || c === PLUS || c === DOT) {
+    const num = tryFlowNumber();
+    if (num !== NOT_NUMERIC) return num;
+    const start = pos;
+    const end = scanFlowPlainEnd();
+    return src.slice(start, end);
+  }
+  return parseFlowPlain();
 }
 
 // ---------------------------------------------------------------------------
-// Flow sequence  [ a, b, c ]
+// Flow sequence  [ a, b, c ]  (entries may be single-pair maps: [ a: b ])
 // ---------------------------------------------------------------------------
 
 function parseFlowSeq(): unknown[] {
@@ -238,8 +291,20 @@ function parseFlowSeq(): unknown[] {
       pos++;
       break;
     }
-    arr.push(parseFlowValue());
-    skipFlowWs();
+    if (c === COLON) {
+      // A leading `:` is an empty-key single-pair entry, e.g. `[:]` → [{"": null}].
+      arr.push(makeSinglePair("")); // leaves pos whitespace-skipped
+    } else {
+      const node = parseFlowValue();
+      skipFlowWs();
+      if (src.charCodeAt(pos) === COLON) {
+        // `node: value` inside a sequence → an implicit single-pair mapping entry.
+        arr.push(makeSinglePair(keyToString(node))); // leaves pos whitespace-skipped
+      } else {
+        // Common path: the skipFlowWs above already positioned us at ',' or ']'.
+        arr.push(node);
+      }
+    }
     c = src.charCodeAt(pos);
     if (c === COMMA) {
       pos++;
@@ -255,8 +320,23 @@ function parseFlowSeq(): unknown[] {
   return arr;
 }
 
+/**
+ * Build a single-pair mapping from a sequence entry. Call with `pos` at the `:`;
+ * consumes it, reads the value (empty → null), and returns `{ key: value }`.
+ */
+function makeSinglePair(key: string): Record<string, unknown> {
+  pos++; // past ':'
+  skipFlowWs();
+  const c = src.charCodeAt(pos);
+  const value = c === COMMA || c === RBRACKET || c === RBRACE ? null : parseFlowValue();
+  const pair: Record<string, unknown> = {};
+  storeKey(pair, key, value);
+  skipFlowWs(); // leave pos at the following ',' / ']' for the caller
+  return pair;
+}
+
 // ---------------------------------------------------------------------------
-// Flow mapping  { "k": v, ... }
+// Flow mapping  { k: v, ... }  (keys plain/quoted; values may be empty → null)
 // ---------------------------------------------------------------------------
 
 function parseFlowMap(): Record<string, unknown> {
@@ -270,12 +350,24 @@ function parseFlowMap(): Record<string, unknown> {
       pos++;
       break;
     }
-    const key = parseFlowKey();
+    let key: string;
+    if (c === QUESTION && (pos + 1 >= len || isWsOrEol(src.charCodeAt(pos + 1)))) {
+      // Explicit `? key` (cold): the key is a full node up to ':'/','/'}'.
+      pos++;
+      skipFlowWs();
+      c = src.charCodeAt(pos);
+      key = c === COLON || c === COMMA || c === RBRACE ? "" : keyToString(parseFlowValue());
+    } else {
+      key = parseFlowKey();
+    }
     skipFlowWs();
-    if (src.charCodeAt(pos) !== COLON) fail("expected ':' in flow mapping");
-    pos++;
-    skipFlowWs();
-    const value = parseFlowValue();
+    let value: unknown = null;
+    if (src.charCodeAt(pos) === COLON) {
+      pos++;
+      skipFlowWs();
+      c = src.charCodeAt(pos);
+      if (c !== COMMA && c !== RBRACE) value = parseFlowValue();
+    }
     storeKey(obj, key, value);
     skipFlowWs();
     c = src.charCodeAt(pos);
@@ -313,10 +405,22 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
   }
 }
 
-/** A flow mapping key. JSON keys are double-quoted; interned into the cache. */
+/** Coerce a resolved node into a mapping key string (JS object-key semantics). */
+function keyToString(node: unknown): string {
+  if (typeof node === "string") return node;
+  if (node === null) return "null";
+  return String(node);
+}
+
+/** A flow mapping key: double-quoted, single-quoted, or a plain scalar (raw). */
 function parseFlowKey(): string {
-  if (src.charCodeAt(pos) === DQUOTE) return internKey(parseDoubleQuoted());
-  fail("expected a string key in flow mapping");
+  const c = src.charCodeAt(pos);
+  if (c === DQUOTE) return internKey(parseDoubleQuoted());
+  if (c === SQUOTE) return internKey(parseSingleQuoted());
+  const start = pos;
+  const end = scanFlowPlainEnd();
+  if (end === start) fail("expected a mapping key");
+  return internKey(src.slice(start, end));
 }
 
 /** Return the cached copy of `s` if seen this parse, else record and return it. */
@@ -325,6 +429,412 @@ function internKey(s: string): string {
   if (hit !== undefined) return hit;
   keyCache.set(s, s);
   return s;
+}
+
+// ---------------------------------------------------------------------------
+// Plain scalars (flow context) — scan the span, then type it once.
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan a flow-context plain scalar and return the exclusive end of its trimmed
+ * content (trailing spaces/tabs excluded); advances `pos` to the terminator.
+ * A plain scalar ends at a flow indicator (`,[]{}`), a line break, a `:`
+ * followed by a separator, or a ` #` comment. Single-line only for now (flow
+ * plain scalars can fold across lines; unused by the fixtures — deferred).
+ */
+function scanFlowPlainEnd(): number {
+  const start = pos;
+  let p = pos;
+  // Hot loop: one flag-table lookup per char. Codes ≥ 256 read out of bounds as
+  // `undefined`, and `(undefined & BIT) === 0` correctly says "not a stop char",
+  // so non-ASCII needs no guard. Only stop-candidates pay the detailed check.
+  while (p < len) {
+    const c = src.charCodeAt(p);
+    if ((CH[c] & F_PLAIN_STOP) !== 0) {
+      if (c === COLON) {
+        // A ':' ends the scalar only when followed by a separator.
+        const nc = p + 1 < len ? src.charCodeAt(p + 1) : -1;
+        if (nc === -1 || nc === SPACE || nc === TAB || nc === LF || nc === CR || (CH[nc] & F_FLOW_INDICATOR) !== 0) break;
+      } else if (c === HASH) {
+        if (p > start) {
+          const prev = src.charCodeAt(p - 1);
+          if (prev === SPACE || prev === TAB) break; // ` #` starts a comment
+        }
+      } else {
+        break; // , [ ] { } LF CR always terminate
+      }
+    }
+    p++;
+  }
+  pos = p;
+  // Trim trailing spaces/tabs (rare; walked back once instead of tracked per char).
+  let e = p;
+  while (e > start) {
+    const w = src.charCodeAt(e - 1);
+    if (w !== SPACE && w !== TAB) break;
+    e--;
+  }
+  return e;
+}
+
+function parseFlowPlain(): unknown {
+  const start = pos;
+  const end = scanFlowPlainEnd();
+  if (end === start) fail("expected a value");
+  return resolvePlain(start, end);
+}
+
+/**
+ * Type a plain scalar span [start, end) per YAML 1.2 core schema, returning the
+ * JS value. First-char dispatch, zero regex, zero intermediate strings: a
+ * non-string scalar never allocates a string, a genuine string is one slice.
+ */
+function resolvePlain(start: number, end: number): unknown {
+  if (start >= end) return null;
+  const c0 = src.charCodeAt(start);
+  // Number-starters first (dense in real data): digit, sign, or leading dot.
+  if ((c0 >= ZERO && c0 <= NINE) || c0 === MINUS || c0 === PLUS || c0 === DOT) {
+    const num = tryNumber(start, end);
+    if (num !== NOT_NUMERIC) return num;
+    return src.slice(start, end);
+  }
+  const L = end - start;
+  switch (c0) {
+    case TILDE:
+      if (L === 1) return null;
+      break;
+    case 0x6e: // n → null
+      if (L === 4 && src.charCodeAt(start + 1) === 0x75 && src.charCodeAt(start + 2) === 0x6c && src.charCodeAt(start + 3) === 0x6c) {
+        return null;
+      }
+      break;
+    case 0x4e: {
+      // N → NULL | Null
+      if (L === 4) {
+        const b = src.charCodeAt(start + 1);
+        const c = src.charCodeAt(start + 2);
+        const d = src.charCodeAt(start + 3);
+        if ((b === 0x55 && c === 0x4c && d === 0x4c) || (b === 0x75 && c === 0x6c && d === 0x6c)) return null;
+      }
+      break;
+    }
+    case 0x74: // t → true
+      if (L === 4 && src.charCodeAt(start + 1) === 0x72 && src.charCodeAt(start + 2) === 0x75 && src.charCodeAt(start + 3) === 0x65) {
+        return true;
+      }
+      break;
+    case 0x54: {
+      // T → TRUE | True
+      if (L === 4) {
+        const b = src.charCodeAt(start + 1);
+        const c = src.charCodeAt(start + 2);
+        const d = src.charCodeAt(start + 3);
+        if ((b === 0x52 && c === 0x55 && d === 0x45) || (b === 0x72 && c === 0x75 && d === 0x65)) return true;
+      }
+      break;
+    }
+    case 0x66: // f → false
+      if (
+        L === 5 &&
+        src.charCodeAt(start + 1) === 0x61 &&
+        src.charCodeAt(start + 2) === 0x6c &&
+        src.charCodeAt(start + 3) === 0x73 &&
+        src.charCodeAt(start + 4) === 0x65
+      ) {
+        return false;
+      }
+      break;
+    case 0x46: {
+      // F → FALSE | False
+      if (L === 5) {
+        const b = src.charCodeAt(start + 1);
+        const c = src.charCodeAt(start + 2);
+        const d = src.charCodeAt(start + 3);
+        const e = src.charCodeAt(start + 4);
+        if ((b === 0x41 && c === 0x4c && d === 0x53 && e === 0x45) || (b === 0x61 && c === 0x6c && d === 0x73 && e === 0x65)) {
+          return false;
+        }
+      }
+      break;
+    }
+  }
+  return src.slice(start, end);
+}
+
+// ---------------------------------------------------------------------------
+// Numbers — 1.2 core schema (decimal/0o/0x ints, floats, .inf/.nan). Validates
+// the whole span; returns NOT_NUMERIC so a non-number plain scalar stays a
+// string. Small decimal integers accumulate as Smis (no string, no allocation).
+// ---------------------------------------------------------------------------
+
+/** Hex digit value, or -1 if `c` is not a hex digit. */
+function hexDigit(c: number): number {
+  if (c >= ZERO && c <= NINE) return c - ZERO;
+  if (c >= 0x61 && c <= 0x66) return c - 0x57; // a-f
+  if (c >= 0x41 && c <= 0x46) return c - 0x37; // A-F
+  return -1;
+}
+
+/**
+ * Whether position `p` is a valid end for a number in flow context. A bare
+ * space/tab is only an end if what *follows* it is a delimiter/comment/colon
+ * (else `123 456` would wrongly read as the number 123); a `:` ends the number
+ * (making it a single-pair key) only when it is itself a separator colon.
+ */
+function numberBoundary(p: number): boolean {
+  if (p >= len) return true;
+  const c = src.charCodeAt(p);
+  if (c === COMMA || c === RBRACKET || c === RBRACE || c === LF || c === CR) return true;
+  if (c === SPACE || c === TAB) {
+    let q = p + 1;
+    while (q < len) {
+      const w = src.charCodeAt(q);
+      if (w === SPACE || w === TAB) {
+        q++;
+        continue;
+      }
+      break;
+    }
+    if (q >= len) return true;
+    const nc = src.charCodeAt(q);
+    return nc === COMMA || nc === RBRACKET || nc === RBRACE || nc === LF || nc === CR || nc === HASH || nc === COLON;
+  }
+  if (c === COLON) {
+    const nc = p + 1 < len ? src.charCodeAt(p + 1) : -1;
+    return nc === -1 || nc === SPACE || nc === TAB || nc === LF || nc === CR || (CH[nc] & F_FLOW_INDICATOR) !== 0;
+  }
+  return false;
+}
+
+/**
+ * Flow number fast path: parse a number starting at `pos`, verifying it ends at
+ * a flow boundary. On success advances `pos` and returns the value; on failure
+ * returns NOT_NUMERIC with `pos` unchanged (the caller then treats the span as a
+ * plain string). Small decimal integers accumulate as Smis — no string, no
+ * allocation — the single-pass equivalent of the M1 number path.
+ */
+function tryFlowNumber(): number | typeof NOT_NUMERIC {
+  const start = pos;
+  let p = start;
+  let c = src.charCodeAt(p);
+  const neg = c === MINUS;
+  const signed = neg || c === PLUS;
+  if (signed) {
+    p++;
+    c = src.charCodeAt(p);
+  }
+
+  // Hex / octal are unsigned only.
+  if (!signed && c === ZERO) {
+    const n2 = src.charCodeAt(p + 1);
+    if (n2 === 0x78) {
+      // 0x…
+      let q = p + 2;
+      let v = 0;
+      let any = false;
+      while (q < len) {
+        const d = hexDigit(src.charCodeAt(q));
+        if (d < 0) break;
+        v = v * 16 + d;
+        q++;
+        any = true;
+      }
+      if (any && numberBoundary(q)) {
+        pos = q;
+        return v;
+      }
+      return NOT_NUMERIC;
+    }
+    if (n2 === 0x6f) {
+      // 0o…
+      let q = p + 2;
+      let v = 0;
+      let any = false;
+      while (q < len) {
+        const ch = src.charCodeAt(q);
+        if (ch < ZERO || ch > 0x37) break;
+        v = v * 8 + (ch - ZERO);
+        q++;
+        any = true;
+      }
+      if (any && numberBoundary(q)) {
+        pos = q;
+        return v;
+      }
+      return NOT_NUMERIC;
+    }
+  }
+
+  // .inf / .nan
+  if (c === DOT) {
+    const a = src.charCodeAt(p + 1);
+    const b = src.charCodeAt(p + 2);
+    const d = src.charCodeAt(p + 3);
+    if (isInfWord(a, b, d) && numberBoundary(p + 4)) {
+      pos = p + 4;
+      return neg ? -Infinity : Infinity;
+    }
+    if (!signed && isNanWord(a, b, d) && numberBoundary(p + 4)) {
+      pos = p + 4;
+      return NaN;
+    }
+  }
+
+  // Decimal integer / float.
+  let v = 0;
+  let nd = 0;
+  while (p < len) {
+    const d = src.charCodeAt(p) - ZERO;
+    if (d < 0 || d > 9) break;
+    v = v * 10 + d;
+    nd++;
+    p++;
+  }
+  let isFloat = false;
+  if (src.charCodeAt(p) === DOT) {
+    isFloat = true;
+    p++;
+    while (p < len) {
+      const d = src.charCodeAt(p) - ZERO;
+      if (d < 0 || d > 9) break;
+      nd++;
+      p++;
+    }
+  }
+  if (nd === 0) return NOT_NUMERIC;
+  const ec = src.charCodeAt(p);
+  if (ec === LOWER_E || ec === UPPER_E) {
+    isFloat = true;
+    p++;
+    const s = src.charCodeAt(p);
+    if (s === PLUS || s === MINUS) p++;
+    const expStart = p;
+    while (p < len) {
+      const d = src.charCodeAt(p) - ZERO;
+      if (d < 0 || d > 9) break;
+      p++;
+    }
+    if (p === expStart) return NOT_NUMERIC;
+  }
+  // Inline the hot terminator case (comma/close/EOL/EOF) to skip the call; only
+  // the ambiguous space/colon cases fall through to the full boundary check.
+  const bc = p < len ? src.charCodeAt(p) : -1;
+  if (bc !== -1 && bc !== COMMA && bc !== RBRACKET && bc !== RBRACE && bc !== LF && bc !== CR && !numberBoundary(p)) {
+    return NOT_NUMERIC;
+  }
+  pos = p;
+  if (!isFloat && nd <= 15) return neg ? -v : v;
+  return +src.slice(start, p);
+}
+
+function tryNumber(start: number, end: number): number | typeof NOT_NUMERIC {
+  let p = start;
+  let c = src.charCodeAt(p);
+  const neg = c === MINUS;
+  const signed = neg || c === PLUS;
+  if (signed) {
+    p++;
+    if (p >= end) return NOT_NUMERIC;
+    c = src.charCodeAt(p);
+  }
+
+  // Hex / octal are unsigned only (1.2 core: `0x…`, `0o…`).
+  if (!signed && c === ZERO && p + 1 < end) {
+    const n2 = src.charCodeAt(p + 1);
+    if (n2 === 0x78) return hexValue(p + 2, end); // 0x
+    if (n2 === 0x6f) return octalValue(p + 2, end); // 0o
+  }
+
+  // .inf / .nan (nan takes no sign).
+  if (c === DOT && end - p === 4) {
+    const a = src.charCodeAt(p + 1);
+    const b = src.charCodeAt(p + 2);
+    const d = src.charCodeAt(p + 3);
+    if (isInfWord(a, b, d)) return neg ? -Infinity : Infinity;
+    if (!signed && isNanWord(a, b, d)) return NaN;
+  }
+
+  // Decimal integer / float.
+  let v = 0;
+  let nd = 0;
+  while (p < end) {
+    const d = src.charCodeAt(p) - ZERO;
+    if (d < 0 || d > 9) break;
+    v = v * 10 + d;
+    nd++;
+    p++;
+  }
+  let isFloat = false;
+  if (p < end && src.charCodeAt(p) === DOT) {
+    isFloat = true;
+    p++;
+    while (p < end) {
+      const d = src.charCodeAt(p) - ZERO;
+      if (d < 0 || d > 9) break;
+      nd++;
+      p++;
+    }
+  }
+  if (nd === 0) return NOT_NUMERIC; // ".", "..", ".e5", lone sign, "0x" with no digits
+  if (p < end) {
+    const e = src.charCodeAt(p);
+    if (e === LOWER_E || e === UPPER_E) {
+      isFloat = true;
+      p++;
+      if (p < end) {
+        const s = src.charCodeAt(p);
+        if (s === PLUS || s === MINUS) p++;
+      }
+      const expStart = p;
+      while (p < end) {
+        const d = src.charCodeAt(p) - ZERO;
+        if (d < 0 || d > 9) break;
+        p++;
+      }
+      if (p === expStart) return NOT_NUMERIC; // "1e", "1e+"
+    }
+  }
+  if (p !== end) return NOT_NUMERIC; // trailing junk: "1.2.3", "123abc", "0b1"
+  if (!isFloat && nd <= 15) return neg ? -v : v; // exact small decimal integer → Smi
+  return +src.slice(start, end); // float or > 15-digit integer → Number() (rounds like JSON.parse)
+}
+
+function hexValue(p: number, end: number): number | typeof NOT_NUMERIC {
+  if (p >= end) return NOT_NUMERIC;
+  let v = 0;
+  while (p < end) {
+    const c = src.charCodeAt(p);
+    let d: number;
+    if (c >= ZERO && c <= NINE) d = c - ZERO;
+    else if (c >= 0x61 && c <= 0x66) d = c - 0x57; // a-f
+    else if (c >= 0x41 && c <= 0x46) d = c - 0x37; // A-F
+    else return NOT_NUMERIC;
+    v = v * 16 + d;
+    p++;
+  }
+  return v;
+}
+
+function octalValue(p: number, end: number): number | typeof NOT_NUMERIC {
+  if (p >= end) return NOT_NUMERIC;
+  let v = 0;
+  while (p < end) {
+    const c = src.charCodeAt(p);
+    if (c < ZERO || c > 0x37) return NOT_NUMERIC; // not 0-7
+    v = v * 8 + (c - ZERO);
+    p++;
+  }
+  return v;
+}
+
+function isInfWord(a: number, b: number, d: number): boolean {
+  // .inf | .Inf | .INF
+  return (a === 0x69 && b === 0x6e && d === 0x66) || (a === 0x49 && b === 0x6e && d === 0x66) || (a === 0x49 && b === 0x4e && d === 0x46);
+}
+
+function isNanWord(a: number, b: number, d: number): boolean {
+  // .nan | .NaN | .NAN
+  return (a === 0x6e && b === 0x61 && d === 0x6e) || (a === 0x4e && b === 0x61 && d === 0x4e) || (a === 0x4e && b === 0x41 && d === 0x4e);
 }
 
 // ---------------------------------------------------------------------------
@@ -354,7 +864,7 @@ function parseDoubleQuoted(): string {
  * Cold path: the string contains at least one escape, so the first `indexOf('"')`
  * may have landed on an escaped quote. Walk it, copying spans between escapes and
  * decoding each escape. JSON escape set for now; YAML's extra escapes and
- * line-folding land in M2.
+ * line-folding land in a later milestone.
  */
 function parseDoubleQuotedSlow(start: number): string {
   let result = "";
@@ -438,102 +948,38 @@ function hexVal(c: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Numbers — Smi accumulation for small integers, single slice for floats/bignum.
+// Single-quoted scalar — indexOf hop; `''` is an escaped quote. (Single-line
+// for now; multi-line single-quoted folding is a later milestone.)
 // ---------------------------------------------------------------------------
 
-function parseNumber(): number {
-  const start = pos;
-  let p = pos;
-  let c = src.charCodeAt(p);
-  const neg = c === MINUS;
-  if (neg) {
-    p++;
-    c = src.charCodeAt(p);
+function parseSingleQuoted(): string {
+  const start = pos + 1;
+  const e = src.indexOf("'", start);
+  if (e === -1) fail("unterminated single-quoted string");
+  if (e + 1 < len && src.charCodeAt(e + 1) === SQUOTE) {
+    return parseSingleQuotedSlow(start); // contains a '' escape
   }
-  // Integer digits accumulate exactly in a double up to 15 significant digits
-  // (< 2^53); int32-range results are Smis — zero allocation, zero string.
-  let v = 0;
-  let nd = 0;
-  while (c >= ZERO && c <= NINE) {
-    v = v * 10 + (c - ZERO);
-    nd++;
-    p++;
-    c = src.charCodeAt(p);
-  }
-  if (c === DOT || c === LOWER_E || c === UPPER_E) {
-    // Fraction / exponent → validate the shape, then let Number() convert once.
-    // Number() is the converter, never the validator (it accepts "Infinity"
-    // etc., which must stay strings), so we scan the grammar ourselves first.
-    if (c === DOT) {
-      p++;
-      c = src.charCodeAt(p);
-      while (c >= ZERO && c <= NINE) {
-        p++;
-        c = src.charCodeAt(p);
-      }
-    }
-    if (c === LOWER_E || c === UPPER_E) {
-      p++;
-      c = src.charCodeAt(p);
-      if (c === PLUS || c === MINUS) {
-        p++;
-        c = src.charCodeAt(p);
-      }
-      let ed = 0;
-      while (c >= ZERO && c <= NINE) {
-        p++;
-        c = src.charCodeAt(p);
-        ed++;
-      }
-      if (ed === 0) fail("missing exponent digits in number");
-    }
-    pos = p;
-    return +src.slice(start, p);
-  }
-  if (nd === 0) fail("invalid number");
-  pos = p;
-  if (nd <= 15) return neg ? -v : v;
-  return +src.slice(start, p); // > 15 digits: let Number() round like JSON.parse
+  pos = e + 1;
+  return src.slice(start, e);
 }
 
-// ---------------------------------------------------------------------------
-// Keywords — true / false / null (the only unquoted non-number JSON tokens).
-// M2 folds these into plain-scalar typing (resolvePlain).
-// ---------------------------------------------------------------------------
-
-function parseKeyword(): unknown {
-  const c = src.charCodeAt(pos);
-  if (c === 0x74) {
-    // true
-    if (
-      src.charCodeAt(pos + 1) === 0x72 &&
-      src.charCodeAt(pos + 2) === 0x75 &&
-      src.charCodeAt(pos + 3) === 0x65
-    ) {
-      pos += 4;
-      return true;
+function parseSingleQuotedSlow(start: number): string {
+  let result = "";
+  let seg = start;
+  let i = start;
+  for (;;) {
+    if (i >= len) fail("unterminated single-quoted string");
+    if (src.charCodeAt(i) === SQUOTE) {
+      if (i + 1 < len && src.charCodeAt(i + 1) === SQUOTE) {
+        result += src.slice(seg, i) + "'"; // '' → '
+        i += 2;
+        seg = i;
+        continue;
+      }
+      result += src.slice(seg, i);
+      pos = i + 1;
+      return result;
     }
-  } else if (c === 0x66) {
-    // false
-    if (
-      src.charCodeAt(pos + 1) === 0x61 &&
-      src.charCodeAt(pos + 2) === 0x6c &&
-      src.charCodeAt(pos + 3) === 0x73 &&
-      src.charCodeAt(pos + 4) === 0x65
-    ) {
-      pos += 5;
-      return false;
-    }
-  } else {
-    // null
-    if (
-      src.charCodeAt(pos + 1) === 0x75 &&
-      src.charCodeAt(pos + 2) === 0x6c &&
-      src.charCodeAt(pos + 3) === 0x6c
-    ) {
-      pos += 4;
-      return null;
-    }
+    i++;
   }
-  fail("invalid token");
 }
