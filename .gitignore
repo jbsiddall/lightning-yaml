@@ -12,3 +12,4 @@ results/
 
 # Local calibration/scratch scripts (not part of the committed harness)
 .scratch/
+*.scratch.*
