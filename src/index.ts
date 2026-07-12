@@ -10,11 +10,12 @@
  *   - `stringify(value)` — the dumper is a later milestone; still a stub.
  *
  * Implementation status: the flow layer (JSON subset + YAML flow), block
- * structure (M3+), block-scalar rejection, and now document markers (`---`/
- * `...`), `%YAML`/`%TAG` directives, and multi-document streams (M5) are
- * implemented. The remaining rich surface — anchors/aliases, tags (`!!binary`
- * and friends), merge keys, and literal/folded block scalars (`|`/`>`) — is not
- * here yet and throws a controlled parse error rather than mis-parsing.
+ * structure (M3+), literal/folded block scalars (`|`/`>`, M4), document
+ * markers (`---`/`...`), `%YAML`/`%TAG` directives, multi-document streams,
+ * and now anchors/aliases (`&`/`*`, M5 — including self-referential/cyclic
+ * anchors and structural sharing) are implemented. The remaining rich surface
+ * — tags (`!!binary` and friends) and merge keys — is not here yet and throws
+ * a controlled parse error (or is read as plain text) rather than mis-parsing.
  *
  * Design invariants enforced throughout (V8 rules, see doc 12):
  *   - scan the flat JS string with `charCodeAt` (never `str[i]`) and hop long
@@ -49,7 +50,9 @@ const SPACE = 32;
 const DQUOTE = 34; // "
 const HASH = 35; // #
 const PERCENT = 37; // %
+const AMP = 38; // & (anchor indicator)
 const SQUOTE = 39; // '
+const STAR = 42; // * (alias indicator)
 const PLUS = 43; // +
 const COMMA = 44; // ,
 const MINUS = 45; // -
@@ -186,7 +189,7 @@ let keyCache: Map<string, string> = new Map();
 /**
  * `%TAG <handle> <prefix>` is per-document state (doc 07 §4) — never
  * inherited across documents in a stream. Created lazily (pay-on-first-use,
- * like `anchorMap` will be) and stored only so a later milestone can resolve
+ * like `anchorMap`) and stored only so a later milestone can resolve
  * `!handle!suffix` tags against it; nothing reads it yet, but storing it must
  * not require tags to be implemented (design recipe). Reset at the start of
  * every document's `parseDirectives` call, not just per-stream. (`%YAML
@@ -194,6 +197,99 @@ let keyCache: Map<string, string> = new Map();
  * throughout this milestone and nothing yet branches on the declared version.)
  */
 let tagHandles: Map<string, string> | null = null;
+
+/**
+ * `&name` → node registry (M5). Lazily created — stays `null` until the first
+ * `&` is actually seen (pay-on-first-use, doc 07 §5: "js-yaml allocates
+ * per-doc anchor/tag maps always" is exactly the allocation this avoids on
+ * anchor-free input, the overwhelming case). An anchor is per-DOCUMENT state,
+ * not per-stream (yaml-test-suite-style behaviour, verified against the
+ * oracle: an alias cannot resolve an anchor defined in an earlier `---`
+ * document) — reset in `parseDirectives`, which already runs once at the
+ * start of every document for the identical reason `tagHandles` resets there.
+ * Redefining a name (a later `&a` shadowing an earlier one) is legal — a plain
+ * `Map.set` overwrite, no special-casing needed; only subsequent aliases see
+ * the new value, matching the oracle.
+ */
+let anchorMap: Map<string, unknown> | null = null;
+
+/**
+ * The name of an in-flight `&anchor` property, waiting for the node it
+ * decorates to be identified — set by `parseAnchoredBlockNode`/
+ * `parseAnchoredFlowValue` right after the name is scanned, and consumed by
+ * whichever "leaf" materializes next: a container (`parseFlowSeq`/
+ * `parseFlowMap`/`parseBlockSeq`/`parseBlockMap`) registers it to itself
+ * IMMEDIATELY on allocation, before parsing any children — this is what makes
+ * a self-referential anchor (`&a [*a]`, `&a {self: *a}`) resolve to the SAME
+ * (still-being-built) object rather than failing as "undefined alias" (doc 07
+ * §5). A scalar/quoted/block-scalar leaf has no children to protect, so it is
+ * registered via `registerPendingAnchor` at the point its value is known,
+ * which is equally correct and simpler. `registerPendingAnchor` is a no-op
+ * (single `!== null` compare) whenever nothing is pending — predicted-false on
+ * every anchor-free node, so this costs nothing on JSON-shaped input.
+ *
+ * A single global slot is NOT enough on its own: in block context an anchor
+ * can be waiting for a MAPPING that is only discovered after its first KEY —
+ * which may ITSELF carry a nested, unrelated anchor (`top: &node1\n  &k1
+ * key1: v` — `k1` decorates the key scalar "key1", `node1` decorates the
+ * enclosing map, discovered only once `key1` is already fully resolved).
+ * `parseAnchoredBlockNode`/`parseAnchoredFlowValue` therefore save the
+ * PREVIOUS value of this slot before overwriting it and restore it afterward
+ * (a stack, implemented via the JS call stack rather than an explicit array)
+ * so an inner anchor's consume-and-clear can never clobber an outer one that
+ * is still waiting.
+ */
+let pendingAnchorName: string | null = null;
+
+/**
+ * Set by `parseAnchoredBlockNode` immediately before recursing into the node
+ * that follows a property on the SAME source line (never for a DEFERRED
+ * property, alone on its own line — see below); consumed (then cleared) by
+ * the very next `parseBlockNode` call only, so it never leaks into deeper
+ * recursion. Two, empirically-calibrated (against the oracle) uses:
+ *
+ *  1. A block SEQUENCE may not start inline right after a property (`&a - x`
+ *     errors, oracle: "Missing newline after block sequence props"), but a
+ *     block MAPPING may (`&a key: v` is fine) — a narrower, ORTHOGONAL
+ *     restriction from `ROOT_AFTER_INLINE_MARKER` (which forbids both forms
+ *     after a `---` marker), so it travels as its own flag rather than a
+ *     `parentCol` sentinel: `parentCol` must stay the REAL enclosing column
+ *     here, because (unlike the marker, which only ever sits at the fixed
+ *     document root) an anchor can occur at ANY nesting depth, and
+ *     multi-line plain-scalar folding / block indentation comparisons
+ *     downstream read `parentCol` as a real number — substituting a
+ *     sentinel there would corrupt them.
+ *  2. Whether a plain/quoted scalar that turns out to be a block mapping's
+ *     FIRST KEY may claim a still-pending anchor for ITSELF, or must leave it
+ *     for the MAP being opened (claimed by `parseBlockMap`'s own
+ *     self-registration instead). Proven by two oracle probes that produce
+ *     DIFFERENT owners for the seemingly-identical text "&x k: v": SAME-LINE
+ *     (`&a a: b`, yaml-test-suite ZH7C) → the anchor decorates the KEY scalar
+ *     "a"; DEFERRED (`cfg: &a2\n  region: v`) → the anchor decorates the
+ *     MAP `{region: v, ...}` as a whole (confirmed by aliasing each case and
+ *     observing which value comes back — a `toEqual` diff alone can't tell
+ *     the two apart). So the key-branches only call `registerPendingAnchor`
+ *     on the candidate key when this flag is set.
+ */
+let afterInlineProperty = false;
+
+/**
+ * The column of a node's LEADING PROPERTY (`&name`), when it differs from the
+ * column `parseBlockNode` would otherwise compute for the node that follows it
+ * on the same line — `-1` means "no override, compute normally." A block
+ * mapping's/sequence's column is the position sibling entries must align to;
+ * for an anchored map (`&a a: b` at column 0, key text "a" itself landing at
+ * column 3 after `"&a "`), that column is the PROPERTY's, not the resolved
+ * key's — otherwise a sibling key back at column 0 (`c: &d d`) reads as a
+ * dedent and wrongly ends the mapping after just one entry (a real bug this
+ * feature's own test suite caught: `&a a: b\nc: &d d\n` must parse as ONE
+ * two-key map, not one key followed by a bogus "second document"). Set by
+ * `parseAnchoredBlockNode` right before its SAME-LINE recursive call, and
+ * consumed (cleared) by the very next `parseBlockNode` call only — the
+ * DEFERRED case needs no override, since a node starting fresh on its own
+ * line already has the right column with nothing consumed ahead of it.
+ */
+let colOverride = -1;
 
 /**
  * Whether `parseNextDocument` may currently start a document with NO marker
@@ -248,6 +344,10 @@ function resetForStream(text: string): void {
   lineStart = 0;
   keyCache = new Map();
   tagHandles = null;
+  anchorMap = null;
+  pendingAnchorName = null;
+  afterInlineProperty = false;
+  colOverride = -1;
   bareDocAllowed = true;
 
   // Skip a leading BOM without copying the input.
@@ -333,6 +433,95 @@ function skipFlowWs(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Anchors (`&name`) and aliases (`*name`) — M5. Node properties are a seam for
+// F4 (tags): a `!tag` may precede OR follow an anchor (both orders are legal
+// YAML — spec `c-ns-properties`), but tags aren't implemented yet, so no `!`
+// handling is added here; a future `parseNodeProperties`-style merge just
+// needs to also try a leading/trailing `!tag` around the `&name` scan below,
+// in both the flow and block property-dispatch functions. For now a bare `!`
+// falls through to whatever `parseFlowValue`/`parseBlockNode` already did with
+// it pre-F4 (plain-scalar text — no special casing, per the design recipe).
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan an anchor/alias name starting at `pos` (just past the `&`/`*`
+ * indicator) and return it, advancing `pos` to its end. Terminates at
+ * whitespace, a line break, or a flow indicator (`,[]{}` — reusing the same
+ * `F_FLOW_INDICATOR` bit the flow scanners already use); notably NOT at a
+ * `:` — anchor/alias names may contain colons (calibrated against the oracle:
+ * `&an:chor`, `&a:` are both valid names, the colon simply isn't special to
+ * this grammar production the way it is to a plain scalar). Empty (nothing
+ * before the first terminator) is a parse error, matching the oracle ("Anchor
+ * cannot be an empty string").
+ */
+function scanAnchorOrAliasName(): string {
+  const start = pos;
+  while (pos < len) {
+    const c = src.charCodeAt(pos);
+    if (c === SPACE || c === TAB || c === LF || c === CR) break;
+    if ((CH[c] & F_FLOW_INDICATOR) !== 0) break;
+    pos++;
+  }
+  if (pos === start) fail("expected an anchor or alias name");
+  return src.slice(start, pos);
+}
+
+/** Store `value` under `name` in the (lazily-created) anchor registry. */
+function registerAnchor(name: string, value: unknown): void {
+  if (anchorMap === null) anchorMap = new Map();
+  anchorMap.set(name, value);
+}
+
+/**
+ * If an anchor is currently waiting for the next node (see `pendingAnchorName`'s
+ * doc comment), register `value` under it and clear the slot; otherwise a
+ * no-op. Called at every point a node's final identity becomes known: container
+ * allocation (before children, for cyclic structural sharing) and scalar/quoted/
+ * block-scalar/key resolution. Single `!== null` check — free on anchor-free input.
+ */
+function registerPendingAnchor<T>(value: T): T {
+  if (pendingAnchorName !== null) {
+    registerAnchor(pendingAnchorName, value);
+    pendingAnchorName = null;
+  }
+  return value;
+}
+
+/**
+ * `*name` — resolve an alias to the SAME reference its anchor registered
+ * (structural sharing, O(1) `Map.get`; never a deep copy). An alias to an
+ * unknown/undefined anchor is a hard error (STRICTNESS: js-yaml v5 and the
+ * oracle both reject this; a real negative-suite win over leniency).
+ */
+function parseAlias(): unknown {
+  pos++; // past '*'
+  const name = scanAnchorOrAliasName();
+  if (anchorMap === null || !anchorMap.has(name)) fail(`unresolved alias '*${name}' (no matching anchor)`);
+  return anchorMap.get(name);
+}
+
+/**
+ * `&name <node>` in flow context. Flow has no "is this a container" ambiguity
+ * (a `{`/`[` unambiguously self-registers before any nested content, including
+ * a nested anchor, is parsed — see `registerPendingAnchor`'s doc comment), so
+ * the save/restore below is a defensive no-op in practice for flow, but costs
+ * nothing and keeps this symmetric with the block version, which genuinely
+ * needs it.
+ */
+function parseAnchoredFlowValue(): unknown {
+  pos++; // past '&'
+  const name = scanAnchorOrAliasName();
+  skipFlowWs(); // names may be followed by a line break inside a flow collection
+  if (src.charCodeAt(pos) === STAR) fail("an alias node cannot carry an anchor property");
+  const outerPending = pendingAnchorName;
+  pendingAnchorName = name;
+  const node = parseFlowValue();
+  if (pendingAnchorName === name) registerAnchor(name, node); // scalar leaf: not yet consumed
+  pendingAnchorName = outerPending;
+  return node;
+}
+
+// ---------------------------------------------------------------------------
 // Flow value dispatch — one switch on the current char, never a trial chain.
 // ---------------------------------------------------------------------------
 
@@ -347,6 +536,10 @@ function parseFlowValue(): unknown {
       return parseDoubleQuoted();
     case SQUOTE:
       return parseSingleQuoted();
+    case AMP:
+      return parseAnchoredFlowValue();
+    case STAR:
+      return parseAlias();
   }
   // Number fast path: number-starters parse in a single forward scan. On success
   // this skips the plain-scan + resolve double pass entirely (the hot case on
@@ -371,6 +564,7 @@ function parseFlowSeq(): unknown[] {
   if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
   pos++; // past '['
   const arr: unknown[] = []; // built with push → stays PACKED
+  registerPendingAnchor(arr); // before children, so `&a [*a]` self-references correctly
   for (;;) {
     skipFlowWs();
     let c = src.charCodeAt(pos);
@@ -447,6 +641,7 @@ function parseFlowMap(): Record<string, unknown> {
   if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
   pos++; // past '{'
   const obj: Record<string, unknown> = {};
+  registerPendingAnchor(obj); // before children, so `&a {self: *a}` self-references correctly
   for (;;) {
     skipFlowWs();
     let c = src.charCodeAt(pos);
@@ -525,20 +720,57 @@ function keyToString(node: unknown): string {
  * plain value and then canonicalized to a string (so `00`, `0x10`, `True`, `~`
  * become `"0"`, `"16"`, `"true"`, `""` — matching the oracle). Quoted keys are
  * NOT typed (a quoted scalar is always a string), so they take a different path.
+ *
+ * `registerPendingAnchor` runs on the RAW resolved value, before `keyToString`
+ * — an anchored key (`&a 5: x`) must register the number 5, not the string
+ * "5", so a later alias used as a plain VALUE elsewhere still resolves to a
+ * number (only USE as a key applies `keyToString`, same as any other node).
  */
 function plainKey(start: number, end: number): string {
-  return internKey(keyToString(resolvePlain(start, end)));
+  return internKey(keyToString(registerPendingAnchor(resolvePlain(start, end))));
 }
 
-/** A flow mapping key: double-quoted, single-quoted, or a plain scalar. */
+/** A flow mapping key: an anchor/alias, double-quoted, single-quoted, or a plain scalar. */
 function parseFlowKey(): string {
   const c = src.charCodeAt(pos);
+  if (c === AMP) return parseFlowKeyAnchored();
+  if (c === STAR) return internKey(keyToString(parseAlias()));
   if (c === DQUOTE) return internKey(parseDoubleQuoted());
   if (c === SQUOTE) return internKey(parseSingleQuoted());
   const start = pos;
   const end = scanFlowPlainEnd();
   if (end === start) fail("expected a mapping key");
   return plainKey(start, end);
+}
+
+/**
+ * `&name <key>` as a flow mapping key (`{ &e e: f }`). Bypasses `parseFlowKey`'s
+ * ordinary dispatch (which returns an already-canonicalized string) because the
+ * anchor must register the RAW node, matching `plainKey`'s reasoning above; the
+ * quoted-scalar sub-cases call the leaf parsers directly (never through
+ * `parseFlowValue`) for the same reason `parseBlockNode`'s equivalent branch
+ * does, so `registerPendingAnchor` is applied explicitly here rather than
+ * inherited "for free" from a container's own self-registration.
+ */
+function parseFlowKeyAnchored(): string {
+  pos++; // past '&'
+  const name = scanAnchorOrAliasName();
+  skipFlowWs();
+  if (src.charCodeAt(pos) === STAR) fail("an alias node cannot carry an anchor property");
+  const outerPending = pendingAnchorName;
+  pendingAnchorName = name;
+  const c = src.charCodeAt(pos);
+  let key: string;
+  if (c === DQUOTE) key = internKey(keyToString(registerPendingAnchor(parseDoubleQuoted())));
+  else if (c === SQUOTE) key = internKey(keyToString(registerPendingAnchor(parseSingleQuoted())));
+  else {
+    const start = pos;
+    const end = scanFlowPlainEnd();
+    if (end === start) fail("expected a mapping key");
+    key = plainKey(start, end); // plainKey itself calls registerPendingAnchor
+  }
+  pendingAnchorName = outerPending;
+  return key;
 }
 
 /** Return the cached copy of `s` if seen this parse, else record and return it. */
@@ -1350,21 +1582,31 @@ const ROOT_AFTER_INLINE_MARKER = -2;
  * next content line before returning.
  */
 function parseBlockNode(parentCol: number): unknown {
-  const col = pos - lineStart;
+  // Consumed here (not left for the branches below) so a property's influence
+  // is scoped to exactly the ONE dispatch that immediately follows it, never
+  // leaking into deeper recursion — see `afterInlineProperty`/`colOverride`'s
+  // doc comments.
+  const inlineProp = afterInlineProperty;
+  afterInlineProperty = false;
+  const col = colOverride >= 0 ? colOverride : pos - lineStart;
+  colOverride = -1;
   const c = src.charCodeAt(pos);
+
+  if (c === AMP) return parseAnchoredBlockNode(parentCol);
 
   if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
     if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
+    if (inlineProp) fail("a block sequence cannot start on the same line as a node property (anchor)");
     return parseBlockSeq(col);
   }
 
   // Block scalars (M4). A plain scalar can never begin with `|`/`>`, so this is
   // unambiguous. Unlike block collections, an inline `|`/`>` right after a `---`
-  // document-start marker on the SAME line is legal (`--- |` / `--- >`) — the
-  // ROOT_AFTER_INLINE_MARKER sentinel only forbids block *collections* there
-  // (seq/map, guarded above/below), so it is deliberately NOT checked here.
+  // document-start marker (or a node property) on the SAME line is legal
+  // (`--- |` / `&a |`) — neither ROOT_AFTER_INLINE_MARKER nor `inlineProp` is
+  // checked here, since only block *collections* are restricted.
   if (c === PIPE || c === GT) {
-    return parseBlockScalar(parentCol);
+    return registerPendingAnchor(parseBlockScalar(parentCol));
   }
 
   // Explicit block mapping keys (`? key` / `: value`) are a later milestone.
@@ -1373,19 +1615,27 @@ function parseBlockNode(parentCol: number): unknown {
     throw new NotImplementedError("parse (explicit block mapping keys '?' / ':')");
   }
 
-  if (c === LBRACKET || c === LBRACE || c === DQUOTE || c === SQUOTE) {
-    // A flow collection or quoted scalar — either the node itself, or a mapping
-    // key if a `: ` separator follows on the same line.
-    const node = c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : parseFlowValue();
+  if (c === LBRACKET || c === LBRACE || c === DQUOTE || c === SQUOTE || c === STAR) {
+    // A flow collection, quoted scalar, or alias — either the node itself, or a
+    // mapping key if a `: ` separator follows on the same line. `[`/`{` already
+    // self-register (or not) via `parseFlowValue`'s own container allocation,
+    // regardless of `inlineProp` — flow collections have no line-based
+    // same-line/deferred distinction to make. An alias can never carry a
+    // property (rejected earlier in `parseAnchoredBlockNode`/
+    // `parseAnchoredFlowValue`), so it never needs `registerPendingAnchor`.
+    const node = c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : c === STAR ? parseAlias() : registerPendingAnchor(parseFlowValue());
     const save = pos;
     skipInlineSpaces();
     if (src.charCodeAt(pos) === COLON && isSpaceOrEolAt(pos + 1)) {
       if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
-      return parseBlockMap(col, keyToString(node));
+      // Quoted scalar becomes a mapping key: only a SAME-LINE property may
+      // claim it (see `afterInlineProperty`'s doc comment) — a DEFERRED one
+      // is left pending for `parseBlockMap`'s own self-registration instead.
+      return parseBlockMap(col, keyToString(inlineProp ? registerPendingAnchor(node) : node));
     }
     pos = save;
     nextLine();
-    return node;
+    return registerPendingAnchor(node); // plain value: always claims (same-line or deferred)
   }
 
   // Plain scalar: the scan stops at a `: ` separator iff this line is a mapping.
@@ -1393,9 +1643,63 @@ function parseBlockNode(parentCol: number): unknown {
   const end = scanBlockPlainEnd();
   if (plainStoppedAtColon) {
     if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
-    return parseBlockMap(col, plainKey(start, end));
+    // Same same-line-vs-deferred rule as the quoted case just above, applied to
+    // a plain-scalar key: `plainKey` itself calls `registerPendingAnchor`, so
+    // bypass it (resolve without claiming) when the property was deferred.
+    const key = inlineProp ? plainKey(start, end) : internKey(keyToString(resolvePlain(start, end)));
+    return parseBlockMap(col, key);
   }
-  return resolveBlockPlain(start, end, parentCol);
+  return registerPendingAnchor(resolveBlockPlain(start, end, parentCol));
+}
+
+/**
+ * `&name <node>` in block context (M5). An anchor may be alone on its line —
+ * the node it decorates then begins on a SUBSEQUENT line, exactly like an
+ * ordinary mapping/sequence value (`parseDeferredBlockNode` is shared with
+ * `parseBlockValue` for this reason: same indentation rules, including the
+ * "compact sequence at the parent's own column" special case — calibrated
+ * against the oracle via yaml-test-suite SKE5). A block SEQUENCE indicator may
+ * NOT start inline on the SAME line as the property, though (`afterInlineProperty`;
+ * oracle: "Missing newline after block sequence props") — a block MAPPING may
+ * (`&a key: v` is fine), so that restriction is scoped narrowly rather than
+ * reusing `ROOT_AFTER_INLINE_MARKER`'s broader one. The SAME flag also decides
+ * whether a resulting mapping's first KEY may claim this anchor for itself, as
+ * opposed to the MAP claiming it (see `afterInlineProperty`'s doc comment).
+ *
+ * `pendingAnchorName` is saved/restored around the recursive call so a nested
+ * anchor (e.g. on this node's own first mapping key, discovered only once that
+ * key is resolved — yaml-test-suite 7BMT: `top: &node1\n  &k1 key1: v`) can
+ * never clobber this one, which is still waiting for the eventual container.
+ *
+ * `colOverride` is set to THIS property's own column before the SAME-LINE
+ * recursive call, so a resulting mapping/sequence uses it (not the deeper
+ * column its first key/entry lands at after `"&name "` is skipped) — see
+ * `colOverride`'s doc comment for the bug this fixes.
+ */
+function parseAnchoredBlockNode(parentCol: number): unknown {
+  const anchorCol = pos - lineStart;
+  pos++; // past '&'
+  const name = scanAnchorOrAliasName();
+  skipInlineSpaces();
+  const c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === STAR) fail("an alias node cannot carry an anchor property");
+  const outerPending = pendingAnchorName;
+  pendingAnchorName = name;
+  let node: unknown;
+  if (c === -1 || c === LF || c === CR || c === HASH) {
+    // The property occupies the rest of its line; the node (if any) begins on
+    // a following line, subject to the ordinary value-continuation rules.
+    nextLine();
+    const effParentCol = parentCol === ROOT_AFTER_INLINE_MARKER ? -1 : parentCol;
+    node = parseDeferredBlockNode(effParentCol);
+  } else {
+    afterInlineProperty = true; // consumed by the very next parseBlockNode dispatch
+    colOverride = anchorCol;
+    node = parseBlockNode(parentCol);
+  }
+  if (pendingAnchorName === name) registerAnchor(name, node); // not yet consumed by a container/key
+  pendingAnchorName = outerPending;
+  return node;
 }
 
 /**
@@ -1486,6 +1790,7 @@ function advanceCountingBreaks(): number {
 function parseBlockSeq(col: number): unknown[] {
   if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
   const arr: unknown[] = [];
+  registerPendingAnchor(arr); // before children, so `&a\n- *a\n` self-references correctly
   for (;;) {
     pos++; // past '-'
     arr.push(parseBlockValue(col));
@@ -1500,6 +1805,7 @@ function parseBlockSeq(col: number): unknown[] {
 function parseBlockMap(col: number, firstKey: string): Record<string, unknown> {
   if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
   const obj: Record<string, unknown> = {};
+  registerPendingAnchor(obj); // before children (see parseFlowMap's identical call)
   let key = firstKey;
   for (;;) {
     // pos is at the ':' separator for `key`.
@@ -1526,8 +1832,15 @@ function parseBlockMap(col: number, firstKey: string): Record<string, unknown> {
 /** Parse the next key of a block mapping, leaving `pos` at the `:` separator. */
 function parseBlockMapKey(): string {
   const c = src.charCodeAt(pos);
+  if (c === AMP) return parseBlockMapKeyAnchored();
+  if (c === STAR) {
+    const value = parseAlias();
+    skipInlineSpaces();
+    if (src.charCodeAt(pos) !== COLON || !isSpaceOrEolAt(pos + 1)) fail("expected ':' after mapping key");
+    return internKey(keyToString(value));
+  }
   if (c === DQUOTE || c === SQUOTE || c === LBRACKET || c === LBRACE) {
-    const node = c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : parseFlowValue();
+    const node = registerPendingAnchor(c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : parseFlowValue());
     skipInlineSpaces();
     if (src.charCodeAt(pos) !== COLON || !isSpaceOrEolAt(pos + 1)) fail("expected ':' after mapping key");
     return internKey(keyToString(node));
@@ -1536,6 +1849,42 @@ function parseBlockMapKey(): string {
   const end = scanBlockPlainEnd();
   if (!plainStoppedAtColon) fail("expected ':' after mapping key");
   return plainKey(start, end);
+}
+
+/**
+ * `&name <key>` as the 2nd+ key of an already-open block mapping (e.g. a
+ * ZWK4-style `&anchor c: 3` entry). Mirrors `parseFlowKeyAnchored`: registers
+ * the RAW key node, not yet canonicalized to a string.
+ */
+function parseBlockMapKeyAnchored(): string {
+  pos++; // past '&'
+  const name = scanAnchorOrAliasName();
+  skipInlineSpaces();
+  if (src.charCodeAt(pos) === STAR) fail("an alias node cannot carry an anchor property");
+  const outerPending = pendingAnchorName;
+  pendingAnchorName = name;
+  const key = parseBlockMapKey(); // recurses into the quoted/flow/plain branches above
+  pendingAnchorName = outerPending;
+  return key;
+}
+
+/**
+ * The value/node that follows a `:` (mapping) or `-` (sequence) when nothing
+ * else remains on that line: either a deeper-indented block node on a
+ * following line, a block SEQUENCE at the SAME column as `parentCol` (the
+ * `key:\n- a\n- b` compact form — legal for sequences only, never mappings),
+ * or `null` (dedent/EOF — an empty value). Shared by `parseBlockValue` (after
+ * an ordinary `:`/`-`) and `parseAnchoredBlockNode` (after a property alone on
+ * its line) — both need identical indentation semantics.
+ */
+function parseDeferredBlockNode(parentCol: number): unknown {
+  if (pos >= len) return null;
+  const nc = pos - lineStart;
+  if (nc > parentCol) return parseBlockNode(parentCol);
+  if (nc === parentCol && src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) {
+    return parseBlockSeq(nc);
+  }
+  return null;
 }
 
 /**
@@ -1549,17 +1898,7 @@ function parseBlockValue(parentCol: number): unknown {
   const c = pos < len ? src.charCodeAt(pos) : -1;
   if (c === -1 || c === LF || c === CR || c === HASH) {
     nextLine();
-    if (pos < len) {
-      const nc = pos - lineStart;
-      if (nc > parentCol) return parseBlockNode(parentCol);
-      // Special YAML rule: a block SEQUENCE may be indented at the SAME column as
-      // its parent mapping key (the ubiquitous `key:\n- a\n- b` form), whereas a
-      // block mapping value must be indented deeper.
-      if (nc === parentCol && src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) {
-        return parseBlockSeq(nc);
-      }
-    }
-    return null; // empty value (dedent or EOF)
+    return parseDeferredBlockNode(parentCol);
   }
   return parseBlockNode(parentCol); // inline / compact node at the current column
 }
@@ -1951,6 +2290,7 @@ function parseTagDirectiveArgs(): void {
  */
 function parseDirectives(): boolean {
   tagHandles = null;
+  anchorMap = null; // per-document, not per-stream (see anchorMap's doc comment)
   let sawAny = false;
   let sawYaml = false;
   while (pos < len && pos === lineStart && src.charCodeAt(pos) === PERCENT) {

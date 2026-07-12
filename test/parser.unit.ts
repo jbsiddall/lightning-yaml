@@ -802,3 +802,136 @@ test("a leading BOM is ignored", () => {
 test("a leading BOM before directives/markers is ignored", () => {
   deepStrictEqual(parse("﻿%YAML 1.2\n---\nx\n"), "x");
 });
+
+// --------------------------------------------------------------------------
+// M5 — anchors (`&name`) and aliases (`*name`). Every case is checked against
+// the `yaml` oracle (calibrated directly against it, per the task recipe —
+// several corners here are NOT obvious from prose alone: e.g. an anchor
+// immediately before a scalar-becoming-a-key attaches to the KEY, but the
+// SAME anchor deferred to its own line before a mapping attaches to the MAP
+// — see `afterInlineProperty`'s doc comment in src/index.ts).
+// --------------------------------------------------------------------------
+
+const anchorAliasOracle: string[] = [
+  // anchor on a scalar, flow alias
+  "[&a 1, *a, 2]",
+  // anchor on a scalar, block alias as a map value
+  "a: &x 1\nb: *x\n",
+  // anchor on a scalar, block alias as a sequence entry
+  "- &x 1\n- *x\n- 2\n",
+  // anchor on a flow map, alias reuses it
+  "a: &m {x: 1, y: 2}\nb: *m\n",
+  // anchor on a flow sequence, alias reuses it
+  "a: &s [1, 2, 3]\nb: *s\n",
+  // anchor on a block map (deferred to the next line), alias reuses it
+  "a: &m\n  x: 1\n  y: 2\nb: *m\n",
+  // anchor on a block sequence (deferred to the next line), alias reuses it
+  "a: &s\n  - 1\n  - 2\nb: *s\n",
+  // anchor alone at the document root before a block sequence (3R3P)
+  "&seq\n- a\n- b\n",
+  // anchor for an empty node (nothing after the anchor)
+  "a: &x\nb: *x\n",
+  // anchor on a mapping key (unreferenced) — parses fine, doesn't affect output
+  "&a a: b\nc: &d d\n",
+  // alias used AS a mapping key
+  "&a a: &b b\n*b : *a\n",
+  // multiple aliases to the same anchor
+  "- &a a\n- &b b\n- *a\n- *b\n",
+  // anchor redefinition: a later `&x` shadows the earlier one for later aliases
+  "a: &x 1\nb: &x 2\nc: *x\n",
+  // anchor/alias names containing a colon (colon is NOT a name terminator)
+  "key: &an:chor value\n",
+  // anchor name containing exotic (non-flow-indicator) characters
+  'a: &:@*!$"<foo>: scalar a\nb: *:@*!$"<foo>:\n',
+  // anchor name with a unicode character
+  "- &😁 unicode anchor\n",
+  // flow: anchors/aliases at various positions inside a flow sequence
+  "&flowseq [\n a: b,\n &c c: d,\n { &e e: f },\n &g { g: h }\n]",
+];
+
+for (const input of anchorAliasOracle) {
+  test(`anchor/alias matches oracle · ${input.replace(/\n/g, "\\n").slice(0, 48)}`, () => {
+    deepStrictEqual(parse(input), oracleParse(input));
+  });
+}
+
+test("anchors are per-DOCUMENT, not per-stream (an alias cannot reach across '---')", () => {
+  deepStrictEqual(parseAll("--- &a foo\n--- a\n"), ["foo", "a"]); // sanity: two independent docs
+  throws(() => parseAll("--- &a foo\n--- *a\n"), YAMLParseError);
+  throws(() => oracleParseAll("--- &a foo\n--- *a\n"));
+});
+
+test("structural sharing: an alias resolves to the SAME reference, not a deep copy", () => {
+  const result = parse("cfg: &shared\n  region: us-west\n  tier: 3\nx: *shared\ny: *shared\n") as {
+    cfg: object;
+    x: object;
+    y: object;
+  };
+  strictEqual(result.x, result.cfg);
+  strictEqual(result.y, result.cfg);
+  deepStrictEqual(result, oracleParse("cfg: &shared\n  region: us-west\n  tier: 3\nx: *shared\ny: *shared\n"));
+});
+
+test("structural sharing holds across flow, block map, and block sequence anchors", () => {
+  const flowResult = parse("a: &m {x: 1}\nb: *m\n") as { a: object; b: object };
+  strictEqual(flowResult.a, flowResult.b);
+
+  const blockMapResult = parse("a: &m\n  x: 1\nb: *m\n") as { a: object; b: object };
+  strictEqual(blockMapResult.a, blockMapResult.b);
+
+  const blockSeqResult = parse("a: &s\n  - 1\n  - 2\nb: *s\n") as { a: object; b: object };
+  strictEqual(blockSeqResult.a, blockSeqResult.b);
+});
+
+test("self-referential (cyclic) anchors resolve to the SAME object, never a deep copy", () => {
+  const arr = parse("&a [1, *a]") as unknown[];
+  strictEqual(arr[1], arr);
+
+  const obj = parse("&a {self: *a}") as Record<string, unknown>;
+  strictEqual(obj.self, obj);
+
+  const blockObj = parse("&a\nself: *a\n") as Record<string, unknown>;
+  strictEqual(blockObj.self, blockObj);
+});
+
+test("anchor redefinition is allowed — a later anchor shadows the earlier one for later aliases", () => {
+  deepStrictEqual(parse("a: &x 1\nb: &x 2\nc: *x\n"), { a: 1, b: 2, c: 2 });
+  deepStrictEqual(parse("a: &x 1\nb: &x 2\nc: *x\n"), oracleParse("a: &x 1\nb: &x 2\nc: *x\n"));
+});
+
+// --------------------------------------------------------------------------
+// STRICTNESS — a negative-suite win over leniency (js-yaml v5 / the oracle
+// both reject these; see CLAUDE.md's mandate for this feature).
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: an alias to an undefined/unknown anchor throws", () => {
+  throws(() => parse("*undefined"), YAMLParseError);
+  throws(() => parse("a: *undefined\n"), YAMLParseError);
+  throws(() => parse("[1, *nope, 3]"), YAMLParseError);
+  throws(() => oracleParse("*undefined"));
+});
+
+test("STRICTNESS: a malformed (empty) anchor/alias name throws, matching the oracle", () => {
+  for (const s of ["a: &\nb: 1\n", "a: & \nb: 1\n", "[&, 1]", "[*, 1]", "a: *\nb: 1\n"]) {
+    throws(() => parse(s), YAMLParseError, s);
+    throws(() => oracleParse(s), Error, s);
+  }
+});
+
+test("STRICTNESS: an anchor cannot carry an alias as its own value (a node with an anchor cannot itself be an alias)", () => {
+  // yaml-test-suite SR86 / SU74.
+  throws(() => parse("key1: &a value\nkey2: &b *a\n"), YAMLParseError);
+  throws(() => oracleParse("key1: &a value\nkey2: &b *a\n"));
+  throws(() => parse("key1: &alias value1\n&b *alias : value2\n"), YAMLParseError);
+});
+
+test("STRICTNESS: a block sequence may not start on the same line as a node property", () => {
+  // yaml-test-suite SY6V.
+  throws(() => parse("&anchor - sequence entry\n"), YAMLParseError);
+  throws(() => oracleParse("&anchor - sequence entry\n"));
+});
+
+test("agrees with js-yaml on anchors/aliases", () => {
+  const cases = ["a: &x 1\nb: *x\n", "[&a 1, *a]", "- &x 1\n- *x\n", "a: &m {x: 1}\nb: *m\n"];
+  for (const s of cases) deepStrictEqual(parse(s), jsYamlLoad(s));
+});
