@@ -12,7 +12,9 @@
     "gen:fixtures": "node --import tsx bench/fixtures/generate.ts",
     "bench:speed": "node --expose-gc --import tsx bench/speed/parse.bench.ts && node --expose-gc --import tsx bench/speed/stringify.bench.ts",
     "bench:memory": "node --expose-gc --import tsx bench/memory/run.ts",
-    "bench": "pnpm gen:fixtures && pnpm bench:speed && pnpm bench:memory",
+    "bench:self": "node --expose-gc --import tsx bench/report.ts self",
+    "bench:competition": "node --expose-gc --import tsx bench/report.ts competition",
+    "bench": "pnpm gen:fixtures && pnpm bench:competition && pnpm bench:self",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

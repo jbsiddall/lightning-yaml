@@ -1,23 +1,37 @@
 /**
  * Peak-memory orchestrator. Spawns one isolated worker process per
  * (candidate × dataset × op), collects the JSON result, and prints a table of
- * peak RSS and retained heap per candidate — with a ratio against JSON as the
- * baseline (the target the future lightning-yaml parser aims to approach).
+ * peak RSS and retained heap per candidate — with a ratio against JSON.
  *
  *   node --expose-gc --import tsx bench/memory/run.ts
+ *
+ * Workers run ONE AT A TIME (sequentially). Each is already isolated in its own
+ * process (the correct model for clean peak RSS), but we do NOT run them
+ * concurrently: co-running heavy parses can drive the machine into swapping,
+ * which corrupts RSS readings in a way that's hard to account for. Sequential
+ * keeps every number trustworthy. (Timing likewise lives in the mitata speed
+ * harness, which is also sequential.)
+ *
+ * Env:
+ *   BENCH_ITERS  iterations per worker (default 25). NOTE: peak RSS is a
+ *                sustained-allocation high-water mark and GROWS with iteration
+ *                count, so changing this shifts the peak-RSS numbers (heap Δ is
+ *                iteration-independent). Keep it fixed for comparable results.
+ *   BENCH_SCOPE  all | competition | ours  (which candidates to run).
  */
 
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { candidates } from "../candidates.ts";
+import { selectCandidates, scopeFromEnv, type Scope } from "../candidates.ts";
 import { datasets } from "../fixtures/datasets.ts";
 import { formatBytes, ratio, padEnd, padStart } from "../util/format.ts";
 
-const ITERS = 25;
+export const ITERS = Number(process.env.BENCH_ITERS) || 25;
 const OPS = ["parse", "stringify"] as const;
+type Op = (typeof OPS)[number];
 const workerPath = fileURLToPath(new URL("./worker.ts", import.meta.url));
 
-interface Result {
+export interface Result {
   candidate: string;
   dataset: string;
   op: string;
@@ -26,7 +40,7 @@ interface Result {
   heapDeltaBytes: number;
 }
 
-function runWorker(candidate: string, dataset: string, op: string): Result | null {
+function runWorker(candidate: string, dataset: string, op: Op): Result | null {
   const proc = spawnSync(
     process.execPath,
     ["--expose-gc", "--import", "tsx", workerPath, candidate, dataset, op, String(ITERS)],
@@ -45,11 +59,41 @@ function runWorker(candidate: string, dataset: string, op: string): Result | nul
   }
 }
 
-console.log(`Peak-memory benchmark — ${ITERS} iterations per candidate, isolated processes.\n`);
+export interface MatrixOptions {
+  scope?: Scope;
+}
+
+export function runMemoryMatrix(opts: MatrixOptions = {}): Result[] {
+  const scope = opts.scope ?? scopeFromEnv();
+  const cands = selectCandidates(scope);
+
+  const results: Result[] = [];
+  for (const ds of datasets) {
+    for (const op of OPS) {
+      for (const c of cands) {
+        const r = runWorker(c.name, ds.name, op);
+        if (r) results.push(r);
+      }
+    }
+  }
+  return results;
+}
+
+/** Group results back into (op · dataset) sections, candidates in run order. */
+function sections(results: Result[]): Array<{ label: string; rows: Result[] }> {
+  const out: Array<{ label: string; rows: Result[] }> = [];
+  for (const ds of datasets) {
+    for (const op of OPS) {
+      const rows = results.filter((r) => r.dataset === ds.name && r.op === op);
+      if (rows.length) out.push({ label: `${op} · ${ds.name}`, rows });
+    }
+  }
+  return out;
+}
 
 const COLS = { cand: 10, peak: 13, peakR: 9, heap: 14, heapR: 9 };
 
-function row(cand: string, peak: string, peakR: string, heap: string, heapR: string): string {
+function textRow(cand: string, peak: string, peakR: string, heap: string, heapR: string): string {
   return (
     "  " +
     padEnd(cand, COLS.cand) +
@@ -60,33 +104,64 @@ function row(cand: string, peak: string, peakR: string, heap: string, heapR: str
   );
 }
 
-for (const ds of datasets) {
-  for (const op of OPS) {
-    process.stdout.write(`\n${op} · ${ds.name}\n`);
-    console.log(row("candidate", "peak RSS", "vs JSON", "heap Δ", "vs JSON"));
-
-    const results: Result[] = [];
-    for (const c of candidates) {
-      const r = runWorker(c.name, ds.name, op);
-      if (r) results.push(r);
-    }
-
-    const baseline = results.find((r) => r.candidate === "JSON");
-    for (const r of results) {
-      console.log(
-        row(
+export function formatTextTable(results: Result[]): string {
+  const lines: string[] = [];
+  for (const { label, rows } of sections(results)) {
+    lines.push("");
+    lines.push(label);
+    lines.push(textRow("candidate", "peak RSS", "vs JSON", "heap Δ", "vs JSON"));
+    const base = rows.find((r) => r.candidate === "JSON");
+    for (const r of rows) {
+      lines.push(
+        textRow(
           r.candidate,
           formatBytes(r.peakRssBytes),
-          baseline ? ratio(r.peakRssBytes, baseline.peakRssBytes) : "—",
+          base ? ratio(r.peakRssBytes, base.peakRssBytes) : "—",
           formatBytes(r.heapDeltaBytes),
-          baseline ? ratio(r.heapDeltaBytes, baseline.heapDeltaBytes) : "—",
+          base ? ratio(r.heapDeltaBytes, base.heapDeltaBytes) : "—",
         ),
       );
     }
   }
+  return lines.join("\n");
 }
 
-console.log(
-  "\nNotes: peak RSS is the whole-process peak (fixed Node baseline + fixture + parser)," +
-    "\nso ratios are conservative; heap Δ isolates the retained result size.",
-);
+export function formatMarkdown(results: Result[]): string {
+  const lines: string[] = [];
+  for (const { label, rows } of sections(results)) {
+    const base = rows.find((r) => r.candidate === "JSON");
+    lines.push(`**${label}**`);
+    lines.push("");
+    lines.push("| candidate | peak RSS | vs JSON | heap Δ | vs JSON |");
+    lines.push("| --- | ---: | ---: | ---: | ---: |");
+    for (const r of rows) {
+      lines.push(
+        `| ${r.candidate} | ${formatBytes(r.peakRssBytes)} | ${
+          base ? ratio(r.peakRssBytes, base.peakRssBytes) : "—"
+        } | ${formatBytes(r.heapDeltaBytes)} | ${
+          base ? ratio(r.heapDeltaBytes, base.heapDeltaBytes) : "—"
+        } |`,
+      );
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+function main(): void {
+  const scope = scopeFromEnv();
+  console.log(
+    `Peak-memory benchmark — ${ITERS} iterations per candidate, isolated processes, sequential.\n` +
+      `scope=${scope}\n`,
+  );
+  const results = runMemoryMatrix({ scope });
+  console.log(formatTextTable(results));
+  console.log(
+    "\nNotes: peak RSS is the whole-process peak (fixed Node baseline + fixture + parser)," +
+      "\nso ratios are conservative; heap Δ isolates the retained result size.",
+  );
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}
