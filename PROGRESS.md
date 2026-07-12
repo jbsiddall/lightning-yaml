@@ -23,20 +23,23 @@ bench/conformance/run.ts [--dump-failures]`).
 | date | ours | js-yaml | yaml | notes |
 |------|------|---------|------|-------|
 | Phase 0 baseline | 39.4% (147/373) | 86.6% (323/373) | 97.1% (362/373) | pos 29.4% / neg 70.3% |
-| F1 doc-markers/multi-doc | **49.1%** (183/373) | 86.6% | 97.1% | pos 45.0% / **neg 61.5%** (↓ leniency unmasked) |
+| F1 doc-markers/multi-doc | 49.1% (183/373) | 86.6% | 97.1% | pos 45.0% / **neg 61.5%** (↓ leniency unmasked) |
+| F2 block scalars | **62.2%** (232/373) | 86.6% | 97.1% | pos 62.4% (+49) / neg 61.5% (flat, no regression) |
 
 TARGET: ours ≥ **86.6%** (js-yaml). 188 of our failures are "clearly fixable"
 (both js-yaml & yaml pass); 11 are spec-corners `yaml` itself fails (skip).
 
 ### Failure buckets (primary → count)
 
-After F1 (183/373): block-scalar **58** (now the top) · plain-scalar-typing 32 ·
-anchor-alias 31 · doc-markers 29 · tag 26 · directive 2 · complex-key 7 ·
-flow-only 6 · **merge-key 0** (none in this snapshot — NOT needed for target).
-154 of our failures are "clearly fixable" (both js-yaml & yaml pass).
+After F2 (232/373, 141 failures, **109 clearly-fixable**): plain-scalar-typing **32**
+· anchor-alias **30** · doc-markers 27 · tag 26 · block-scalar 11 (residual — blocked
+by other features/1 pre-existing bug) · complex-key 7 · flow-only 6 · directive 2 ·
+**merge-key 0** (none in snapshot — NOT needed for target).
+Secondary co-occurrence: doc-markers 58, tag 38, plain-typing 32, anchor 31 — many
+multi-doc cases ALSO need anchors/tags, so those close as F3/F4 land.
 
-(Phase-0 baseline for reference: block-scalar 58 · doc-markers 44 · plain-scalar
-35 · anchor 31 · tag 25 · directive 20; secondary co-occurrence doc-markers 108.)
+(Baselines: Phase-0 block-scalar 58/doc-markers 44/plain 35/anchor 31/tag 25/dir 20.
+After F1: block-scalar 58/plain 32/anchor 31/doc-markers 29/tag 26/dir 2.)
 
 ### CROSS-CUTTING GAP: error-case strictness (over-lenient)
 
@@ -68,12 +71,34 @@ Closing this is required to reach js-yaml's overall rate — track as its own bu
 
 - **Compat scaffolding (done, `df458a2`):** see Drop-in compatibility track above.
   Both shims + differential runner + 21-test wiring guard. Core gate unaffected.
+- **F2 · block scalars (done, `59ee233`):** suite 49.1%→62.2% (+49, all positive; neg
+  flat = no strictness regression). `parseBlockScalar` (~L1676): header (indent digit +
+  chomp either order), auto-indent detect, literal/folded with the more-indented
+  newline-count rule, tab-in-indent error, `--- |` root interaction fixed. test:unit
+  250/250, vitest 6 rich red (byte-identical), bench:self flat (cold path). compat
+  block-scalar bucket ~60→16/13. VERIFIED by orchestrator. Oracle-calibrated (not
+  spec-prose). Deviation/known: surfaced a PRE-EXISTING bug (see Known bugs).
 
 ## Next
 
-- **F2 · block scalars** (`|`/`>`, chomping, indent indicators) — largest bucket (58);
-  also the biggest single compat read-gap (~60). One feature, two metrics up. RUNNING.
-- **QUEUED (user request): upgrade js-yaml v4.3.0 → v5.2.1.** Sequence AFTER F2 lands
+- **NOW: js-yaml v4.3.0 → v5.2.1 upgrade** (user request; no agent running = clean moment).
+- **F3 · anchors/aliases** (`&`/`*`, 30 primary) — also greens the 3 "anchor sharing"
+  yaml-rich consistency cases. Recipe: pay-on-first-use, register-before-children,
+  structural sharing (same reference).
+- **F4 · tags incl. `!!binary`** (26 primary) — `!!binary`→`Uint8Array` (oracle contract);
+  greens the 3 "parse matches oracle" yaml-rich cases. F3+F4 together → rich consistency
+  suite fully GREEN (a STOP condition).
+
+## Known bugs (pre-existing, to fix in a cleanup / adversarial pass)
+
+- Empty dash + comment sequence entries mis-parsed (surfaced during F2; reproduces with
+  ZERO block scalars — pre-existing, not an F2 regression). Costs ≥1 suite case.
+- Error-case strictness gap (neg 56/91 vs js-yaml 78): we accept inputs both competitors
+  reject. Address as features mature + a dedicated strictness pass.
+
+## js-yaml v5 upgrade detail
+
+Sequence AFTER F2 lands
   (reinstall mid-feature-run would corrupt that agent's live js-yaml tests). js-yaml is
   our north-star baseline + benchmark competitor + compat target, so:
   - bump `js-yaml` → `^5.2.1`; **remove `@types/js-yaml`** (v5 ships its own types —
