@@ -66,11 +66,13 @@ Closing this is required to reach js-yaml's overall rate — track as its own bu
     `%YAML` in one doc rejected (matches js-yaml + suite SF5V). Skipped spec-corners
     (not chased): EB22/RHX7 (mid-doc `%` vs next-doc directive lookahead), 2 cases.
 
+- **Compat scaffolding (done, `df458a2`):** see Drop-in compatibility track above.
+  Both shims + differential runner + 21-test wiring guard. Core gate unaffected.
+
 ## Next
 
-- **Compat scaffolding** (parallel track) — both shim files + differential tests.
-  Runs next as its own delegation (feature work has started, per user request).
-- **F2 · block scalars** (`|`/`>`, chomping, indent indicators) — largest bucket (58).
+- **F2 · block scalars** (`|`/`>`, chomping, indent indicators) — largest bucket (58);
+  also the biggest single compat read-gap (~60). One feature, two metrics up.
 
 ## Feature backlog (likely order by failure-coverage)
 
@@ -114,7 +116,26 @@ Scheduling: begins once Phase 0 is up (suite running) and the first feature land
 i.e. alongside feature iteration 1, as its own delegation, so its commits don't race
 the feature agent's.
 
-Compat sub-items surfaced so far: _(filled after the first compat-test run)_
+Status: shims + differential runner landed (`df458a2`). Run: `pnpm test:compat`.
+Files: `src/js-yaml-compat.ts`, `src/yaml-compat.ts`, `bench/conformance/compat.ts`,
+`test/compat.unit.ts` (21 tests green; NOT in the core gate). Core gate unaffected
+(typecheck clean, test:unit 192/192, vitest 6 rich red) — VERIFIED.
+
+Compat baseline (agree = value deep-equal OR both throw):
+| shim | read (curated 64) | read (suite 402) | dump | overall |
+|------|------|------|------|------|
+| js-yaml-compat | 81.3% | 50.7% | 0% (stub) | 48.6% |
+| yaml-compat | 84.4% | 51.2% | 0% (stub) | 49.2% |
+
+Read-side failure buckets (close automatically as the parser gains features):
+block-scalar ~60, anchor-alias 34, tag 27, multi-doc 27, quoting ~29, plain-typing
+~30. dump=0% is by design (stringify stub). **schema-1.1 divergence is NEARLY EMPTY
+(2/0):** js-yaml v4 already dropped most 1.1-isms (`yes`/`no`/`on`/`off`, sexagesimal,
+legacy octal, `_` separators all stay strings = our 1.2-core); only `0b` binary and
+timestamp→Date actually differ. So NO 1.1 schema layer is needed for high js-yaml
+fidelity — the earlier "inherent divergence" worry is largely moot.
+
+ASSESS henceforth reports `pnpm test:compat` alongside the suite pass rate.
 
 ## Deferred (until pass-rate target met)
 
