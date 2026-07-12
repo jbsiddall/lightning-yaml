@@ -22,16 +22,16 @@
 
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
-import jsyamlReal from "js-yaml";
+import * as jsyamlReal from "js-yaml";
 import * as yamlReal from "yaml";
 import jsYamlCompatDefault, {
   load,
   loadAll,
   dump,
   YAMLException,
-  Type,
+  defineScalarTag,
   Schema,
-  DEFAULT_SCHEMA,
+  YAML11_SCHEMA,
   CORE_SCHEMA,
   JSON_SCHEMA,
   FAILSAFE_SCHEMA,
@@ -49,9 +49,9 @@ test("js-yaml-compat: named exports exist with the right shapes", () => {
   strictEqual(typeof dump, "function");
   strictEqual(typeof YAMLException, "function"); // a class
   ok(new YAMLException("x") instanceof Error);
-  strictEqual(typeof Type, "function");
+  strictEqual(typeof defineScalarTag, "function");
   strictEqual(typeof Schema, "function");
-  ok(DEFAULT_SCHEMA instanceof Schema);
+  ok(YAML11_SCHEMA instanceof Schema);
   ok(CORE_SCHEMA instanceof Schema);
   ok(JSON_SCHEMA instanceof Schema);
   ok(FAILSAFE_SCHEMA instanceof Schema);
