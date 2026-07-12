@@ -13,10 +13,11 @@
 
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
-import { load as jsYamlLoad } from "js-yaml";
+import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
 import { parse, parseAll, YAMLParseError } from "../src/index.ts";
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
 import { oracleParse } from "../bench/oracle.ts";
+import { makeRng, type Rng } from "../bench/util/prng.ts";
 
 // --------------------------------------------------------------------------
 // M1 — exact JSON.parse parity on every JSON (flow) fixture.
@@ -245,6 +246,107 @@ test("plain scalars that are not numbers stay strings", () => {
 test("empty flow value is null (not a JSON error)", () => {
   deepStrictEqual(parse("{a: }"), { a: null });
   deepStrictEqual(parse("{a}"), { a: null });
+});
+
+// --------------------------------------------------------------------------
+// M3 — block structure. Fixture parity + hand-crafted cases + a seeded
+// round-trip corpus, all checked against the oracle / js-yaml.
+// --------------------------------------------------------------------------
+
+// The block yaml-plain fixtures must match the oracle exactly (the consistency
+// suite checks these too; kept here so the unit run is self-contained).
+for (const ds of datasets.filter((d) => d.category === "yaml-plain")) {
+  test(`block fixture parity · ${ds.name}`, () => {
+    const text = loadFixtureText(ds);
+    deepStrictEqual(parse(text), oracleParse(text));
+  });
+}
+
+const blockOracle: string[] = [
+  // simple block mapping
+  "a: 1\nb: two\nc: true\nd: null\ne: 3.14\n",
+  // block sequence of scalars
+  "- 1\n- two\n- true\n- null\n",
+  // nested map
+  "outer:\n  inner:\n    x: 1\n    y: 2\n  z: 3\nq: 4\n",
+  // sequence of maps (compact form: `- key: val`)
+  "- id: 0\n  name: alpha\n- id: 1\n  name: bravo\n",
+  // map with sequence values
+  "tags:\n  - a\n  - b\nnums:\n  - 1\n  - 2\n",
+  // deeply nested compact sequences
+  "- - - deep\n",
+  // inline flow inside block
+  "list: [1, 2, 3]\nmap: {x: 1, y: 2}\nempty_list: []\nempty_map: {}\n",
+  // plain scalar values with spaces / colons-in-url / hashes
+  "name: mike alpha bravo\nurl: http://example.com/x\nnote: a#b not a comment\n",
+  // empty values
+  "a:\nb: 1\nc:\n",
+  // comments interspersed
+  "# header\na: 1  # trailing\n# between\nb: 2\n",
+  // quoted keys and values in block
+  '"quoted key": value\nplain: "quoted value"\nsingle: \'sq value\'\n',
+  // multi-word plain scalar that looks partly numeric
+  "version: 1 point 0\ndate_str: 2026-08-02\ncount: 42\n",
+  // block map whose value is a block map on the next line at deeper indent
+  "meta:\n  views: 100\n  ratio: 0.5\n",
+  // sequence with an empty-then-filled entry
+  "- a: 1\n  b: 2\n- c: 3\n",
+  // a bare scalar document
+  "just a plain scalar document\n",
+  "42\n",
+  "true\n",
+  // multi-line plain scalar (folds to a single space-joined string)
+  "text: this is a\n  folded plain\n  scalar value\nother: 1\n",
+];
+
+for (const input of blockOracle) {
+  test(`block matches oracle · ${input.replace(/\n/g, "\\n").slice(0, 40)}`, () => {
+    deepStrictEqual(parse(input), oracleParse(input));
+  });
+}
+
+// Seeded round-trip corpus: random JSON-compatible values dumped as block YAML
+// by js-yaml must parse back (via ours) to the original, and agree with js-yaml.
+function makeValue(rng: Rng, d: number): unknown {
+  if (d <= 0) {
+    switch (rng.int(0, 6)) {
+      case 0:
+        return rng.int(-100000, 100000);
+      case 1:
+        return Number(rng.float(-1000, 1000).toFixed(4));
+      case 2:
+        return rng.bool();
+      case 3:
+        return null;
+      case 4:
+        return rng.words(rng.int(1, 4));
+      case 5:
+        return String(rng.int(0, 999)); // numeric-looking string; dump quotes it
+      default:
+        return rng.words(1);
+    }
+  }
+  if (rng.bool()) {
+    const o: Record<string, unknown> = {};
+    const n = rng.int(1, 5);
+    for (let i = 0; i < n; i++) o[`field_${i}`] = makeValue(rng, d - 1);
+    return o;
+  }
+  const n = rng.int(0, 5);
+  const a: unknown[] = [];
+  for (let i = 0; i < n; i++) a.push(makeValue(rng, d - 1));
+  return a;
+}
+
+test("block round-trip corpus (600 seeded cases) matches js-yaml and the original", () => {
+  const rng = makeRng(4242);
+  for (let i = 0; i < 600; i++) {
+    const value = makeValue(rng, rng.int(1, 5));
+    const text = jsYamlDump(value);
+    const ours = parse(text);
+    deepStrictEqual(ours, value, `round-trip #${i}\n${text}`);
+    deepStrictEqual(ours, jsYamlLoad(text), `vs js-yaml #${i}\n${text}`);
+  }
 });
 
 // --------------------------------------------------------------------------

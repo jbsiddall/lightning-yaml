@@ -136,6 +136,22 @@ let len = 0;
 let depth = 0;
 
 /**
+ * Byte offset of the current line's start. A block node's indentation column is
+ * simply `pos - lineStart`, which is what makes compact forms (`- key: val`)
+ * fall out for free: the inline map after the `- ` is just a node whose column
+ * is deeper than the dash's. Reset per parse; maintained by the line helpers.
+ */
+let lineStart = 0;
+
+/**
+ * Set by `scanBlockPlainEnd`: whether the plain scan stopped at a `:` separator
+ * (→ the span was a mapping key) rather than at end-of-line. Read immediately
+ * after the scan; this is the implicit-key test that avoids js-yaml's
+ * speculative double-composition (doc 07 §4).
+ */
+let plainStoppedAtColon = false;
+
+/**
  * Memoized position of the next backslash at or after the last query point (or
  * `len` once none remain). Without this, checking each double-quoted string for
  * escapes via `indexOf('\\')` rescans to end-of-document every time on
@@ -186,17 +202,20 @@ export function parse(text: string): unknown {
   pos = 0;
   depth = 0;
   nextBackslash = -1;
+  lineStart = 0;
   keyCache = new Map();
 
   // Skip a leading BOM without copying the input.
-  if (len > 0 && src.charCodeAt(0) === BOM) pos = 1;
+  if (len > 0 && src.charCodeAt(0) === BOM) {
+    pos = 1;
+    lineStart = 1; // so the first line's content column is measured from here
+  }
 
-  skipFlowWs();
+  skipBlankLines(); // land on the first content char, or EOF
   if (pos >= len) return null; // empty document → null (YAML), unlike JSON
 
-  const value = parseFlowValue();
+  const value = parseBlockNode(-1);
 
-  skipFlowWs();
   if (pos < len) fail("unexpected trailing content after document");
   return value;
 }
@@ -982,4 +1001,264 @@ function parseSingleQuotedSlow(start: number): string {
     }
     i++;
   }
+}
+
+// ===========================================================================
+// Block structure (M3) — indentation-driven maps/sequences, implicit keys,
+// compact forms. A node's column is `pos - lineStart`; a block collection owns
+// every following line whose indent is deeper than it. Flow collections and
+// quoted/plain scalars appearing inline reuse the flow leaf parsers above.
+// ===========================================================================
+
+function isSpaceOrEolAt(i: number): boolean {
+  if (i >= len) return true;
+  const c = src.charCodeAt(i);
+  return c === SPACE || c === TAB || c === LF || c === CR;
+}
+
+/** Skip spaces and tabs on the current line (not line breaks). */
+function skipInlineSpaces(): void {
+  while (pos < len) {
+    const c = src.charCodeAt(pos);
+    if (c === SPACE || c === TAB) pos++;
+    else break;
+  }
+}
+
+/**
+ * Finish the current line: skip trailing spaces + an optional comment, then
+ * consume the line break (updating `lineStart`). Leaves `pos` at the start of
+ * the next line, or at `len` at EOF.
+ */
+function endLine(): void {
+  skipInlineSpaces();
+  if (pos < len && src.charCodeAt(pos) === HASH) {
+    const nl = src.indexOf("\n", pos);
+    pos = nl === -1 ? len : nl;
+  }
+  if (pos >= len) return;
+  const c = src.charCodeAt(pos);
+  if (c === LF) {
+    pos++;
+    lineStart = pos;
+  } else if (c === CR) {
+    pos++;
+    if (pos < len && src.charCodeAt(pos) === LF) pos++;
+    lineStart = pos;
+  } else {
+    fail("unexpected content at end of line");
+  }
+}
+
+/**
+ * From the start of a line, skip blank and comment-only lines and the leading
+ * indentation, landing `pos` on the first content character (or at `len`). Tabs
+ * in indentation are rejected. `lineStart` tracks each line's start so the
+ * caller reads the content column as `pos - lineStart`.
+ */
+function skipBlankLines(): void {
+  for (;;) {
+    if (pos >= len) return;
+    // Skip leading whitespace. Tabs are accepted as separation (matching the
+    // oracle, which allows e.g. a tab before a top-level flow node); we do not
+    // enforce YAML's "no tabs in block indentation" rule, since valid documents
+    // never rely on it and the oracle is lenient here.
+    while (pos < len) {
+      const c = src.charCodeAt(pos);
+      if (c === SPACE || c === TAB) pos++;
+      else break;
+    }
+    if (pos >= len) return;
+    const c = src.charCodeAt(pos);
+    if (c === LF) {
+      pos++;
+      lineStart = pos;
+      continue; // blank line
+    }
+    if (c === CR) {
+      pos++;
+      if (pos < len && src.charCodeAt(pos) === LF) pos++;
+      lineStart = pos;
+      continue; // blank line
+    }
+    if (c === HASH) {
+      const nl = src.indexOf("\n", pos);
+      pos = nl === -1 ? len : nl + 1;
+      lineStart = pos;
+      continue; // comment-only line
+    }
+    return; // content
+  }
+}
+
+/** Advance to the first content character of the next content line. */
+function nextLine(): void {
+  endLine();
+  skipBlankLines();
+}
+
+/**
+ * Scan a block-context plain scalar. Unlike flow, `,[]{}` are ordinary
+ * characters here; the scalar ends at a `:` separator (→ mapping key, sets
+ * `plainStoppedAtColon`), a ` #` comment, or end of line. Returns the exclusive
+ * end of the trimmed content; advances `pos` to the stop character.
+ */
+function scanBlockPlainEnd(): number {
+  const start = pos;
+  let p = pos;
+  plainStoppedAtColon = false;
+  while (p < len) {
+    const c = src.charCodeAt(p);
+    if (c === LF || c === CR) break;
+    if (c === COLON) {
+      const nc = p + 1 < len ? src.charCodeAt(p + 1) : -1;
+      if (nc === -1 || nc === SPACE || nc === TAB || nc === LF || nc === CR) {
+        plainStoppedAtColon = true;
+        break;
+      }
+    } else if (c === HASH && p > start) {
+      const prev = src.charCodeAt(p - 1);
+      if (prev === SPACE || prev === TAB) break;
+    }
+    p++;
+  }
+  pos = p;
+  let e = p;
+  while (e > start) {
+    const w = src.charCodeAt(e - 1);
+    if (w !== SPACE && w !== TAB) break;
+    e--;
+  }
+  return e;
+}
+
+/**
+ * Parse one block node at the current position (its column is `pos - lineStart`).
+ * Dispatches sequence / mapping / scalar, and — for a flow or plain scalar that
+ * turns out to be a mapping key (followed by `: `) — an implicit-key mapping.
+ * `parentCol` is the indentation of the construct that introduced this node
+ * (used only to bound multi-line plain-scalar continuations). Always advances to
+ * the start of the next content line before returning.
+ */
+function parseBlockNode(parentCol: number): unknown {
+  const col = pos - lineStart;
+  const c = src.charCodeAt(pos);
+
+  if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
+    return parseBlockSeq(col);
+  }
+
+  if (c === LBRACKET || c === LBRACE || c === DQUOTE || c === SQUOTE) {
+    // A flow collection or quoted scalar — either the node itself, or a mapping
+    // key if a `: ` separator follows on the same line.
+    const node = c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : parseFlowValue();
+    const save = pos;
+    skipInlineSpaces();
+    if (src.charCodeAt(pos) === COLON && isSpaceOrEolAt(pos + 1)) {
+      return parseBlockMap(col, keyToString(node));
+    }
+    pos = save;
+    nextLine();
+    return node;
+  }
+
+  // Plain scalar: the scan stops at a `: ` separator iff this line is a mapping.
+  const start = pos;
+  const end = scanBlockPlainEnd();
+  if (plainStoppedAtColon) {
+    return parseBlockMap(col, internKey(src.slice(start, end)));
+  }
+  return resolveBlockPlain(start, end, parentCol);
+}
+
+/**
+ * Resolve a block plain scalar, folding any continuation lines into it (YAML
+ * plain multi-line: line breaks become single spaces). Continuation lines are
+ * those indented deeper than `parentCol` — the indentation of the key or dash
+ * that introduced the scalar, not the scalar's own (possibly inline) column.
+ * Advances to the next content line.
+ */
+function resolveBlockPlain(start: number, end: number, parentCol: number): unknown {
+  nextLine();
+  if (pos >= len || pos - lineStart <= parentCol) {
+    // Single-line plain scalar (the overwhelming case): one span, typed once.
+    return resolvePlain(start, end);
+  }
+  // Multi-line plain scalar (cold): fold the segments. A multi-line plain scalar
+  // is always a string (never re-typed as a number/bool).
+  let result = src.slice(start, end);
+  for (;;) {
+    const segStart = pos;
+    const segEnd = scanBlockPlainEnd();
+    result += " " + src.slice(segStart, segEnd);
+    if (plainStoppedAtColon) fail("mapping value not allowed in a multi-line plain scalar");
+    nextLine();
+    if (pos >= len || pos - lineStart <= parentCol) break;
+  }
+  return result;
+}
+
+function parseBlockSeq(col: number): unknown[] {
+  if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
+  const arr: unknown[] = [];
+  for (;;) {
+    pos++; // past '-'
+    arr.push(parseBlockValue(col));
+    if (pos >= len) break;
+    if (pos - lineStart !== col) break;
+    if (!(src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1))) break;
+  }
+  depth--;
+  return arr;
+}
+
+function parseBlockMap(col: number, firstKey: string): Record<string, unknown> {
+  if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
+  const obj: Record<string, unknown> = {};
+  let key = firstKey;
+  for (;;) {
+    // pos is at the ':' separator for `key`.
+    pos++; // past ':'
+    storeKey(obj, key, parseBlockValue(col));
+    if (pos >= len) break;
+    const nc = pos - lineStart;
+    if (nc < col) break; // dedent → mapping ends
+    if (nc > col) fail("bad indentation in block mapping");
+    if (src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) break; // sibling sequence, not our entry
+    key = parseBlockMapKey();
+  }
+  depth--;
+  return obj;
+}
+
+/** Parse the next key of a block mapping, leaving `pos` at the `:` separator. */
+function parseBlockMapKey(): string {
+  const c = src.charCodeAt(pos);
+  if (c === DQUOTE || c === SQUOTE || c === LBRACKET || c === LBRACE) {
+    const node = c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : parseFlowValue();
+    skipInlineSpaces();
+    if (src.charCodeAt(pos) !== COLON || !isSpaceOrEolAt(pos + 1)) fail("expected ':' after mapping key");
+    return internKey(keyToString(node));
+  }
+  const start = pos;
+  const end = scanBlockPlainEnd();
+  if (!plainStoppedAtColon) fail("expected ':' after mapping key");
+  return internKey(src.slice(start, end));
+}
+
+/**
+ * Parse the value after a `:` (mapping) or `-` (sequence). An inline value is a
+ * block node starting on the same line (this is how compact `- key: v` and
+ * `key: [flow]` work); otherwise the value is a deeper-indented block node on the
+ * following lines, or null. Always advances to the next content line.
+ */
+function parseBlockValue(parentCol: number): unknown {
+  skipInlineSpaces();
+  const c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === -1 || c === LF || c === CR || c === HASH) {
+    nextLine();
+    if (pos < len && pos - lineStart > parentCol) return parseBlockNode(parentCol);
+    return null; // empty value (dedent or EOF)
+  }
+  return parseBlockNode(parentCol); // inline / compact node at the current column
 }
