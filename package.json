@@ -15,6 +15,8 @@
     "bench:self": "node --expose-gc --import tsx bench/report.ts self",
     "bench:competition": "node --expose-gc --import tsx bench/report.ts competition",
     "bench": "pnpm gen:fixtures && pnpm bench:competition && pnpm bench:self",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -24,6 +26,7 @@
     "mitata": "^1.0.34",
     "tsx": "^4.23.0",
     "typescript": "^5.7.0",
+    "vitest": "^4.1.10",
     "yaml": "^2.9.0"
   }
 }

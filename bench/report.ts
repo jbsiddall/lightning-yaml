@@ -17,7 +17,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { candidatesInGroup, type Scope } from "./candidates.ts";
+import { candidatesInGroup, candidateSupports, type Scope } from "./candidates.ts";
 import { runMemoryMatrix, formatMarkdown } from "./memory/run.ts";
 
 const README = fileURLToPath(new URL("../README.md", import.meta.url));
@@ -101,15 +101,18 @@ async function main(): Promise<void> {
     readme = inject(readme, "COMPETITION", block);
   } else if (mode === "self") {
     const ours = candidatesInGroup("ours");
-    if (ours.length === 0) {
-      console.log("No lightning-yaml implementation yet — writing caveat, nothing to benchmark.");
+    const ready = ours.filter((c) => candidateSupports(c, "parse") || candidateSupports(c, "stringify"));
+    if (ready.length === 0) {
+      console.log("lightning-yaml is still a stub (parse/stringify throw) — writing caveat, nothing to benchmark.");
       const block =
-        "_No `lightning-yaml` implementation exists yet, so there is nothing to benchmark here._\n\n" +
-        "_This block refreshes automatically once a parser is registered in " +
-        "`bench/candidates.ts` with group `ours`; until then it stays as this note._";
+        "_`lightning-yaml` is registered as a candidate but its `parse`/`stringify` " +
+        "are not implemented yet (they throw `NotImplementedError`), so there is nothing " +
+        "to benchmark here._\n\n" +
+        "_This block refreshes automatically once `src/index.ts` implements them; until " +
+        "then, `pnpm test` runs the consistency suite that specifies what \"correct\" means._";
       readme = inject(readme, "OURS", block);
     } else {
-      console.log(`Benchmarking our implementation (${ours.map((c) => c.name).join(", ")}) + JSON baseline…`);
+      console.log(`Benchmarking our implementation (${ready.map((c) => c.name).join(", ")}) + JSON baseline…`);
       const block = await buildBlock("ours", "pnpm bench:self");
       readme = inject(readme, "OURS", block);
     }
