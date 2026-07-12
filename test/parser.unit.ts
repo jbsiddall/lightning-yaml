@@ -18,6 +18,7 @@ import { parse, parseAll, YAMLParseError, NotImplementedError } from "../src/ind
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
 import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
+import { parseAllDocuments } from "yaml";
 
 // --------------------------------------------------------------------------
 // M1 — exact JSON.parse parity on every JSON (flow) fixture.
@@ -375,10 +376,12 @@ test("regression [2]: leading ':' in a flow sequence is plain unless a boundary 
   for (const s of ["[:ff]", "[:00:]", "[:]", "[: x]", "[a, :b]"]) deepStrictEqual(parse(s), oracleParse(s));
 });
 
-test("regression [3]: document markers (--- / ...) throw NotImplementedError, not mis-parse", () => {
-  throws(() => parse("..."), NotImplementedError);
-  throws(() => parse("--- 5\n"), NotImplementedError);
-  throws(() => parse("---\nfoo\n"), NotImplementedError);
+test("regression [3]: document markers (--- / ...) now parse (M5), matching the oracle", () => {
+  // Superseded by M5: these used to throw NotImplementedError; they now parse.
+  strictEqual(parse("..."), null);
+  strictEqual(parse("--- 5\n"), 5);
+  strictEqual(parse("---\nfoo\n"), "foo");
+  for (const s of ["...", "--- 5\n", "---\nfoo\n"]) deepStrictEqual(parse(s), oracleParse(s));
 });
 
 test("regression [4]: YAML double-quoted escapes decode", () => {
@@ -440,11 +443,189 @@ test("regression [12]: integers spanning the Smi boundary accumulate exactly", (
 // json fixture), so both are covered without a dedicated case.
 
 // --------------------------------------------------------------------------
+// M5 — document markers (---/...), directives (%YAML/%TAG), multi-document
+// streams. Calibrated against the `yaml` oracle via `parseAllDocuments`
+// (scratch script, deleted) and cross-checked against the yaml-test-suite
+// ground truth for the spec corners noted inline.
+// --------------------------------------------------------------------------
+
+/**
+ * The oracle's multi-document reference: text -> array of document values.
+ * `maxAliasCount` belongs to `toJS`'s options, not `parseAllDocuments`'s (see
+ * bench/oracle.ts's note) — matches bench/conformance/run.ts's yamlLibParseDocs.
+ */
+function oracleParseAll(text: string): unknown[] {
+  return parseAllDocuments(text).map((d) => {
+    if (d.errors.length > 0) throw new Error(d.errors[0]!.message);
+    return d.toJS({ maxAliasCount: -1 });
+  });
+}
+
+const docMarkerOracle: string[] = [
+  // leading '---'
+  "--- 5\n",
+  "---\nfoo\n",
+  "--- foo\n",
+  "---\n",
+  "---",
+  "--- \n",
+  "---   #comment\nfoo\n",
+  // trailing '...'
+  "foo\n...\n",
+  "--- foo\n...\n",
+  "...",
+  "---\n...\n",
+  // inline scalar / flow after '---'
+  "--- foo\n",
+  "--- [a, b]\n",
+  "--- {a: b}\n",
+  "--- 'sq'\n",
+  '--- "dq"\n',
+  // '---' folds into a following bare scalar continuation when nothing follows
+  // it as a new document (a genuine spec corner — the oracle needs lookahead
+  // to disambiguate; see below for the one deliberately-skipped case)
+  "--- foo\nbar\n",
+  // bare document, unaffected by the feature
+  "just a plain scalar document\n",
+  "a: 1\nb: 2\n",
+  // ---foo / ...foo are NOT markers (no trailing ws/EOL after the 3rd char)
+  "---foo\n",
+  "...foo\n",
+];
+
+for (const input of docMarkerOracle) {
+  test(`doc marker matches oracle (single-doc parse) · ${input.replace(/\n/g, "\\n").slice(0, 44)}`, () => {
+    deepStrictEqual(parse(input), oracleParse(input));
+  });
+}
+
+const multiDocOracle: string[] = [
+  "--- a\n--- b\n",
+  "--- a\n...\n--- b\n",
+  "a\n...\nb\n",
+  "---\n---\nb\n",
+  "--- a\n--- b\n--- c",
+  "%YAML 1.2\n--- a\n%YAML 1.2\n--- b\n",
+];
+
+for (const input of multiDocOracle) {
+  test(`multi-doc matches oracle · ${input.replace(/\n/g, "\\n").slice(0, 44)}`, () => {
+    deepStrictEqual(parseAll(input), oracleParseAll(input));
+  });
+}
+
+test("leading '---' with an inline scalar/flow value", () => {
+  deepStrictEqual(parse("--- 5\n"), 5);
+  deepStrictEqual(parse("--- foo\n"), "foo");
+  deepStrictEqual(parse("--- [1, 2, 3]\n"), [1, 2, 3]);
+  deepStrictEqual(parse("--- {a: 1}\n"), { a: 1 });
+});
+
+test("a bare '---'/'---\\n' with no inline content starts the node on a following line", () => {
+  deepStrictEqual(parse("---\nfoo\n"), "foo");
+  deepStrictEqual(parse("---\na: 1\nb: 2\n"), { a: 1, b: 2 });
+});
+
+test("trailing '...' terminates the document", () => {
+  deepStrictEqual(parse("foo\n...\n"), "foo");
+  deepStrictEqual(parse("a: 1\n...\n"), { a: 1 });
+});
+
+test("bare documents (no markers at all) are unchanged", () => {
+  deepStrictEqual(parse("a: 1\nb: 2\n"), { a: 1, b: 2 });
+  deepStrictEqual(parse("- 1\n- 2\n"), [1, 2]);
+  deepStrictEqual(parse("just a plain scalar document\n"), "just a plain scalar document");
+});
+
+test("empty document (via markers) is null", () => {
+  strictEqual(parse("---\n"), null);
+  strictEqual(parse("---"), null);
+  strictEqual(parse("...\n"), null);
+});
+
+test("parseAll splits a '---'-separated multi-document stream", () => {
+  deepStrictEqual(parseAll("--- a\n--- b\n"), ["a", "b"]);
+  deepStrictEqual(parseAll("--- 1\n--- 2\n--- 3\n"), [1, 2, 3]);
+});
+
+test("parseAll splits a '...'-separated multi-document stream", () => {
+  deepStrictEqual(parseAll("a\n...\nb\n"), ["a", "b"]);
+});
+
+test("parseAll handles a mix of '---' and '...' separators", () => {
+  deepStrictEqual(parseAll("--- a\n...\n--- b\n"), ["a", "b"]);
+  // The second '---' is itself bare (nothing before the next content line), so
+  // its node is "b" — only 2 documents, not 3 (verified against the oracle).
+  deepStrictEqual(parseAll("---\n---\nb\n"), [null, "b"]);
+  deepStrictEqual(parseAll("---\n---\n"), [null, null]);
+});
+
+test("a bare document may only start the stream or follow an explicit '...' — unmarked trailing content after a document is an error, not a second bare document", () => {
+  // Regression: a flow-value document's content simply ends when its closing
+  // bracket is seen; without a '...' before it, following unmarked content
+  // is NOT a legitimate second document (grammar: l-bare-document is only
+  // legal first, or right after a document-suffix). Caught by comparing
+  // against the oracle, which also rejects this as a single malformed doc.
+  throws(() => parseAll("--- [1, 2]\nnope\n"), YAMLParseError);
+  throws(() => oracleParseAll("--- [1, 2]\nnope\n"));
+  // With an explicit '...' in between, the second bare document IS legal.
+  deepStrictEqual(parseAll("--- [1, 2]\n...\nnope\n"), [
+    [1, 2],
+    "nope",
+  ]);
+});
+
+test("directives: %YAML is accepted (1.1 and 1.2) and requires a following '---'", () => {
+  deepStrictEqual(parse("%YAML 1.2\n---\nx\n"), "x");
+  deepStrictEqual(parse("%YAML 1.1\n---\nx\n"), "x"); // accepted, not rejected
+  throws(() => parse("%YAML 1.2\nx\n"), YAMLParseError); // no '---' before content
+  throws(() => parse("%YAML 1.2\n"), YAMLParseError); // no '---' before EOF either
+});
+
+test("directives: %TAG is accepted and stored without requiring tags to be implemented", () => {
+  deepStrictEqual(parse("%TAG !e! tag:example.com,2000:\n---\nfoo\n"), "foo");
+});
+
+test("directives: an unrecognized directive is ignored, not rejected", () => {
+  deepStrictEqual(parse("%FOO bar baz\n---\nx\n"), "x");
+});
+
+test("directives: a directives block must be terminated by an explicit '---'", () => {
+  throws(() => parse("%YAML 1.2\nx\n"), YAMLParseError);
+  throws(() => parseAll("%YAML 1.2\nx\n"), YAMLParseError);
+});
+
+test("directives: duplicate %YAML in one document is rejected", () => {
+  // Deliberately stricter than our own oracle here: `yaml`'s parse() is lenient
+  // about a repeated %YAML directive, but js-yaml throws ("duplication of %YAML
+  // directive") and yaml-test-suite/SF5V expects an error too — we match those.
+  throws(() => parse("%YAML 1.2\n%YAML 1.2\n---\n"), YAMLParseError);
+  throws(() => jsYamlLoad("%YAML 1.2\n%YAML 1.2\n---\n"));
+});
+
+test("parse() throws on a second document (single-document contract, like js-yaml load)", () => {
+  throws(() => parse("--- a\n--- b\n"), YAMLParseError);
+  throws(() => parse("a\n---\nb\n"), YAMLParseError);
+});
+
+test("SPEC CORNER (documented, not chased): a block collection cannot start on the same " + "line as '---' — the oracle and yaml-test-suite (9KBC/CXX2) agree this errors", () => {
+  throws(() => parse("--- key1: value1\n"), YAMLParseError);
+  throws(() => parse("--- - a\n- b\n"), YAMLParseError);
+  throws(() => oracleParse("--- key1: value1\n"));
+});
+
+for (const input of ["[1, 2]", '{"a": 1}', "true", "null"]) {
+  test(`agrees with js-yaml on parseAll for a single bare document · ${input}`, () => {
+    deepStrictEqual(parseAll(input), [jsYamlLoad(input)]);
+  });
+}
+
+// --------------------------------------------------------------------------
 // API surface.
 // --------------------------------------------------------------------------
 
-test("parseAll returns an array of documents (single-doc for now)", () => {
-  deepStrictEqual(parseAll('[1, 2]'), [[1, 2]]);
+test("parseAll returns an array of documents", () => {
+  deepStrictEqual(parseAll("[1, 2]"), [[1, 2]]);
 });
 
 test("empty input parses to null", () => {
@@ -452,6 +633,15 @@ test("empty input parses to null", () => {
   strictEqual(parse("   \n  "), null);
 });
 
+test("empty input to parseAll is an empty document array", () => {
+  deepStrictEqual(parseAll(""), []);
+  deepStrictEqual(parseAll("   \n  "), []);
+});
+
 test("a leading BOM is ignored", () => {
   deepStrictEqual(parse("﻿[1, 2, 3]"), [1, 2, 3]);
+});
+
+test("a leading BOM before directives/markers is ignored", () => {
+  deepStrictEqual(parse("﻿%YAML 1.2\n---\nx\n"), "x");
 });
