@@ -30,6 +30,7 @@ implementation, or performance — pick by task:
 
 - Implementing/designing parser code → `README.md` (verdict) then `07-design-a-pure-js.md`
 - Debugging slow code / optimizing a hot path → `05-pure-js-ceiling.md` + `06-local-microbenchmarks.md` (V8 tricks: `03-v8-json-parse.md`)
+- Writing or reviewing perf-sensitive JS (JIT tiers, monomorphism, deopt checks) → `12-v8-optimization-guide.md`
 - Comparing against js-yaml / yaml behavior or speed → `01-js-yaml-internals.md` / `02-eemeli-yaml-internals.md`
 - Anything WASM or native → `04-wasm-route.md` + `08-design-b-wasm.md` (route was rejected — read before reopening)
 - Before relying on a perf claim from the dossier → `10-adversarial-verdicts.md` (three claims were refuted)
