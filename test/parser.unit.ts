@@ -557,11 +557,27 @@ test("regression [6]: '?' before a flow close is an explicit empty key", () => {
   deepStrictEqual(parse("{?}"), oracleParse("{?}"));
 });
 
-test("regression [7]: KNOWN LIMITATION — flow multi-line folding is not implemented", () => {
-  // A double-quoted scalar with a LITERAL newline should fold to a space in YAML
-  // (oracle → "a b"), but our fast path keeps the newline. Locked here so a
-  // future fix has to update this expectation deliberately.
-  strictEqual(parse('"a\nb"'), "a\nb");
+test("regression [7]: quoted-scalar multi-line flow folding matches the oracle", () => {
+  // A quoted scalar with a LITERAL newline folds to a space; blank lines become
+  // preserved newlines; leading whitespace on continuation lines (spaces AND
+  // tabs) is stripped, and trailing whitespace before a break is trimmed — but a
+  // trailing space before the CLOSING quote is content, not stripped.
+  for (const s of [
+    '"a\nb"', // single break → space
+    '"a\n\nb"', // one blank line → one newline
+    '"a\n\n\nb"', // two blank lines → two newlines
+    '"a   \n   b"', // trailing + leading whitespace stripped around the fold
+    "'a\nb'", // single-quoted folds identically
+    "'x\n\ny'",
+    '"a\n  \tb"', // leading tab on the continuation stripped
+    '" trailing "', // no break: leading/trailing space is content
+  ]) {
+    strictEqual(parse(s), oracleParse(s));
+  }
+  strictEqual(parse('"a\nb"'), "a b");
+  // An escaped whitespace char (`\<TAB>` / `\ `) is literal content, protected
+  // from folding — matches js-yaml and the `yaml` oracle.
+  strictEqual(parse('"a\\\tb"'), "a\tb");
 });
 
 test("regression [8]: block sequence indented at the parent mapping key's column", () => {
@@ -1101,4 +1117,97 @@ test("%TAG-redefined secondary handle changes what '!!' means (yaml-test-suite P
   const text = "%TAG !! tag:example.com,2000:app/\n---\n!!int 1 - 3 # Interval, not integer\n";
   deepStrictEqual(parse(text), "1 - 3"); // !!int no longer means the core int tag — an unrecognized app tag passes through
   deepStrictEqual(parse(text), oracleParse(text));
+});
+
+// ==========================================================================
+// Diagnostic-and-fix pass (2026-07): oracle-divergence bug fixes.
+// Each block pins the oracle-correct behavior for a bug that used to
+// mis-parse or wrongly accept/reject (`oracleParseAll` defined above is the
+// multi-document analogue of `oracleParse`).
+// ==========================================================================
+
+test("quoted multi-line flow folding: doubles, singles, blank lines, tab prefixes", () => {
+  // yaml-test-suite TL85 / 7A4E / PRH3 / NAT4 shapes, all against the oracle.
+  const cases = [
+    '"\n  foo \n \n  \t bar\n\n  baz\n"\n', // TL85: " foo\nbar\nbaz "
+    '" 1st non-empty\n\n 2nd non-empty \n\t3rd non-empty "\n', // 7A4E
+    "' 1st non-empty\n\n 2nd non-empty \n\t3rd non-empty '\n", // PRH3 (single-quoted)
+    'a: "So does this\n  quoted scalar.\\n"\n', // 4CQQ shape: trailing escaped \n
+    'x: " foo\n  bar "\ny: 1\n', // multi-line value then a sibling key
+  ];
+  for (const s of cases) deepStrictEqual(parseAll(s), oracleParseAll(s));
+  strictEqual(parse('"a\nb"'), "a b");
+  strictEqual(parse("'a\n\nb'"), "a\nb");
+});
+
+test("double-quoted escaped whitespace (\\<TAB>) is literal content (yaml-test-suite KH5V/01, DE56)", () => {
+  strictEqual(parse('"2 inline\\\ttab"'), "2 inline\ttab"); // backslash + literal tab → tab
+  strictEqual(parse('"3 trailing\\\t\n    tab"'), "3 trailing\t tab"); // + fold
+  strictEqual(parse('"2 inline\\\ttab"'), oracleParse('"2 inline\\\ttab"'));
+});
+
+test("a multi-line quoted scalar cannot be a block implicit key (yaml-test-suite 7LBH/D49Q/JKF3)", () => {
+  throws(() => parse('"a\\nb": 1\n"c\n d": 1\n'), YAMLParseError); // 7LBH
+  throws(() => parse("'a\\nb': 1\n'c\n d': 1\n"), YAMLParseError); // D49Q
+  throws(() => parse('- - "bar\nbar": x\n'), YAMLParseError); // JKF3
+  throws(() => oracleParse('"c\n d": 1\n'));
+});
+
+test("a column-0 doc marker inside a quoted scalar is unterminated (yaml-test-suite 5TRB/RXY3)", () => {
+  throws(() => parse('---\n"\n---\n"\n'), YAMLParseError); // 5TRB
+  throws(() => parse("---\n'\n...\n'\n"), YAMLParseError); // RXY3
+  strictEqual(parse('"a\n  --- x\nb"'), "a --- x b"); // INDENTED marker is ordinary content
+  strictEqual(parse('"a\n  --- x\nb"'), oracleParse('"a\n  --- x\nb"'));
+});
+
+test("empty sequence entry followed by a same-column sibling dash → null, not a nested seq (yaml-test-suite FH7J)", () => {
+  deepStrictEqual(parse("-\n- x\n"), [null, "x"]);
+  deepStrictEqual(parse("- a\n-\n- b\n"), ["a", null, "b"]);
+  deepStrictEqual(parse("- # comment\n- x\n"), [null, "x"]); // empty dash + comment
+  deepStrictEqual(parse("- -\n  - x\n"), [[null, "x"]]); // nested
+  deepStrictEqual(parse("- &a\n- x\n"), [null, "x"]); // anchored empty entry
+  deepStrictEqual(parse("- !!str\n- x\n"), ["", "x"]); // tagged empty entry
+  // A same-column dash after a MAPPING key stays a compact sequence value.
+  deepStrictEqual(parse("key:\n- a\n- b\n"), { key: ["a", "b"] });
+  for (const s of ["-\n- x\n", "- a\n-\n- b\n", "- -\n  - x\n", "- &a\n- x\n", "key:\n- a\n- b\n"]) {
+    deepStrictEqual(parseAll(s), oracleParseAll(s));
+  }
+});
+
+test("a plain scalar does not fold across a comment (yaml-test-suite BF9H/BS4K/8XDJ)", () => {
+  throws(() => parse("word1   # comment\nword2\n"), YAMLParseError); // BS4K
+  throws(() => parse("key: word1\n#  xxx\n  word2\n"), YAMLParseError); // 8XDJ
+  throws(() => parse("---\nplain: a\n  b # end of scalar\n      c\n"), YAMLParseError); // BF9H
+  // A trailing comment on the scalar's LAST line is fine (folds, then ends).
+  deepStrictEqual(parse("a\nb # comment\n"), "a b");
+  deepStrictEqual(parse("a\nb # comment\n"), oracleParse("a\nb # comment\n"));
+});
+
+test("directives must be preceded by a '...' footer (yaml-test-suite 9HCY/EB22)", () => {
+  throws(() => parseAll('!foo "bar"\n%TAG ! tag:example.com,2000:app/\n---\n!foo "bar"\n'), YAMLParseError); // 9HCY
+  throws(() => parseAll("---\nscalar1 # comment\n%YAML 1.2\n---\nscalar2\n"), YAMLParseError); // EB22
+  // Valid: a '...' footer before the directive.
+  deepStrictEqual(parseAll("doc1\n...\n%YAML 1.2\n---\ndoc2\n"), ["doc1", "doc2"]);
+  deepStrictEqual(parseAll("doc1\n...\n%YAML 1.2\n---\ndoc2\n"), oracleParseAll("doc1\n...\n%YAML 1.2\n---\ndoc2\n"));
+});
+
+test("a plain scalar cannot begin with a reserved indicator %/@/` (yaml-test-suite MUS6/01)", () => {
+  throws(() => parse("foo: %x\n"), YAMLParseError);
+  throws(() => parse("foo: @x\n"), YAMLParseError);
+  throws(() => parse("foo: `x\n"), YAMLParseError);
+  throws(() => parseAll("%YAML 1.2\n---\n%YAML 1.2\n---\n"), YAMLParseError); // MUS6/01
+  throws(() => oracleParse("foo: @x\n"));
+  // Reserved chars are fine anywhere but the first position.
+  deepStrictEqual(parse("a%b\n"), "a%b");
+  deepStrictEqual(parse("50%\n"), "50%");
+});
+
+test("a mapping value may not inline a block collection (yaml-test-suite ZCZ6/ZL4Z/5U3A)", () => {
+  throws(() => parse("a: b: c: d\n"), YAMLParseError); // ZCZ6
+  throws(() => parse("a: 'b': c\n"), YAMLParseError); // ZL4Z
+  throws(() => parse("key: - a\n     - b\n"), YAMLParseError); // 5U3A
+  throws(() => oracleParse("a: b: c: d\n"));
+  // A SEQUENCE entry's inline value MAY be a compact mapping — still legal.
+  deepStrictEqual(parse("- a: 1\n  b: 2\n"), [{ a: 1, b: 2 }]);
+  deepStrictEqual(parse("key: {a: b}\nk2: [1, 2]\n"), { key: { a: "b" }, k2: [1, 2] });
 });

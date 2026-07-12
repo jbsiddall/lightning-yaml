@@ -64,12 +64,14 @@ const COLON = 58; // :
 const LT = 60; // < (verbatim tag opener)
 const GT = 62; // > (folded block scalar indicator / verbatim tag closer)
 const QUESTION = 63; // ?
+const AT = 64; // @ (reserved indicator — invalid as a plain-scalar first char)
 const UPPER_E = 69; // E
 const LBRACKET = 91; // [
 const BACKSLASH = 92; // \
 const RBRACKET = 93; // ]
 const UNDERSCORE = 95; // _
 const LOWER_E = 101; // e
+const BACKTICK = 96; // ` (reserved indicator — invalid as a plain-scalar first char)
 const LBRACE = 123; // {
 const PIPE = 124; // | (literal block scalar indicator)
 const RBRACE = 125; // }
@@ -169,6 +171,25 @@ let lineStart = 0;
 let plainStoppedAtColon = false;
 
 /**
+ * Set by `advanceCountingBreaks`: whether the just-scanned plain-scalar line was
+ * terminated by a `#` comment (trailing on the content line, or a comment-only
+ * line before the next content). A comment ends a plain scalar — it may not fold
+ * across one — so the folding loops stop when this is set, and any content that
+ * follows at continuation indent is then rejected by the ordinary indentation
+ * checks (yaml-test-suite BF9H / BS4K / 8XDJ / EB22).
+ */
+let plainStoppedAtComment = false;
+
+/**
+ * Set by the quoted-scalar parsers: whether the scalar just parsed physically
+ * spanned more than one line (a real folded line break, NOT an escaped `\n`).
+ * A block implicit key must be a single line, so the block key branches reject a
+ * multi-line quoted scalar used as a key (yaml-test-suite 7LBH / D49Q / JKF3);
+ * flow keys, which may span lines, never consult it.
+ */
+let quotedMultiline = false;
+
+/**
  * Memoized position of the next backslash at or after the last query point (or
  * `len` once none remain). Without this, checking each double-quoted string for
  * escapes via `indexOf('\\')` rescans to end-of-document every time on
@@ -177,6 +198,17 @@ let plainStoppedAtColon = false;
  * single `indexOf` total. Reset per parse.
  */
 let nextBackslash = -1;
+
+/**
+ * Memoized position of the next line break (`\n`) at or after the last query
+ * point (or `len` once none remain) — the newline analogue of `nextBackslash`,
+ * for the same reason: a quoted-scalar fast path that checked each string for an
+ * interior line break via a fresh `indexOf('\n')` would rescan a minified
+ * (newline-free) document to its end on every string — O(n²). We recompute only
+ * when the cursor passes the memo, so newline-free input pays a single `indexOf`
+ * total, and line-broken input pays one short scan per line. Reset per parse.
+ */
+let nextNewline = -1;
 
 /**
  * Per-parse key-intern cache. Repeated mapping keys collapse to one
@@ -276,6 +308,20 @@ let pendingAnchorName: string | null = null;
 let afterInlineProperty = false;
 
 /**
+ * Whether the node about to be dispatched is a MAPPING value written inline on
+ * the same line as its `key:` — where a block collection may NOT start (`a: b:
+ * c` and `key: - a` are both errors: "nested mappings are not allowed in compact
+ * mappings" / "sequence on same line as mapping key"). A scalar or flow
+ * collection is fine; only a block map (`x: y`) or block sequence (`- x`)
+ * starting right there is rejected. Set by `parseBlockValue` for a map value's
+ * inline node, consumed (cleared) by the very next `parseBlockNode` dispatch —
+ * scoped exactly like `afterInlineProperty`, so it never leaks into recursion.
+ * A SEQUENCE entry's inline value is exempt: `- key: v` compact mappings are
+ * legal, so `parseBlockSeq` never sets it (yaml-test-suite ZCZ6/ZL4Z/5U3A).
+ */
+let inlineMapValue = false;
+
+/**
  * The column of a node's LEADING PROPERTY (`&name`), when it differs from the
  * column `parseBlockNode` would otherwise compute for the node that follows it
  * on the same line — `-1` means "no override, compute normally." A block
@@ -343,12 +389,14 @@ function resetForStream(text: string): void {
   pos = 0;
   depth = 0;
   nextBackslash = -1;
+  nextNewline = -1;
   lineStart = 0;
   keyCache = new Map();
   tagHandles = null;
   anchorMap = null;
   pendingAnchorName = null;
   afterInlineProperty = false;
+  inlineMapValue = false;
   colOverride = -1;
   bareDocAllowed = true;
 
@@ -1842,7 +1890,51 @@ function isNanWord(a: number, b: number, d: number): boolean {
 // Double-quoted scalar — indexOf hop fast path, out-of-line escape decode.
 // ---------------------------------------------------------------------------
 
+/**
+ * Out-parameter for `foldFlowBreak` (module-level to keep the fold allocation-
+ * free, matching `plainStoppedAtColon`'s established out-param style): the number
+ * of line breaks the last fold consumed. A single break folds to one space; each
+ * *additional* break (a blank line) contributes a preserved newline.
+ */
+let foldedBreaks = 0;
+
+/**
+ * YAML flow line folding, shared by the double/single-quoted slow paths. Call
+ * with `i` at the first line-break character; consumes the whole break run and
+ * the continuation line's leading whitespace, returns the index of the first
+ * continuation-content character (or the closing quote), and reports the break
+ * count via `foldedBreaks`. Trailing whitespace of the preceding line is trimmed
+ * by the caller (which owns the pending-segment start). Leading whitespace on
+ * every continuation line — the flow line prefix, spaces AND tabs — is stripped
+ * here (never content; escaped whitespace, which IS content, is handled by the
+ * caller's escape decoder before this ever runs).
+ */
+function foldFlowBreak(i: number): number {
+  let breaks = 0;
+  for (;;) {
+    if (src.charCodeAt(i) === CR) {
+      i++;
+      if (i < len && src.charCodeAt(i) === LF) i++;
+    } else {
+      i++; // LF
+    }
+    breaks++;
+    // `i` is at a line start. A column-0 `---`/`...` document marker interrupts
+    // the scalar — it is NOT foldable content, so the quote is unterminated
+    // (yaml-test-suite 5TRB / RXY3). An INDENTED `---` is ordinary content.
+    if (looksLikeDocMarkerAt(i)) fail("unterminated quoted string: a document marker interrupts it");
+    while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
+    if (i >= len) fail("unterminated quoted string");
+    const cc = src.charCodeAt(i);
+    if (cc !== LF && cc !== CR) break; // a content line (or the closing quote)
+  }
+  foldedBreaks = breaks;
+  quotedMultiline = true; // a real folded break was consumed → the scalar is multi-line
+  return i;
+}
+
 function parseDoubleQuoted(): string {
+  quotedMultiline = false;
   const start = pos + 1;
   const e = src.indexOf('"', start);
   if (e === -1) fail("unterminated double-quoted string");
@@ -1853,10 +1945,18 @@ function parseDoubleQuoted(): string {
     nextBackslash = b === -1 ? len : b;
   }
   if (nextBackslash > e) {
-    // No escape before the closing quote → the value is a single slice. This is
-    // the ~100% case on JSON-shaped input and is why the hop path beats native.
-    pos = e + 1;
-    return src.slice(start, e);
+    // No escape before the closing quote. A line break inside still triggers
+    // multi-line flow folding, so check for one (memoized like `nextBackslash`);
+    // absent both, the value is a single slice — the ~100% case on JSON-shaped
+    // input and why the hop path beats native.
+    if (nextNewline < start) {
+      const n = src.indexOf("\n", start);
+      nextNewline = n === -1 ? len : n;
+    }
+    if (nextNewline > e) {
+      pos = e + 1;
+      return src.slice(start, e);
+    }
   }
   return parseDoubleQuotedSlow(start);
 }
@@ -1937,6 +2037,10 @@ function parseDoubleQuotedSlow(start: number): string {
           result += " ";
           i++;
           break;
+        case TAB: // "\<TAB>" → tab (an escaped whitespace char is literal content)
+          result += "\t";
+          i++;
+          break;
         case 0x4e: // \N → next line (U+0085)
           result += "\x85";
           i++;
@@ -1980,6 +2084,19 @@ function parseDoubleQuotedSlow(start: number): string {
       seg = i;
       continue;
     }
+    if (c === LF || c === CR) {
+      // Multi-line flow folding. Trim trailing whitespace of the current line
+      // from the pending segment (escaped whitespace already lives in `result`,
+      // so it is protected), fold the break run, and resume at the continuation
+      // content (its leading whitespace stripped by `foldFlowBreak`).
+      let j = i;
+      while (j > seg && (src.charCodeAt(j - 1) === SPACE || src.charCodeAt(j - 1) === TAB)) j--;
+      result += src.slice(seg, j);
+      i = foldFlowBreak(i);
+      result += foldedBreaks === 1 ? " " : "\n".repeat(foldedBreaks - 1);
+      seg = i;
+      continue;
+    }
     i++;
   }
 }
@@ -2008,12 +2125,20 @@ function hexVal(c: number): number {
 // ---------------------------------------------------------------------------
 
 function parseSingleQuoted(): string {
+  quotedMultiline = false;
   const start = pos + 1;
   const e = src.indexOf("'", start);
   if (e === -1) fail("unterminated single-quoted string");
   if (e + 1 < len && src.charCodeAt(e + 1) === SQUOTE) {
     return parseSingleQuotedSlow(start); // contains a '' escape
   }
+  // A line break inside triggers multi-line flow folding — divert to the slow
+  // path (memoized newline check, like the double-quoted fast path).
+  if (nextNewline < start) {
+    const n = src.indexOf("\n", start);
+    nextNewline = n === -1 ? len : n;
+  }
+  if (nextNewline < e) return parseSingleQuotedSlow(start);
   pos = e + 1;
   return src.slice(start, e);
 }
@@ -2024,7 +2149,8 @@ function parseSingleQuotedSlow(start: number): string {
   let i = start;
   for (;;) {
     if (i >= len) fail("unterminated single-quoted string");
-    if (src.charCodeAt(i) === SQUOTE) {
+    const c = src.charCodeAt(i);
+    if (c === SQUOTE) {
       if (i + 1 < len && src.charCodeAt(i + 1) === SQUOTE) {
         result += src.slice(seg, i) + "'"; // '' → '
         i += 2;
@@ -2034,6 +2160,17 @@ function parseSingleQuotedSlow(start: number): string {
       result += src.slice(seg, i);
       pos = i + 1;
       return result;
+    }
+    if (c === LF || c === CR) {
+      // Multi-line flow folding — identical to the double-quoted path (single
+      // quotes have no escapes, so all whitespace here is raw source text).
+      let j = i;
+      while (j > seg && (src.charCodeAt(j - 1) === SPACE || src.charCodeAt(j - 1) === TAB)) j--;
+      result += src.slice(seg, j);
+      i = foldFlowBreak(i);
+      result += foldedBreaks === 1 ? " " : "\n".repeat(foldedBreaks - 1);
+      seg = i;
+      continue;
     }
     i++;
   }
@@ -2232,23 +2369,29 @@ const ROOT_AFTER_INLINE_MARKER = -2;
  * `ROOT_AFTER_INLINE_MARKER` check above). Always advances to the start of the
  * next content line before returning.
  */
-function parseBlockNode(parentCol: number): unknown {
+function parseBlockNode(parentCol: number, mapValue = false): unknown {
   // Consumed here (not left for the branches below) so a property's influence
   // is scoped to exactly the ONE dispatch that immediately follows it, never
   // leaking into deeper recursion — see `afterInlineProperty`/`colOverride`'s
   // doc comments.
   const inlineProp = afterInlineProperty;
   afterInlineProperty = false;
+  // Same scoping as `afterInlineProperty`: capture-and-clear so a block-collection
+  // start is forbidden only for THIS dispatch (an inline mapping value), never
+  // leaking into the nested nodes this call goes on to parse.
+  const noBlockColl = inlineMapValue;
+  inlineMapValue = false;
   const col = colOverride >= 0 ? colOverride : pos - lineStart;
   colOverride = -1;
   const c = src.charCodeAt(pos);
 
-  if (c === AMP) return parseAnchoredBlockNode(parentCol);
-  if (c === EXCLAIM) return parseTaggedBlockNode(parentCol, col);
+  if (c === AMP) return parseAnchoredBlockNode(parentCol, mapValue);
+  if (c === EXCLAIM) return parseTaggedBlockNode(parentCol, col, mapValue);
 
   if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
     if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
     if (inlineProp) fail("a block sequence cannot start on the same line as a node property (anchor)");
+    if (noBlockColl) fail("a block sequence cannot start on the same line as a mapping key");
     return parseBlockSeq(col);
   }
 
@@ -2280,6 +2423,11 @@ function parseBlockNode(parentCol: number): unknown {
     skipInlineSpaces();
     if (src.charCodeAt(pos) === COLON && isSpaceOrEolAt(pos + 1)) {
       if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
+      if (noBlockColl) fail("a nested block mapping cannot start on the same line as a mapping key");
+      // A block implicit key must fit on one line: a quoted scalar that folded
+      // across a real line break cannot be one (yaml-test-suite 7LBH/D49Q/JKF3).
+      // Flow collections as keys may span lines, so this is scoped to quotes.
+      if ((c === DQUOTE || c === SQUOTE) && quotedMultiline) fail("a multi-line quoted scalar cannot be a block mapping key");
       // Quoted scalar becomes a mapping key: only a SAME-LINE property may
       // claim it (see `afterInlineProperty`'s doc comment) — a DEFERRED one
       // is left pending for `parseBlockMap`'s own self-registration instead.
@@ -2290,11 +2438,22 @@ function parseBlockNode(parentCol: number): unknown {
     return registerPendingAnchor(node); // plain value: always claims (same-line or deferred)
   }
 
+  // A plain scalar may not BEGIN with a reserved indicator: `%` (directive — in
+  // node position a `%directive` line has no valid document footer before it),
+  // `@`, or `` ` `` (reserved for future use). A column-0 `%` in directives
+  // position is intercepted by `parseDirectives` before ever reaching here, so
+  // any `%`/`@`/`` ` `` seen at a node's start is genuinely invalid (yaml-test-
+  // suite MUS6/01, plus `foo: %x` / `--- @x`), matching the oracle.
+  if (c === PERCENT || c === AT || c === BACKTICK) {
+    fail("a plain scalar cannot start with a reserved indicator ('%', '@', or '`')");
+  }
+
   // Plain scalar: the scan stops at a `: ` separator iff this line is a mapping.
   const start = pos;
   const end = scanBlockPlainEnd();
   if (plainStoppedAtColon) {
     if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
+    if (noBlockColl) fail("a nested block mapping cannot start on the same line as a mapping key");
     // Same same-line-vs-deferred rule as the quoted case just above, applied to
     // a plain-scalar key: `plainKey` itself calls `registerPendingAnchor`, so
     // bypass it (resolve without claiming) when the property was deferred.
@@ -2335,7 +2494,7 @@ function parseBlockNode(parentCol: number): unknown {
  * plain `parseBlockNode`/`parseDeferredBlockNode`, so the eventual scalar gets
  * the tag's forced typing instead of implicit typing.
  */
-function parseAnchoredBlockNode(parentCol: number): unknown {
+function parseAnchoredBlockNode(parentCol: number, mapValue: boolean): unknown {
   const anchorCol = pos - lineStart;
   pos++; // past '&'
   const name = scanAnchorOrAliasName();
@@ -2360,7 +2519,7 @@ function parseAnchoredBlockNode(parentCol: number): unknown {
     // a following line, subject to the ordinary value-continuation rules.
     nextLine();
     const effParentCol = parentCol === ROOT_AFTER_INLINE_MARKER ? -1 : parentCol;
-    node = tag !== null ? parseDeferredTaggedBlockNode(effParentCol, tag) : parseDeferredBlockNode(effParentCol);
+    node = tag !== null ? parseDeferredTaggedBlockNode(effParentCol, tag, mapValue) : parseDeferredBlockNode(effParentCol, mapValue);
   } else if (tag !== null) {
     if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
       if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
@@ -2370,7 +2529,7 @@ function parseAnchoredBlockNode(parentCol: number): unknown {
   } else {
     afterInlineProperty = true; // consumed by the very next parseBlockNode dispatch
     colOverride = anchorCol;
-    node = parseBlockNode(parentCol);
+    node = parseBlockNode(parentCol, mapValue);
   }
   if (pendingAnchorName === name) registerAnchor(name, node); // not yet consumed by a container/key
   pendingAnchorName = outerPending;
@@ -2388,7 +2547,7 @@ function parseAnchoredBlockNode(parentCol: number): unknown {
  * "block sequence right after a property" check below is unconditional
  * rather than gated on an inherited flag.
  */
-function parseTaggedBlockNode(parentCol: number, col: number): unknown {
+function parseTaggedBlockNode(parentCol: number, col: number, mapValue: boolean): unknown {
   const tag = scanTag();
   checkTagSeparator(false);
   skipInlineSpaces();
@@ -2411,7 +2570,7 @@ function parseTaggedBlockNode(parentCol: number, col: number): unknown {
   if (c === -1 || c === LF || c === CR || c === HASH) {
     nextLine();
     const effParentCol = parentCol === ROOT_AFTER_INLINE_MARKER ? -1 : parentCol;
-    node = parseDeferredTaggedBlockNode(effParentCol, tag);
+    node = parseDeferredTaggedBlockNode(effParentCol, tag, mapValue);
   } else {
     // Unlike the anchor-only case above, a tag is ALWAYS "a node property
     // immediately followed inline" at this point (we only reach this branch
@@ -2449,15 +2608,18 @@ function parseTaggedBlockNode(parentCol: number, col: number): unknown {
  * value's runtime shape (`applyTagByRuntimeKind`) rather than trying to thread
  * "raw" text through an arbitrary chain of nested properties.
  */
-function parseDeferredTaggedBlockNode(parentCol: number, tag: string): unknown {
+function parseDeferredTaggedBlockNode(parentCol: number, tag: string, mapValue: boolean): unknown {
   if (pos >= len) return applyScalarTag(tag, "");
   const nc = pos - lineStart;
   if (nc > parentCol) {
     const c = src.charCodeAt(pos);
-    if (c === AMP || c === EXCLAIM) return applyTagByRuntimeKind(tag, parseBlockNode(parentCol));
+    if (c === AMP || c === EXCLAIM) return applyTagByRuntimeKind(tag, parseBlockNode(parentCol, mapValue));
     return parseTaggedBlockContent(parentCol, nc, tag, false);
   }
-  if (nc === parentCol && src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) {
+  // A block sequence at the SAME column is a valid (compact) value only under a
+  // mapping key (`key:\n- a`); after a sequence dash it is a SIBLING entry, so
+  // this tagged node is an empty scalar and the `-` is left for the parent seq.
+  if (mapValue && nc === parentCol && src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) {
     return applyCollectionTag(tag, parseBlockSeq(nc), "seq");
   }
   return applyScalarTag(tag, "");
@@ -2582,7 +2744,7 @@ function resolveBlockPlain(start: number, end: number, parentCol: number): unkno
   // calls out where block-plain scanning must special-case the marker. For any
   // nested scalar (parentCol >= 0) the dedent check alone already catches a
   // col-0 marker, so `isDocMarkerAt` short-circuits away and is never called.
-  if (pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) {
+  if (plainStoppedAtComment || pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) {
     // Single-line plain scalar (the overwhelming case): one span, typed once.
     return resolvePlain(start, end);
   }
@@ -2600,7 +2762,7 @@ function resolveBlockPlain(start: number, end: number, parentCol: number): unkno
  */
 function resolveBlockPlainRaw(start: number, end: number, parentCol: number): string {
   const breaks = advanceCountingBreaks();
-  if (pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) {
+  if (plainStoppedAtComment || pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) {
     return src.slice(start, end);
   }
   return foldBlockPlainRemainder(src.slice(start, end), breaks, parentCol);
@@ -2622,7 +2784,7 @@ function foldBlockPlainRemainder(first: string, breaks: number, parentCol: numbe
     result += src.slice(segStart, segEnd);
     if (plainStoppedAtColon) fail("mapping value not allowed in a multi-line plain scalar");
     breaks = advanceCountingBreaks();
-    if (pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) break;
+    if (plainStoppedAtComment || pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) break;
   }
   return result;
 }
@@ -2634,8 +2796,11 @@ function foldBlockPlainRemainder(first: string, breaks: number, parentCol: numbe
  * single break into a space and blank lines into newlines. Sets `lineStart`.
  */
 function advanceCountingBreaks(): number {
+  plainStoppedAtComment = false;
   skipInlineSpaces();
   if (pos < len && src.charCodeAt(pos) === HASH) {
+    // A trailing comment on the plain scalar's content line ends the scalar.
+    plainStoppedAtComment = true;
     const nl = src.indexOf("\n", pos);
     pos = nl === -1 ? len : nl;
   }
@@ -2665,6 +2830,8 @@ function advanceCountingBreaks(): number {
         continue; // blank line — the loop consumes its break next
       }
       if (ch === HASH) {
+        // A comment-only line ends the plain scalar too — it cannot fold past it.
+        plainStoppedAtComment = true;
         const nl = src.indexOf("\n", p);
         pos = nl === -1 ? len : nl + 1;
         lineStart = pos;
@@ -2682,7 +2849,7 @@ function parseBlockSeq(col: number): unknown[] {
   registerPendingAnchor(arr); // before children, so `&a\n- *a\n` self-references correctly
   for (;;) {
     pos++; // past '-'
-    arr.push(parseBlockValue(col));
+    arr.push(parseBlockValue(col, false)); // a seq entry's value: same-col `-` is a sibling
     if (pos >= len) break;
     if (pos - lineStart !== col) break;
     if (!(src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1))) break;
@@ -2699,7 +2866,7 @@ function parseBlockMap(col: number, firstKey: string): Record<string, unknown> {
   for (;;) {
     // pos is at the ':' separator for `key`.
     pos++; // past ':'
-    storeKey(obj, key, parseBlockValue(col));
+    storeKey(obj, key, parseBlockValue(col, true)); // a map value: same-col `-` is a compact seq
     if (pos >= len) break;
     const nc = pos - lineStart;
     // A col-0 document marker always ends the mapping — including when
@@ -2731,6 +2898,7 @@ function parseBlockMapKey(): string {
   }
   if (c === DQUOTE || c === SQUOTE || c === LBRACKET || c === LBRACE) {
     const node = registerPendingAnchor(c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : parseFlowValue());
+    if ((c === DQUOTE || c === SQUOTE) && quotedMultiline) fail("a multi-line quoted scalar cannot be a block mapping key");
     skipInlineSpaces();
     if (src.charCodeAt(pos) !== COLON || !isSpaceOrEolAt(pos + 1)) fail("expected ':' after mapping key");
     return internKey(keyToString(node));
@@ -2836,11 +3004,15 @@ function parseTaggedBlockMapKeyRaw(tag: string, c: number): unknown {
  * an ordinary `:`/`-`) and `parseAnchoredBlockNode` (after a property alone on
  * its line) — both need identical indentation semantics.
  */
-function parseDeferredBlockNode(parentCol: number): unknown {
+function parseDeferredBlockNode(parentCol: number, mapValue: boolean): unknown {
   if (pos >= len) return null;
   const nc = pos - lineStart;
-  if (nc > parentCol) return parseBlockNode(parentCol);
-  if (nc === parentCol && src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) {
+  if (nc > parentCol) return parseBlockNode(parentCol, mapValue);
+  // A same-column block sequence is this node's (compact) value only under a
+  // mapping key; after a sequence dash it is a SIBLING, so an empty entry here
+  // resolves to null and the `-` is left for the parent `parseBlockSeq` loop
+  // (yaml-test-suite FH7J and the `-\n- x` shape — `[null, "x"]`, not `[["x"]]`).
+  if (mapValue && nc === parentCol && src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) {
     return parseBlockSeq(nc);
   }
   return null;
@@ -2852,14 +3024,18 @@ function parseDeferredBlockNode(parentCol: number): unknown {
  * `key: [flow]` work); otherwise the value is a deeper-indented block node on the
  * following lines, or null. Always advances to the next content line.
  */
-function parseBlockValue(parentCol: number): unknown {
+function parseBlockValue(parentCol: number, mapValue: boolean): unknown {
   skipInlineSpaces();
   const c = pos < len ? src.charCodeAt(pos) : -1;
   if (c === -1 || c === LF || c === CR || c === HASH) {
     nextLine();
-    return parseDeferredBlockNode(parentCol);
+    return parseDeferredBlockNode(parentCol, mapValue);
   }
-  return parseBlockNode(parentCol); // inline / compact node at the current column
+  // An inline mapping value may not itself begin a block collection (a scalar or
+  // flow collection is fine). A sequence entry's inline value is exempt — compact
+  // `- key: v` mappings are legal — so this is gated on `mapValue`.
+  if (mapValue) inlineMapValue = true;
+  return parseBlockNode(parentCol, mapValue); // inline / compact node at the current column
 }
 
 // ===========================================================================
@@ -3285,6 +3461,14 @@ function parseNextDocument(): unknown {
   if (pos >= len) return NO_DOCUMENT;
 
   const sawDirectives = parseDirectives();
+  // A directives block may only open the stream or follow an explicit `...`
+  // document-end marker — the SAME precondition as a bare document (`bareDocAllowed`).
+  // A `%directive` immediately after a prior document's content, with no `...`
+  // footer between, is an error (yaml-test-suite 9HCY / EB22 — "Need document
+  // footer before directives").
+  if (sawDirectives && !bareDocAllowed) {
+    fail("a directives block must be preceded by an explicit '...' document end marker");
+  }
   skipBlankLines();
   if (pos >= len) {
     if (sawDirectives) fail("a directives block must be terminated by an explicit '---' document start");
