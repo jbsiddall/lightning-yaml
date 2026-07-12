@@ -96,8 +96,12 @@ async function main(): Promise<void> {
   let readme = readFileSync(README, "utf8");
 
   if (mode === "competition") {
-    console.log("Benchmarking competition (JSON + js-yaml + yaml), full matrix…");
-    const block = await buildBlock("competition", "pnpm bench:competition");
+    console.log("Benchmarking all parsers (JSON + js-yaml + yaml + lightning-yaml), full matrix…");
+    // Scope "all" makes this a genuine head-to-head: our parser sits in the same
+    // tables as the competition. The per-fixture capability probe still drops
+    // lightning-yaml from fixtures it can't read yet (e.g. yaml-rich anchors),
+    // so those rows honestly show only the parsers that handle them.
+    const block = await buildBlock("all", "pnpm bench:competition");
     readme = inject(readme, "COMPETITION", block);
   } else if (mode === "self") {
     const ours = candidatesInGroup("ours");

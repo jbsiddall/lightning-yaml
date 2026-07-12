@@ -5,18 +5,24 @@ Guidance for Claude Code (and humans) working in this repo.
 ## What this is
 
 `lightning-yaml` aims to be a YAML parser that approaches `JSON.parse` /
-`JSON.stringify` speed and memory. **The parser is still a stub** —
-[`src/index.ts`](src/index.ts) exports `parse`/`stringify` that throw
-`NotImplementedError`. The repo around it is:
+`JSON.stringify` speed and memory. **The parser is real and partial** —
+[`src/index.ts`](src/index.ts) implements `parse`/`parseAll` for the JSON subset
+and YAML flow + block syntax (milestones M0–M3): plain scalars with 1.2
+core-schema typing, quoting + escapes, comments, flow/block maps and sequences,
+implicit keys, and compact forms. Not yet implemented (they throw
+`NotImplementedError` or a clear parse error): `stringify`, block scalars
+(`|`/`>`), anchors/aliases + tags (`!!binary`), merge keys, and multi-document
+streams (`---`/`...`). The repo around it is:
 
-- a **benchmark harness** that measures the competition (`JSON`, `js-yaml`,
-  `yaml`) on speed (mitata) and peak memory (isolated child processes reading
-  `process.resourceUsage().maxRSS`), across three data categories: JSON,
-  plain block-YAML, and rich YAML (`!!binary` tags + `&`/`*` anchors); and
-- a **vitest consistency suite** (`pnpm test`) that checks our `parse`/`stringify`
-  against a single spec oracle (the `yaml` library — see `bench/oracle.ts`) over
-  that same data. Every "ours" test fails today (the stub throws) — that's the
-  point: each red test specifies behaviour the real parser must satisfy.
+- a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
+  and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child
+  processes reading `process.resourceUsage().maxRSS`), across three data
+  categories: JSON, plain block-YAML, and rich YAML (`!!binary` tags + `&`/`*`
+  anchors); and
+- a **vitest consistency suite** (`pnpm test`) plus the parser's own node:test
+  suite (`pnpm test:unit`) that check our `parse` against a single spec oracle
+  (the `yaml` library — see `bench/oracle.ts`). The JSON and block `yaml-plain`
+  cases pass; the `yaml-rich` cases stay red until anchors + `!!binary` land.
 
 See [README.md](README.md) for the design and rationale.
 
@@ -67,22 +73,24 @@ pnpm bench:self
 and commit the updated `README.md` "Our implementation" block along with your
 change.
 
-**Caveat — the parser is still a stub.** `bench:self` benchmarks only this
-repo's own parser (group `ours` in `bench/candidates.ts`). While `src/index.ts`
-throws `NotImplementedError`, the harness detects that (`candidateSupports`) and
-skips it: `bench:self` just (re)writes a short caveat note and exits. That's
-expected — nothing to update in that case. Do **not** run the (slow) competition
-benchmark on ordinary commits.
+`bench:self` benchmarks only this repo's own parser (group `ours` in
+`bench/candidates.ts`) plus the JSON baseline — fast, so run it every commit. The
+per-fixture capability probe (`candidateHandles`) benchmarks lightning-yaml only
+on the fixtures it can read today (JSON + block `yaml-plain`) and skips those
+whose constructs aren't implemented yet (e.g. `yaml-rich` anchors/`!!binary`), so
+no "error" rows appear. Do **not** run the (slow) full-matrix benchmark on
+ordinary commits.
 
-Also run `pnpm test` before committing parser changes — it's the correctness
-gate (consistency with the oracle). It does not benchmark, and it's expected to
-be red until the parser is implemented.
+Also run `pnpm test` (vitest consistency vs the oracle) and `pnpm test:unit`
+(the parser's own node:test suite) before committing parser changes — together
+they are the correctness gate. The `yaml-rich` consistency cases stay red until
+anchors + `!!binary` land (a later milestone); everything else is green.
 
 Note: timings drift run-to-run — that's normal. Update to the latest
 representative run; peak-RSS / heap-Δ are the stable figures. Run on an
 otherwise-quiet machine.
 
-### 2. Re-run the COMPETITION benchmark only when deps or data change
+### 2. Re-run the head-to-head benchmark on deps, data, or a milestone
 
 Run:
 
@@ -90,15 +98,19 @@ Run:
 pnpm bench:competition
 ```
 
-and commit the updated "Competition" block **only** when:
+This now benchmarks the **full matrix — every parser including lightning-yaml**
+(scope `all`) and refreshes the "All parsers — head-to-head" block. Re-run and
+commit it when:
 
-- **dependency versions change** — `js-yaml`, `yaml`, or `mitata` are bumped; or
+- **dependency versions change** — `js-yaml`, `yaml`, or `mitata` are bumped;
 - **the datasets change** — fixtures added/grown or `bench/fixtures/datasets.ts`
-  edited.
+  edited; or
+- **our parser reaches a milestone** worth a fresh head-to-head snapshot (fast
+  per-commit tracking of our parser alone stays in the "Our implementation"
+  block via `bench:self`).
 
-This is the slow one (the xlarge/yaml cases take several minutes). It is **not**
-needed on ordinary commits — the competition numbers only move when the code
-being measured or the inputs change.
+This is the slow one (the xlarge/`yaml` cases take several minutes) — not needed
+on ordinary commits.
 
 ## Notes for changes to the harness
 
