@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
-import { parse, parseAll, YAMLParseError, NotImplementedError } from "../src/index.ts";
+import { parse, parseAll, YAMLParseError } from "../src/index.ts";
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
 import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
@@ -593,8 +593,11 @@ test("regression [9]: line-break folding in multi-line plain scalars (space vs n
   for (const s of ["a\nb\n", "foo\n\nbar\n", "a\n\n\nb\n"]) deepStrictEqual(parse(s), oracleParse(s));
 });
 
-test("regression [10]: explicit block keys ('? '/': ') throw NotImplementedError", () => {
-  throws(() => parse("? a\n: b\n"), NotImplementedError);
+test("regression [10]: explicit block keys ('? '/': ') now parse, matching the oracle", () => {
+  // Superseded: these used to throw NotImplementedError; they now parse (see
+  // the dedicated "explicit block keys" section below for full coverage).
+  deepStrictEqual(parse("? a\n: b\n"), { a: "b" });
+  deepStrictEqual(parse("? a\n: b\n"), oracleParse("? a\n: b\n"));
 });
 
 test("regression [11]: block scalars (| and >) now parse (M4), matching the oracle", () => {
@@ -1210,4 +1213,128 @@ test("a mapping value may not inline a block collection (yaml-test-suite ZCZ6/ZL
   // A SEQUENCE entry's inline value MAY be a compact mapping — still legal.
   deepStrictEqual(parse("- a: 1\n  b: 2\n"), [{ a: 1, b: 2 }]);
   deepStrictEqual(parse("key: {a: b}\nk2: [1, 2]\n"), { key: { a: "b" }, k2: [1, 2] });
+});
+
+// --------------------------------------------------------------------------
+// Explicit block mapping keys (`? key` / `: value`, spec 8.17). `?`
+// unambiguously opens a NEW block mapping — never a retroactive re-read of an
+// already-parsed scalar the way an implicit key is — so a key/value here may
+// be multi-line or a whole collection, which an implicit key can never be
+// (see `parseBlockMapExplicit`/`parseExplicitValue`/`parseBlockMap` in
+// src/index.ts). Every case is calibrated against the `yaml` oracle; the
+// STRICTNESS cases follow js-yaml instead, per the file's established
+// convention for negative cases.
+// --------------------------------------------------------------------------
+
+test("explicit block keys: basic '? k' / ': v', matching the oracle", () => {
+  deepStrictEqual(parse("? a\n: b\n"), { a: "b" });
+  deepStrictEqual(parse("? a\n: b\n? c\n: d\n"), { a: "b", c: "d" });
+  for (const s of ["? a\n: b\n", "? a\n: b\n? c\n: d\n"]) deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("explicit block keys: '? k' with no ':' at all → null value (yaml-test-suite 7W2P)", () => {
+  deepStrictEqual(parse("? a\n? b\nc:\n"), { a: null, b: null, c: null });
+  deepStrictEqual(parse("? a\n"), { a: null });
+  for (const s of ["? a\n? b\nc:\n", "? a\n"]) deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("explicit block keys: a bare ': v' with no preceding '?' is a null/empty key", () => {
+  // Matches the `yaml` oracle's `''` convention (same as `keyToString(null)`
+  // elsewhere in this file) — js-yaml instead assigns the JS value `null` as
+  // an object key, which JS itself coerces to the STRING "null" on write; a
+  // documented, deliberate divergence (we follow the oracle here, not js-yaml).
+  deepStrictEqual(parse(": value\n"), { "": "value" });
+  deepStrictEqual(parse(": value\nkey: v2\n"), { "": "value", key: "v2" });
+  for (const s of [": value\n", ": value\nkey: v2\n"]) deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("explicit block keys: complex keys — a sequence or mapping AS the key", () => {
+  // An implicit key can never be a collection; this is the whole point of the
+  // explicit form. A collection key is rendered into the SAME flow-style
+  // string the oracle's `.toJS()` uses for a non-scalar map key.
+  deepStrictEqual(parse("? [a, b]\n: v\n"), { "[ a, b ]": "v" });
+  deepStrictEqual(parse("? {a: 1}\n: v\n"), { "{ a: 1 }": "v" });
+  deepStrictEqual(parse("?\n  - a\n  - b\n: v\n"), { "[ a, b ]": "v" }); // deferred, more-indented than '?'
+  deepStrictEqual(parse("? a: 1\n  b: 2\n: v\n"), { "{ a: 1, b: 2 }": "v" }); // inline nested map as key
+  deepStrictEqual(parse("? []\n: v\n"), { "[]": "v" });
+  deepStrictEqual(parse("? {}\n: v\n"), { "{}": "v" });
+  for (const s of ["? [a, b]\n: v\n", "? {a: 1}\n: v\n", "?\n  - a\n  - b\n: v\n", "? a: 1\n  b: 2\n: v\n", "? []\n: v\n", "? {}\n: v\n"]) {
+    deepStrictEqual(parse(s), oracleParse(s));
+  }
+});
+
+test("explicit block keys: a multi-line plain scalar folds into the key (yaml-test-suite JTV5)", () => {
+  const s = "? a\n  true\n: null\n  d\n? e\n  42\n";
+  deepStrictEqual(parse(s), { "a true": "null d", "e 42": null });
+  deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("explicit block keys: a literal block scalar as the key, inline compact seq as the value (yaml-test-suite 5WE3 — 'Explicit compact')", () => {
+  const s = "? explicit key # Empty value\n? |\n  block key\n: - one # Explicit compact\n  - two # block value\n";
+  deepStrictEqual(parse(s), { "explicit key": null, "block key\n": ["one", "two"] });
+  deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("explicit block keys: mixed implicit + explicit entries in one mapping (yaml-test-suite RR7F/ZWK4)", () => {
+  deepStrictEqual(parse("a: 4.2\n? d\n: 23\n"), { a: 4.2, d: 23 }); // implicit then explicit
+  deepStrictEqual(parse("---\na: 1\n? b\n&anchor c: 3\n"), { a: 1, b: null, c: 3 }); // explicit (no value) then anchored implicit
+  for (const s of ["a: 4.2\n? d\n: 23\n", "---\na: 1\n? b\n&anchor c: 3\n"]) deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("explicit block keys: nested — an explicit entry inside an ordinary mapping's value (yaml-test-suite S9E8)", () => {
+  const s = "sequence:\n- one\n- two\nmapping:\n  ? sky\n  : blue\n  sea : green\n";
+  deepStrictEqual(parse(s), { sequence: ["one", "two"], mapping: { sky: "blue", sea: "green" } });
+  deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("explicit block keys: anchored/tagged keys and values compose (yaml-test-suite L94M/6M2F/35KP)", () => {
+  deepStrictEqual(parse("? !!str a\n: !!int 47\n? c\n: !!str d\n"), { a: 47, c: "d" });
+  // An anchored key AND value, then a bare second ':' (empty key) aliasing the key.
+  deepStrictEqual(parse("? &a a\n: &b b\n: *a\n"), { a: "b", "": "a" });
+  // A DEFERRED tag on the document root decorates the finished explicit-key map.
+  deepStrictEqual(parseAll("--- !!map\n? a\n: b\n--- !!seq\n- !!str c\n--- !!str\nd\ne\n"), [{ a: "b" }, ["c"], "d e"]);
+  for (const s of ["? !!str a\n: !!int 47\n? c\n: !!str d\n", "? &a a\n: &b b\n: *a\n"]) deepStrictEqual(parse(s), oracleParse(s));
+  deepStrictEqual(parseAll("--- !!map\n? a\n: b\n--- !!seq\n- !!str c\n--- !!str\nd\ne\n"), oracleParseAll("--- !!map\n? a\n: b\n--- !!seq\n- !!str c\n--- !!str\nd\ne\n"));
+});
+
+test("explicit block keys: comment between the '?'/':' indicator and its content (yaml-test-suite X8DW)", () => {
+  const s = "---\n? key\n# comment\n: value\n";
+  deepStrictEqual(parse(s), { key: "value" });
+  deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("explicit block keys: agrees with js-yaml", () => {
+  const cases = ["? a\n: b\n", "? a\n? b\nc:\n", "a: 4.2\n? d\n: 23\n", "? !!str a\n: !!int 47\n? c\n: !!str d\n"];
+  for (const s of cases) deepStrictEqual(parse(s), jsYamlLoad(s));
+});
+
+test("STRICTNESS: an explicit value's ':' must be at the SAME column as its '?' (bad indentation otherwise, matching js-yaml — the oracle is lenient here, a documented divergence)", () => {
+  throws(() => parse("? a\n : 1\n"), YAMLParseError); // over-indented by 1
+  throws(() => parse("? a\n  : 1\n"), YAMLParseError); // over-indented by 2
+  throws(() => parse("outer:\n  ? a\n : 1\n"), YAMLParseError); // nested, mis-indented relative to '?'
+  // A ':' that never appears at all is fine — just a null value (see 7W2P above).
+  deepStrictEqual(parse("? a\n"), { a: null });
+});
+
+test("STRICTNESS: a node property may not precede '?' — it must decorate the key AFTER it", () => {
+  throws(() => parse("&a ? k: v\n"), YAMLParseError);
+  throws(() => parse("!!map ? a\n: b\n"), YAMLParseError);
+  throws(() => oracleParse("&a ? k: v\n"));
+});
+
+test("STRICTNESS: an explicit-key mapping cannot start on the same line as '---' or an enclosing mapping key", () => {
+  throws(() => parse("--- ? k\n: v\n"), YAMLParseError);
+  throws(() => parse("key: ? k\n     : v\n"), YAMLParseError);
+  throws(() => oracleParse("key: ? k\n     : v\n"));
+});
+
+test("STRICTNESS: a tab cannot separate '?'/explicit ':' from content that opens a new collection (yaml-test-suite Y79Y/006-009)", () => {
+  throws(() => parse("?\t-\n"), YAMLParseError); // Y79Y/006
+  throws(() => parse("? -\n:\t-\n"), YAMLParseError); // Y79Y/007
+  throws(() => parse("?\tkey:\n"), YAMLParseError); // Y79Y/008
+  throws(() => parse("? key:\n:\tkey:\n"), YAMLParseError); // Y79Y/009
+  // A tab before an ORDINARY scalar (nothing collection-shaped follows) is
+  // still fine — the restriction is specifically about tab-reached columns
+  // that become a structural indentation reference for a NEW collection.
+  deepStrictEqual(parse("?\tsimple\n: v\n"), { simple: "v" });
 });
