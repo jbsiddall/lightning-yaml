@@ -22,22 +22,29 @@ bench/conformance/run.ts [--dump-failures]`).
 
 | date | ours | js-yaml | yaml | notes |
 |------|------|---------|------|-------|
-| Phase 0 baseline | **39.4%** (147/373) | 86.6% (323/373) | 97.1% (362/373) | pos 29.4% / neg 70.3% |
+| Phase 0 baseline | 39.4% (147/373) | 86.6% (323/373) | 97.1% (362/373) | pos 29.4% / neg 70.3% |
+| F1 doc-markers/multi-doc | **49.1%** (183/373) | 86.6% | 97.1% | pos 45.0% / **neg 61.5%** (↓ leniency unmasked) |
 
 TARGET: ours ≥ **86.6%** (js-yaml). 188 of our failures are "clearly fixable"
 (both js-yaml & yaml pass); 11 are spec-corners `yaml` itself fails (skip).
 
-### Baseline failure buckets (primary → count)
+### Failure buckets (primary → count)
 
-block-scalar **58** · doc-markers 44 · plain-scalar-typing 35 · anchor-alias 31 ·
-tag 25 · directive 20 · complex-key 7 · flow-only 6 · **merge-key 0** (none in
-this snapshot — NOT needed for the suite target).
+After F1 (183/373): block-scalar **58** (now the top) · plain-scalar-typing 32 ·
+anchor-alias 31 · doc-markers 29 · tag 26 · directive 2 · complex-key 7 ·
+flow-only 6 · **merge-key 0** (none in this snapshot — NOT needed for target).
+154 of our failures are "clearly fixable" (both js-yaml & yaml pass).
 
-Secondary (raw multi-label co-occurrence): **doc-markers 108 (dominant)** — a
-leading bare `---` throws `NotImplementedError` today, blocking most bodies, so it
-co-occurs with almost every other bucket. Harness insight: doc-marker/multi-doc
-handling likely unblocks disproportionately many cases → strong candidate for
-feature 1 even though block-scalar is the largest *primary* bucket.
+(Phase-0 baseline for reference: block-scalar 58 · doc-markers 44 · plain-scalar
+35 · anchor 31 · tag 25 · directive 20; secondary co-occurrence doc-markers 108.)
+
+### CROSS-CUTTING GAP: error-case strictness (over-lenient)
+
+Negative/error cases: **56/91 (61.5%)** vs js-yaml 78/91, yaml 89/91. We accept
+some inputs we should reject. F1 unmasked this (leading `---` used to blanket-throw
+`NotImplementedError` → accidentally "passed" error cases; now we parse past it).
+Closing this is required to reach js-yaml's overall rate — track as its own bucket
+(inputs both competitors reject but we accept) and tighten as features mature.
 
 ## Loop log
 
@@ -45,8 +52,25 @@ feature 1 even though block-scalar is the largest *primary* bucket.
   gitignored data + `fetch.sh` with git-clone fallback), built runner
   (`bench/conformance/`: `run.ts` + `suite.ts`/`deepEqual.ts`/`classify.ts`), scripts
   `gen:suite` + `test:suite`. Baseline recorded above.
-- **Baseline gate diagnostic (in progress):** confirm typecheck/test/test:unit true
-  state (a prior run showed ~10 test:unit failures — checking if fixture-related vs real).
+- **Baseline gate diagnostic (done):** gate is GREEN once `pnpm gen:fixtures` runs.
+  typecheck clean, test:unit 143/143, vitest 37/43 (6 red = known yaml-rich only).
+  The "~10 test:unit failures" were purely missing fixtures (ENOENT) — no real bug.
+- **F1 · doc-markers + directives + multi-doc (done, `5e51563`):** suite 39.4%→49.1%
+  (+36). Rewrote `parse`/`parseAll` over a shared `parseNextDocument` loop; cold
+  directive parsers; `---`/`...` markers; one gated col-0 doc-marker terminator in
+  `parseBlockMap`/`resolveBlockPlain` (flow untouched). test:unit 192/192, vitest
+  unchanged (6 rich red), bench:self no regression (within GC noise). VERIFIED by
+  orchestrator (independent gate + suite run).
+  - Deviations (deliberate, oracle/suite-calibrated): `--- key: val` & `--- - a`
+    ERROR (match yaml lib + suite 9KBC/CXX2, stricter than js-yaml); duplicate
+    `%YAML` in one doc rejected (matches js-yaml + suite SF5V). Skipped spec-corners
+    (not chased): EB22/RHX7 (mid-doc `%` vs next-doc directive lookahead), 2 cases.
+
+## Next
+
+- **Compat scaffolding** (parallel track) — both shim files + differential tests.
+  Runs next as its own delegation (feature work has started, per user request).
+- **F2 · block scalars** (`|`/`>`, chomping, indent indicators) — largest bucket (58).
 
 ## Feature backlog (likely order by failure-coverage)
 
