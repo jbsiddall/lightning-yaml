@@ -190,6 +190,50 @@ let plainStoppedAtComment = false;
 let quotedMultiline = false;
 
 /**
+ * Set by `scanFlowPlainEnd` (via `foldFlowPlain`): the folded text of a flow
+ * plain scalar that physically spanned more than one source line, or `null`
+ * when the scalar fit on one line (the overwhelming, hot case — no allocation).
+ * A multi-line flow plain scalar always folds to a plain *string* (an internal
+ * break→space or blank→newline can never coincide with a null/bool/number
+ * token), so callers return it verbatim instead of re-slicing `[start,end)` or
+ * routing it back through implicit typing. Read immediately after each
+ * `scanFlowPlainEnd`; reset to `null` at the start of every scan.
+ */
+let flowFolded: string | null = null;
+
+/**
+ * Set by `skipFlowWs`: whether THAT call crossed at least one line break. Read
+ * immediately after the single `skipFlowWs` that sits between a flow key and its
+ * `:` to enforce the "implicit key must be on one line" rule — a flow-sequence
+ * single pair (`[ key\n : v ]`) or flow-mapping implicit entry whose `:` landed
+ * on a later line than the key is invalid (yaml-test-suite DK4H/ZXT5), whereas
+ * an EXPLICIT `? key` may span lines freely (so its caller skips the check).
+ * Per-call semantics: reset to false at every `skipFlowWs` entry.
+ */
+let flowWsCrossedLine = false;
+
+/**
+ * Set (never cleared) by `skipFlowWs`/`foldFlowPlain` whenever a line break is
+ * crossed inside a flow collection, and reset ONLY by the block-node dispatch
+ * right before it parses a flow collection that might be a block mapping key —
+ * so, read straight after, it means "this flow collection physically spanned
+ * more than one line" and therefore cannot serve as a single-line block
+ * implicit key (yaml-test-suite C2SP), the flow analogue of `quotedMultiline`.
+ */
+let flowSpanned = false;
+
+/**
+ * The column a flow collection's continuation lines must exceed, or `-1` when
+ * no floor applies (the document root, where col 0 is legal). Set to the
+ * enclosing block node's `parentCol` by the block dispatch right before it
+ * parses a `[`/`{` flow collection, and restored afterward; `skipFlowWs` reads
+ * it to reject deficient indentation (yaml-test-suite 9C9N/VJP3). Flow never
+ * nests a block construct, so a single slot (save/restore around the one entry
+ * point) suffices — nested flow collections share the same block floor.
+ */
+let flowIndentFloor = -1;
+
+/**
  * Memoized position of the next backslash at or after the last query point (or
  * `len` once none remain). Without this, checking each double-quoted string for
  * escapes via `indexOf('\\')` rescans to end-of-document every time on
@@ -399,6 +443,7 @@ function resetForStream(text: string): void {
   inlineMapValue = false;
   colOverride = -1;
   bareDocAllowed = true;
+  flowIndentFloor = -1;
 
   // Skip a leading BOM without copying the input.
   if (len > 0 && src.charCodeAt(0) === BOM) {
@@ -465,17 +510,62 @@ function flowSeparatorAt(i: number): boolean {
  * keeps the loop off the module global until it writes back once.
  */
 function skipFlowWs(): void {
+  flowWsCrossedLine = false;
   let p = pos;
+  let lineHead = -1; // col-0 offset of the most recent line crossed (-1 = none)
+  let badTab = false; // a tab within this crossed line's mandatory indentation
   while (p < len) {
     const c = src.charCodeAt(p);
     if (c === SPACE || c === TAB || c === LF || c === CR) {
+      if (c === LF || c === CR) {
+        flowWsCrossedLine = true;
+        flowSpanned = true;
+        lineHead = p + 1; // CRLF updates this twice; the LF's value wins
+        badTab = false; // reset per line — a tab on a BLANK line is not indentation
+      } else if (c === TAB && lineHead >= 0 && flowIndentFloor >= 0 && p - lineHead <= flowIndentFloor) {
+        // A tab inside a flow continuation line's mandatory indentation cannot
+        // count as indentation (yaml-test-suite Y79Y/003); flagged now, reported
+        // once real content confirms this wasn't a blank line.
+        badTab = true;
+      }
       p++;
       continue;
     }
     if (c === HASH) {
+      // A '#' begins a comment only at the start of a line or when preceded by
+      // whitespace/a line break. A '#' that directly follows a token or flow
+      // indicator (`,#x`, `]#x`, `"a"#x`) is NOT a comment and is invalid in
+      // flow context — matching js-yaml/`yaml` (yaml-test-suite CVW2/9JBA).
+      if (p > 0) {
+        const prev = src.charCodeAt(p - 1);
+        if (prev !== SPACE && prev !== TAB && prev !== LF && prev !== CR) {
+          pos = p;
+          fail("a comment must be separated from other tokens by whitespace");
+        }
+      }
       const nl = src.indexOf("\n", p);
+      if (nl !== -1) {
+        flowWsCrossedLine = true;
+        flowSpanned = true;
+      }
       p = nl === -1 ? len : nl + 1;
+      lineHead = p;
       continue;
+    }
+    // A `---`/`...` document marker at column 0 can never appear inside an open
+    // flow collection — the collection is unterminated (yaml-test-suite N782).
+    if ((c === MINUS || c === DOT) && (p === 0 || src.charCodeAt(p - 1) === LF || src.charCodeAt(p - 1) === CR) && looksLikeDocMarkerAt(p)) {
+      pos = p;
+      fail("a document marker is not allowed inside a flow collection");
+    }
+    // A flow collection nested in a block context must keep its continuation
+    // lines indented deeper than the enclosing block node; content at or below
+    // that column — or reached over a tab used as indentation (`badTab`) — is
+    // "deficient indentation" (yaml-test-suite 9C9N/VJP3/Y79Y-003). The floor is
+    // -1 (disabled) at the document root, where col 0 is legal.
+    if (lineHead >= 0 && flowIndentFloor >= 0 && (badTab || p - lineHead <= flowIndentFloor)) {
+      pos = p;
+      fail("insufficient indentation for a multi-line flow collection");
     }
     break;
   }
@@ -1157,7 +1247,7 @@ function parseTaggedFlowContent(tag: string): unknown {
   if (flowSeparatorAt(pos)) return applyScalarTag(tag, "");
   const start = pos;
   const end = scanFlowPlainEnd();
-  return applyScalarTag(tag, src.slice(start, end));
+  return applyScalarTag(tag, flowFolded !== null ? flowFolded : src.slice(start, end));
 }
 
 // ---------------------------------------------------------------------------
@@ -1190,9 +1280,13 @@ function parseFlowValue(): unknown {
   if ((c >= ZERO && c <= NINE) || c === MINUS || c === PLUS || c === DOT) {
     const num = tryFlowNumber();
     if (num !== NOT_NUMERIC) return num;
+    // A '-' that opens a flow scalar but is immediately followed by a flow
+    // separator is a block-sequence indicator, which is forbidden inside a flow
+    // collection (`[-]`, `[-, -]` — yaml-test-suite YJV2/G5U8).
+    if (c === MINUS && flowSeparatorAt(pos + 1)) fail("a block sequence '-' indicator is not allowed in a flow collection");
     const start = pos;
     const end = scanFlowPlainEnd();
-    return src.slice(start, end);
+    return flowFolded !== null ? flowFolded : src.slice(start, end);
   }
   return parseFlowPlain();
 }
@@ -1225,6 +1319,9 @@ function parseFlowSeq(): unknown[] {
       skipFlowWs();
       if (src.charCodeAt(pos) === COLON) {
         // `node: value` inside a sequence → an implicit single-pair mapping entry.
+        // Its implicit key must be on one line: a `:` that landed on a later line
+        // than the key (`[ key\n : v ]`) is invalid (yaml-test-suite DK4H/ZXT5).
+        if (flowWsCrossedLine) fail("an implicit key in a flow sequence must be on a single line");
         arr.push(makeSinglePair(keyToString(node))); // leaves pos whitespace-skipped
       } else {
         // Common path: the skipFlowWs above already positioned us at ',' or ']'.
@@ -1451,6 +1548,7 @@ function parseFlowKey(): string {
   if (c === SQUOTE) return internKey(parseSingleQuoted());
   const start = pos;
   const end = scanFlowPlainEnd();
+  if (flowFolded !== null) return internKey(flowFolded);
   if (end === start) fail("expected a mapping key");
   return plainKey(start, end);
 }
@@ -1493,8 +1591,11 @@ function parseFlowKeyAnchored(): string {
   else {
     const start = pos;
     const end = scanFlowPlainEnd();
-    if (end === start) fail("expected a mapping key");
-    key = plainKey(start, end); // plainKey itself calls registerPendingAnchor
+    if (flowFolded !== null) key = internKey(keyToString(registerPendingAnchor(flowFolded)));
+    else {
+      if (end === start) fail("expected a mapping key");
+      key = plainKey(start, end); // plainKey itself calls registerPendingAnchor
+    }
   }
   pendingAnchorName = outerPending;
   return key;
@@ -1539,7 +1640,7 @@ function parseTaggedFlowKeyRaw(tag: string, c: number): unknown {
   if (c === LBRACKET) return applyCollectionTag(tag, parseFlowSeq(), "seq");
   const start = pos;
   const end = scanFlowPlainEnd();
-  return applyScalarTag(tag, src.slice(start, end));
+  return applyScalarTag(tag, flowFolded !== null ? flowFolded : src.slice(start, end));
 }
 
 /** Return the cached copy of `s` if seen this parse, else record and return it. */
@@ -1555,15 +1656,13 @@ function internKey(s: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Scan a flow-context plain scalar and return the exclusive end of its trimmed
- * content (trailing spaces/tabs excluded); advances `pos` to the terminator.
- * A plain scalar ends at a flow indicator (`,[]{}`), a line break, a `:`
- * followed by a separator, or a ` #` comment. Single-line only for now (flow
- * plain scalars can fold across lines; unused by the fixtures — deferred).
+ * Scan ONE line of a flow-context plain scalar starting at `from`, returning the
+ * position of its stop character (a flow indicator `,[]{}`, a line break, a `:`
+ * separator, a ` #` comment, or end of input) WITHOUT trimming or advancing
+ * `pos`. Shared by the first-line scan and each `foldFlowPlain` continuation.
  */
-function scanFlowPlainEnd(): number {
-  const start = pos;
-  let p = pos;
+function scanFlowPlainLine(from: number): number {
+  let p = from;
   // Hot loop: one flag-table lookup per char. Codes ≥ 256 read out of bounds as
   // `undefined`, and `(undefined & BIT) === 0` correctly says "not a stop char",
   // so non-ASCII needs no guard. Only stop-candidates pay the detailed check.
@@ -1575,7 +1674,7 @@ function scanFlowPlainEnd(): number {
         const nc = p + 1 < len ? src.charCodeAt(p + 1) : -1;
         if (nc === -1 || nc === SPACE || nc === TAB || nc === LF || nc === CR || (CH[nc] & F_FLOW_INDICATOR) !== 0) break;
       } else if (c === HASH) {
-        if (p > start) {
+        if (p > from) {
           const prev = src.charCodeAt(p - 1);
           if (prev === SPACE || prev === TAB) break; // ` #` starts a comment
         }
@@ -1585,10 +1684,13 @@ function scanFlowPlainEnd(): number {
     }
     p++;
   }
-  pos = p;
-  // Trim trailing spaces/tabs (rare; walked back once instead of tracked per char).
-  let e = p;
-  while (e > start) {
+  return p;
+}
+
+/** Trim trailing spaces/tabs from the span [`from`, `end`), returning the new end. */
+function trimTrailingWs(from: number, end: number): number {
+  let e = end;
+  while (e > from) {
     const w = src.charCodeAt(e - 1);
     if (w !== SPACE && w !== TAB) break;
     e--;
@@ -1596,9 +1698,110 @@ function scanFlowPlainEnd(): number {
   return e;
 }
 
+/**
+ * Scan a flow-context plain scalar and return the exclusive end of its trimmed
+ * FIRST line's content; advances `pos` to the terminator. When the scalar folds
+ * across line breaks, the fully-folded text is stashed in `flowFolded` (see
+ * `foldFlowPlain`) and callers use that instead of re-slicing. Resets
+ * `flowFolded` up front, so a single-line scalar (the hot path) leaves it null.
+ */
+function scanFlowPlainEnd(): number {
+  flowFolded = null;
+  const start = pos;
+  const p = scanFlowPlainLine(start);
+  const e = trimTrailingWs(start, p);
+  // Stopped at a line break → the scalar MAY fold onto following lines.
+  if (p < len && (src.charCodeAt(p) === LF || src.charCodeAt(p) === CR)) {
+    return foldFlowPlain(start, e, p);
+  }
+  pos = p;
+  return e;
+}
+
+/**
+ * Fold a multi-line flow plain scalar (cold). Given the first line's content
+ * [`start`, `firstEnd`) and the position of the line break after it, walk the
+ * following lines: a single break folds to a space, each additional (blank-line)
+ * break to a newline, and per-line leading/trailing whitespace is stripped —
+ * the flow analogue of `foldBlockPlainRemainder`, kept entirely inside the flow
+ * scanner. Folding stops when the next content line begins with a flow
+ * terminator (`,`/`]`/`}`), a comment, a `:` separator, EOF, or a col-0 document
+ * marker (left for `skipFlowWs` to reject); in that "no more content" case the
+ * scalar was single-line and `pos` is left at the original break, exactly as the
+ * non-folding path would leave it. Returns the trimmed end of the last content
+ * segment and, when at least one continuation folded, sets `flowFolded`.
+ */
+function foldFlowPlain(start: number, firstEnd: number, breakPos: number): number {
+  let result = "";
+  let folded = false;
+  let lastEnd = firstEnd;
+  let p = breakPos; // sits on a LF/CR
+  for (;;) {
+    // Consume the break run (blank lines + indentation), counting real breaks.
+    let breaks = 0;
+    let q = p;
+    for (;;) {
+      if (q >= len) break;
+      const c = src.charCodeAt(q);
+      if (c === LF) {
+        q++;
+        breaks++;
+      } else if (c === CR) {
+        q++;
+        if (q < len && src.charCodeAt(q) === LF) q++;
+        breaks++;
+      } else if (c === SPACE || c === TAB) {
+        q++;
+      } else break;
+    }
+    // Decide whether the scalar continues on this line or ended on the prior one.
+    let cont = q < len;
+    if (cont) {
+      const cc = src.charCodeAt(q);
+      if (cc === COMMA || cc === RBRACKET || cc === RBRACE || cc === HASH) cont = false;
+      else if (cc === COLON) {
+        const nc = q + 1 < len ? src.charCodeAt(q + 1) : -1;
+        if (nc === -1 || nc === SPACE || nc === TAB || nc === LF || nc === CR || (CH[nc] & F_FLOW_INDICATOR) !== 0) cont = false;
+      } else if (cc === MINUS || cc === DOT) {
+        // A col-0 `---`/`...` ends the (unterminated) flow scalar; `skipFlowWs`
+        // reports the doc-marker-in-flow error once the caller resumes.
+        const pc = src.charCodeAt(q - 1);
+        if ((pc === LF || pc === CR) && looksLikeDocMarkerAt(q)) cont = false;
+      }
+    }
+    if (!cont) {
+      pos = p; // leave at the break, matching the single-line path
+      break;
+    }
+    if (!folded) {
+      result = src.slice(start, firstEnd);
+      folded = true;
+      flowSpanned = true;
+    }
+    result += breaks > 1 ? "\n".repeat(breaks - 1) : " ";
+    const segStop = scanFlowPlainLine(q);
+    const segEnd = trimTrailingWs(q, segStop);
+    result += src.slice(q, segEnd);
+    lastEnd = segEnd;
+    if (segStop < len && (src.charCodeAt(segStop) === LF || src.charCodeAt(segStop) === CR)) {
+      p = segStop; // another continuation may follow
+      continue;
+    }
+    pos = segStop; // stopped at a real terminator on this line
+    flowFolded = result;
+    return segEnd;
+  }
+  if (folded) {
+    flowFolded = result;
+    return lastEnd;
+  }
+  return firstEnd;
+}
+
 function parseFlowPlain(): unknown {
   const start = pos;
   const end = scanFlowPlainEnd();
+  if (flowFolded !== null) return flowFolded;
   if (end === start) fail("expected a value");
   return resolvePlain(start, end);
 }
@@ -1993,10 +2196,20 @@ function foldFlowBreak(i: number): number {
     // the scalar — it is NOT foldable content, so the quote is unterminated
     // (yaml-test-suite 5TRB / RXY3). An INDENTED `---` is ordinary content.
     if (looksLikeDocMarkerAt(i)) fail("unterminated quoted string: a document marker interrupts it");
+    const ls = i; // col-0 offset of this continuation line
     while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
     if (i >= len) fail("unterminated quoted string");
     const cc = src.charCodeAt(i);
-    if (cc !== LF && cc !== CR) break; // a content line (or the closing quote)
+    if (cc !== LF && cc !== CR) {
+      // A quoted scalar nested in a block context must keep its continuation
+      // lines indented deeper than the enclosing block node (yaml-test-suite
+      // QB6E); at the document root (floor -1) col 0 is legal.
+      if (flowIndentFloor >= 0 && i - ls <= flowIndentFloor) {
+        pos = i;
+        fail("insufficient indentation for a multi-line quoted scalar");
+      }
+      break; // a content line (or the closing quote)
+    }
   }
   foldedBreaks = breaks;
   quotedMultiline = true; // a real folded break was consumed → the scalar is multi-line
@@ -2318,6 +2531,13 @@ function skipInlineSpaces(): void {
 function endLine(): void {
   skipInlineSpaces();
   if (pos < len && src.charCodeAt(pos) === HASH) {
+    // A '#' begins a comment only at line start or after whitespace. A '#'
+    // butting straight up against the preceding token (`"value"#c`, `]#c`) is
+    // invalid — matching js-yaml/`yaml` (yaml-test-suite SU5Z/9JBA).
+    if (pos > lineStart) {
+      const prev = src.charCodeAt(pos - 1);
+      if (prev !== SPACE && prev !== TAB) fail("a comment must be separated from other tokens by whitespace");
+    }
     const nl = src.indexOf("\n", pos);
     pos = nl === -1 ? len : nl;
   }
@@ -2499,16 +2719,24 @@ function parseBlockNode(parentCol: number, mapValue = false): unknown {
     // same-line/deferred distinction to make. An alias can never carry a
     // property (rejected earlier in `parseAnchoredBlockNode`/
     // `parseAnchoredFlowValue`), so it never needs `registerPendingAnchor`.
+    flowSpanned = false; // armed for the flow-collection-as-key check below
+    const savedFloor = flowIndentFloor;
+    // A flow collection OR a multi-line quoted scalar must keep continuation
+    // lines out-indented from the enclosing block node (9C9N/VJP3/QB6E). An
+    // alias never spans lines, so it needs no floor.
+    if (c === LBRACKET || c === LBRACE || c === DQUOTE || c === SQUOTE) flowIndentFloor = parentCol;
     const node = c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : c === STAR ? parseAlias() : registerPendingAnchor(parseFlowValue());
+    flowIndentFloor = savedFloor;
     const save = pos;
     skipInlineSpaces();
     if (src.charCodeAt(pos) === COLON && isSpaceOrEolAt(pos + 1)) {
       if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
       if (noBlockColl) fail("a nested block mapping cannot start on the same line as a mapping key");
-      // A block implicit key must fit on one line: a quoted scalar that folded
-      // across a real line break cannot be one (yaml-test-suite 7LBH/D49Q/JKF3).
-      // Flow collections as keys may span lines, so this is scoped to quotes.
+      // A block implicit key must fit on one line — for a quoted scalar that
+      // folded across a real break (yaml-test-suite 7LBH/D49Q/JKF3) OR a flow
+      // collection that spanned lines (`[23\n]: 42` — yaml-test-suite C2SP).
       if ((c === DQUOTE || c === SQUOTE) && quotedMultiline) fail("a multi-line quoted scalar cannot be a block mapping key");
+      if ((c === LBRACKET || c === LBRACE) && flowSpanned) fail("a multi-line flow collection cannot be a block mapping key");
       // Quoted scalar becomes a mapping key: only a SAME-LINE property may
       // claim it (see `afterInlineProperty`'s doc comment) — a DEFERRED one
       // is left pending for `parseBlockMap`'s own self-registration instead.
@@ -2599,8 +2827,16 @@ function parseAnchoredBlockNode(parentCol: number, mapValue: boolean): unknown {
     // The property occupies the rest of its line; the node (if any) begins on
     // a following line, subject to the ordinary value-continuation rules.
     nextLine();
+    // If that node begins with its OWN anchor and then resolves to a scalar or
+    // non-mapping collection, both anchors decorate the SAME node — illegal
+    // (`top: &a\n  &b val` — yaml-test-suite 4JVG). The one exception is a block
+    // MAPPING: there the inner anchor decorates the first KEY while ours
+    // decorates the map, two distinct nodes (yaml-test-suite 7BMT), so a plain
+    // object is left alone.
+    const innerAnchor = pos < len && src.charCodeAt(pos) === AMP;
     const effParentCol = parentCol === ROOT_AFTER_INLINE_MARKER ? -1 : parentCol;
     node = tag !== null ? parseDeferredTaggedBlockNode(effParentCol, tag, mapValue) : parseDeferredBlockNode(effParentCol, mapValue);
+    if (innerAnchor && pendingAnchorName === name && !isPlainMapping(node)) fail("a node can have at most one anchor");
   } else if (tag !== null) {
     if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
       if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
@@ -2952,7 +3188,26 @@ function parseBlockSeq(col: number): unknown[] {
   registerPendingAnchor(arr); // before children, so `&a\n- *a\n` self-references correctly
   for (;;) {
     pos++; // past '-'
-    arr.push(parseBlockValue(col, false)); // a seq entry's value: same-col `-` is a sibling
+    // A tab in the inline separation after '-' that indents a NEW block
+    // collection is a tab-in-indentation error (`-\t-`, `- \t-` — yaml-test-
+    // suite Y79Y/004-005), the sequence analogue of the '?'/':' tab checks in
+    // parseBlockMapExplicit/parseExplicitValue. Peek the separation once for a
+    // tab and whether real content follows inline (a deferred value, or an
+    // inline scalar like `-\tfoo`, is exempt — only an inline collection).
+    let sp = pos;
+    let sawTab = false;
+    while (sp < len) {
+      const w = src.charCodeAt(sp);
+      if (w === SPACE) sp++;
+      else if (w === TAB) {
+        sawTab = true;
+        sp++;
+      } else break;
+    }
+    const inlineTab = sawTab && sp < len && src.charCodeAt(sp) !== LF && src.charCodeAt(sp) !== CR && src.charCodeAt(sp) !== HASH;
+    const value = parseBlockValue(col, false); // a seq entry's value: same-col `-` is a sibling
+    if (inlineTab && isTabRestrictedCollection(value)) fail("a tab cannot indent a block sequence entry that opens a new collection");
+    arr.push(value);
     if (pos >= len) break;
     if (pos - lineStart !== col) break;
     if (!(src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1))) break;
@@ -3093,6 +3348,36 @@ function parseBlockMapExplicit(col: number): Record<string, unknown> {
  */
 function isTabRestrictedCollection(value: unknown): boolean {
   return Array.isArray(value) || (value !== null && typeof value === "object" && !(value instanceof Uint8Array));
+}
+
+/**
+ * Whether `value` is a plain-object block/flow MAPPING (not an array, `!!set`/
+ * `!!omap` Set/Map, `!!binary` Uint8Array, or scalar). Used by the two-anchor
+ * check in `parseAnchoredBlockNode`: only a mapping can host an inner anchor on
+ * its first KEY (distinct from an anchor on the map itself), so only a mapping
+ * is exempt from "a node can have at most one anchor" (yaml-test-suite 4JVG vs 7BMT).
+ */
+function isPlainMapping(value: unknown): boolean {
+  return value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Set) && !(value instanceof Map) && !(value instanceof Uint8Array);
+}
+
+/**
+ * Reject a TAB used as block indentation: the current line's mandatory
+ * indentation (columns 0..`parentCol`, which must be spaces so the node lands
+ * deeper than its parent) may not contain a tab (`a:\n\tb:` — yaml-test-suite
+ * 4EJS; also `foo:\n\t- x` / `foo:\n\tbar`). A tab BEYOND that region is
+ * ordinary separation and is left alone (`foo:\n \tbar` is fine — the space at
+ * column 0 already satisfies the indentation). Cold: only on a deferred block
+ * node that is deeper than a real (>= 0) parent column.
+ */
+function checkNoTabIndent(parentCol: number): void {
+  const limit = lineStart + parentCol + 1;
+  for (let i = lineStart; i < limit && i < pos; i++) {
+    if (src.charCodeAt(i) === TAB) {
+      pos = i;
+      fail("a tab character cannot be used as indentation");
+    }
+  }
 }
 
 /**
@@ -3245,7 +3530,10 @@ function parseTaggedBlockMapKeyRaw(tag: string, c: number): unknown {
 function parseDeferredBlockNode(parentCol: number, mapValue: boolean): unknown {
   if (pos >= len) return null;
   const nc = pos - lineStart;
-  if (nc > parentCol) return parseBlockNode(parentCol, mapValue);
+  if (nc > parentCol) {
+    if (parentCol >= 0) checkNoTabIndent(parentCol);
+    return parseBlockNode(parentCol, mapValue);
+  }
   // A same-column block sequence is this node's (compact) value only under a
   // mapping key; after a sequence dash it is a SIBLING, so an empty entry here
   // resolves to null and the `-` is left for the parent `parseBlockSeq` loop
