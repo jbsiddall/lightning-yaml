@@ -29,7 +29,8 @@ bench/conformance/run.ts [--dump-failures]`).
 | F3 anchors/aliases | 67.6% (252/373) | 94.9% | 97.1% | pos 68.8% (+18) / neg 63.7% (+2). vitest 6→3 red |
 | F4 tags + `!!binary` | 76.1% (284/373) | 94.9% | 97.1% | pos 79.4% (+30) / neg 65.9% (+2). **vitest 43/43 GREEN** ✓ |
 | M-checkpoint diag+fix | 88.7% (331/373) | 94.9% | 97.1% | pos 91.1% (+33) / neg 81.3% (+14). 0 regressions |
-| F5 explicit `?`/`:` keys | **91.7%** (342/373) | 94.9% | 97.1% | +11, 0 regressions, vitest 43/43 |
+| F5 explicit `?`/`:` keys | 91.7% (342/373) | 94.9% | 97.1% | +11, 0 regressions, vitest 43/43 |
+| Final cleanup pass | **97.6%** (364/373) | 94.9% | 97.1% | pos 96.8% / **neg 100%**. **≥ js-yaml AND ≥ yaml** ✓ |
 
 ¹ **TARGET MOVED. js-yaml upgraded v4.3.0 → v5.2.1** (user request): v5's default
 schema is now YAML-1.2 CORE (was 1.1-ish), so js-yaml jumped 86.6%→**94.9%**. Our
@@ -108,14 +109,22 @@ Closing this is required to reach js-yaml's overall rate — track as its own bu
   26→5. Flagged pre-existing bugs: 9HCY (directive-ordering), FH7J (`parseDeferredBlockNode`
   seq-value), empty-dash-comment seq — all pre-date F4.
 
-## STOP-condition tracker
+## STOP-condition tracker — ALL MET ✓
 
 - [x] yaml-rich consistency cases GREEN (vitest 43/43) — met at F4.
-- [ ] ours suite pass rate ≥ js-yaml (94.9%, 354/373) — at **91.7% (342)**, need **+12**.
-- [x] full gate green (typecheck + test + test:unit) — currently green.
+- [x] ours suite pass rate ≥ js-yaml — **97.6% (364/373) ≥ 94.9% (354)**, +10 past js-yaml,
+      +2 past the `yaml` oracle (362). **clearly-fixable failures = 0.**
+- [x] full gate green (typecheck + test:unit 364/364 + vitest 43/43).
 
-Ceiling check: 42 failures, **33 clearly-fixable** (both competitors pass) + 9 spec-corners
-`yaml` itself fails (skip). 331 + 33 = 364 possible → target 354 reachable by closing ~23.
+The 9 remaining failures are EXACTLY the spec-corners `yaml` itself fails (documented
+non-goals, correctly skipped): 2XXW, 565N, 9MQT/01, DK95/01, DK95/06, HWV9, J7PZ, M7A3, QT73.
+
+### Final cleanup (done, `f5cb769`): suite 91.7%→97.6% (+22, closed ALL fixable)
+Root causes: flow multi-line plain fold (8KB6/8UDB/CT4Q/UT92/NJ66), flow single-pair/collection
+keys (DK4H/ZXT5/C2SP), flow continuation-indent floor (9C9N/VJP3/QB6E), comment separation
+(SU5Z/CVW2/9JBA), doc-marker/dash in flow (N782/YJV2/G5U8), tabs-as-indentation NEGATIVES
+(4EJS/Y79Y/003-005 → neg 100%), two-anchors (4JVG). Flow/block scanners kept separate;
+bench:self flat. VERIFIED by orchestrator (full gate + suite + failure-set composition).
 
 ## Loop log (cont.)
 
