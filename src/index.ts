@@ -1353,7 +1353,77 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
 function keyToString(node: unknown): string {
   if (typeof node === "string") return node;
   if (node === null) return "";
+  if (typeof node === "object") return stringifyKeyNode(node);
   return String(node);
+}
+
+// ---------------------------------------------------------------------------
+// Complex (collection) mapping keys — cold, rare: only an EXPLICIT `? key`
+// can ever resolve to a non-scalar (a sequence or mapping), which is the
+// entire point of the explicit form (an implicit key can't be). A collection
+// can't be a JS object property directly, so it's rendered into a string —
+// matching the oracle's `.toJS()` behavior for a non-scalar map key, which
+// serializes the key's own YAML AST in flow style with padding (`yaml`
+// package's `addPairToJSMap.ts`: `key.toString({ inFlow: true, ... })`), e.g.
+// `[a, b]` -> `"[ a, b ]"`, `{a: 1}` -> `"{ a: 1 }"`, `[]` -> `"[]"`. This is
+// NOT the general `stringify` (still a stub, a later milestone) — it only
+// ever has to render what a key node can be: nested scalars/arrays/objects
+// (and, rarely, a `!!set`/`!!omap` used as a key), never anchors/tags/comments.
+// ---------------------------------------------------------------------------
+
+function stringifyKeyNode(node: object): string {
+  if (Array.isArray(node)) return stringifyKeyItems(node.length, (i) => stringifyKeyValue(node[i]), "[", "]");
+  if (node instanceof Set) {
+    const items = [...node.values()];
+    return stringifyKeyItems(items.length, (i) => stringifyKeyValue(items[i]), "[", "]");
+  }
+  if (node instanceof Map) {
+    const entries = [...node.entries()];
+    return stringifyKeyItems(entries.length, (i) => `${stringifyKeyScalar(keyToString(entries[i]![0]))}: ${stringifyKeyValue(entries[i]![1])}`, "{", "}");
+  }
+  if (node instanceof Uint8Array) return stringifyKeyNode(Array.from(node)); // best-effort, rare (a binary key)
+  const keys = Object.keys(node as Record<string, unknown>);
+  return stringifyKeyItems(keys.length, (i) => `${stringifyKeyScalar(keys[i]!)}: ${stringifyKeyValue((node as Record<string, unknown>)[keys[i]!])}`, "{", "}");
+}
+
+/** Shared flow-padding join for `stringifyKeyNode`'s array/object branches: `"[]"`/`"{}"` empty, else `"X item, item Y"`. */
+function stringifyKeyItems(count: number, render: (i: number) => string, open: string, close: string): string {
+  if (count === 0) return open + close;
+  let out = open + " ";
+  for (let i = 0; i < count; i++) {
+    if (i > 0) out += ", ";
+    out += render(i);
+  }
+  return out + " " + close;
+}
+
+function stringifyKeyValue(value: unknown): string {
+  if (value === null) return "null";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") return stringifyKeyScalar(value);
+  if (typeof value === "object") return stringifyKeyNode(value);
+  return String(value);
+}
+
+/** A scalar as it appears NESTED inside a complex key's rendering: quoted only if plain would misread it. */
+function stringifyKeyScalar(s: string): string {
+  return keyScalarNeedsQuote(s) ? JSON.stringify(s) : s;
+}
+
+// A leading char that would change a plain scalar's meaning if unquoted
+// (indicator characters — spec c-indicator) — cold, so a regex is fine.
+const RE_KEY_SCALAR_LEADING_INDICATOR = /^[-?:,[\]{}#&*!|>'"%@`]/;
+// A `: `/`:$`/` #` inside the text would be read as a mapping separator or
+// comment if left unquoted.
+const RE_KEY_SCALAR_STRUCTURAL = /: |:$| #|\n/;
+// Text that would resolve to null/bool/number if written bare — must be
+// quoted to stay a string (mirrors `resolvePlain`'s dispatch, cold+simplified).
+const RE_KEY_SCALAR_RETYPES = /^(?:~|null|Null|NULL|true|True|TRUE|false|False|FALSE|[-+]?(?:0x[0-9a-fA-F]+|0o[0-7]+|\d+)|[-+]?(?:\.\d+|\d+\.\d*)(?:[eE][-+]?\d+)?|[-+]?\d+[eE][-+]?\d+|[-+]?\.(?:inf|Inf|INF)|\.(?:nan|NaN|NAN))$/;
+
+function keyScalarNeedsQuote(s: string): boolean {
+  if (s.length === 0) return true;
+  return RE_KEY_SCALAR_LEADING_INDICATOR.test(s) || RE_KEY_SCALAR_STRUCTURAL.test(s) || RE_KEY_SCALAR_RETYPES.test(s);
 }
 
 /**
@@ -2404,10 +2474,21 @@ function parseBlockNode(parentCol: number, mapValue = false): unknown {
     return registerPendingAnchor(parseBlockScalar(parentCol));
   }
 
-  // Explicit block mapping keys (`? key` / `: value`) are a later milestone.
-  // Reject the `? ` indicator rather than mis-reading it as a plain scalar.
+  // Explicit block mapping keys (`? key` / `: value`, spec 8.17). Like `-`
+  // above, `?` unambiguously opens a NEW block mapping right here — never a
+  // retroactive re-read of an already-parsed scalar the way an IMPLICIT key
+  // is (that ambiguity is what the whole rest of this function exists to
+  // resolve; `?` has none). Same three restrictions as the seq branch above,
+  // for the same reason, calibrated against the oracle: a node property may
+  // decorate the KEY itself (`? &a k`, dispatched from INSIDE
+  // `parseBlockMapExplicit` below), but never precede `?` — `&a ? k: v` /
+  // `!!map ? k: v` both error ("Anchors and tags must be after the ?
+  // indicator"), exactly like `&a - x` errors for sequences.
   if (c === QUESTION && isSpaceOrEolAt(pos + 1)) {
-    throw new NotImplementedError("parse (explicit block mapping keys '?' / ':')");
+    if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
+    if (inlineProp) fail("a block mapping cannot start on the same line as a node property (anchor)");
+    if (noBlockColl) fail("a nested block mapping cannot start on the same line as a mapping key");
+    return parseBlockMapExplicit(col);
   }
 
   if (c === LBRACKET || c === LBRACE || c === DQUOTE || c === SQUOTE || c === STAR) {
@@ -2525,6 +2606,10 @@ function parseAnchoredBlockNode(parentCol: number, mapValue: boolean): unknown {
       if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
       fail("a block sequence cannot start on the same line as a node property (anchor)");
     }
+    if (c === QUESTION && isSpaceOrEolAt(pos + 1)) {
+      if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
+      fail("a block mapping cannot start on the same line as a node property (anchor)");
+    }
     node = parseTaggedBlockContent(parentCol, anchorCol, tag, true);
   } else {
     afterInlineProperty = true; // consumed by the very next parseBlockNode dispatch
@@ -2582,6 +2667,14 @@ function parseTaggedBlockNode(parentCol: number, col: number, mapValue: boolean)
     if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
       if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
       fail("a block sequence cannot start on the same line as a node property (tag)");
+    }
+    // Same rule, mapping side: a tag may never precede `?` inline either
+    // (calibrated against the oracle: `!!map ? a: b` errors "Anchors and tags
+    // must be after the ? indicator") — the tag instead decorates the KEY
+    // itself when it comes AFTER `?` (`? !!str a`, `parseBlockMapKeyTagged`).
+    if (c === QUESTION && isSpaceOrEolAt(pos + 1)) {
+      if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
+      fail("a block mapping cannot start on the same line as a node property (tag)");
     }
     node = parseTaggedBlockContent(parentCol, col, tag, true);
   }
@@ -2674,6 +2767,16 @@ function parseTaggedBlockContent(parentCol: number, col: number, tag: string, sa
   const c = src.charCodeAt(pos);
   if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
     return applyCollectionTag(tag, parseBlockSeq(col), "seq");
+  }
+  // Explicit-key mapping under a tag (`--- !!map\n? a\n: b\n`, yaml-test-suite
+  // 35KP): like the seq case just above, this is only ever reached with
+  // `sameLine === false` — the same-line callers (`parseTaggedBlockNode`/
+  // `parseAnchoredBlockNode`'s tag branch) already `fail()` before a `?` ever
+  // gets here, mirroring their identical MINUS check. The tag always decorates
+  // the finished MAP as a whole (never "used up" on the key), same as a
+  // deferred tag over an implicit-key map.
+  if (c === QUESTION && isSpaceOrEolAt(pos + 1)) {
+    return applyCollectionTag(tag, parseBlockMapExplicit(col), "map");
   }
   if (c === PIPE || c === GT) {
     return applyScalarTag(tag, parseBlockScalar(parentCol));
@@ -2858,15 +2961,35 @@ function parseBlockSeq(col: number): unknown[] {
   return arr;
 }
 
-function parseBlockMap(col: number, firstKey: string): Record<string, unknown> {
+/**
+ * `col`'s mapping loop, shared by implicit (`key: value`) and explicit
+ * (`? key` / `: value`) entries — never a separate map type (an explicit and
+ * an implicit entry may freely mix within one mapping, e.g. yaml-test-suite
+ * RR7F/ZWK4). `firstHasValue` distinguishes the two shapes an already-resolved
+ * `firstKey` can be in when this is called: every OTHER caller (an implicit
+ * key, `pos` sitting at its ':') passes the default `true`; `parseBlockMapExplicit`
+ * passes `false` when its `?` entry had no `: value` at all (`? a` with
+ * nothing following — the value is simply `null`, no ':' to consume).
+ * `firstIsExplicit` selects which VALUE grammar applies once a ':' IS present
+ * — see `parseExplicitValue`'s doc comment for why explicit and implicit
+ * values are not interchangeable (an inline compact sequence is legal after
+ * an explicit ':' but not an implicit one, calibrated against both oracles).
+ */
+function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firstIsExplicit = false): Record<string, unknown> {
   if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
   const obj: Record<string, unknown> = {};
   registerPendingAnchor(obj); // before children (see parseFlowMap's identical call)
   let key = firstKey;
+  let hasValue = firstHasValue;
+  let isExplicit = firstIsExplicit;
   for (;;) {
-    // pos is at the ':' separator for `key`.
-    pos++; // past ':'
-    storeKey(obj, key, parseBlockValue(col, true)); // a map value: same-col `-` is a compact seq
+    if (hasValue) {
+      // pos is at the ':' separator for `key`.
+      pos++; // past ':'
+      storeKey(obj, key, isExplicit ? parseExplicitValue(col) : parseBlockValue(col, true)); // a map value: same-col `-` is a compact seq
+    } else {
+      storeKey(obj, key, null); // explicit key with no ': value' at all
+    }
     if (pos >= len) break;
     const nc = pos - lineStart;
     // A col-0 document marker always ends the mapping — including when
@@ -2879,10 +3002,125 @@ function parseBlockMap(col: number, firstKey: string): Record<string, unknown> {
     if (nc < col) break; // dedent → mapping ends
     if (nc > col) fail("bad indentation in block mapping");
     if (src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) break; // sibling sequence, not our entry
-    key = parseBlockMapKey();
+    if (src.charCodeAt(pos) === QUESTION && isSpaceOrEolAt(pos + 1)) {
+      pos++; // past '?'
+      key = internKey(keyToString(parseBlockValue(col, false)));
+      hasValue = explicitValueFollows(col);
+      isExplicit = true;
+    } else {
+      key = parseBlockMapKey();
+      hasValue = true;
+      isExplicit = false;
+    }
   }
   depth--;
   return obj;
+}
+
+/**
+ * Whether an explicit key's `: value` indicator immediately follows at the
+ * SAME column as its `?` (spec 8.17's `l-block-map-explicit-value`, `s-
+ * indent(n)` — an EXACT match, not merely "indented at least n"; calibrated
+ * against both js-yaml and the oracle, which both reject a `:` at any other
+ * column as "bad indentation", e.g. `? a\n  : 1\n`). Anything else — dedent,
+ * over-indent, a sibling `?`/plain key at the same column, EOF — means this
+ * entry's value is simply absent (`null`); the caller's ordinary dedent/
+ * indentation checks (shared with implicit entries) take it from there.
+ */
+function explicitValueFollows(col: number): boolean {
+  return pos < len && pos - lineStart === col && src.charCodeAt(pos) === COLON && isSpaceOrEolAt(pos + 1);
+}
+
+/**
+ * `? key` / `: value` (spec 8.17), entered from `parseBlockNode`'s dispatch
+ * with `pos` at `?` and `col` its column. The key is parsed with the EXACT
+ * same machinery as an ordinary mapping VALUE (`parseBlockValue`, ordinary
+ * `parseBlockNode` dispatch) — inline right after `?`, or deferred to a more-
+ * indented following line — so anchors, tags, nested collections, and multi-
+ * line plain folding all compose for free: a key here is "just a node", which
+ * is the entire reason the explicit form exists (an IMPLICIT key can't be
+ * multi-line or a collection; this one can — yaml-test-suite JTV5/L94M/5WE3).
+ * A collection key must still work as a JS object key: `keyToString` (via
+ * `stringifyKeyNode`, cold) renders it into the SAME flow-style string the
+ * oracle's `.toJS()` uses for a non-scalar map key.
+ *
+ * `mapValue=false` is passed for the key (matching a SEQUENCE entry's
+ * convention, not a mapping VALUE's): the "compact collection at the SAME
+ * column as the indicator" special case (`parseDeferredBlockNode`'s `mapValue
+ * && nc === parentCol` branch) is deliberately NOT extended to keys — passing
+ * `true` here would also (incorrectly) set `inlineMapValue` while parsing
+ * INLINE key content, wrongly rejecting a perfectly legal inline nested map
+ * as a key (`? a: 1\n  b: 2\n: v`, calibrated against the oracle). The narrow
+ * cost: a key that's a compact sequence at EXACTLY `?`'s own column (deferred,
+ * e.g. `?\n- a\n- b\n:\n- c\n- d\n`) is not supported — a documented, narrow
+ * gap (that input isn't in the scored suite; real explicit-collection keys are
+ * written one indent deeper, which already works, same as a seq entry's own
+ * nested collections).
+ */
+function parseBlockMapExplicit(col: number): Record<string, unknown> {
+  pos++; // past '?'
+  // Mirrors `parseBlockValue`'s own inline/deferred dispatch (not called
+  // directly: it doesn't distinguish the two, and the tab check just below
+  // only applies to the INLINE case — see `isTabRestrictedCollection`'s doc
+  // comment for why a DEFERRED key, starting fresh on its own line, is exempt).
+  const tabRightAfterIndicator = src.charCodeAt(pos) === TAB;
+  skipInlineSpaces();
+  const c = pos < len ? src.charCodeAt(pos) : -1;
+  let keyNode: unknown;
+  if (c === -1 || c === LF || c === CR || c === HASH) {
+    nextLine();
+    keyNode = parseDeferredBlockNode(col, false);
+  } else {
+    keyNode = parseBlockNode(col, false);
+    if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
+  }
+  const key = internKey(keyToString(keyNode));
+  return parseBlockMap(col, key, explicitValueFollows(col), true);
+}
+
+/**
+ * Whether `value` is a collection (array, plain object, or a `!!set`/`!!omap`
+ * `Set`/`Map` — never a scalar; `Uint8Array` from `!!binary` is scalar
+ * CONTENT, not a collection). Used only by the tab checks in
+ * `parseBlockMapExplicit`/`parseExplicitValue`: real YAML disallows a bare
+ * TAB as the separator immediately after `?`/explicit `:` when what follows
+ * opens a NEW block collection at the column the tab reaches (that column
+ * becomes a structural indentation reference other lines must align to —
+ * spec 5.5, "tabs MUST NOT be used in indentation"), but tolerates it for an
+ * ordinary scalar, whose own column is structurally meaningless (calibrated
+ * against both oracles: `?\tsimple` parses fine; `?\t- x` / `?\tkey: 1` both
+ * error on js-yaml AND `yaml` — yaml-test-suite Y79Y/006-009).
+ */
+function isTabRestrictedCollection(value: unknown): boolean {
+  return Array.isArray(value) || (value !== null && typeof value === "object" && !(value instanceof Uint8Array));
+}
+
+/**
+ * The VALUE after an explicit key's `: ` (spec 8.17) — almost `parseBlockValue`,
+ * except INLINE content is never restricted from opening a block sequence.
+ * An ordinary IMPLICIT mapping value forbids that (`a: - x` errors on both
+ * oracles — its grammar production, `c-l-block-map-implicit-value`, only
+ * allows an ordinary node, never the compact-sequence alternative); an
+ * explicit value's production is `s-l+block-indented`, the SAME one a
+ * sequence entry's value uses, which explicitly permits a compact sequence
+ * either inline right after the indicator (`: - one\n  - two`, yaml-test-
+ * suite 5WE3/A2M4 — "Explicit compact") or deferred to a following line at
+ * the SAME column (`:\n- one\n- two`, calibrated against the oracle — both
+ * accept it, matching an ordinary deferred value's already-established
+ * precedent, hence `mapValue=true` is still passed to `parseDeferredBlockNode`
+ * here, unlike the key side in `parseBlockMapExplicit` above).
+ */
+function parseExplicitValue(col: number): unknown {
+  const tabRightAfterIndicator = src.charCodeAt(pos) === TAB;
+  skipInlineSpaces();
+  const c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === -1 || c === LF || c === CR || c === HASH) {
+    nextLine();
+    return parseDeferredBlockNode(col, true);
+  }
+  const value = parseBlockNode(col, false); // inline: NOT gated by the implicit-value inline-seq restriction
+  if (tabRightAfterIndicator && isTabRestrictedCollection(value)) fail("a tab cannot separate ':' from a value that opens a new collection");
+  return value;
 }
 
 /** Parse the next key of a block mapping, leaving `pos` at the `:` separator. */
