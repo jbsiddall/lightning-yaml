@@ -28,6 +28,11 @@ if (typeof globalThis.gc !== "function") {
 const gc = globalThis.gc as () => void;
 
 const candidate = candidateByName(candidateName);
+if (op === "stringify" && !candidate.stringify) {
+  // The orchestrator filters these out (candidateSupports), but guard direct
+  // invocation too: we never borrow a foreign serializer for this candidate.
+  throw new Error(`${candidateName} does not implement stringify`);
+}
 const ds = datasetByName(dataset);
 // For stringify, the input is the in-memory value; for parse, the raw text.
 const input: unknown = op === "stringify" ? loadFixtureValue(ds) : loadFixtureText(ds);
@@ -38,7 +43,7 @@ const heapBefore = process.memoryUsage().heapUsed;
 
 let sink: unknown;
 for (let i = 0; i < iters; i++) {
-  sink = op === "parse" ? candidate.parse(input as string) : candidate.stringify(input);
+  sink = op === "parse" ? candidate.parse(input as string) : candidate.stringify!(input);
 }
 
 gc();
