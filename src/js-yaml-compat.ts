@@ -1,13 +1,13 @@
 /**
- * js-yaml-compat.ts — a drop-in-ish replacement for the `js-yaml` v4 public
+ * js-yaml-compat.ts — a drop-in-ish replacement for the `js-yaml` v5 public
  * API, backed by lightning-yaml's own parser (./index.ts).
  *
- * Goal: a codebase that does `import yaml from "js-yaml"` (or
- * `import { load } from "js-yaml"`) can swap the import for this module and
- * keep working, AS FAR AS lightning-yaml's current milestone allows. Full
- * fidelity is NOT the goal — see bench/conformance/compat.ts for a
- * differential report quantifying exactly how far we are, grouped by which
- * YAML construct caused the gap. Gaps are expected and intentional:
+ * Goal: a codebase that does `import { load } from "js-yaml"` can swap the
+ * import for this module and keep working, AS FAR AS lightning-yaml's current
+ * milestone allows. Full fidelity is NOT the goal — see
+ * bench/conformance/compat.ts for a differential report quantifying exactly
+ * how far we are, grouped by which YAML construct caused the gap. Gaps are
+ * expected and intentional:
  *
  *   - `load`/`loadAll` on a construct we don't parse yet (block scalars,
  *     anchors/aliases, tags, merge keys) throw our own `NotImplementedError`
@@ -21,8 +21,9 @@
  *   - `dump` delegates to our `stringify`, which is a later milestone and
  *     currently always throws `NotImplementedError` — accepted-and-documented,
  *     per the task brief.
- *   - Custom schemas/tags (`Type`, `Schema`, the `*_SCHEMA` constants, and the
- *     `schema` option) are cheap stubs: they exist so imports resolve and
+ *   - Custom schemas/tags (`defineScalarTag`/`defineSequenceTag`/
+ *     `defineMappingTag`, `Schema`, the `*_SCHEMA` constants, and the `schema`
+ *     option) are cheap stubs: they exist so imports resolve and
  *     `{ schema: CORE_SCHEMA }`-style options don't crash the call, but our
  *     parser is hardwired to YAML 1.2 core (see ./index.ts) and never
  *     branches on them.
@@ -31,6 +32,16 @@
  * throws on a second document in the stream (use `loadAll` instead), and our
  * `parse` throws on a second document too (see ./index.ts) — so that
  * particular divergence risk doesn't exist here.
+ *
+ * v5 REWRITE NOTE: js-yaml v5 is a from-scratch rewrite (event-based AST,
+ * dual ESM/CJS build with NO default export "by design" per its migration
+ * guide). Its `Type` class and `DEFAULT_SCHEMA` are gone, replaced by
+ * `defineScalarTag`/`defineSequenceTag`/`defineMappingTag` factory functions
+ * and a `Schema.withTags(...)` composition method (`.extend()` is gone too);
+ * this shim's stubs below have been renamed/reshaped to match. This module
+ * still keeps its OWN default export for convenience (not present in real
+ * js-yaml v5) since nothing here depends on the real package's shape for
+ * that.
  */
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./index.ts";
@@ -40,10 +51,11 @@ import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, 
 // ---------------------------------------------------------------------------
 
 /**
- * Cut-down version of js-yaml's `Mark` (@types/js-yaml): the fields a
- * consumer is likely to read (`line`/`column`) are populated from our error's
- * message when we can parse one out of it; the rest are cheap placeholders
- * rather than a real re-lex of the source (js-yaml computes a `snippet` by
+ * Cut-down version of js-yaml v5's `SnippetMark` (dist/js-yaml.d.ts — v5
+ * bundles its own types, no more @types/js-yaml): the fields a consumer is
+ * likely to read (`line`/`column`) are populated from our error's message
+ * when we can parse one out of it; the rest are cheap placeholders rather
+ * than a real re-lex of the source (js-yaml computes a `snippet` by
  * re-scanning the input around the failure — not worth reproducing for a
  * compat shim).
  */
@@ -105,39 +117,46 @@ function toYAMLException(err: unknown, filename: string | undefined): YAMLExcept
 }
 
 // ---------------------------------------------------------------------------
-// Schema / Type stubs — accepted-and-ignored. Our parser is fixed to YAML 1.2
-// core (./index.ts); there is no schema composition to hook these into yet.
+// Schema / tag-definition stubs — accepted-and-ignored. Our parser is fixed to
+// YAML 1.2 core (./index.ts); there is no schema composition to hook these
+// into yet.
+//
+// v5 REWRITE (vs. v4, which this shim used to mirror): js-yaml dropped the
+// `Type` class and `Schema.extend()` entirely — custom tags are now defined
+// via `defineScalarTag`/`defineSequenceTag`/`defineMappingTag` factory
+// functions returning a plain `TagDefinition`, and `Schema` composes via
+// `.withTags(...)` instead of `.extend()`. `DEFAULT_SCHEMA` is also gone with
+// no direct replacement (v5's `load()` defaults to `CORE_SCHEMA` — YAML 1.2 —
+// rather than v4's 1.1-flavoured `DEFAULT_SCHEMA`); the closest surviving
+// legacy-1.1 bundle is the new `YAML11_SCHEMA`, which this shim now exports
+// in `DEFAULT_SCHEMA`'s place.
 // ---------------------------------------------------------------------------
 
-export interface TypeConstructorOptions {
-  kind?: "sequence" | "scalar" | "mapping";
-  resolve?: (data: unknown) => boolean;
-  construct?: (data: unknown, type?: string) => unknown;
-  instanceOf?: object;
-  predicate?: (data: object) => boolean;
-  represent?: ((data: object) => unknown) | Record<string, (data: object) => unknown>;
-  representName?: (data: object) => unknown;
-  defaultStyle?: string;
-  multi?: boolean;
-  styleAliases?: Record<string, unknown>;
+export interface TagDefinition {
+  tagName: string;
+  nodeKind: "scalar" | "sequence" | "mapping";
 }
 
-/** Stub mirroring js-yaml's `Type` (custom tag registration). Nothing reads it yet. */
-export class Type {
-  tag: string;
-  kind: "sequence" | "scalar" | "mapping" | null;
-
-  constructor(tag: string, opts: TypeConstructorOptions = {}) {
-    this.tag = tag;
-    this.kind = opts.kind ?? null;
-  }
+/** Stub mirroring js-yaml v5's `defineScalarTag`. Nothing reads the result yet. */
+export function defineScalarTag(tagName: string, _opts: Record<string, unknown> = {}): TagDefinition {
+  return { tagName, nodeKind: "scalar" };
 }
 
-/** Stub mirroring js-yaml's `Schema` (schema composition via `.extend`). A no-op. */
+/** Stub mirroring js-yaml v5's `defineSequenceTag`. Nothing reads the result yet. */
+export function defineSequenceTag(tagName: string, _opts: Record<string, unknown> = {}): TagDefinition {
+  return { tagName, nodeKind: "sequence" };
+}
+
+/** Stub mirroring js-yaml v5's `defineMappingTag`. Nothing reads the result yet. */
+export function defineMappingTag(tagName: string, _opts: Record<string, unknown> = {}): TagDefinition {
+  return { tagName, nodeKind: "mapping" };
+}
+
+/** Stub mirroring js-yaml v5's `Schema` (composition via `.withTags(...)`). A no-op. */
 export class Schema {
-  constructor(_definition?: unknown) {}
+  constructor(_tags?: readonly TagDefinition[]) {}
 
-  extend(_types?: unknown): Schema {
+  withTags(..._tags: unknown[]): Schema {
     return this;
   }
 }
@@ -145,37 +164,47 @@ export class Schema {
 export const FAILSAFE_SCHEMA: Schema = new Schema();
 export const JSON_SCHEMA: Schema = new Schema();
 export const CORE_SCHEMA: Schema = new Schema();
-export const DEFAULT_SCHEMA: Schema = new Schema();
+export const YAML11_SCHEMA: Schema = new Schema();
 
 // ---------------------------------------------------------------------------
 // Options — accepted, best-effort. `filename` is honored (threaded into a
 // thrown YAMLException's mark); the rest exist so option bags type-check and
 // are otherwise ignored (schema/style knobs have no effect — see above).
+//
+// v5 REWRITE: these mirror v5's real `LoadOptions`/`DumpOptions` shapes, not
+// v4's. v5 dropped `onWarning`/`listener` (load) and `styles`/`replacer`/
+// `noCompatMode`/`condenseFlow`/`quotingType`/`noArrayIndent` (dump) outright;
+// `noArrayIndent` became `seqNoIndent` and `quotingType: "'" | '"'` became
+// `quoteStyle: "single" | "double"`.
 // ---------------------------------------------------------------------------
 
 export interface LoadOptions {
   filename?: string;
-  onWarning?: (e: YAMLException) => void;
   schema?: Schema;
   json?: boolean;
-  listener?: (...args: unknown[]) => void;
+  maxDepth?: number;
+  maxTotalMergeKeys?: number;
+  maxAliases?: number;
 }
 
 export interface DumpOptions {
   indent?: number;
-  noArrayIndent?: boolean;
+  seqNoIndent?: boolean;
+  seqInlineFirst?: boolean;
   skipInvalid?: boolean;
   flowLevel?: number;
-  styles?: Record<string, unknown>;
   schema?: Schema;
   sortKeys?: boolean | ((a: unknown, b: unknown) => number);
   lineWidth?: number;
   noRefs?: boolean;
-  noCompatMode?: boolean;
-  condenseFlow?: boolean;
-  quotingType?: "'" | '"';
+  quoteStyle?: "single" | "double";
   forceQuotes?: boolean;
-  replacer?: (key: string, value: unknown) => unknown;
+  flowBracketPadding?: boolean;
+  flowSkipCommaSpace?: boolean;
+  flowSkipColonSpace?: boolean;
+  quoteFlowKeys?: boolean;
+  tagBeforeAnchor?: boolean;
+  transform?: (documents: unknown[]) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -183,13 +212,16 @@ export interface DumpOptions {
 // ---------------------------------------------------------------------------
 
 /**
- * NOTE: js-yaml's `load("")` (and a few other near-empty inputs) returns
- * `undefined`, quirkily — e.g. `load(" ")` and `load("\n")` are `undefined`
- * too, but `load("  \n  \n")` and `load("# comment\n")` are `null`. That
- * inconsistency lives in js-yaml's own internal empty-document detection and
- * isn't worth reproducing bug-for-bug. We always return `null` for an empty
- * document, matching our own `parse()`'s documented contract. Tracked as a
- * known, low-impact divergence (see bench/conformance/compat.ts).
+ * NOTE: js-yaml v4's `load("")` (and a few other near-empty inputs) returned
+ * `undefined`, quirkily — e.g. `load(" ")` and `load("\n")` were `undefined`
+ * too, but `load("  \n  \n")` and `load("# comment\n")` were `null`. js-yaml
+ * v5 changed this again: `load("")` now THROWS a `YAMLException` ("an empty
+ * stream has no document, and `load` has no output value to signal its
+ * absence" — per the v5 migration guide), rather than returning anything. We
+ * always return `null` for an empty document, matching our own `parse()`'s
+ * documented contract, in BOTH cases — reproducing either v4's quirk or v5's
+ * new throw isn't worth it for a compat shim. Tracked as a known, low-impact
+ * divergence (see bench/conformance/compat.ts).
  */
 export function load(input: string, opts?: LoadOptions): unknown {
   try {
@@ -225,12 +257,14 @@ const jsYamlCompat = {
   loadAll,
   dump,
   YAMLException,
-  Type,
+  defineScalarTag,
+  defineSequenceTag,
+  defineMappingTag,
   Schema,
   FAILSAFE_SCHEMA,
   JSON_SCHEMA,
   CORE_SCHEMA,
-  DEFAULT_SCHEMA,
+  YAML11_SCHEMA,
 };
 
 export default jsYamlCompat;
