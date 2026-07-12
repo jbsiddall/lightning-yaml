@@ -16,6 +16,7 @@ import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import { load as jsYamlLoad } from "js-yaml";
 import { parse, parseAll, YAMLParseError } from "../src/index.ts";
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
+import { oracleParse } from "../bench/oracle.ts";
 
 // --------------------------------------------------------------------------
 // M1 — exact JSON.parse parity on every JSON (flow) fixture.
@@ -134,7 +135,10 @@ test("nesting up to the guard still parses", () => {
 // Errors — malformed input surfaces a YAMLParseError.
 // --------------------------------------------------------------------------
 
-for (const bad of ['[1, 2', '{"a": }', '{"a" 1}', 'nul', '01x2', '{,}', '[,]', '"unterminated']) {
+// Genuinely malformed (in YAML too — not just JSON-strict). Note that `{"a": }`
+// (→ {a:null}), `nul` (→ "nul") and `01x2` (→ "01x2") are all VALID YAML plain
+// scalars, so they are covered by the differential suite below, not here.
+for (const bad of ["[1, 2", '{"a" 1}', "{,}", "[,]", "[a, , b]", '"unterminated', "'unterminated", "{a: b"]) {
   test(`malformed input throws · ${bad}`, () => {
     throws(() => parse(bad), YAMLParseError);
   });
@@ -162,6 +166,86 @@ for (const input of agreeWithJsYaml) {
     deepStrictEqual(parse(input), jsYamlLoad(input));
   });
 }
+
+// --------------------------------------------------------------------------
+// M2 — flow-mode YAML, checked against the `yaml` oracle (1.2 core schema).
+// Every case here parses to EXACTLY what the repo's ground-truth oracle
+// produces: plain-scalar typing, quoting, comments, single-pair maps.
+// --------------------------------------------------------------------------
+
+const flowOracle = [
+  // null / bool forms (exact case; yes/no/on/off are strings)
+  "[null, Null, NULL, ~, NuLL]",
+  "[true, True, TRUE, false, False, FALSE, TrUe]",
+  "[yes, no, on, off, y, n]",
+  // integers: decimal (leading zeros ok), octal, hex — NOT 0b, NOT underscores
+  "[0, -0, 42, -42, +42, 007, 00, 0o17, 0o777, 0x1A, 0xFF, 0xdeadBEEF]",
+  "[0b101, 1_000, 0o8, 0x, 0xG]",
+  // floats + inf/nan
+  "[3.14, -3.14, .5, +.5, -.5, 5., 1.e5, 1e10, 1E-10, 0.0, .0]",
+  "[.inf, -.inf, .Inf, .INF, .nan, .NaN]",
+  "[.e5, 1e, 1e+, 1.2.3, ., .., 123abc]",
+  // strings that merely look numeric / date-like (1.2 core keeps these strings)
+  "[2026-08-02, 2026-07-12T10:30:00Z, 1:30, 1:2:3, 79d5-1c2791, 5c76-ae4c8d]",
+  // plain scalars with spaces, colons, hashes
+  "[mike alpha, http://x.io, a#b, key val]",
+  // flow maps: colon needs a separator to split; quoted keys split without one
+  "{a: b}",
+  "{a:b}",
+  '{"a":b}',
+  "{a: 1, b: two, c: true, d: null, e: 3.14}",
+  "{http://x: y}",
+  "{a: b, x: [1, 2, 3], y: {z: 1}}",
+  // empty values
+  "{a}",
+  "{a: }",
+  "{a: , b: c}",
+  "{a, b, c}",
+  // trailing commas
+  "[1, 2, 3,]",
+  "{a: 1, b: 2,}",
+  // single-pair maps inside sequences
+  "[a: b]",
+  "[a: b, c: d]",
+  "[1, 2: 3, four]",
+  "[:]",
+  // explicit keys
+  "{? explicit: val}",
+  "{? key}",
+  // quoting: single, double, '' escape, escapes
+  "[a, 'sq str', \"dq str\"]",
+  "['it''s a test', 'plain']",
+  '["tab\\tend", "new\\nline", "u\\u0041"]',
+  "{'sq key': 1, \"dq key\": 2}",
+  // comments in flow
+  "[a #comment\n, b]",
+  "{a: 1 # trailing\n, b: 2}",
+  // empty collections with whitespace
+  "[ ]",
+  "{ }",
+  "[]",
+  "{}",
+  // nesting + mixed
+  "{key: [a, b], n: {x: 1, y: [true, null, 2.5]}}",
+  "[[1, 2], [3, 4], {a: [5, 6]}]",
+];
+
+for (const input of flowOracle) {
+  test(`flow matches oracle · ${input.replace(/\n/g, "\\n").slice(0, 44)}`, () => {
+    deepStrictEqual(parse(input), oracleParse(input));
+  });
+}
+
+test("plain scalars that are not numbers stay strings", () => {
+  const s = "[01x2, nul, tru, fals, 1x, 0xG, 0b1, 1_000]";
+  deepStrictEqual(parse(s), oracleParse(s));
+  deepStrictEqual(parse(s), ["01x2", "nul", "tru", "fals", "1x", "0xG", "0b1", "1_000"]);
+});
+
+test("empty flow value is null (not a JSON error)", () => {
+  deepStrictEqual(parse("{a: }"), { a: null });
+  deepStrictEqual(parse("{a}"), { a: null });
+});
 
 // --------------------------------------------------------------------------
 // API surface.
