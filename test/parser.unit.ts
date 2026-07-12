@@ -1338,3 +1338,167 @@ test("STRICTNESS: a tab cannot separate '?'/explicit ':' from content that opens
   // that become a structural indentation reference for a NEW collection.
   deepStrictEqual(parse("?\tsimple\n: v\n"), { simple: "v" });
 });
+
+// --------------------------------------------------------------------------
+// Flow-context multi-line PLAIN scalar folding (yaml-test-suite 8KB6, 8UDB,
+// CT4Q, UT92, NJ66). A plain scalar spanning lines INSIDE a flow collection
+// folds like block-plain: a single break → space, blank line → newline, and
+// per-line leading/trailing whitespace is stripped.
+// --------------------------------------------------------------------------
+
+test("flow plain fold: a multi-line plain key with no value (yaml-test-suite 8KB6)", () => {
+  const s = "---\n- { single line, a: b}\n- { multi\n  line, a: b}\n";
+  deepStrictEqual(parse(s), [
+    { "single line": null, a: "b" },
+    { "multi line": null, a: "b" },
+  ]);
+  deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("flow plain fold: a multi-line plain key WITH a value (yaml-test-suite NJ66)", () => {
+  const s = "---\n- { single line: value}\n- { multi\n  line: value}\n";
+  deepStrictEqual(parse(s), [{ "single line": "value" }, { "multi line": "value" }]);
+  deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("flow plain fold: multi-line plain values and an explicit key fold across lines (yaml-test-suite 8UDB, CT4Q)", () => {
+  const udb = '[\n"double\n quoted", \'single\n           quoted\',\nplain\n text, [ nested ],\nsingle: pair,\n]\n';
+  deepStrictEqual(parse(udb), ["double quoted", "single quoted", "plain text", ["nested"], { single: "pair" }]);
+  deepStrictEqual(parse(udb), oracleParse(udb));
+  const ct4q = "[\n? foo\n bar : baz\n]\n";
+  deepStrictEqual(parse(ct4q), [{ "foo bar": "baz" }]);
+  deepStrictEqual(parse(ct4q), oracleParse(ct4q));
+});
+
+test("flow plain fold: a col-0 plain continuation across a flow mapping key (yaml-test-suite UT92)", () => {
+  const s = "---\n{ matches\n% : 20 }\n...\n---\n# Empty\n...\n";
+  deepStrictEqual(parseAll(s), [{ "matches %": 20 }, null]);
+  deepStrictEqual(parseAll(s), oracleParseAll(s));
+});
+
+// --------------------------------------------------------------------------
+// Flow single-pair implicit keys must be on ONE line (yaml-test-suite DK4H,
+// ZXT5) — a flow SEQUENCE pair whose ':' lands on a later line than the key is
+// invalid. A flow MAPPING implicit entry may span lines (`{a\n: b}` is legal),
+// so the restriction is scoped to sequence pairs only.
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: a flow-sequence single-pair implicit key must be on one line (yaml-test-suite DK4H, ZXT5)", () => {
+  for (const s of ["---\n[ key\n  : value ]\n", '[ "key"\n  :value ]\n']) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+  // A flow MAPPING implicit key MAY span onto the ':' line — still valid.
+  deepStrictEqual(parse("{a\n: b}\n"), { a: "b" });
+  deepStrictEqual(parse("{a\n: b}\n"), oracleParse("{a\n: b}\n"));
+});
+
+test("STRICTNESS: a multi-line flow collection cannot be a block mapping key (yaml-test-suite C2SP)", () => {
+  throws(() => parse("[23\n]: 42\n"), YAMLParseError);
+  throws(() => oracleParse("[23\n]: 42\n"));
+  // A single-line flow collection key is fine.
+  deepStrictEqual(parse("[a, b]: v\n"), oracleParse("[a, b]: v\n"));
+});
+
+// --------------------------------------------------------------------------
+// Flow / quoted continuation lines must out-indent the enclosing block node
+// (yaml-test-suite 9C9N, VJP3/00, QB6E). At the document root (no floor) col 0
+// is legal, so top-level multi-line flow/quoted scalars keep working.
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: a nested flow collection's continuation lines must be sufficiently indented (yaml-test-suite 9C9N, VJP3/00)", () => {
+  for (const s of ["---\nflow: [a,\nb,\nc]\n", "k: {\nk\n:\nv\n}\n"]) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+  // Sufficiently-indented continuations, and a top-level flow (no floor), are OK.
+  deepStrictEqual(parse("flow: [a,\n b,\n c]\n"), oracleParse("flow: [a,\n b,\n c]\n"));
+  deepStrictEqual(parse("[a,\nb,\nc]\n"), oracleParse("[a,\nb,\nc]\n"));
+});
+
+test("STRICTNESS: a nested multi-line quoted scalar's continuation lines must be sufficiently indented (yaml-test-suite QB6E)", () => {
+  throws(() => parse('---\nquoted: "a\nb\nc"\n'), YAMLParseError);
+  throws(() => oracleParse('---\nquoted: "a\nb\nc"\n'));
+  // A top-level multi-line quoted scalar (no floor) still folds fine.
+  deepStrictEqual(parse('"a\nb\nc"\n'), oracleParse('"a\nb\nc"\n'));
+});
+
+// --------------------------------------------------------------------------
+// Comment separation (yaml-test-suite SU5Z, CVW2, 9JBA): a '#' begins a
+// comment only at line start or when preceded by whitespace — never butting up
+// against the preceding token.
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: a comment must be separated from the preceding token by whitespace (yaml-test-suite SU5Z, CVW2, 9JBA)", () => {
+  for (const s of ['key: "value"# invalid comment\n', "---\n[ a, b, c,#invalid\n]\n", "---\n[ a, b, c, ]#invalid\n"]) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+  // A properly-separated comment is still accepted.
+  deepStrictEqual(parse('key: "value" # ok\n'), { key: "value" });
+  deepStrictEqual(parse("[a, b] # ok\n"), ["a", "b"]);
+});
+
+// --------------------------------------------------------------------------
+// Miscellaneous flow strictness (yaml-test-suite N782, YJV2, G5U8): a document
+// marker cannot appear inside a flow collection, and a '-' that opens a block
+// sequence indicator is forbidden inside flow.
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: a document marker cannot appear inside a flow collection (yaml-test-suite N782)", () => {
+  throws(() => parse("[\n--- ,\n...\n]\n"), YAMLParseError);
+  throws(() => oracleParse("[\n--- ,\n...\n]\n"));
+});
+
+test("STRICTNESS: a block-sequence '-' indicator is not allowed inside a flow collection (yaml-test-suite YJV2, G5U8)", () => {
+  for (const s of ["[-]\n", "---\n- [-, -]\n"]) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+  // A '-' that is part of a scalar (a negative number, or `-x`) stays fine.
+  deepStrictEqual(parse("[-1, -x]\n"), oracleParse("[-1, -x]\n"));
+});
+
+// --------------------------------------------------------------------------
+// Tabs as indentation (yaml-test-suite 4EJS, Y79Y/003-005): a tab may separate
+// tokens but must never sit in the mandatory indentation of a line — nor indent
+// a block-sequence entry that opens a new collection.
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: a tab cannot be used as block indentation (yaml-test-suite 4EJS)", () => {
+  throws(() => parse("---\na:\n\tb:\n\t\tc: value\n"), YAMLParseError);
+  throws(() => oracleParse("---\na:\n\tb:\n\t\tc: value\n"));
+  throws(() => parse("foo:\n\tbar\n"), YAMLParseError); // even a plain-scalar value
+  // A tab AFTER the space indentation is ordinary separation — still valid.
+  deepStrictEqual(parse("foo:\n \tbar\n"), oracleParse("foo:\n \tbar\n"));
+});
+
+test("STRICTNESS: a tab cannot indent a block-sequence entry that opens a new collection (yaml-test-suite Y79Y/004, Y79Y/005)", () => {
+  for (const s of ["-\t-\n", "- \t-\n"]) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+  // A tab before an inline SCALAR seq entry is fine (it's separation).
+  deepStrictEqual(parse("-\t-1\n"), oracleParse("-\t-1\n"));
+});
+
+test("STRICTNESS: a tab cannot indent a flow continuation line (yaml-test-suite Y79Y/003)", () => {
+  throws(() => parse("- [\n\tfoo,\n foo\n ]\n"), YAMLParseError);
+  throws(() => oracleParse("- [\n\tfoo,\n foo\n ]\n"));
+  // A tab on a BLANK line inside the flow is fine (yaml-test-suite Y79Y/002).
+  deepStrictEqual(parse("- [\n\t\n foo\n ]\n"), oracleParse("- [\n\t\n foo\n ]\n"));
+});
+
+// --------------------------------------------------------------------------
+// A node can have at most one anchor (yaml-test-suite 4JVG): a deferred anchor
+// whose node begins with its OWN anchor and resolves to a scalar/non-mapping
+// collection is a two-anchor conflict — but an inner anchor on a mapping KEY is
+// a distinct node from the map the outer anchor decorates (yaml-test-suite 7BMT).
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: a scalar/collection cannot carry two anchors via a deferred property (yaml-test-suite 4JVG)", () => {
+  throws(() => parse("top1: &node1\n  &k1 key1: val1\ntop2: &node2\n  &v2 val2\n"), YAMLParseError);
+  throws(() => oracleParse("top1: &node1\n  &k1 key1: val1\ntop2: &node2\n  &v2 val2\n"));
+  // The 7BMT shape — inner anchor on the KEY, outer on the MAP — stays valid.
+  deepStrictEqual(parse("top: &node1\n  &k1 key1: v\n"), oracleParse("top: &node1\n  &k1 key1: v\n"));
+});
