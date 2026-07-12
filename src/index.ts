@@ -3,16 +3,18 @@
  * engineered for V8 (see docs/research/07-design-a-pure-js.md).
  *
  * The public surface mirrors `JSON.parse`:
- *   - `parse(text)`     text → JS value
- *   - `parseAll(text)`  text → array of document values (multi-doc; single-doc
- *                       for now — `---`/`...` splitting arrives with M5)
+ *   - `parse(text)`     text → JS value (a single document; throws if a second
+ *                       document follows, like js-yaml's `load`)
+ *   - `parseAll(text)`  text → array of document values — a real multi-document
+ *                       stream, split on `---`/`...` markers
  *   - `stringify(value)` — the dumper is a later milestone; still a stub.
  *
- * Implementation status: the flow layer (JSON subset + YAML flow — plain scalars
- * with 1.2 core-schema typing, single quotes, comments, single-pair maps) is
- * implemented. Block structure (M3+) and the rich surface — anchors, tags,
- * `!!binary`, merge keys — are not here yet and throw a controlled parse error
- * rather than mis-parsing.
+ * Implementation status: the flow layer (JSON subset + YAML flow), block
+ * structure (M3+), block-scalar rejection, and now document markers (`---`/
+ * `...`), `%YAML`/`%TAG` directives, and multi-document streams (M5) are
+ * implemented. The remaining rich surface — anchors/aliases, tags (`!!binary`
+ * and friends), merge keys, and literal/folded block scalars (`|`/`>`) — is not
+ * here yet and throws a controlled parse error rather than mis-parsing.
  *
  * Design invariants enforced throughout (V8 rules, see doc 12):
  *   - scan the flat JS string with `charCodeAt` (never `str[i]`) and hop long
@@ -46,6 +48,7 @@ const CR = 13;
 const SPACE = 32;
 const DQUOTE = 34; // "
 const HASH = 35; // #
+const PERCENT = 37; // %
 const SQUOTE = 39; // '
 const PLUS = 43; // +
 const COMMA = 44; // ,
@@ -97,6 +100,13 @@ CH[CR] |= F_PLAIN_STOP;
 
 /** Sentinel returned by the number recognizers for "this span isn't a number". */
 const NOT_NUMERIC: unique symbol = Symbol("not-numeric");
+
+/**
+ * Sentinel returned by `parseNextDocument` when the stream has no (more)
+ * documents at the current position (genuine end of stream, not merely an
+ * empty document — those resolve to `null`, a real value).
+ */
+const NO_DOCUMENT: unique symbol = Symbol("no-document");
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -165,9 +175,36 @@ let nextBackslash = -1;
  * Per-parse key-intern cache. Repeated mapping keys collapse to one
  * `===`-identical string, so V8 amortizes internalization and transition walks
  * stay cheap across homogeneous records (doc 07 §5; the FastKeyMatch analog).
- * Reset each parse so it can't grow unboundedly across calls.
+ * Reset each parse so it can't grow unboundedly across calls. Shared across
+ * every document in a stream (doc 07 §4: reset per *stream*, not per document
+ * — only directives/anchors are per-document state).
  */
 let keyCache: Map<string, string> = new Map();
+
+/**
+ * `%TAG <handle> <prefix>` is per-document state (doc 07 §4) — never
+ * inherited across documents in a stream. Created lazily (pay-on-first-use,
+ * like `anchorMap` will be) and stored only so a later milestone can resolve
+ * `!handle!suffix` tags against it; nothing reads it yet, but storing it must
+ * not require tags to be implemented (design recipe). Reset at the start of
+ * every document's `parseDirectives` call, not just per-stream. (`%YAML
+ * <version>` is validated the same way but not retained — we stay 1.2-core
+ * throughout this milestone and nothing yet branches on the declared version.)
+ */
+let tagHandles: Map<string, string> | null = null;
+
+/**
+ * Whether `parseNextDocument` may currently start a document with NO marker
+ * at all (a "bare" document). Per grammar, `l-bare-document` is legal only as
+ * the very first document in the stream, or immediately after an explicit
+ * `...` terminator — never merely because the previous document's content
+ * happened to end (e.g. `--- [1, 2]\nnope\n` must be rejected: a flow value
+ * ends the document but `nope` is neither preceded by `...` nor the stream's
+ * first document, matching the oracle here). Reset to `true` per stream (the
+ * first document may always be bare); updated at the end of every
+ * `parseNextDocument` call based on whether that document ended in `...`.
+ */
+let bareDocAllowed = true;
 
 /**
  * Compute a 1-based (line, column) for the current `pos` — only ever called on
@@ -195,8 +232,12 @@ function fail(message: string): never {
 // Public API
 // ---------------------------------------------------------------------------
 
-/** Parse a single YAML document into a JS value. */
-export function parse(text: string): unknown {
+/**
+ * Reset all per-stream parser state and position `pos` past a leading BOM, if
+ * any. Shared by `parse`/`parseAll` — the two differ only in how many
+ * documents they read off the same document loop (`parseNextDocument`).
+ */
+function resetForStream(text: string): void {
   src = text;
   len = text.length;
   pos = 0;
@@ -204,40 +245,45 @@ export function parse(text: string): unknown {
   nextBackslash = -1;
   lineStart = 0;
   keyCache = new Map();
+  tagHandles = null;
+  bareDocAllowed = true;
 
   // Skip a leading BOM without copying the input.
   if (len > 0 && src.charCodeAt(0) === BOM) {
     pos = 1;
     lineStart = 1; // so the first line's content column is measured from here
   }
+}
 
-  skipBlankLines(); // land on the first content char, or EOF
-  if (pos >= len) return null; // empty document → null (YAML), unlike JSON
+/** Parse a single YAML document into a JS value. */
+export function parse(text: string): unknown {
+  resetForStream(text);
+  const value = parseNextDocument();
+  if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
 
-  // Document markers (`---` start, `...` end) and multi-document streams are a
-  // later milestone (M5). Reject them clearly rather than mis-reading a marker
-  // as a plain scalar (`--- 5` must not parse to the string "--- 5").
-  if (isDocMarkerAt(pos)) {
-    throw new NotImplementedError("parse (document markers '---' / '...' and multi-document streams)");
-  }
-
-  const value = parseBlockNode(-1);
-
+  // Single-document contract (like js-yaml's `load`): a second document —
+  // another marker, more directives, or any other trailing content — is an
+  // error here; use `parseAll` for multi-document streams.
   if (pos < len) {
-    if (isDocMarkerAt(pos)) {
-      throw new NotImplementedError("parse (document markers '---' / '...' and multi-document streams)");
-    }
-    fail("unexpected trailing content after document");
+    fail("expected a single document in the stream, but found more (use parseAll for multi-document streams)");
   }
   return value;
 }
 
 /**
- * Parse a multi-document stream into an array of values. Multi-document
- * (`---`/`...`) splitting arrives with M5; for now this is a single document.
+ * Parse a multi-document stream into an array of values. Documents are
+ * separated by `---` (start) and/or `...` (end) markers; a stream with no
+ * markers at all is a single (possibly bare) document, same as `parse`.
  */
 export function parseAll(text: string): unknown[] {
-  return [parse(text)];
+  resetForStream(text);
+  const docs: unknown[] = [];
+  for (;;) {
+    const value = parseNextDocument();
+    if (value === NO_DOCUMENT) break;
+    docs.push(value);
+  }
+  return docs;
 }
 
 /** Serialize a JS value into a YAML document. Not implemented yet (a later milestone). */
@@ -1129,6 +1175,40 @@ function isDocMarkerAt(i: number): boolean {
   return src.charCodeAt(i + 1) === c && src.charCodeAt(i + 2) === c && isSpaceOrEolAt(i + 3);
 }
 
+/**
+ * Consume a `---` document-start marker at `pos` (caller already confirmed it
+ * via `isDocMarkerAt`). Content on the same line (`--- foo`) becomes the
+ * document's root node starting right there; a bare marker (`---`, `--- #c`,
+ * `---\n`) advances to the following content line instead — the node begins
+ * there, or the document is empty if none follows. Cold: once per document.
+ *
+ * Returns whether the node (if any) begins INLINE on the marker's own line —
+ * the caller uses this to choose `ROOT_AFTER_INLINE_MARKER` only in that case
+ * (a bare marker's node starts fresh on its own line, where block collections
+ * are perfectly ordinary — the restriction is specifically "same line as
+ * `---`", not "any document that had a `---`").
+ */
+function consumeDocStartMarker(): boolean {
+  pos += 3;
+  skipInlineSpaces();
+  const c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === -1 || c === LF || c === CR || c === HASH) {
+    nextLine();
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Consume a `...` document-end marker at `pos` (caller already confirmed it).
+ * Only a comment may follow it on the same line (enforced the same way any
+ * other line's trailing content is, via `nextLine`/`endLine`). Cold.
+ */
+function consumeDocEndMarker(): void {
+  pos += 3;
+  nextLine();
+}
+
 /** Skip spaces and tabs on the current line (not line breaks). */
 function skipInlineSpaces(): void {
   while (pos < len) {
@@ -1246,18 +1326,33 @@ function scanBlockPlainEnd(): number {
 }
 
 /**
+ * Sentinel `parentCol` passed to `parseBlockNode` for the root node of a
+ * document whose `---` marker had content on the same line (`--- foo`). Per
+ * spec, a block *collection* (mapping or sequence) cannot start there — only a
+ * scalar or flow collection may (yaml-test-suite 9KBC/CXX2/RHX7 confirm this
+ * against the oracle: `--- key: val` and `--- - a` both error, while
+ * `--- foo`/`--- [a,b]`/`--- {a: b}` are fine). The three dispatch branches
+ * below that would otherwise start a collection check for this sentinel and
+ * `fail()` instead; it never propagates to recursive calls, since those always
+ * pass a real column.
+ */
+const ROOT_AFTER_INLINE_MARKER = -2;
+
+/**
  * Parse one block node at the current position (its column is `pos - lineStart`).
  * Dispatches sequence / mapping / scalar, and — for a flow or plain scalar that
  * turns out to be a mapping key (followed by `: `) — an implicit-key mapping.
  * `parentCol` is the indentation of the construct that introduced this node
- * (used only to bound multi-line plain-scalar continuations). Always advances to
- * the start of the next content line before returning.
+ * (used only to bound multi-line plain-scalar continuations, and to gate the
+ * `ROOT_AFTER_INLINE_MARKER` check above). Always advances to the start of the
+ * next content line before returning.
  */
 function parseBlockNode(parentCol: number): unknown {
   const col = pos - lineStart;
   const c = src.charCodeAt(pos);
 
   if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
+    if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
     return parseBlockSeq(col);
   }
 
@@ -1281,6 +1376,7 @@ function parseBlockNode(parentCol: number): unknown {
     const save = pos;
     skipInlineSpaces();
     if (src.charCodeAt(pos) === COLON && isSpaceOrEolAt(pos + 1)) {
+      if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
       return parseBlockMap(col, keyToString(node));
     }
     pos = save;
@@ -1292,6 +1388,7 @@ function parseBlockNode(parentCol: number): unknown {
   const start = pos;
   const end = scanBlockPlainEnd();
   if (plainStoppedAtColon) {
+    if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
     return parseBlockMap(col, plainKey(start, end));
   }
   return resolveBlockPlain(start, end, parentCol);
@@ -1306,7 +1403,13 @@ function parseBlockNode(parentCol: number): unknown {
  */
 function resolveBlockPlain(start: number, end: number, parentCol: number): unknown {
   let breaks = advanceCountingBreaks();
-  if (pos >= len || pos - lineStart <= parentCol) {
+  // A col-0 `---`/`...` always ends the node, even at the document root where
+  // `parentCol` (-1, or -2 for ROOT_AFTER_INLINE_MARKER) can never itself be
+  // "dedented past" by the `<=` check below — this is the one point doc 07 §4
+  // calls out where block-plain scanning must special-case the marker. For any
+  // nested scalar (parentCol >= 0) the dedent check alone already catches a
+  // col-0 marker, so `isDocMarkerAt` short-circuits away and is never called.
+  if (pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) {
     // Single-line plain scalar (the overwhelming case): one span, typed once.
     return resolvePlain(start, end);
   }
@@ -1322,7 +1425,7 @@ function resolveBlockPlain(start: number, end: number, parentCol: number): unkno
     result += src.slice(segStart, segEnd);
     if (plainStoppedAtColon) fail("mapping value not allowed in a multi-line plain scalar");
     breaks = advanceCountingBreaks();
-    if (pos >= len || pos - lineStart <= parentCol) break;
+    if (pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) break;
   }
   return result;
 }
@@ -1400,6 +1503,13 @@ function parseBlockMap(col: number, firstKey: string): Record<string, unknown> {
     storeKey(obj, key, parseBlockValue(col));
     if (pos >= len) break;
     const nc = pos - lineStart;
+    // A col-0 document marker always ends the mapping — including when
+    // `col === 0` too (a top-level mapping), where `nc < col` alone would NOT
+    // catch it (0 is not < 0) and the loop would otherwise misread `---`/`...`
+    // as an attempted next key (doc 07 §4's block-structure terminator check).
+    // Guarded by `nc === 0` first so nested mappings (col > 0, the common
+    // case) never pay the `isDocMarkerAt` call — they already dedent below.
+    if (nc === 0 && isDocMarkerAt(pos)) break;
     if (nc < col) break; // dedent → mapping ends
     if (nc > col) fail("bad indentation in block mapping");
     if (src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) break; // sibling sequence, not our entry
@@ -1448,4 +1558,197 @@ function parseBlockValue(parentCol: number): unknown {
     return null; // empty value (dedent or EOF)
   }
   return parseBlockNode(parentCol); // inline / compact node at the current column
+}
+
+// ===========================================================================
+// Document structure (M5) — `%YAML`/`%TAG` directives and the `---`/`...`
+// document loop that ties the whole parser together. Directives and markers
+// are recognized ONLY here, at the document boundary — never by rescanning
+// inside block-structure/scalar code (the one exception, the col-0 marker
+// terminator, lives at its point of use above: `parseBlockMap`,
+// `resolveBlockPlain`). This keeps the per-node hot path untouched; everything
+// below runs at most once per document, never once per node.
+// ===========================================================================
+
+/**
+ * Unconditionally jump to the start of the next line, ignoring any trailing
+ * content on the current one. Directive lines with an unrecognized name keep
+ * whatever garbage trails them per spec ("warn and ignore"); known directives
+ * (`%YAML`/`%TAG`) validate their own argument shape *before* this runs, so by
+ * the time it's called the line is already known-clean. Unlike `endLine`, this
+ * never fails on stray content — that would wrongly reject ignored directives.
+ */
+function finishDirectiveLine(): void {
+  const nl = src.indexOf("\n", pos);
+  pos = nl === -1 ? len : nl + 1;
+  lineStart = pos;
+}
+
+/**
+ * Read one whitespace-delimited directive argument (a bare word — no quoting,
+ * no escapes). Leaves `pos` at the terminating space/line-break/EOF. Caller
+ * skips leading separation space first.
+ */
+function readDirectiveToken(): string {
+  const start = pos;
+  while (pos < len && !isSpaceOrEolAt(pos)) pos++;
+  return src.slice(start, pos);
+}
+
+/** Whether `s` is a bare `MAJOR.MINOR` version token (digits only, one dot). */
+function isYamlVersionToken(s: string): boolean {
+  const n = s.length;
+  let i = 0;
+  let digits = 0;
+  while (i < n && s.charCodeAt(i) >= ZERO && s.charCodeAt(i) <= NINE) {
+    i++;
+    digits++;
+  }
+  if (digits === 0 || i >= n || s.charCodeAt(i) !== DOT) return false;
+  i++;
+  digits = 0;
+  while (i < n && s.charCodeAt(i) >= ZERO && s.charCodeAt(i) <= NINE) {
+    i++;
+    digits++;
+  }
+  return digits > 0 && i === n;
+}
+
+/**
+ * `%YAML <version>` — validates the version. We stay YAML 1.2 core throughout
+ * (doc 07 §0 scope) and don't yet branch on the declared version, but per the
+ * design recipe we do not reject 1.1 (or, pragmatically, any well-formed
+ * MAJOR.MINOR): the directive's *shape* is validated (yaml-test-suite
+ * H7TQ/9MMA expect a malformed or absent version, or trailing garbage after
+ * it, to error), not its specific value.
+ */
+function parseYamlDirectiveArgs(): void {
+  skipInlineSpaces();
+  const tok = readDirectiveToken();
+  if (!isYamlVersionToken(tok)) fail("malformed %YAML directive: expected a MAJOR.MINOR version");
+  skipInlineSpaces();
+  const c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c !== -1 && c !== LF && c !== CR && c !== HASH) {
+    fail("%YAML directive should contain exactly one part");
+  }
+}
+
+/**
+ * `%TAG <handle> <prefix>` — stores the handle → prefix mapping in the
+ * per-document `tagHandles` map (created lazily), for a later milestone to
+ * resolve `!handle!suffix` tags against. Tags themselves are not implemented
+ * yet; storing directives must not require them to be (design recipe).
+ */
+function parseTagDirectiveArgs(): void {
+  skipInlineSpaces();
+  const handle = readDirectiveToken();
+  skipInlineSpaces();
+  const prefix = readDirectiveToken();
+  if (handle.length === 0 || handle.charCodeAt(0) !== 0x21 /* ! */ || prefix.length === 0) {
+    fail("malformed %TAG directive: expected a handle and a prefix");
+  }
+  if (tagHandles === null) tagHandles = new Map();
+  tagHandles.set(handle, prefix); // last-wins on a redefined handle, like the oracle
+}
+
+/**
+ * Consume zero or more `%directive` lines at column 0 — the "directives
+ * block" that may precede a document. Cold, out-of-line: called once per
+ * document boundary (`parseNextDocument`), never from inside block/flow
+ * scanning, so a `%` appearing mid-document (e.g. as plain-scalar continuation
+ * text) is never misread as a directive (confirmed against the oracle: a
+ * dangling `%YAML` with no following marker folds into the scalar instead of
+ * erroring — yaml-test-suite XLQ9).
+ *
+ * Directives are per-document state (doc 07 §4) — `tagHandles` is reset
+ * unconditionally on every call, never inherited from a previous document in
+ * the same stream (yaml-test-suite QLJ7 relies on exactly this: a `%TAG`
+ * before document 1 does not apply to documents 2/3).
+ *
+ * Returns whether at least one directive was seen: per spec, a non-empty
+ * directives block MUST be followed by an explicit `---` — the caller
+ * (`parseNextDocument`) enforces that.
+ */
+function parseDirectives(): boolean {
+  tagHandles = null;
+  let sawAny = false;
+  let sawYaml = false;
+  while (pos < len && pos === lineStart && src.charCodeAt(pos) === PERCENT) {
+    sawAny = true;
+    pos++; // past '%'
+    const nameStart = pos;
+    while (pos < len && !isSpaceOrEolAt(pos)) pos++;
+    const name = src.slice(nameStart, pos);
+    if (name === "YAML") {
+      if (sawYaml) fail("a document must not contain more than one %YAML directive");
+      sawYaml = true;
+      parseYamlDirectiveArgs();
+    } else if (name === "TAG") {
+      parseTagDirectiveArgs();
+    } // else: unrecognized directive — ignored per spec ("warn and ignore")
+    finishDirectiveLine();
+    skipBlankLines(); // blank/comment lines between directives, or before the marker
+  }
+  return sawAny;
+}
+
+/**
+ * Parse one document from the current stream position: an optional
+ * directives block (which then requires an explicit `---`), an optional
+ * `---`/`...` marker, the document's root node (or `null` for an empty
+ * document), and a trailing `...` if present. Leaves `pos` positioned for the
+ * next call: at a following marker, at genuine trailing content (the caller
+ * decides how to report that), or at EOF. Shared by `parse` and `parseAll` so
+ * every rule above is enforced identically for single- and multi-document use.
+ */
+function parseNextDocument(): unknown {
+  skipBlankLines();
+  if (pos >= len) return NO_DOCUMENT;
+
+  const sawDirectives = parseDirectives();
+  skipBlankLines();
+  if (pos >= len) {
+    if (sawDirectives) fail("a directives block must be terminated by an explicit '---' document start");
+    return NO_DOCUMENT;
+  }
+
+  const marker = isDocMarkerAt(pos);
+  const isDash = marker && src.charCodeAt(pos) === MINUS;
+  if (sawDirectives && !isDash) {
+    fail("a directives block must be terminated by an explicit '---' document start");
+  }
+
+  let value: unknown;
+  if (isDash) {
+    const inline = consumeDocStartMarker();
+    // A bare '---' immediately followed by EOF or another marker is an empty
+    // document; otherwise the node begins right where the marker left `pos`
+    // (same line if there was inline content — collections forbidden there —
+    // else the following content line, where they're perfectly ordinary).
+    value = pos >= len || isDocMarkerAt(pos) ? null : parseBlockNode(inline ? ROOT_AFTER_INLINE_MARKER : -1);
+  } else if (marker) {
+    // A bare '...' at a document's start position (no preceding content): an
+    // empty document. The shared end-marker handling below consumes it.
+    value = null;
+  } else {
+    // No marker at all: a bare document. Only legal at stream start or right
+    // after a preceding explicit '...' (`bareDocAllowed`) — otherwise a prior
+    // document's content simply ended (e.g. a flow value's closing bracket)
+    // and this is unmarked trailing content, not a new document.
+    if (!bareDocAllowed) fail("expected a '---' before the next document (a bare document may only follow an explicit '...')");
+    value = parseBlockNode(-1);
+  }
+
+  // A trailing explicit end marker belongs to the document just produced, not
+  // to the next call — consume it here so the next document may be bare. Any
+  // other ending (EOF, or landing right on a '---') keeps `bareDocAllowed`
+  // false: only '...' unlocks a following bare document (grammar: bare
+  // documents are the stream's first, or immediately after a doc-suffix).
+  if (pos < len && isDocMarkerAt(pos) && src.charCodeAt(pos) === DOT) {
+    consumeDocEndMarker();
+    bareDocAllowed = true;
+  } else {
+    bareDocAllowed = false;
+  }
+  return value;
 }
