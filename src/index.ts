@@ -47,6 +47,7 @@ const TAB = 9;
 const LF = 10;
 const CR = 13;
 const SPACE = 32;
+const EXCLAIM = 33; // ! (tag indicator)
 const DQUOTE = 34; // "
 const HASH = 35; // #
 const PERCENT = 37; // %
@@ -60,7 +61,8 @@ const DOT = 46; // .
 const ZERO = 48; // 0
 const NINE = 57; // 9
 const COLON = 58; // :
-const GT = 62; // > (folded block scalar indicator)
+const LT = 60; // < (verbatim tag opener)
+const GT = 62; // > (folded block scalar indicator / verbatim tag closer)
 const QUESTION = 63; // ?
 const UPPER_E = 69; // E
 const LBRACKET = 91; // [
@@ -507,18 +509,607 @@ function parseAlias(): unknown {
  * the save/restore below is a defensive no-op in practice for flow, but costs
  * nothing and keeps this symmetric with the block version, which genuinely
  * needs it.
+ *
+ * A tag may follow the anchor (`&a !!str x` — the other legal order is `!!str
+ * &a x`, handled by `parseTaggedFlowValue` below); at most one of each is
+ * legal (STRICTNESS, calibrated against the oracle: "A node can have at most
+ * one anchor/tag").
  */
 function parseAnchoredFlowValue(): unknown {
   pos++; // past '&'
   const name = scanAnchorOrAliasName();
   skipFlowWs(); // names may be followed by a line break inside a flow collection
-  if (src.charCodeAt(pos) === STAR) fail("an alias node cannot carry an anchor property");
+  let c = src.charCodeAt(pos);
+  if (c === AMP) fail("a node may carry at most one anchor");
+  let tag: string | null = null;
+  if (c === EXCLAIM) {
+    tag = scanTag();
+    checkTagSeparator(true);
+    skipFlowWs();
+    c = src.charCodeAt(pos);
+    if (c === EXCLAIM) fail("a node may carry at most one tag");
+    if (c === AMP) fail("a node may carry at most one anchor");
+  }
+  if (c === STAR) fail("an alias node cannot carry an anchor property");
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
-  const node = parseFlowValue();
+  const node = tag !== null ? parseTaggedFlowContent(tag) : parseFlowValue();
   if (pendingAnchorName === name) registerAnchor(name, node); // scalar leaf: not yet consumed
   pendingAnchorName = outerPending;
   return node;
+}
+
+// ---------------------------------------------------------------------------
+// Tags (`!!str`, `!local`, `!handle!suffix`, `!<verbatim>`, non-specific `!`)
+// — F4. Shared by both the flow and block node-properties seams (each has its
+// own entry point below, near its own dispatch — doc 07 §6's "flow and block
+// have their own entry functions" discipline). `!` is always a COLD,
+// out-of-line dispatch: the hot per-node cost is exactly one predicted-false
+// `charCodeAt` compare in each dispatch switch (`parseFlowValue`,
+// `parseBlockNode`, `parseFlowKey`, `parseBlockMapKey`) — everything below
+// this point only runs when a `!` is actually seen.
+//
+// Implicit (core-schema) typing and explicit tags are mutually exclusive: a
+// plain scalar's implicit type-guessing (`resolvePlain`) only ever runs when
+// NO tag is present. Once a tag appears — known or not — resolution is the
+// TAG's job alone; an unrecognized tag's fallback is the raw scalar text
+// (never re-attempts implicit typing), calibrated against the oracle (`yaml`):
+// `!foo 123` → "123" (a STRING, not the number 123) even though "123" alone
+// would type as a number.
+// ---------------------------------------------------------------------------
+
+const CORE_TAG_PREFIX = "tag:yaml.org,2002:";
+const TAG_STR = "tag:yaml.org,2002:str";
+const TAG_INT = "tag:yaml.org,2002:int";
+const TAG_FLOAT = "tag:yaml.org,2002:float";
+const TAG_BOOL = "tag:yaml.org,2002:bool";
+const TAG_NULL = "tag:yaml.org,2002:null";
+const TAG_MAP = "tag:yaml.org,2002:map";
+const TAG_SEQ = "tag:yaml.org,2002:seq";
+const TAG_BINARY = "tag:yaml.org,2002:binary";
+const TAG_SET = "tag:yaml.org,2002:set";
+const TAG_OMAP = "tag:yaml.org,2002:omap";
+const TAG_PAIRS = "tag:yaml.org,2002:pairs";
+/** Sentinel canonical form for the bare, non-specific `!` tag (never collides with a real tag/prefix string). */
+const NON_SPECIFIC_TAG = "!";
+
+/** `c` may start a tag-handle "word" (`ns-word-char`: alnum or `-`). */
+function isTagWordChar(c: number): boolean {
+  return (c >= ZERO && c <= NINE) || (c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a) || c === MINUS;
+}
+
+/**
+ * Whether `c` may appear (unescaped) inside a tag suffix (`ns-tag-char`):
+ * excludes whitespace, line breaks, flow indicators (`,[]{}` — reusing
+ * `F_FLOW_INDICATOR`, exactly like anchor names), a literal `!`, and C0
+ * controls. Codes ≥ 256 fall through to "not special" (`CH[c]` reads
+ * `undefined` out of bounds) and are accepted, same latitude plain scalars get.
+ */
+function isTagSuffixChar(c: number): boolean {
+  if (c === SPACE || c === TAB || c === LF || c === CR) return false;
+  if (c < 0x20) return false;
+  if (c === EXCLAIM) return false;
+  return (CH[c] & F_FLOW_INDICATOR) === 0;
+}
+
+function scanTagSuffixRaw(): string {
+  const start = pos;
+  while (pos < len && isTagSuffixChar(src.charCodeAt(pos))) pos++;
+  return src.slice(start, pos);
+}
+
+/**
+ * Decode `%XX` escapes in a scanned tag suffix (`ns-uri-char`'s percent
+ * escaping — e.g. `!e!tag%21` → suffix `tag!`, yaml-test-suite 6CK3/Z9M4).
+ * Byte-for-charcode (not full UTF-8 reassembly): every escape in the suite's
+ * corpus is ASCII, and this is a cold, rarely-hit path — documented scope
+ * limit rather than a full URI-percent-decoder. A malformed `%` (not followed
+ * by exactly two hex digits) is a hard error (calibrated against the oracle:
+ * `!e!fo%2 bar` → "Tags and anchors must be separated from the next token by
+ * white space", i.e. the truncated escape poisons the whole suffix scan).
+ */
+function decodeTagPercent(s: string): string {
+  if (s.indexOf("%") === -1) return s;
+  let out = "";
+  let seg = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) === PERCENT) {
+      if (i + 2 >= s.length) fail("malformed '%' escape in a tag");
+      const hi = hexDigit(s.charCodeAt(i + 1));
+      const lo = hexDigit(s.charCodeAt(i + 2));
+      if (hi < 0 || lo < 0) fail("malformed '%' escape in a tag");
+      out += s.slice(seg, i) + String.fromCharCode(hi * 16 + lo);
+      i += 2;
+      seg = i + 1;
+    }
+  }
+  return out + s.slice(seg);
+}
+
+/**
+ * Scan a tag (`pos` at `!`) and return its CANONICAL string: a full
+ * `tag:...`/custom-prefix URI, a local `!suffix`, or the `NON_SPECIFIC_TAG`
+ * sentinel for a bare `!`. Handles all four surface forms (calibrated against
+ * the oracle throughout — see the task's calibration script):
+ *  - `!<...>` verbatim: content between the angle brackets, taken as-is (must
+ *    be non-empty — an empty `!<>` is a malformed-tag error, matching js-yaml
+ *    though not the lenient oracle; STRICTNESS).
+ *  - `!!suffix` secondary handle: `tagHandles.get("!!") ?? CORE_TAG_PREFIX` +
+ *    suffix (a `%TAG !! ...` directive CAN rebind `!!` away from the core
+ *    schema — yaml-test-suite P76L: `!!int` under a redefined `!!` becomes an
+ *    unrecognized application tag, NOT the core int tag).
+ *  - `!handle!suffix` named handle: the handle MUST have a `%TAG` directive in
+ *    THIS document (`tagHandles` is reset per-document, never per-stream) or
+ *    it's a hard error (STRICTNESS: "undefined tag handle").
+ *  - `!suffix` primary handle: default prefix `"!"` (so `!local` → `"!local"`)
+ *    unless redefined by `%TAG !`; an entirely empty suffix (bare `!`) is the
+ *    non-specific tag.
+ * Does NOT check the post-tag separator — callers do that via
+ * `checkTagSeparator` immediately after, since the valid terminator set
+ * differs between flow and block context.
+ */
+function scanTag(): string {
+  pos++; // past the leading '!'
+  const c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === LT) {
+    pos++; // past '<'
+    const vStart = pos;
+    const gt = src.indexOf(">", pos);
+    if (gt === -1) fail("unterminated verbatim tag: missing '>'");
+    if (gt === vStart) fail("a verbatim tag ('!<...>') must not be empty");
+    pos = gt + 1;
+    return src.slice(vStart, gt);
+  }
+  if (c === EXCLAIM) {
+    pos++; // past the second '!'
+    const suffix = scanTagSuffixRaw();
+    const prefix = tagHandles !== null && tagHandles.has("!!") ? tagHandles.get("!!")! : CORE_TAG_PREFIX;
+    return prefix + decodeTagPercent(suffix);
+  }
+  // Try a named handle `!word!suffix` — a non-consuming-on-failure lookahead:
+  // scan the narrow word-char run, then check for the handle-closing '!'.
+  const wordStart = pos;
+  while (pos < len && isTagWordChar(src.charCodeAt(pos))) pos++;
+  if (pos > wordStart && pos < len && src.charCodeAt(pos) === EXCLAIM) {
+    const handle = src.slice(wordStart - 1, pos + 1); // "!word!"
+    pos++; // past the closing '!'
+    const suffix = scanTagSuffixRaw();
+    const prefix = tagHandles !== null ? tagHandles.get(handle) : undefined;
+    if (prefix === undefined) fail(`undefined tag handle '${handle}' (no matching %TAG directive in this document)`);
+    return prefix + decodeTagPercent(suffix);
+  }
+  // Primary handle '!': the suffix charset is broader than the word-char set
+  // used for the named-handle lookahead, so rescan from right after the '!'.
+  pos = wordStart;
+  const suffix = scanTagSuffixRaw();
+  if (suffix.length === 0) return NON_SPECIFIC_TAG;
+  const prefix = tagHandles !== null && tagHandles.has("!") ? tagHandles.get("!")! : "!";
+  return prefix + decodeTagPercent(suffix);
+}
+
+/**
+ * A tag must be separated from whatever follows by whitespace, a line break,
+ * or EOF — UNLESS we're in flow context, where a flow indicator (`,]}`, etc.)
+ * is ALSO a legal terminator (it ends the — then empty — tagged node, e.g.
+ * `[ !!str, next ]` → `["", "next"]`). In block context the same flow
+ * indicator is NOT a valid terminator (yaml-test-suite U99R: `- !!str, xxx`
+ * errors; LHL4: `!invalid{}tag` errors at the unescaped `{`) — calibrated
+ * against the oracle's "Tags and anchors must be separated from the next
+ * token by white space".
+ */
+function checkTagSeparator(inFlow: boolean): void {
+  const c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === -1 || c === SPACE || c === TAB || c === LF || c === CR) return;
+  if (inFlow && (CH[c] & F_FLOW_INDICATOR) !== 0) return;
+  fail("a tag must be separated from the following content by whitespace");
+}
+
+/**
+ * Force a scalar span typed by an explicit tag. `raw` is the node's resolved
+ * (escape-decoded / chomped) content — NEVER re-typed via `resolvePlain`,
+ * since an explicit tag replaces implicit typing entirely.
+ *  - `!!str`, the non-specific `!`, and any unrecognized (local/custom/named)
+ *    tag: keep the raw string, matching the oracle (`!foo 123` → "123").
+ *  - `!!int`/`!!float`/`!!bool`/`!!null`: STRICT core-schema validation —
+ *    content that doesn't satisfy the tag is a hard error (STRICTNESS,
+ *    matching js-yaml — the oracle is lenient here by design, warning and
+ *    keeping the raw string instead; deliberate, documented divergence).
+ *  - `!!binary`: base64-decode to a `Uint8Array` (see `decodeBinary`).
+ *  - `!!map`/`!!seq`/`!!set`/`!!omap`/`!!pairs`: these require a collection
+ *    node, so a scalar never satisfies them — a kind-mismatch error
+ *    (STRICTNESS; the oracle warns-and-passes-through, js-yaml throws — we
+ *    follow js-yaml).
+ */
+function applyScalarTag(tag: string, raw: string): unknown {
+  switch (tag) {
+    case TAG_STR:
+    case NON_SPECIFIC_TAG:
+      return raw;
+    case TAG_INT:
+      return forceInt(raw);
+    case TAG_FLOAT:
+      return forceFloat(raw);
+    case TAG_BOOL:
+      return forceBool(raw);
+    case TAG_NULL:
+      return forceNull(raw);
+    case TAG_BINARY:
+      return decodeBinary(raw);
+    case TAG_MAP:
+    case TAG_SEQ:
+    case TAG_SET:
+    case TAG_OMAP:
+    case TAG_PAIRS:
+      fail(`the !!${tag.slice(CORE_TAG_PREFIX.length)} tag requires a mapping/sequence node, not a scalar`);
+  }
+  return raw; // unrecognized (local/custom/named) tag: no typing, keep raw text
+}
+
+/**
+ * Apply an explicit tag to an already-built collection (`kind` says whether
+ * the syntax that produced `value` was a mapping or a sequence — the tag must
+ * agree, or it's a kind-mismatch error, STRICTNESS as in `applyScalarTag`).
+ * `!!set`/`!!omap`/`!!pairs` additionally RESHAPE the value (a set's/omap's
+ * underlying syntax is an ordinary mapping/sequence node — see `buildSet`/
+ * `buildOmap`/`validatePairs`), calibrated against the oracle's actual
+ * `.toJS()` shapes (a real `Set`, a real insertion-ordered `Map`, and a plain
+ * array of one-key objects, respectively — NOT invented representations).
+ */
+function applyCollectionTag(tag: string, value: unknown, kind: "map" | "seq"): unknown {
+  switch (tag) {
+    case TAG_MAP:
+      if (kind !== "map") fail("the !!map tag requires a mapping node");
+      return value;
+    case TAG_SEQ:
+      if (kind !== "seq") fail("the !!seq tag requires a sequence node");
+      return value;
+    case TAG_SET:
+      if (kind !== "map") fail("the !!set tag requires a mapping node");
+      return buildSet(value as Record<string, unknown>);
+    case TAG_OMAP:
+      if (kind !== "seq") fail("the !!omap tag requires a sequence node");
+      return buildOmap(value as unknown[]);
+    case TAG_PAIRS:
+      if (kind !== "seq") fail("the !!pairs tag requires a sequence node");
+      validatePairs(value as unknown[]);
+      return value;
+    case TAG_STR:
+    case TAG_INT:
+    case TAG_FLOAT:
+    case TAG_BOOL:
+    case TAG_NULL:
+    case TAG_BINARY:
+      fail(`the !!${tag.slice(CORE_TAG_PREFIX.length)} tag requires a scalar node, not a ${kind === "map" ? "mapping" : "sequence"}`);
+  }
+  return value; // unrecognized/non-specific tag: no reshaping, passthrough
+}
+
+/** `!!int`: strict core-schema integer only (no decimal point/exponent — `3.5` is a hard error). */
+function forceInt(raw: string): number {
+  const r = tryNumberGeneric(raw);
+  if (r === NOT_NUMERIC || r.isFloat) fail(`!!int: '${raw}' is not a valid core-schema integer`);
+  return r.value;
+}
+
+/**
+ * `!!float`: any core-schema NUMBER (int- or float-shaped) is accepted — JS
+ * has one numeric type, so `!!float 3` and `!!float 3.0` are indistinguishable
+ * results; this matches js-yaml's practical behaviour and deliberately
+ * diverges from the oracle's pickier float-only regex (which leaves `!!float
+ * 3` unresolved), per this feature's mandated strictness stance.
+ */
+function forceFloat(raw: string): number {
+  const r = tryNumberGeneric(raw);
+  if (r === NOT_NUMERIC) fail(`!!float: '${raw}' is not a valid core-schema number`);
+  return r.value;
+}
+
+/** `!!bool`: only the exact 1.2 core-schema boolean words (no YAML-1.1 `yes`/`no`/`on`/`off`). */
+function forceBool(raw: string): boolean {
+  switch (raw) {
+    case "true":
+    case "True":
+    case "TRUE":
+      return true;
+    case "false":
+    case "False":
+    case "FALSE":
+      return false;
+  }
+  fail(`!!bool: '${raw}' is not a valid core-schema boolean`);
+}
+
+/** `!!null`: empty content or one of the core-schema null words. */
+function forceNull(raw: string): null {
+  if (raw.length === 0) return null;
+  switch (raw) {
+    case "~":
+    case "null":
+    case "Null":
+    case "NULL":
+      return null;
+  }
+  fail(`!!null: '${raw}' is not a valid core-schema null`);
+}
+
+/**
+ * Generic (non-`src`-offset) sibling of `tryNumber`/`tryFlowNumber`: those two
+ * read the module-level `src` by integer offset, but a tag's `raw` content may
+ * already be a materialized, independent string (quoted-escape-decoded, or a
+ * folded/chomped block scalar) with no corresponding `src` span — so this
+ * duplicates the same core-schema number grammar (hex/octal ints,
+ * decimal/float/exponent, `.inf`/`.nan`) over an arbitrary string. Cold path
+ * (`!!int`/`!!float` only) — the duplication trades a little code for zero
+ * risk to the hot per-scalar number path.
+ */
+function tryNumberGeneric(s: string): { isFloat: boolean; value: number } | typeof NOT_NUMERIC {
+  const end = s.length;
+  let p = 0;
+  let c = end > 0 ? s.charCodeAt(0) : -1;
+  const neg = c === MINUS;
+  const signed = neg || c === PLUS;
+  if (signed) {
+    p = 1;
+    if (p >= end) return NOT_NUMERIC;
+    c = s.charCodeAt(p);
+  }
+  if (!signed && c === ZERO && p + 1 < end) {
+    const n2 = s.charCodeAt(p + 1);
+    if (n2 === 0x78) {
+      const v = hexValueGeneric(s, p + 2, end);
+      return v === NOT_NUMERIC ? NOT_NUMERIC : { isFloat: false, value: v };
+    }
+    if (n2 === 0x6f) {
+      const v = octalValueGeneric(s, p + 2, end);
+      return v === NOT_NUMERIC ? NOT_NUMERIC : { isFloat: false, value: v };
+    }
+  }
+  if (c === DOT && end - p === 4) {
+    const a = s.charCodeAt(p + 1);
+    const b = s.charCodeAt(p + 2);
+    const d = s.charCodeAt(p + 3);
+    if (isInfWord(a, b, d)) return { isFloat: true, value: neg ? -Infinity : Infinity };
+    if (!signed && isNanWord(a, b, d)) return { isFloat: true, value: NaN };
+  }
+  let v = 0;
+  let nd = 0;
+  while (p < end) {
+    const d = s.charCodeAt(p) - ZERO;
+    if (d < 0 || d > 9) break;
+    v = v * 10 + d;
+    nd++;
+    p++;
+  }
+  let isFloat = false;
+  if (p < end && s.charCodeAt(p) === DOT) {
+    isFloat = true;
+    p++;
+    while (p < end) {
+      const d = s.charCodeAt(p) - ZERO;
+      if (d < 0 || d > 9) break;
+      nd++;
+      p++;
+    }
+  }
+  if (nd === 0) return NOT_NUMERIC;
+  if (p < end) {
+    const e = s.charCodeAt(p);
+    if (e === LOWER_E || e === UPPER_E) {
+      isFloat = true;
+      p++;
+      if (p < end) {
+        const sgn = s.charCodeAt(p);
+        if (sgn === PLUS || sgn === MINUS) p++;
+      }
+      const expStart = p;
+      while (p < end) {
+        const d = s.charCodeAt(p) - ZERO;
+        if (d < 0 || d > 9) break;
+        p++;
+      }
+      if (p === expStart) return NOT_NUMERIC;
+    }
+  }
+  if (p !== end) return NOT_NUMERIC;
+  if (!isFloat && nd <= 15) return { isFloat: false, value: neg ? -v : v };
+  return { isFloat, value: +s };
+}
+
+function hexValueGeneric(s: string, p: number, end: number): number | typeof NOT_NUMERIC {
+  if (p >= end) return NOT_NUMERIC;
+  let v = 0;
+  while (p < end) {
+    const d = hexDigit(s.charCodeAt(p));
+    if (d < 0) return NOT_NUMERIC;
+    v = v * 16 + d;
+    p++;
+  }
+  return v;
+}
+
+function octalValueGeneric(s: string, p: number, end: number): number | typeof NOT_NUMERIC {
+  if (p >= end) return NOT_NUMERIC;
+  let v = 0;
+  while (p < end) {
+    const c = s.charCodeAt(p);
+    if (c < ZERO || c > 0x37) return NOT_NUMERIC;
+    v = v * 8 + (c - ZERO);
+    p++;
+  }
+  return v;
+}
+
+/** Base64 alphabet → 6-bit value, -1 for "not a base64 character". */
+const BASE64_INV = new Int16Array(256).fill(-1);
+{
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  for (let i = 0; i < alphabet.length; i++) BASE64_INV[alphabet.charCodeAt(i)] = i;
+}
+
+/**
+ * `!!binary`: base64-decode `raw` to a `Uint8Array` — MUST be a plain
+ * `Uint8Array` (not a Node `Buffer`), matching `bench/oracle.ts`'s contract
+ * exactly (a `Buffer`'s different constructor fails `deepStrictEqual`). All
+ * whitespace is stripped first (block/multi-line base64 wraps at a fixed
+ * column — yaml-test-suite 565N).
+ *
+ * STRICTNESS: unlike the oracle (which delegates to Node's very lenient
+ * `Buffer.from(str, "base64")` — silently drops invalid characters, stops at
+ * a mid-string `=`, never throws), we STRICTLY validate: length a multiple of
+ * 4 after whitespace-stripping, only base64-alphabet characters, and `=`
+ * padding only as the last 1-2 characters. This is a deliberate, documented
+ * divergence from the (permissive-by-default) oracle, matching this
+ * feature's mandated strictness stance — real base64 (including everything
+ * our own fixture generator and the yaml-test-suite corpus produce) is always
+ * well-formed and decodes identically either way.
+ */
+function decodeBinary(raw: string): Uint8Array {
+  const clean = stripBase64Whitespace(raw);
+  const n = clean.length;
+  if (n === 0) return new Uint8Array(0);
+  if (n % 4 !== 0) fail("malformed !!binary content: base64 length must be a multiple of 4 after stripping whitespace");
+  let padding = 0;
+  if (clean.charCodeAt(n - 1) === 0x3d /* = */) {
+    padding = 1;
+    if (clean.charCodeAt(n - 2) === 0x3d) padding = 2;
+  }
+  for (let i = 0; i < n - padding; i++) {
+    if (BASE64_INV[clean.charCodeAt(i)] === -1) fail("malformed !!binary content: invalid base64 character");
+  }
+  const outLen = (n / 4) * 3 - padding;
+  const out = new Uint8Array(outLen);
+  let o = 0;
+  for (let i = 0; i < n; i += 4) {
+    const c0 = BASE64_INV[clean.charCodeAt(i)];
+    const c1 = BASE64_INV[clean.charCodeAt(i + 1)];
+    const c2ch = clean.charCodeAt(i + 2);
+    const c3ch = clean.charCodeAt(i + 3);
+    const c2 = c2ch === 0x3d ? 0 : BASE64_INV[c2ch];
+    const c3 = c3ch === 0x3d ? 0 : BASE64_INV[c3ch];
+    const triple = (c0 << 18) | (c1 << 12) | (c2 << 6) | c3;
+    const isLastGroup = i + 4 === n;
+    out[o++] = (triple >> 16) & 0xff;
+    if (!(isLastGroup && padding >= 2)) out[o++] = (triple >> 8) & 0xff;
+    if (!(isLastGroup && padding >= 1)) out[o++] = triple & 0xff;
+  }
+  return out;
+}
+
+/** Strip ASCII whitespace from a base64 blob without a regex (charCode loop, one join). */
+function stripBase64Whitespace(raw: string): string {
+  let hasWs = false;
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw.charCodeAt(i);
+    if (c === SPACE || c === TAB || c === LF || c === CR) {
+      hasWs = true;
+      break;
+    }
+  }
+  if (!hasWs) return raw;
+  let out = "";
+  let seg = 0;
+  for (let i = 0; i <= raw.length; i++) {
+    const c = i < raw.length ? raw.charCodeAt(i) : -1;
+    if (c === SPACE || c === TAB || c === LF || c === CR || c === -1) {
+      if (i > seg) out += raw.slice(seg, i);
+      seg = i + 1;
+    }
+  }
+  return out;
+}
+
+/** `!!set`: the underlying node is a mapping whose values must all be null (STRICTNESS, matching the oracle). */
+function buildSet(map: Record<string, unknown>): Set<string> {
+  const set = new Set<string>();
+  for (const k of Object.keys(map)) {
+    if (map[k] !== null) fail("!!set: every key must have a null value");
+    set.add(k);
+  }
+  return set;
+}
+
+/** `!!omap`: the underlying node is a sequence of single-key mappings, in order (matches the oracle's real `Map`). */
+function buildOmap(seq: unknown[]): Map<string, unknown> {
+  const map = new Map<string, unknown>();
+  for (const entry of seq) {
+    const keys = singlePairKeys(entry);
+    map.set(keys[0], (entry as Record<string, unknown>)[keys[0]]);
+  }
+  return map;
+}
+
+/** `!!pairs`: same shape requirement as `!!omap` (sequence of single-key mappings), but no reshaping — passthrough. */
+function validatePairs(seq: unknown[]): void {
+  for (const entry of seq) singlePairKeys(entry);
+}
+
+/** Shared `!!omap`/`!!pairs` validation: `entry` must be a plain object with exactly one own key. */
+function singlePairKeys(entry: unknown): string[] {
+  if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+    fail("each entry must be a single-key mapping ('- key: value')");
+  }
+  const keys = Object.keys(entry as Record<string, unknown>);
+  if (keys.length !== 1) fail("each entry must have exactly one key (one sequence indicator per pair)");
+  return keys;
+}
+
+// ---------------------------------------------------------------------------
+// Tags in FLOW context — the `!` dispatch entry points.
+// ---------------------------------------------------------------------------
+
+/**
+ * `!tag <node>` in flow context (`pos` at `!`). An anchor may follow the tag
+ * (`!!str &a x` — the other order is `parseAnchoredFlowValue` above); at most
+ * one of each.
+ */
+function parseTaggedFlowValue(): unknown {
+  const tag = scanTag();
+  checkTagSeparator(true);
+  skipFlowWs();
+  let c = src.charCodeAt(pos);
+  if (c === EXCLAIM) fail("a node may carry at most one tag");
+  let anchorName: string | null = null;
+  if (c === AMP) {
+    pos++;
+    anchorName = scanAnchorOrAliasName();
+    skipFlowWs();
+    c = src.charCodeAt(pos);
+    if (c === AMP) fail("a node may carry at most one anchor");
+    if (c === EXCLAIM) fail("a node may carry at most one tag");
+  }
+  if (c === STAR) fail("an alias node cannot carry a tag/anchor property");
+  const touched = anchorName !== null;
+  const outerPending = pendingAnchorName;
+  if (touched) pendingAnchorName = anchorName;
+  const node = parseTaggedFlowContent(tag);
+  if (touched) {
+    if (pendingAnchorName === anchorName) registerAnchor(anchorName!, node);
+    pendingAnchorName = outerPending;
+  }
+  return node;
+}
+
+/**
+ * The node a flow tag decorates, once any node-properties scanning is done —
+ * shared by `parseTaggedFlowValue` (tag-first) and `parseAnchoredFlowValue`
+ * (anchor-first, tag-after). Collections apply the tag as kind-validation
+ * (`applyCollectionTag`); quoted/plain scalars apply it as forced typing over
+ * their RAW content (`applyScalarTag`) — never through `resolvePlain`/
+ * `tryFlowNumber`, since the tag overrides implicit typing entirely. An empty
+ * flow terminator right here (`,`/`]`/`}`/EOF) is a tagged EMPTY scalar
+ * (`[ !!str, next ]` → `["", "next"]`, calibrated against the oracle).
+ */
+function parseTaggedFlowContent(tag: string): unknown {
+  const c = src.charCodeAt(pos);
+  if (c === LBRACE) return applyCollectionTag(tag, parseFlowMap(), "map");
+  if (c === LBRACKET) return applyCollectionTag(tag, parseFlowSeq(), "seq");
+  if (c === DQUOTE) return applyScalarTag(tag, parseDoubleQuoted());
+  if (c === SQUOTE) return applyScalarTag(tag, parseSingleQuoted());
+  if (c === STAR) fail("an alias node cannot carry a tag property");
+  if (flowSeparatorAt(pos)) return applyScalarTag(tag, "");
+  const start = pos;
+  const end = scanFlowPlainEnd();
+  return applyScalarTag(tag, src.slice(start, end));
 }
 
 // ---------------------------------------------------------------------------
@@ -538,6 +1129,8 @@ function parseFlowValue(): unknown {
       return parseSingleQuoted();
     case AMP:
       return parseAnchoredFlowValue();
+    case EXCLAIM:
+      return parseTaggedFlowValue();
     case STAR:
       return parseAlias();
   }
@@ -730,10 +1323,11 @@ function plainKey(start: number, end: number): string {
   return internKey(keyToString(registerPendingAnchor(resolvePlain(start, end))));
 }
 
-/** A flow mapping key: an anchor/alias, double-quoted, single-quoted, or a plain scalar. */
+/** A flow mapping key: an anchor/alias, tag, double-quoted, single-quoted, or a plain scalar. */
 function parseFlowKey(): string {
   const c = src.charCodeAt(pos);
   if (c === AMP) return parseFlowKeyAnchored();
+  if (c === EXCLAIM) return parseFlowKeyTagged();
   if (c === STAR) return internKey(keyToString(parseAlias()));
   if (c === DQUOTE) return internKey(parseDoubleQuoted());
   if (c === SQUOTE) return internKey(parseSingleQuoted());
@@ -750,18 +1344,33 @@ function parseFlowKey(): string {
  * quoted-scalar sub-cases call the leaf parsers directly (never through
  * `parseFlowValue`) for the same reason `parseBlockNode`'s equivalent branch
  * does, so `registerPendingAnchor` is applied explicitly here rather than
- * inherited "for free" from a container's own self-registration.
+ * inherited "for free" from a container's own self-registration. A tag may
+ * follow the anchor (`{ &e !!str e: f }`); at most one of each.
  */
 function parseFlowKeyAnchored(): string {
   pos++; // past '&'
   const name = scanAnchorOrAliasName();
   skipFlowWs();
-  if (src.charCodeAt(pos) === STAR) fail("an alias node cannot carry an anchor property");
+  let c = src.charCodeAt(pos);
+  if (c === AMP) fail("a node may carry at most one anchor");
+  let tag: string | null = null;
+  if (c === EXCLAIM) {
+    tag = scanTag();
+    checkTagSeparator(true);
+    skipFlowWs();
+    c = src.charCodeAt(pos);
+    if (c === EXCLAIM) fail("a node may carry at most one tag");
+    if (c === AMP) fail("a node may carry at most one anchor");
+  }
+  if (c === STAR) fail("an alias node cannot carry an anchor property");
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
-  const c = src.charCodeAt(pos);
   let key: string;
-  if (c === DQUOTE) key = internKey(keyToString(registerPendingAnchor(parseDoubleQuoted())));
+  if (tag !== null) {
+    const raw = parseTaggedFlowKeyRaw(tag, c);
+    if (pendingAnchorName === name) registerAnchor(name, raw);
+    key = internKey(keyToString(raw));
+  } else if (c === DQUOTE) key = internKey(keyToString(registerPendingAnchor(parseDoubleQuoted())));
   else if (c === SQUOTE) key = internKey(keyToString(registerPendingAnchor(parseSingleQuoted())));
   else {
     const start = pos;
@@ -771,6 +1380,48 @@ function parseFlowKeyAnchored(): string {
   }
   pendingAnchorName = outerPending;
   return key;
+}
+
+/**
+ * `!tag <key>` as a flow mapping key (`{ !!str e: f }`). An anchor may follow
+ * the tag (the other order is `parseFlowKeyAnchored` above).
+ */
+function parseFlowKeyTagged(): string {
+  const tag = scanTag();
+  checkTagSeparator(true);
+  skipFlowWs();
+  let c = src.charCodeAt(pos);
+  if (c === EXCLAIM) fail("a node may carry at most one tag");
+  let anchorName: string | null = null;
+  if (c === AMP) {
+    pos++;
+    anchorName = scanAnchorOrAliasName();
+    skipFlowWs();
+    c = src.charCodeAt(pos);
+    if (c === AMP) fail("a node may carry at most one anchor");
+    if (c === EXCLAIM) fail("a node may carry at most one tag");
+  }
+  if (c === STAR) fail("an alias node cannot carry a tag/anchor property");
+  const touched = anchorName !== null;
+  const outerPending = pendingAnchorName;
+  if (touched) pendingAnchorName = anchorName;
+  const raw = parseTaggedFlowKeyRaw(tag, c);
+  if (touched) {
+    if (pendingAnchorName === anchorName) registerAnchor(anchorName!, raw);
+    pendingAnchorName = outerPending;
+  }
+  return internKey(keyToString(raw));
+}
+
+/** The RAW (pre-`keyToString`) tag-applied value of a flow key, given the already-peeked current char `c`. */
+function parseTaggedFlowKeyRaw(tag: string, c: number): unknown {
+  if (c === DQUOTE) return applyScalarTag(tag, parseDoubleQuoted());
+  if (c === SQUOTE) return applyScalarTag(tag, parseSingleQuoted());
+  if (c === LBRACE) return applyCollectionTag(tag, parseFlowMap(), "map");
+  if (c === LBRACKET) return applyCollectionTag(tag, parseFlowSeq(), "seq");
+  const start = pos;
+  const end = scanFlowPlainEnd();
+  return applyScalarTag(tag, src.slice(start, end));
 }
 
 /** Return the cached copy of `s` if seen this parse, else record and return it. */
@@ -1593,6 +2244,7 @@ function parseBlockNode(parentCol: number): unknown {
   const c = src.charCodeAt(pos);
 
   if (c === AMP) return parseAnchoredBlockNode(parentCol);
+  if (c === EXCLAIM) return parseTaggedBlockNode(parentCol, col);
 
   if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
     if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
@@ -1675,13 +2327,30 @@ function parseBlockNode(parentCol: number): unknown {
  * recursive call, so a resulting mapping/sequence uses it (not the deeper
  * column its first key/entry lands at after `"&name "` is skipped) — see
  * `colOverride`'s doc comment for the bug this fixes.
+ *
+ * A tag may follow the anchor (`&a !!str x` — the other legal order, `!!str
+ * &a x`, is `parseTaggedBlockNode` below); at most one of each (STRICTNESS).
+ * When a tag IS present, this hands off to the shared tagged-content dispatch
+ * (`parseTaggedBlockContent`/`parseDeferredTaggedBlockNode`) instead of the
+ * plain `parseBlockNode`/`parseDeferredBlockNode`, so the eventual scalar gets
+ * the tag's forced typing instead of implicit typing.
  */
 function parseAnchoredBlockNode(parentCol: number): unknown {
   const anchorCol = pos - lineStart;
   pos++; // past '&'
   const name = scanAnchorOrAliasName();
   skipInlineSpaces();
-  const c = pos < len ? src.charCodeAt(pos) : -1;
+  let c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === AMP) fail("a node may carry at most one anchor");
+  let tag: string | null = null;
+  if (c === EXCLAIM) {
+    tag = scanTag();
+    checkTagSeparator(false);
+    skipInlineSpaces();
+    c = pos < len ? src.charCodeAt(pos) : -1;
+    if (c === EXCLAIM) fail("a node may carry at most one tag");
+    if (c === AMP) fail("a node may carry at most one anchor");
+  }
   if (c === STAR) fail("an alias node cannot carry an anchor property");
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
@@ -1691,7 +2360,13 @@ function parseAnchoredBlockNode(parentCol: number): unknown {
     // a following line, subject to the ordinary value-continuation rules.
     nextLine();
     const effParentCol = parentCol === ROOT_AFTER_INLINE_MARKER ? -1 : parentCol;
-    node = parseDeferredBlockNode(effParentCol);
+    node = tag !== null ? parseDeferredTaggedBlockNode(effParentCol, tag) : parseDeferredBlockNode(effParentCol);
+  } else if (tag !== null) {
+    if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
+      if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
+      fail("a block sequence cannot start on the same line as a node property (anchor)");
+    }
+    node = parseTaggedBlockContent(parentCol, anchorCol, tag, true);
   } else {
     afterInlineProperty = true; // consumed by the very next parseBlockNode dispatch
     colOverride = anchorCol;
@@ -1703,6 +2378,196 @@ function parseAnchoredBlockNode(parentCol: number): unknown {
 }
 
 /**
+ * `!tag <node>` in block context (`pos` at `!`, `col` already computed by
+ * `parseBlockNode`'s prologue — see its doc comment for why it must be passed
+ * in rather than recomputed: `colOverride` is already cleared by the time
+ * we're dispatched to). An anchor may follow the tag (the other order is
+ * `parseAnchoredBlockNode` above). Note there is no `inlineProp` parameter
+ * here (unlike `parseBlockNode`): a tag is ALWAYS itself "a node property
+ * immediately preceding this dispatch" when this function runs at all, so the
+ * "block sequence right after a property" check below is unconditional
+ * rather than gated on an inherited flag.
+ */
+function parseTaggedBlockNode(parentCol: number, col: number): unknown {
+  const tag = scanTag();
+  checkTagSeparator(false);
+  skipInlineSpaces();
+  let c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === EXCLAIM) fail("a node may carry at most one tag");
+  let anchorName: string | null = null;
+  if (c === AMP) {
+    pos++;
+    anchorName = scanAnchorOrAliasName();
+    skipInlineSpaces();
+    c = pos < len ? src.charCodeAt(pos) : -1;
+    if (c === AMP) fail("a node may carry at most one anchor");
+    if (c === EXCLAIM) fail("a node may carry at most one tag");
+  }
+  if (c === STAR) fail("an alias node cannot carry a tag/anchor property");
+  const touched = anchorName !== null;
+  const outerPending = pendingAnchorName;
+  if (touched) pendingAnchorName = anchorName;
+  let node: unknown;
+  if (c === -1 || c === LF || c === CR || c === HASH) {
+    nextLine();
+    const effParentCol = parentCol === ROOT_AFTER_INLINE_MARKER ? -1 : parentCol;
+    node = parseDeferredTaggedBlockNode(effParentCol, tag);
+  } else {
+    // Unlike the anchor-only case above, a tag is ALWAYS "a node property
+    // immediately followed inline" at this point (we only reach this branch
+    // when content follows the tag on the SAME line), so — unlike the
+    // `inlineProp`-gated check elsewhere — this check is unconditional: a
+    // block sequence may never start inline right after ITS OWN tag, matching
+    // the identical rule for anchors (yaml-test-suite SY6V), calibrated
+    // against the oracle.
+    if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
+      if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block sequence cannot start on the same line as a '---' document start");
+      fail("a block sequence cannot start on the same line as a node property (tag)");
+    }
+    node = parseTaggedBlockContent(parentCol, col, tag, true);
+  }
+  if (touched) {
+    if (pendingAnchorName === anchorName) registerAnchor(anchorName!, node);
+    pendingAnchorName = outerPending;
+  }
+  return node;
+}
+
+/**
+ * The value/node a DEFERRED tag decorates (the tag was alone on its line) —
+ * the tagged sibling of `parseDeferredBlockNode`. An empty result (dedent/EOF
+ * with nothing following) is a tagged EMPTY scalar, not `null` — e.g. `a:
+ * !!str\nb: 2\n` → `{"a":"","b":2}`, calibrated against the oracle.
+ *
+ * If the deferred content ITSELF starts with a node property (`&`/`!` — e.g.
+ * yaml-test-suite 9KAX: `&a4 !!map\n&a5 !!str key5: value4`, where the outer
+ * `!!map` is deferred and the next line opens with its OWN, independent
+ * anchor+tag decorating the eventual first KEY), that content is a complete
+ * node in its own right with its own anchor/tag machinery — so we delegate to
+ * the ordinary (untagged) `parseBlockNode`, which already resolves nested
+ * properties/keys/typing correctly, and apply OUR tag by the resulting
+ * value's runtime shape (`applyTagByRuntimeKind`) rather than trying to thread
+ * "raw" text through an arbitrary chain of nested properties.
+ */
+function parseDeferredTaggedBlockNode(parentCol: number, tag: string): unknown {
+  if (pos >= len) return applyScalarTag(tag, "");
+  const nc = pos - lineStart;
+  if (nc > parentCol) {
+    const c = src.charCodeAt(pos);
+    if (c === AMP || c === EXCLAIM) return applyTagByRuntimeKind(tag, parseBlockNode(parentCol));
+    return parseTaggedBlockContent(parentCol, nc, tag, false);
+  }
+  if (nc === parentCol && src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) {
+    return applyCollectionTag(tag, parseBlockSeq(nc), "seq");
+  }
+  return applyScalarTag(tag, "");
+}
+
+/**
+ * Apply a tag to a value that has ALREADY been fully resolved (typed and/or
+ * tagged) by nested, independent node-properties — used only by
+ * `parseDeferredTaggedBlockNode`'s nested-property fallback above, a deep,
+ * rare corner (properties split across separate deferred lines with more
+ * properties of their own). We no longer have the node's raw source text, so
+ * a scalar-forcing tag (`!!str`/non-specific) on a non-string result falls
+ * back to `String(value)` — exact for plain integers/booleans, a documented,
+ * pragmatic approximation rather than the fully general (and much costlier)
+ * "thread raw text through arbitrarily-nested properties" machinery.
+ */
+function applyTagByRuntimeKind(tag: string, value: unknown): unknown {
+  if (Array.isArray(value)) return applyCollectionTag(tag, value, "seq");
+  if (value !== null && typeof value === "object" && !(value instanceof Uint8Array) && !(value instanceof Map) && !(value instanceof Set)) {
+    return applyCollectionTag(tag, value, "map");
+  }
+  if (typeof value === "string") return applyScalarTag(tag, value);
+  if (tag === TAG_STR || tag === NON_SPECIFIC_TAG) return String(value);
+  if (tag === CORE_TAG_PREFIX || tag === TAG_MAP || tag === TAG_SEQ) return value; // unrecognized-shape passthrough
+  if (tag === TAG_INT || tag === TAG_FLOAT || tag === TAG_BOOL || tag === TAG_NULL || tag === TAG_BINARY || tag === TAG_SET || tag === TAG_OMAP || tag === TAG_PAIRS) {
+    fail(`the !!${tag.slice(CORE_TAG_PREFIX.length)} tag cannot apply to an already-resolved nested node`);
+  }
+  return value; // unrecognized (local/custom) tag: passthrough
+}
+
+/**
+ * The node content a block tag decorates, once node-properties scanning is
+ * done — shared by the same-line dispatch (`parseTaggedBlockNode`/
+ * `parseAnchoredBlockNode`, `sameLine = true`) and the deferred dispatch
+ * (`parseDeferredTaggedBlockNode`, `sameLine = false`) for the SAME reason
+ * `parseBlockNode`'s own dispatch is reused both ways. `col` is the column a
+ * resulting mapping/sequence uses (the tag's own column when inline, matching
+ * the anchor precedent — see `colOverride`'s doc comment); `parentCol` bounds
+ * block scalars and multi-line plain-scalar folding, same as everywhere else.
+ * Collections apply the tag as kind-validation; quoted/plain scalars apply it
+ * as forced typing over RAW content — never through `resolvePlain`.
+ *
+ * `sameLine` resolves the SAME ambiguity `afterInlineProperty` resolves for
+ * anchors (see its doc comment): when the tagged node turns out to be a
+ * mapping KEY, a SAME-LINE tag decorates the KEY itself (`!!str a: 1` →
+ * `{"a":1}`, the tag is "used up" on "a"); a DEFERRED tag instead decorates
+ * the MAP AS A WHOLE that the key turns out to open (`--- !!set\na: null\nb:
+ * null\n` → a `Set`, not a per-key-tagged mapping) — so the key resolves via
+ * ordinary implicit typing and `applyCollectionTag` wraps the finished map.
+ */
+function parseTaggedBlockContent(parentCol: number, col: number, tag: string, sameLine: boolean): unknown {
+  const c = src.charCodeAt(pos);
+  if (c === MINUS && isSpaceOrEolAt(pos + 1)) {
+    return applyCollectionTag(tag, parseBlockSeq(col), "seq");
+  }
+  if (c === PIPE || c === GT) {
+    return applyScalarTag(tag, parseBlockScalar(parentCol));
+  }
+  if (c === LBRACKET || c === LBRACE || c === DQUOTE || c === SQUOTE || c === STAR) {
+    // A flow collection, quoted scalar, or alias — either the tagged node
+    // itself, or (like the untagged `parseBlockNode`'s identical branch) a
+    // mapping key if a `: ` separator follows on the same line. The tag is
+    // NOT applied until we know which: a SAME-LINE tag decorates the KEY
+    // (`registerPendingAnchor` also consumes any co-occurring pending anchor
+    // onto the key HERE, before `parseBlockMap`'s own self-registration would
+    // otherwise wrongly claim the whole map for it — yaml-test-suite HMQ5); a
+    // DEFERRED tag decorates the finished MAP as a whole instead (matching
+    // the plain-scalar-key branch below and `afterInlineProperty`'s
+    // established anchor precedent).
+    if (c === STAR) fail("an alias node cannot carry a tag property");
+    let raw: unknown;
+    let kind: "map" | "seq" | "scalar";
+    if (c === DQUOTE) {
+      raw = parseDoubleQuoted();
+      kind = "scalar";
+    } else if (c === SQUOTE) {
+      raw = parseSingleQuoted();
+      kind = "scalar";
+    } else if (c === LBRACE) {
+      raw = parseFlowMap();
+      kind = "map";
+    } else {
+      raw = parseFlowSeq();
+      kind = "seq";
+    }
+    const save = pos;
+    skipInlineSpaces();
+    if (src.charCodeAt(pos) === COLON && isSpaceOrEolAt(pos + 1)) {
+      if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
+      if (sameLine) {
+        const keyRaw = kind === "scalar" ? applyScalarTag(tag, raw as string) : applyCollectionTag(tag, raw, kind);
+        return parseBlockMap(col, keyToString(registerPendingAnchor(keyRaw)));
+      }
+      return applyCollectionTag(tag, parseBlockMap(col, internKey(keyToString(raw))), "map");
+    }
+    pos = save;
+    nextLine();
+    return kind === "scalar" ? applyScalarTag(tag, raw as string) : applyCollectionTag(tag, raw, kind);
+  }
+  const start = pos;
+  const end = scanBlockPlainEnd();
+  if (plainStoppedAtColon) {
+    if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
+    if (sameLine) return parseBlockMap(col, keyToString(registerPendingAnchor(applyScalarTag(tag, src.slice(start, end)))));
+    return applyCollectionTag(tag, parseBlockMap(col, internKey(keyToString(resolvePlain(start, end)))), "map");
+  }
+  return applyScalarTag(tag, resolveBlockPlainRaw(start, end, parentCol));
+}
+
+/**
  * Resolve a block plain scalar, folding any continuation lines into it (YAML
  * plain multi-line: line breaks become single spaces). Continuation lines are
  * those indented deeper than `parentCol` — the indentation of the key or dash
@@ -1710,7 +2575,7 @@ function parseAnchoredBlockNode(parentCol: number): unknown {
  * Advances to the next content line.
  */
 function resolveBlockPlain(start: number, end: number, parentCol: number): unknown {
-  let breaks = advanceCountingBreaks();
+  const breaks = advanceCountingBreaks();
   // A col-0 `---`/`...` always ends the node, even at the document root where
   // `parentCol` (-1, or -2 for ROOT_AFTER_INLINE_MARKER) can never itself be
   // "dedented past" by the `<=` check below — this is the one point doc 07 §4
@@ -1721,11 +2586,35 @@ function resolveBlockPlain(start: number, end: number, parentCol: number): unkno
     // Single-line plain scalar (the overwhelming case): one span, typed once.
     return resolvePlain(start, end);
   }
-  // Multi-line plain scalar (cold): fold the segments. YAML line-break folding —
-  // a single break between content lines becomes a space; each *additional* break
-  // (a blank line) is preserved as a newline. A multi-line plain scalar is always
-  // a string (never re-typed as a number/bool).
-  let result = src.slice(start, end);
+  // Multi-line plain scalar (cold): fold the segments (see `foldBlockPlainRemainder`).
+  return foldBlockPlainRemainder(src.slice(start, end), breaks, parentCol);
+}
+
+/**
+ * Tag-aware sibling of `resolveBlockPlain`: an explicit tag overrides implicit
+ * typing entirely, so the single-line case returns the RAW span (`src.slice`,
+ * no `resolvePlain`) instead — the caller (`parseTaggedBlockContent`) applies
+ * the tag's own forced typing. Multi-line folding is identical either way (a
+ * multi-line plain scalar is always textual), so the loop itself is shared via
+ * `foldBlockPlainRemainder`.
+ */
+function resolveBlockPlainRaw(start: number, end: number, parentCol: number): string {
+  const breaks = advanceCountingBreaks();
+  if (pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) {
+    return src.slice(start, end);
+  }
+  return foldBlockPlainRemainder(src.slice(start, end), breaks, parentCol);
+}
+
+/**
+ * The (cold) multi-line plain-scalar folding loop shared by `resolveBlockPlain`
+ * and `resolveBlockPlainRaw`: YAML line-break folding — a single break between
+ * content lines becomes a space; each *additional* break (a blank line) is
+ * preserved as a newline. `first` is the already-scanned first line's text;
+ * `breaks` is the break count already consumed after it.
+ */
+function foldBlockPlainRemainder(first: string, breaks: number, parentCol: number): string {
+  let result = first;
   for (;;) {
     result += breaks > 1 ? "\n".repeat(breaks - 1) : " ";
     const segStart = pos;
@@ -1833,6 +2722,7 @@ function parseBlockMap(col: number, firstKey: string): Record<string, unknown> {
 function parseBlockMapKey(): string {
   const c = src.charCodeAt(pos);
   if (c === AMP) return parseBlockMapKeyAnchored();
+  if (c === EXCLAIM) return parseBlockMapKeyTagged();
   if (c === STAR) {
     const value = parseAlias();
     skipInlineSpaces();
@@ -1854,18 +2744,87 @@ function parseBlockMapKey(): string {
 /**
  * `&name <key>` as the 2nd+ key of an already-open block mapping (e.g. a
  * ZWK4-style `&anchor c: 3` entry). Mirrors `parseFlowKeyAnchored`: registers
- * the RAW key node, not yet canonicalized to a string.
+ * the RAW key node, not yet canonicalized to a string. A tag may follow the
+ * anchor (the other order is `parseBlockMapKeyTagged` below).
  */
 function parseBlockMapKeyAnchored(): string {
   pos++; // past '&'
   const name = scanAnchorOrAliasName();
   skipInlineSpaces();
-  if (src.charCodeAt(pos) === STAR) fail("an alias node cannot carry an anchor property");
+  let c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === AMP) fail("a node may carry at most one anchor");
+  let tag: string | null = null;
+  if (c === EXCLAIM) {
+    tag = scanTag();
+    checkTagSeparator(false);
+    skipInlineSpaces();
+    c = pos < len ? src.charCodeAt(pos) : -1;
+    if (c === EXCLAIM) fail("a node may carry at most one tag");
+    if (c === AMP) fail("a node may carry at most one anchor");
+  }
+  if (c === STAR) fail("an alias node cannot carry an anchor property");
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
-  const key = parseBlockMapKey(); // recurses into the quoted/flow/plain branches above
+  let key: string;
+  if (tag !== null) {
+    const raw = parseTaggedBlockMapKeyRaw(tag, c);
+    if (pendingAnchorName === name) registerAnchor(name, raw);
+    key = internKey(keyToString(raw));
+  } else {
+    key = parseBlockMapKey(); // recurses into the quoted/flow/plain branches above
+  }
   pendingAnchorName = outerPending;
   return key;
+}
+
+/**
+ * `!tag <key>` as a block mapping key (`!!str a: 1`). An anchor may follow the
+ * tag (the other order is `parseBlockMapKeyAnchored` above).
+ */
+function parseBlockMapKeyTagged(): string {
+  const tag = scanTag();
+  checkTagSeparator(false);
+  skipInlineSpaces();
+  let c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === EXCLAIM) fail("a node may carry at most one tag");
+  let anchorName: string | null = null;
+  if (c === AMP) {
+    pos++;
+    anchorName = scanAnchorOrAliasName();
+    skipInlineSpaces();
+    c = pos < len ? src.charCodeAt(pos) : -1;
+    if (c === AMP) fail("a node may carry at most one anchor");
+    if (c === EXCLAIM) fail("a node may carry at most one tag");
+  }
+  if (c === STAR) fail("an alias node cannot carry a tag/anchor property");
+  const touched = anchorName !== null;
+  const outerPending = pendingAnchorName;
+  if (touched) pendingAnchorName = anchorName;
+  const raw = parseTaggedBlockMapKeyRaw(tag, c);
+  if (touched) {
+    if (pendingAnchorName === anchorName) registerAnchor(anchorName!, raw);
+    pendingAnchorName = outerPending;
+  }
+  return internKey(keyToString(raw));
+}
+
+/** The RAW (pre-`keyToString`) tag-applied value of a block mapping key, given the already-peeked current char `c`. */
+function parseTaggedBlockMapKeyRaw(tag: string, c: number): unknown {
+  if (c === DQUOTE || c === SQUOTE || c === LBRACE || c === LBRACKET) {
+    const raw =
+      c === DQUOTE
+        ? applyScalarTag(tag, parseDoubleQuoted())
+        : c === SQUOTE
+          ? applyScalarTag(tag, parseSingleQuoted())
+          : applyCollectionTag(tag, parseFlowValue(), c === LBRACE ? "map" : "seq");
+    skipInlineSpaces();
+    if (src.charCodeAt(pos) !== COLON || !isSpaceOrEolAt(pos + 1)) fail("expected ':' after mapping key");
+    return raw;
+  }
+  const start = pos;
+  const end = scanBlockPlainEnd();
+  if (!plainStoppedAtColon) fail("expected ':' after mapping key");
+  return applyScalarTag(tag, src.slice(start, end));
 }
 
 /**
