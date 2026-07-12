@@ -935,3 +935,170 @@ test("agrees with js-yaml on anchors/aliases", () => {
   const cases = ["a: &x 1\nb: *x\n", "[&a 1, *a]", "- &x 1\n- *x\n", "a: &m {x: 1}\nb: *m\n"];
   for (const s of cases) deepStrictEqual(parse(s), jsYamlLoad(s));
 });
+
+// --------------------------------------------------------------------------
+// M5 — tags (`!!`-core schema, `!!binary`, `%TAG`-resolved shorthands,
+// verbatim/local tags, and tag↔typing interaction). Every case is calibrated
+// directly against the `yaml` oracle (per the task recipe) except the
+// mandatory STRICTNESS cases below, where we deliberately follow js-yaml
+// instead — the oracle is lenient by design for tag/content mismatches (warns
+// and keeps the raw scalar rather than throwing), while js-yaml (and the
+// spec) treat them as hard errors; that divergence is intentional and
+// documented at each STRICTNESS case.
+// --------------------------------------------------------------------------
+
+const tagOracleCases: string[] = [
+  // core schema tags override implicit typing
+  "a: !!str 123\n",
+  "a: !!str true\n",
+  'a: !!int "42"\n',
+  "a: !!int 0x10\n",
+  "a: !!int 0o17\n",
+  // NOTE: "!!float 3" (int-looking content) is deliberately NOT in this list —
+  // we follow js-yaml (→ number 3) over the oracle, which requires a stricter
+  // float-only regex and leaves it unresolved as the string "3" (see the
+  // STRICTNESS/agrees-with-js-yaml tests below for that documented divergence).
+  "a: !!float 3.5\n",
+  "a: !!float 3e10\n",
+  "a: !!bool True\n",
+  "a: !!bool false\n",
+  "a: !!null ~\n",
+  "a: !!null\n",
+  // tags on collections (kind must match; passthrough otherwise)
+  "a: !!map\n  x: 1\n",
+  "a: !!seq\n  - 1\n  - 2\n",
+  "!!map {\n  k: !!seq\n  [ a, !!str b]\n}\n",
+  // tag + anchor, both orders
+  "a: !!str &x hi\nb: *x\n",
+  "a: &x !!str hi\nb: *x\n",
+  "a: !!map &m {x: 1}\nb: *m\n",
+  " - &a !!str a\n - !!int 2\n - !!int &c 4\n - &d d\n",
+  // %TAG-resolved shorthand
+  "%TAG !e! tag:example.com,2000:app/\n---\n!e!foo bar\n",
+  "%TAG !yaml! tag:yaml.org,2002:\n---\n!yaml!str \"foo\"\n",
+  // verbatim tags
+  "a: !<tag:yaml.org,2002:str> 123\n",
+  "a: !<!bar> baz\n",
+  "!<tag:yaml.org,2002:str> foo :\n  !<!bar> baz\n",
+  // non-specific '!' forces string typing, same as an unrecognized tag
+  '- "12"\n- 12\n- ! 12\n',
+  "a: !foo 123\n",
+  "anchored: !local &anchor value\nalias: *anchor\n",
+  // tagged plain/quoted keys (same-line tag decorates the KEY)
+  "!!str a: 1\n",
+  "!!str 23: !!bool false\n",
+  '!!str &a1 "foo":\n  !!str bar\n&a2 baz : *a1\n',
+  // a DEFERRED tag decorates the finished collection, not the first key
+  "key: !!map\n  a: 1\n  b: 2\n",
+  "key: !!str\n  hi there\n",
+];
+
+for (const input of tagOracleCases) {
+  test(`tag matches oracle · ${input.replace(/\n/g, "\\n").slice(0, 52)}`, () => {
+    deepStrictEqual(parse(input), oracleParse(input));
+  });
+}
+
+test("!!binary decodes to a Uint8Array (not a Node Buffer) with exact bytes", () => {
+  const result = parse("payload: !!binary |-\n  aGVsbG8gd29ybGQh\n") as { payload: Uint8Array };
+  ok(result.payload instanceof Uint8Array, "expected a Uint8Array");
+  strictEqual(Object.getPrototypeOf(result.payload), Uint8Array.prototype, "must be a PLAIN Uint8Array, not a Buffer");
+  deepStrictEqual(Buffer.from(result.payload).toString("utf8"), "hello world!");
+  deepStrictEqual(result, oracleParse("payload: !!binary |-\n  aGVsbG8gd29ybGQh\n"));
+});
+
+test("!!binary strips embedded whitespace across multi-line base64", () => {
+  const result = parse("a: !!binary |\n  aGVsbG8g\n  d29ybGQh\n") as { a: Uint8Array };
+  deepStrictEqual(Buffer.from(result.a).toString("utf8"), "hello world!");
+  deepStrictEqual(result, oracleParse("a: !!binary |\n  aGVsbG8g\n  d29ybGQh\n"));
+});
+
+test("!!set / !!omap / !!pairs resolve to the oracle's real Set/Map/array shapes", () => {
+  const setResult = parse("--- !!set\na: null\nb: null\n") as Set<string>;
+  ok(setResult instanceof Set);
+  deepStrictEqual(setResult, oracleParse("--- !!set\na: null\nb: null\n"));
+
+  const omapResult = parse("--- !!omap\n- a: 1\n- b: 2\n") as Map<string, unknown>;
+  ok(omapResult instanceof Map);
+  deepStrictEqual([...omapResult.entries()], [...(oracleParse("--- !!omap\n- a: 1\n- b: 2\n") as Map<string, unknown>).entries()]);
+
+  const pairsInput = "--- !!pairs\n- a: 1\n- a: 2\n";
+  deepStrictEqual(parse(pairsInput), oracleParse(pairsInput));
+});
+
+test("STRICTNESS: two tags on one node throws (matches the oracle: 'at most one tag')", () => {
+  throws(() => parse("a: !!str !!int 5\n"), YAMLParseError);
+  throws(() => oracleParse("a: !!str !!int 5\n"));
+});
+
+test("STRICTNESS: an alias node cannot carry a tag property (matches the oracle)", () => {
+  throws(() => parse("a: &x hi\nb: !!str *x\n"), YAMLParseError);
+  throws(() => oracleParse("a: &x hi\nb: !!str *x\n"));
+});
+
+test("STRICTNESS: !!int on non-integer content throws (js-yaml semantics; the oracle is lenient here — documented divergence)", () => {
+  throws(() => parse("a: !!int notanint\n"), YAMLParseError);
+  throws(() => parse("a: !!int 3.5\n"), YAMLParseError); // a decimal point isn't a core-schema integer
+  throws(() => jsYamlLoad("a: !!int notanint\n"), Error);
+});
+
+test("STRICTNESS: !!bool/!!null on non-matching content throws (js-yaml semantics; documented oracle divergence)", () => {
+  throws(() => parse("a: !!bool yes\n"), YAMLParseError); // YAML-1.1-ism, not core schema
+  throws(() => parse("a: !!null x\n"), YAMLParseError);
+  throws(() => jsYamlLoad("a: !!bool yes\n"), Error);
+});
+
+test("STRICTNESS: malformed !!binary content throws (documented oracle divergence — Buffer.from is lenient, we validate)", () => {
+  throws(() => parse("a: !!binary |\n  aGVsbG\n"), YAMLParseError); // not a multiple of 4 after stripping whitespace
+  throws(() => parse("a: !!binary |\n  !!!!\n"), YAMLParseError); // no valid base64 characters at all
+});
+
+test("STRICTNESS: an undefined %TAG handle throws (matches the oracle and js-yaml)", () => {
+  throws(() => parse("!e!foo bar\n"), YAMLParseError);
+  throws(() => oracleParse("!e!foo bar\n"));
+  throws(() => jsYamlLoad("!e!foo bar\n"), Error);
+});
+
+test("STRICTNESS: a %TAG directive does not carry over to the next document in a stream", () => {
+  // yaml-test-suite QLJ7: the second document's `!prefix!B` has no %TAG of its own.
+  const text = "%TAG !prefix! tag:example.com,2011:\n--- !prefix!A\na: b\n--- !prefix!B\nc: d\n";
+  throws(() => parseAll(text), YAMLParseError);
+});
+
+test("STRICTNESS: malformed tag syntax throws (unescaped flow indicator in a tag suffix)", () => {
+  // yaml-test-suite LHL4.
+  throws(() => parse("---\n!invalid{}tag scalar\n"), YAMLParseError);
+  throws(() => oracleParse("---\n!invalid{}tag scalar\n"));
+});
+
+test("STRICTNESS: a tag not followed by a separator throws in block context (yaml-test-suite U99R)", () => {
+  throws(() => parse("- !!str, xxx\n"), YAMLParseError);
+  throws(() => oracleParse("- !!str, xxx\n"));
+});
+
+test("STRICTNESS: a tag mismatched with the underlying node kind throws (js-yaml semantics; documented oracle divergence)", () => {
+  throws(() => parse("a: !!map\n  - 1\n  - 2\n"), YAMLParseError); // !!map on an actual sequence
+  throws(() => parse("a: !!str\n  x: 1\n"), YAMLParseError); // !!str on an actual mapping
+  throws(() => jsYamlLoad("a: !!map\n  - 1\n  - 2\n"), Error);
+});
+
+test("STRICTNESS: !!set requires all-null values (matches the oracle)", () => {
+  throws(() => parse("--- !!set\na: something\nb: null\n"), YAMLParseError);
+  throws(() => oracleParse("--- !!set\na: something\nb: null\n"));
+});
+
+test("STRICTNESS: !!omap requires exactly one key per sequence entry (matches the oracle)", () => {
+  throws(() => parse("--- !!omap\n- a: 1\n  b: 2\n"), YAMLParseError);
+  throws(() => oracleParse("--- !!omap\n- a: 1\n  b: 2\n"));
+});
+
+test("agrees with js-yaml on core-schema tags (valid content)", () => {
+  const cases = ["a: !!str 123\n", "a: !!int 0x10\n", "a: !!float 3\n", "a: !!bool True\n", "a: !!null ~\n", "a: !!map\n  x: 1\n", "a: !!seq\n  - 1\n  - 2\n", "! 12\n"];
+  for (const s of cases) deepStrictEqual(parse(s), jsYamlLoad(s));
+});
+
+test("%TAG-redefined secondary handle changes what '!!' means (yaml-test-suite P76L)", () => {
+  const text = "%TAG !! tag:example.com,2000:app/\n---\n!!int 1 - 3 # Interval, not integer\n";
+  deepStrictEqual(parse(text), "1 - 3"); // !!int no longer means the core int tag — an unrecognized app tag passes through
+  deepStrictEqual(parse(text), oracleParse(text));
+});
