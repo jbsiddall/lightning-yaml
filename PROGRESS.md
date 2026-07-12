@@ -142,16 +142,26 @@ bench:self flat. VERIFIED by orchestrator (full gate + suite + failure-set compo
   value allows compact block-collection; narrow tab-strictness. 11/13 targets pass (CT4Q/UT92 →
   flow-plain fold, below). test:unit 349/349, vitest 43/43, 0 regressions, bench:self flat. VERIFIED.
 
-## Remaining failures (31; **22 fixable**) → final cleanup pass to cross 94.9% (need +12)
+## Final compat cross-check (adversarial, vs BOTH real libs, `bc3483c`)
 
-- **Cleanup pass** (small independent clusters, all in src/index.ts → one sequential agent):
-  flow-plain multi-line folding (8KB6, 8UDB, CT4Q, UT92, NJ66); flow-pair single-line implicit
-  keys (DK4H, ZXT5, C2SP, VJP3/00); comment-separation (SU5Z, CVW2, 9JBA); tab-as-indentation
-  NEGATIVES (4EJS, Y79Y/003-005 — strictness, helps neg gap); doc-markers-in-flow (N782); misc
-  (QB6E, G5U8, YJV2, 9C9N). Use the runner's own "clearly-fixable" set as ground truth.
-- **Skip (spec-corners `yaml` itself fails):** 565N, M7A3, 2XXW, J7PZ, 9MQT/01, HWV9, QT73,
-  DK95/01, DK95/06 (9). 4JVG (two-anchors) also effectively a corner.
-- **Final milestone:** `bench:competition` (v5 head-to-head) once feature-complete, then summarize.
+| shim | read (curated 64) | read (suite 402) | dump | overall |
+|------|------|------|------|------|
+| js-yaml-compat | 96.9% | 89.6% | 0% (stub) | 80.2% |
+| yaml-compat | **100%** | **97.3%** | 0% (stub) | 86.2% |
+
+Near-perfect read compat with `yaml`; js-yaml residual = genuine js-yaml-v5-vs-yaml spec
+divergences (we follow the `yaml` oracle). dump=0% by design (stringify stub). This
+differential (402+64 cases vs BOTH libs) is itself strong adversarial validation — no
+systematic divergence surfaced.
+
+## Final milestone + DEFERRED (target met — for user to greenlight)
+
+- **`bench:competition`** (v5 head-to-head) — refreshing now that the parser is feature-complete
+  (README head-to-head was stale re: js-yaml v5).
+- Property-based tests (fast-check) vs the `yaml` oracle — unblocked.
+- M7 deep perf polish (key-feedback intern upgrade) — unblocked.
+- `stringify` (v1 stub by design) — the only compat "gap"; implementing it would lift dump compat.
+- 9 spec-corner suite cases (`yaml` also fails) — genuine non-goals.
 
 ## Known bugs (pre-existing, to fix in a cleanup / adversarial pass)
 
