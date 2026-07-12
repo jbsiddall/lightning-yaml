@@ -57,6 +57,7 @@ const DOT = 46; // .
 const ZERO = 48; // 0
 const NINE = 57; // 9
 const COLON = 58; // :
+const GT = 62; // > (folded block scalar indicator)
 const QUESTION = 63; // ?
 const UPPER_E = 69; // E
 const LBRACKET = 91; // [
@@ -65,6 +66,7 @@ const RBRACKET = 93; // ]
 const UNDERSCORE = 95; // _
 const LOWER_E = 101; // e
 const LBRACE = 123; // {
+const PIPE = 124; // | (literal block scalar indicator)
 const RBRACE = 125; // }
 const TILDE = 126; // ~
 const BOM = 0xfeff;
@@ -1356,11 +1358,13 @@ function parseBlockNode(parentCol: number): unknown {
     return parseBlockSeq(col);
   }
 
-  // Block scalars are a later milestone (M4). A plain scalar can never begin
-  // with `|`/`>`, so this is unambiguous — reject rather than silently fold the
-  // header into a bogus plain scalar.
-  if (c === 0x7c || c === 0x3e) {
-    throw new NotImplementedError("parse (block scalars | and >)");
+  // Block scalars (M4). A plain scalar can never begin with `|`/`>`, so this is
+  // unambiguous. Unlike block collections, an inline `|`/`>` right after a `---`
+  // document-start marker on the SAME line is legal (`--- |` / `--- >`) — the
+  // ROOT_AFTER_INLINE_MARKER sentinel only forbids block *collections* there
+  // (seq/map, guarded above/below), so it is deliberately NOT checked here.
+  if (c === PIPE || c === GT) {
+    return parseBlockScalar(parentCol);
   }
 
   // Explicit block mapping keys (`? key` / `: value`) are a later milestone.
@@ -1558,6 +1562,282 @@ function parseBlockValue(parentCol: number): unknown {
     return null; // empty value (dedent or EOF)
   }
   return parseBlockNode(parentCol); // inline / compact node at the current column
+}
+
+// ===========================================================================
+// Block scalars (M4) — literal `|` and folded `>`, with chomping (`-`/`+`/clip)
+// and explicit indentation indicators. Deliberately self-contained: unlike
+// every other block construct, `#` inside the BODY is ordinary text (not a
+// comment — yaml-test-suite DK3J relies on this), so the line-scanning loop
+// below never treats `#` as a comment INSIDE the content-indent region; the
+// one exception is a `#` found BELOW it (i.e. genuinely outside the scalar),
+// which — like a real dedent — ends the scalar (confirmed against the oracle:
+// it does not "resume" even if a later line dips back to full indentation).
+// `skipBlankLines` (shared with the rest of block structure, `#`-aware) is
+// called exactly once, after the scalar ends, to skip any such trailing
+// comment/blank lines for the caller — the same cleanup every other
+// block-value parser performs before handing control back.
+//
+// Algorithm (doc 07 §3.5): parse the header, then two passes over the body —
+// `detectBlockScalarIndent` (only when no explicit indent digit was given) is
+// a non-consuming lookahead that finds the content indentation from the first
+// non-blank line; the main loop in `parseBlockScalar` then walks the body for
+// real, `indexOf('\n')` per line, a charCode loop for the (short) indentation
+// prefix, exactly one `src.slice` per content line into a `parts` array, and a
+// final `parts.join("")` — no `+=` rope-building, ever.
+// ===========================================================================
+
+/**
+ * Whether a `---`/`...` document marker starts at line-start position `p`, for
+ * use during `detectBlockScalarIndent`'s lookahead — which walks a LOCAL cursor
+ * that intentionally never touches the module-level `lineStart`, so the
+ * lineStart-equality gate in `isDocMarkerAt` cannot be reused here (`p` is
+ * already known to be a line-start position by construction of the caller's
+ * loop, so that gate would just be redundant even if it were usable).
+ */
+function looksLikeDocMarkerAt(p: number): boolean {
+  const c = src.charCodeAt(p);
+  if (c !== MINUS && c !== DOT) return false;
+  return src.charCodeAt(p + 1) === c && src.charCodeAt(p + 2) === c && isSpaceOrEolAt(p + 3);
+}
+
+/**
+ * Auto-detect a block scalar's content indentation level (no explicit digit in
+ * the header): a non-consuming lookahead from the current `pos` that finds the
+ * first line with real (non-whitespace) content and returns ITS indentation,
+ * provided it is deeper than `effParentCol` (the enclosing construct's column).
+ * Leading all-blank lines are skipped (their indentation doesn't set the
+ * level) but tracked: per the spec, it is an error for any of them to be MORE
+ * indented than the eventual content line (yaml-test-suite 5LLU/S98Z/W9L4) —
+ * checked once the real content line is found, not while merely blank lines are
+ * seen (a leading blank's own tab, if any, is deliberately NOT flagged here;
+ * that error instead falls out naturally when the main loop below re-walks the
+ * same line against the now-known indentation — see its tab check). If no
+ * content line is ever found (a wholly empty/blank scalar), the level falls
+ * back to the widest blank line seen (or `effParentCol + 1` if none), per spec
+ * §8.1.1.1 — just wide enough that every blank line still reads as blank.
+ */
+function detectBlockScalarIndent(effParentCol: number): number {
+  let p = pos;
+  let maxBlankIndent = -1;
+  for (;;) {
+    if (p >= len || looksLikeDocMarkerAt(p)) {
+      return maxBlankIndent > effParentCol ? maxBlankIndent : effParentCol + 1;
+    }
+    let sp = 0;
+    let q = p;
+    while (q < len && src.charCodeAt(q) === SPACE) {
+      sp++;
+      q++;
+    }
+    // Walk through any further run of spaces/tabs to see whether the line is
+    // genuinely blank (nothing but whitespace before EOL) — a tab here is just
+    // whitespace for this purely-informational lookahead; it is not the point
+    // where an actual tab-in-indentation error is raised (see the docstring).
+    let r = q;
+    while (r < len) {
+      const rc = src.charCodeAt(r);
+      if (rc === LF || rc === CR) break;
+      if (rc !== SPACE && rc !== TAB) break;
+      r++;
+    }
+    const stop = r < len ? src.charCodeAt(r) : -1;
+    if (stop === -1 || stop === LF || stop === CR) {
+      // Blank line: track its (space-only) indentation, then move to the next.
+      if (sp > maxBlankIndent) maxBlankIndent = sp;
+      if (stop === LF) p = r + 1;
+      else if (stop === CR) p = r + 1 < len && src.charCodeAt(r + 1) === LF ? r + 2 : r + 1;
+      else p = len;
+      continue;
+    }
+    // Real content. If it isn't deeper than the parent, the scalar has no
+    // content at all (this line belongs to whatever encloses the scalar).
+    if (sp <= effParentCol) {
+      return maxBlankIndent > effParentCol ? maxBlankIndent : effParentCol + 1;
+    }
+    if (maxBlankIndent > sp) {
+      fail("a block scalar's leading empty lines must not be more indented than its first line of content");
+    }
+    return sp;
+  }
+}
+
+/**
+ * Parse a literal (`|`) or folded (`>`) block scalar starting at `pos` (the
+ * indicator character) and return its string value. `parentCol` is the same
+ * "enclosing construct's column" every other block-node caller already threads
+ * through (the dash's or key's column — see `parseBlockNode`'s docstring); an
+ * explicit indentation indicator is added to it, and auto-detected content must
+ * be deeper than it. `ROOT_AFTER_INLINE_MARKER` (`--- |`) is normalized to -1
+ * (the ordinary document-root parent column) — inline block scalars after
+ * `---` are legal (unlike inline block collections, which that sentinel exists
+ * to forbid), so from here on it behaves exactly like the plain doc-root case.
+ */
+function parseBlockScalar(parentCol: number): string {
+  const folded = src.charCodeAt(pos) === GT;
+  pos++; // past the indicator
+
+  // --- header: optional indent digit (1-9) and chomp (-/+), either order ---
+  let indentIndicator = 0; // 0 = auto-detect
+  let chomp = 0; // 0 = clip (default), -1 = strip, +1 = keep
+  for (let i = 0; i < 2; i++) {
+    const c = pos < len ? src.charCodeAt(pos) : -1;
+    if (c >= 0x31 && c <= 0x39 && indentIndicator === 0) {
+      // '1'-'9' ('0' is not a valid indicator — rejected below as stray content)
+      indentIndicator = c - ZERO;
+      pos++;
+    } else if (c === MINUS && chomp === 0) {
+      chomp = -1;
+      pos++;
+    } else if (c === PLUS && chomp === 0) {
+      chomp = 1;
+      pos++;
+    } else {
+      break;
+    }
+  }
+  // Trailing: separation space, then an optional comment (which — like any
+  // YAML comment — must be preceded by whitespace) or end of line; anything
+  // else is a malformed header (yaml-test-suite S4GJ/X4QW).
+  let sawSpace = false;
+  while (pos < len) {
+    const c = src.charCodeAt(pos);
+    if (c === SPACE || c === TAB) {
+      pos++;
+      sawSpace = true;
+      continue;
+    }
+    break;
+  }
+  const afterHeader = pos < len ? src.charCodeAt(pos) : -1;
+  if (afterHeader === HASH) {
+    if (!sawSpace) fail("a comment after a block scalar header must be preceded by whitespace");
+    const nl = src.indexOf("\n", pos);
+    pos = nl === -1 ? len : nl;
+  } else if (afterHeader !== -1 && afterHeader !== LF && afterHeader !== CR) {
+    fail("invalid block scalar header (expected an indentation indicator, chomping indicator, comment, or end of line)");
+  }
+  if (pos < len) {
+    const c = src.charCodeAt(pos);
+    if (c === LF) pos++;
+    else if (c === CR) {
+      pos++;
+      if (pos < len && src.charCodeAt(pos) === LF) pos++;
+    }
+  }
+  lineStart = pos;
+
+  const effParentCol = parentCol === ROOT_AFTER_INLINE_MARKER ? -1 : parentCol;
+  const contentIndent = indentIndicator > 0 ? effParentCol + indentIndicator : detectBlockScalarIndent(effParentCol);
+
+  // --- body: accumulate content-line text into `parts`, join once at the end ---
+  const parts: string[] = [];
+  let sawContent = false;
+  let prevMoreIndented = false;
+  let pendingBreaks = 0; // blank lines since the last pushed content line (0 = adjacent)
+
+  for (;;) {
+    if (pos >= len) break;
+    if (isDocMarkerAt(pos)) break; // a document marker always ends the scalar
+
+    // Consume up to `contentIndent` leading spaces (a tab here is always an
+    // error — YAML forbids tab indentation — UNLESS it appears at/after the
+    // established content indent, where it is just ordinary text; see below).
+    let count = 0;
+    let p = pos;
+    while (count < contentIndent) {
+      const c = p < len ? src.charCodeAt(p) : -1;
+      if (c === SPACE) {
+        count++;
+        p++;
+        continue;
+      }
+      if (c === TAB) fail("tab characters are not allowed in block scalar indentation");
+      break;
+    }
+
+    if (count < contentIndent) {
+      const c = p < len ? src.charCodeAt(p) : -1;
+      if (c === -1 || c === LF || c === CR) {
+        // A blank line, short of the required indent — still part of the
+        // scalar (blank lines never need to satisfy the indent requirement).
+        pendingBreaks++;
+        if (c === LF) pos = p + 1;
+        else if (c === CR) pos = p + 1 < len && src.charCodeAt(p + 1) === LF ? p + 2 : p + 1;
+        else pos = len;
+        lineStart = pos;
+        continue;
+      }
+      // A real, less-indented line — including a comment-only one — ends the
+      // scalar (dedent); it never "resumes" even if a later line dips back to
+      // the content indent (confirmed against the oracle: a less-indented `#`
+      // line followed by more full-indent content is a hard error, not more
+      // scalar content). Leave `pos` at this line's own first content
+      // character (not its line start) so the caller resumes exactly where
+      // every other block construct expects.
+      pos = p;
+      break;
+    }
+
+    // count === contentIndent: `p` is just past the mandatory indent.
+    const nl = src.indexOf("\n", p);
+    const lineEnd = nl === -1 ? len : nl;
+    let textEnd = lineEnd;
+    if (textEnd > p && src.charCodeAt(textEnd - 1) === CR) textEnd--;
+    const text = src.slice(p, textEnd); // the one slice per content line
+
+    if (text.length === 0) {
+      pendingBreaks++; // blank line (nothing beyond the mandatory indent)
+    } else {
+      // "More-indented": extra whitespace beyond contentIndent survived into
+      // `text` verbatim — literal content, and (per spec) folded lines touching
+      // it never fold to a space, only ever to literal newlines (doc 07 §3.5).
+      const moreIndented = text.charCodeAt(0) === SPACE || text.charCodeAt(0) === TAB;
+      if (!sawContent) {
+        // No "previous line" to fold/break against — leading blanks (if any)
+        // become that many literal newlines, never a space.
+        if (pendingBreaks > 0) parts.push("\n".repeat(pendingBreaks));
+        parts.push(text);
+      } else if (!folded) {
+        // Literal never folds: exactly one newline per line boundary, plus one
+        // more per intervening blank line.
+        parts.push("\n".repeat(pendingBreaks + 1), text);
+      } else {
+        const moreInvolved = prevMoreIndented || moreIndented;
+        if (pendingBreaks === 0 && !moreInvolved) {
+          parts.push(" ", text); // the one case that folds to a space
+        } else if (moreInvolved) {
+          // A more-indented line on either side of the break: never folds, and
+          // the break "connecting" the two lines counts as one of its own — on
+          // top of each intervening blank line (doc 07 §3.5's classic gotcha).
+          parts.push("\n".repeat(pendingBreaks + 1), text);
+        } else {
+          // Plain content on both sides, separated by 1+ blank lines: each
+          // blank line becomes exactly one newline (no extra "connecting" one —
+          // it's absorbed into the blank run, unlike the more-indented case).
+          parts.push("\n".repeat(pendingBreaks), text);
+        }
+      }
+      sawContent = true;
+      prevMoreIndented = moreIndented;
+      pendingBreaks = 0;
+    }
+    pos = nl === -1 ? len : nl + 1;
+    lineStart = pos;
+  }
+
+  // The scalar itself has ended (dedent, doc marker, or EOF); skip any
+  // trailing blank/comment lines the same way every other block-value parser
+  // leaves them for its caller (`nextLine`/`skipBlankLines` elsewhere) — a
+  // no-op if a doc marker or real content is already sitting at `pos` (both
+  // are non-blank, non-`#`, so `skipBlankLines` stops on them immediately).
+  skipBlankLines();
+
+  const core = parts.join("");
+  if (!sawContent) return chomp === 1 ? "\n".repeat(pendingBreaks) : "";
+  if (chomp === -1) return core; // strip: no trailing break at all
+  if (chomp === 1) return core + "\n".repeat(pendingBreaks + 1); // keep: every trailing break
+  return core + "\n"; // clip (default): exactly one
 }
 
 // ===========================================================================

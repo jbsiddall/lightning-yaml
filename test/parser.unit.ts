@@ -351,6 +351,161 @@ test("block round-trip corpus (600 seeded cases) matches js-yaml and the origina
 });
 
 // --------------------------------------------------------------------------
+// M4 — block scalars (`|` literal, `>` folded): chomping, explicit indent
+// indicators (both orders), auto-detected indentation, folding/more-indented
+// interactions, placement (map value / seq entry / `--- |` doc root), and the
+// empty-scalar edge cases. Every case is checked against the `yaml` oracle —
+// semantics were calibrated against it directly (doc 07 §3.5), not derived
+// from prose alone.
+// --------------------------------------------------------------------------
+
+const blockScalarOracle: string[] = [
+  // chomping: clip (default) / strip (-) / keep (+)
+  "key: |\n  line1\n  line2\n",
+  "key: |-\n  line1\n  line2\n",
+  "key: |+\n  line1\n  line2\n\n\nnext: 1\n",
+  "key: |\n  line1\n  line2\n\n\nnext: 1\n",
+  "key: |-\n  line1\n  line2\n\n\nnext: 1\n",
+  // empty scalar (chomping still applies)
+  "key: |\nnext: 1\n",
+  "key: |-\nnext: 1\n",
+  "key: |+\nnext: 1\n",
+  "key: |\n",
+  "key: |-\n",
+  "key: |+\n",
+  "key: |\n\n\nnext: 1\n",
+  "key: |-\n\n\nnext: 1\n",
+  "key: |+\n\n\nnext: 1\n",
+  // explicit indentation indicator, both orders with chomping
+  "key: |2\n    xxx\n",
+  "- |2-\n  explicit indent and chomp\n",
+  "- |-2\n  chomp and explicit indent\n",
+  "- |1\n  explicit\n",
+  // folded: basic, blank-line folding, more-indented lines never fold
+  "key: >\n  some\n  text\n",
+  "key: >\n  a\n\n  b\n",
+  "key: >\n  a\n\n\n  b\n",
+  "key: >\n  a\n   more\n  b\n",
+  "key: >\n  a\n   b\n   c\n",
+  "key: >\n  a\n   b\n\n   c\n",
+  ">\n\n folded\n line\n\n next\n line\n   * bullet\n\n   * list\n   * lines\n\n last\n line\n\n# Comment\n",
+  // `#` inside a block scalar's content is literal text, never a comment (at
+  // the document root, content at column 0 is deeper than the root's implicit
+  // parent column of -1, so this is legal there — but NOT as a map value at
+  // column 0, where content must be deeper than the key; see the dedicated
+  // throws() case below for that contrast)
+  "--- >\nline1\n# no comment\nline3\n",
+  // header trailing comment
+  "key: | # comment\n  line1\n",
+  // tabs: forbidden in indentation, ordinary once past it
+  "key: |\n  \tfoo\n",
+  "a:\n  b: |\n    line1\n    \tindented-tab-content\n",
+  "k: |\n \tfoo\n",
+  // leading blank lines: shallower is fine, deeper (auto-detect only) errors —
+  // covered as a dedicated throws() case below; these are the accepted ones
+  "k: |\n \n  real\n",
+  "k: >\n  \n  content\n",
+  // trailing content interacting with comments — a comment below the content
+  // indent ends the scalar and is then transparently skipped for the caller
+  "a:\n  b: |\n    text\n  # comment\n  c: 2\n",
+  "a:\n  b: |\n    text\n\n  # comment\n  c: 2\n",
+  // placement: map value, seq entry, compact seq-of-map, doc root (with and
+  // without an inline `---` marker), and dedent back to a sibling map key
+  "- |\n  detected\n- >\n \n  \n  # detected\n",
+  "a:\n  - |\n    x\n  - 2\nb: 3\n",
+  "- a: |\n    x\n  b: 2\n",
+  "--- |\n  ab\n  cd\n",
+  "--- >\n ab\n cd\n \n ef\n\n\n gh\n",
+  "--- |+\n ab\n \n  \n...\n",
+  "--- |-\n ab\n \n\n...\n",
+  "a:\n  b: |\n    line1\n    line2\n  c: 2\n",
+  "outer:\n  inner: |\n    text\n  sibling: 1\nafter: 2\n",
+  // trailing whitespace on content lines is preserved (literal only strips
+  // leading indentation, never trailing spaces)
+  "key: |\n  abc   \n  def\n",
+  // CRLF line endings
+  "k: |\r\n  a\r\n  b\r\n",
+  // no trailing newline at all in the source
+  "k: |\n  line",
+  "k: |-\n  line",
+  "k: >\n  line",
+];
+
+for (const input of blockScalarOracle) {
+  test(`block scalar matches oracle · ${input.replace(/\n/g, "\\n").slice(0, 48)}`, () => {
+    deepStrictEqual(parse(input), oracleParse(input));
+  });
+}
+
+test("block scalar: chomping produces the exact documented strings (yaml-test-suite A6F9)", () => {
+  const s = "strip: |-\n  text\nclip: |\n  text\nkeep: |+\n  text\n";
+  deepStrictEqual(parse(s), { strip: "text", clip: "text\n", keep: "text\n" });
+  deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("block scalar: explicit indentation indicator in either order (|2- vs |-2)", () => {
+  deepStrictEqual(parse("- |2-\n  explicit indent and chomp\n- |-2\n  chomp and explicit indent\n"), [
+    "explicit indent and chomp",
+    "chomp and explicit indent",
+  ]);
+});
+
+test("block scalar: a more-indented folded line is kept literally and its surrounding breaks are not folded", () => {
+  deepStrictEqual(parse("key: >\n  a\n   more\n  b\n"), { key: "a\n more\nb\n" });
+});
+
+test("block scalar: N interior blank lines fold to exactly N newlines (folded)", () => {
+  deepStrictEqual(parse("key: >\n  a\n\n  b\n"), { key: "a\nb\n" }); // 1 blank -> 1 newline
+  deepStrictEqual(parse("key: >\n  a\n\n\n  b\n"), { key: "a\n\nb\n" }); // 2 blanks -> 2 newlines
+});
+
+test("block scalar: leading blank lines more indented than the auto-detected content indent are an error", () => {
+  throws(() => parse("block scalar: >\n \n  \n   \n invalid\n"), YAMLParseError);
+  throws(() => oracleParse("block scalar: >\n \n  \n   \n invalid\n"));
+  // ...but an explicit indentation indicator bypasses the check entirely.
+  deepStrictEqual(parse("k: |2\n       \n  content\n"), { k: "     \ncontent\n" });
+});
+
+test("block scalar: as a map value, content must be deeper than the key's own column — column 0 for both is an error, unlike at the document root", () => {
+  // Contrast with "--- >\nline1\n...\n" (in blockScalarOracle above), which
+  // succeeds: there the parent column is the document root's implicit -1, so
+  // column-0 content is deeper. As a map value, the parent column is the
+  // key's own column (0 here), so column-0 content is NOT deeper — content
+  // never appears (auto-detect finds nothing), and "line1" is read back as
+  // ordinary block-map continuation, which then fails for lack of a ':'.
+  throws(() => parse("block: >\nline1\n# no comment\nline3\n"), YAMLParseError);
+  throws(() => oracleParse("block: >\nline1\n# no comment\nline3\n"));
+});
+
+test("block scalar: tab characters in indentation are an error, matching the oracle", () => {
+  throws(() => parse("key: |\n\tfoo\n"), YAMLParseError);
+  throws(() => oracleParse("key: |\n\tfoo\n"));
+  throws(() => parse("a:\n  b: |\n    line1\n\tc: 2\n"), YAMLParseError);
+  throws(() => oracleParse("a:\n  b: |\n    line1\n\tc: 2\n"));
+});
+
+test("block scalar: a malformed header (stray content, or a comment glued on with no separating space) errors", () => {
+  for (const s of ["folded: > first line\n  second line\n", "block: ># comment\n  scalar\n"]) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+});
+
+test("block scalar: an empty scalar (no content at all) is the empty string, chomping notwithstanding", () => {
+  deepStrictEqual(parse("key: |\nnext: 1\n"), { key: "", next: 1 });
+  deepStrictEqual(parse("key: |-\nnext: 1\n"), { key: "", next: 1 });
+  deepStrictEqual(parse("key: |+\nnext: 1\n"), { key: "", next: 1 });
+  // ...except "keep", which preserves purely-blank lines as literal newlines.
+  deepStrictEqual(parse("key: |+\n\n\nnext: 1\n"), { key: "\n\n", next: 1 });
+});
+
+test("agrees with js-yaml on block scalars (1.2-core and js-yaml don't diverge here)", () => {
+  for (const s of ["key: |\n  a\n  b\n", "key: >\n  a\n  b\n", "key: |-\n  a\n", "key: |+\n  a\n\nnext: 1\n"]) {
+    deepStrictEqual(parse(s), jsYamlLoad(s));
+  }
+});
+
+// --------------------------------------------------------------------------
 // Regression tests for the adversarial-review findings (2026-07). One test per
 // finding so a recurrence trips immediately. Fixed bugs assert the correct
 // (oracle-matching) behaviour; deferred features assert a clean error rather
@@ -426,9 +581,11 @@ test("regression [10]: explicit block keys ('? '/': ') throw NotImplementedError
   throws(() => parse("? a\n: b\n"), NotImplementedError);
 });
 
-test("regression [11]: block scalars (| and >) throw NotImplementedError, not silent mis-parse", () => {
-  throws(() => parse("key: |\n  line1\n  line2\n"), NotImplementedError);
-  throws(() => parse("key: >\n  folded\n"), NotImplementedError);
+test("regression [11]: block scalars (| and >) now parse (M4), matching the oracle", () => {
+  // Superseded by M4: these used to throw NotImplementedError; they now parse.
+  deepStrictEqual(parse("key: |\n  line1\n  line2\n"), { key: "line1\nline2\n" });
+  deepStrictEqual(parse("key: >\n  folded\n"), { key: "folded\n" });
+  for (const s of ["key: |\n  line1\n  line2\n", "key: >\n  folded\n"]) deepStrictEqual(parse(s), oracleParse(s));
 });
 
 test("regression [12]: integers spanning the Smi boundary accumulate exactly", () => {
