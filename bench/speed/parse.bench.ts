@@ -8,8 +8,10 @@
  */
 
 import { bench, group, run, do_not_optimize } from "mitata";
-import { candidates } from "../candidates.ts";
+import { selectCandidates, scopeFromEnv } from "../candidates.ts";
 import { datasets, loadFixture } from "../fixtures/datasets.ts";
+
+const candidates = selectCandidates(scopeFromEnv());
 
 for (const ds of datasets) {
   const text = loadFixture(ds.name);
@@ -20,4 +22,5 @@ for (const ds of datasets) {
   });
 }
 
-await run();
+// BENCH_FORMAT=markdown yields README-ready tables; default is the pretty TTY view.
+await run(process.env.BENCH_FORMAT ? { format: process.env.BENCH_FORMAT as "markdown" } : undefined);
