@@ -72,7 +72,18 @@ Closing this is required to reach js-yaml's overall rate — track as its own bu
 ## Next
 
 - **F2 · block scalars** (`|`/`>`, chomping, indent indicators) — largest bucket (58);
-  also the biggest single compat read-gap (~60). One feature, two metrics up.
+  also the biggest single compat read-gap (~60). One feature, two metrics up. RUNNING.
+- **QUEUED (user request): upgrade js-yaml v4.3.0 → v5.2.1.** Sequence AFTER F2 lands
+  (reinstall mid-feature-run would corrupt that agent's live js-yaml tests). js-yaml is
+  our north-star baseline + benchmark competitor + compat target, so:
+  - bump `js-yaml` → `^5.2.1`; **remove `@types/js-yaml`** (v5 ships its own types —
+    conflict risk); `pnpm install`.
+  - fix any v5 API breaks in `bench/candidates.ts`, `bench/conformance/{run,compat}.ts`,
+    `test/parser.unit.ts` (`agreeWithJsYaml`); re-point `src/js-yaml-compat.ts` to mirror
+    v5's public API.
+  - RE-MEASURE: new js-yaml suite pass rate (**the target may move off 86.6%**) + new
+    `test:compat` baseline vs v5. Re-run `bench:competition` at the next milestone.
+  - The `yaml` oracle stays 2.9.0 (already latest) — this is a js-yaml-only bump.
 
 ## Feature backlog (likely order by failure-coverage)
 
@@ -136,6 +147,9 @@ timestamp→Date actually differ. So NO 1.1 schema layer is needed for high js-y
 fidelity — the earlier "inherent divergence" worry is largely moot.
 
 ASSESS henceforth reports `pnpm test:compat` alongside the suite pass rate.
+
+NOTE: all of the above (incl. the schema-1.1 finding) was measured against js-yaml
+**v4.3.0**. Upgrading to js-yaml **v5.2.1** is queued (see Next) and will re-measure.
 
 ## Deferred (until pass-rate target met)
 
