@@ -26,6 +26,7 @@ bench/conformance/run.ts [--dump-failures]`).
 | F1 doc-markers/multi-doc | 49.1% (183/373) | 86.6% | 97.1% | pos 45.0% / **neg 61.5%** (↓ leniency unmasked) |
 | F2 block scalars | **62.2%** (232/373) | 86.6%→94.9%¹ | 97.1% | pos 62.4% (+49) / neg 61.5% (flat) |
 | ↑ js-yaml **v5** upgrade | 62.2% (unchanged) | **94.9%** (354/373) | 97.1% | js-yaml v5 default schema → 1.2 CORE |
+| F3 anchors/aliases | **67.6%** (252/373) | 94.9% | 97.1% | pos 68.8% (+18) / neg 63.7% (+2, strictness). vitest 6→**3** red |
 
 ¹ **TARGET MOVED. js-yaml upgraded v4.3.0 → v5.2.1** (user request): v5's default
 schema is now YAML-1.2 CORE (was 1.1-ish), so js-yaml jumped 86.6%→**94.9%**. Our
@@ -87,15 +88,24 @@ Closing this is required to reach js-yaml's overall rate — track as its own bu
   block-scalar bucket ~60→16/13. VERIFIED by orchestrator. Oracle-calibrated (not
   spec-prose). Deviation/known: surfaced a PRE-EXISTING bug (see Known bugs).
 
+- **F3 · anchors/aliases (done, `45b1f1f`):** suite 62.2%→67.6% (+20; pos +18, neg +2).
+  Lazy per-doc `anchorMap`, register-before-children (cycles), same-ref aliases, extensible
+  node-properties seam for F4 tags. Strictness: undefined/empty alias & alias-with-props
+  error. anchor bucket 30→10 (rest need tags/explicit-keys). **vitest 6→3 red — the 3
+  "anchor sharing" cases went GREEN.** test:unit 277/277, bench:self flat. VERIFIED.
+  Skipped corners: 4JVG, ZWK4 (explicit keys), KSS4 (pre-existing multiline-dq).
+
 ## Next
 
-- **NOW: js-yaml v4.3.0 → v5.2.1 upgrade** (user request; no agent running = clean moment).
-- **F3 · anchors/aliases** (`&`/`*`, 30 primary) — also greens the 3 "anchor sharing"
-  yaml-rich consistency cases. Recipe: pay-on-first-use, register-before-children,
-  structural sharing (same reference).
-- **F4 · tags incl. `!!binary`** (26 primary) — `!!binary`→`Uint8Array` (oracle contract);
-  greens the 3 "parse matches oracle" yaml-rich cases. F3+F4 together → rich consistency
-  suite fully GREEN (a STOP condition).
+- **F4 · tags incl. `!!binary`** (26 primary, 38 secondary co-occurrence) — slot into the
+  F3 node-properties seam (tag+anchor either order). `!!binary`→`Uint8Array` (oracle
+  contract); core `!!str/int/float/bool/null/map/seq`; tag overrides implicit typing;
+  unknown tags error. **Greens the last 3 "parse matches oracle" yaml-rich vitest cases
+  → rich consistency FULLY GREEN (a STOP condition).** Also add strictness for malformed tags.
+- Then: **plain-scalar-typing** (32), **doc-markers residual** (27), **negative-strictness
+  pass** (neg 58/91 vs js-yaml 91/91), complex-key (7), flow-only (6), pre-existing seq bug.
+- **Milestone checkpoint after F4:** `bench:competition` (v5 head-to-head) + short adversarial
+  review (opus) — good point since F4 completes the rich-consistency milestone.
 
 ## Known bugs (pre-existing, to fix in a cleanup / adversarial pass)
 
