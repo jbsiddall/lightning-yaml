@@ -27,6 +27,7 @@ machine-specific; the ratios are the durable signal.
 | [09-design-c-hybrid.md](09-design-c-hybrid.md) | Design C — Design A + `JSON.parse` delegation router + tiered fast paths |
 | [10-adversarial-verdicts.md](10-adversarial-verdicts.md) | 12 adversarial verifications: 9 confirmed, 3 refuted |
 | [11-completeness-critique.md](11-completeness-critique.md) | Ranked gaps: what none of the designs handled (stringify! N-API! block-mode spike! …) |
+| [12-v8-optimization-guide.md](12-v8-optimization-guide.md) | User-supplied V8 coding guide (tier model, JIT rules, tier-residency CI recipe), reviewed and edited to defer to the dossier's measurements |
 
 ## Executive summary
 
