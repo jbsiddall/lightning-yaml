@@ -214,9 +214,21 @@ export function parse(text: string): unknown {
   skipBlankLines(); // land on the first content char, or EOF
   if (pos >= len) return null; // empty document → null (YAML), unlike JSON
 
+  // Document markers (`---` start, `...` end) and multi-document streams are a
+  // later milestone (M5). Reject them clearly rather than mis-reading a marker
+  // as a plain scalar (`--- 5` must not parse to the string "--- 5").
+  if (isDocMarkerAt(pos)) {
+    throw new NotImplementedError("parse (document markers '---' / '...' and multi-document streams)");
+  }
+
   const value = parseBlockNode(-1);
 
-  if (pos < len) fail("unexpected trailing content after document");
+  if (pos < len) {
+    if (isDocMarkerAt(pos)) {
+      throw new NotImplementedError("parse (document markers '---' / '...' and multi-document streams)");
+    }
+    fail("unexpected trailing content after document");
+  }
   return value;
 }
 
@@ -237,8 +249,16 @@ export function stringify(_value: unknown): string {
 // Whitespace + comments (flow context)
 // ---------------------------------------------------------------------------
 
-function isWsOrEol(c: number): boolean {
-  return c === SPACE || c === TAB || c === LF || c === CR;
+/**
+ * Whether position `i` is a flow separator — whitespace, a flow indicator
+ * (`,[]{}`), or end of input. A `:` acts as a mapping separator (and `?` as an
+ * explicit-key indicator) only when the character that follows it is such a
+ * separator; otherwise the `:`/`?` is an ordinary plain-scalar character.
+ */
+function flowSeparatorAt(i: number): boolean {
+  if (i >= len) return true;
+  const c = src.charCodeAt(i);
+  return c === SPACE || c === TAB || c === LF || c === CR || (CH[c] & F_FLOW_INDICATOR) !== 0;
 }
 
 /**
@@ -310,9 +330,13 @@ function parseFlowSeq(): unknown[] {
       pos++;
       break;
     }
-    if (c === COLON) {
-      // A leading `:` is an empty-key single-pair entry, e.g. `[:]` → [{"": null}].
+    if (c === COLON && flowSeparatorAt(pos + 1)) {
+      // A leading *boundary* `:` is an empty-key single-pair entry ([:] → [{"": null}]).
+      // A `:` followed by non-separator (`:ff`) is an ordinary plain scalar (falls through).
       arr.push(makeSinglePair("")); // leaves pos whitespace-skipped
+    } else if (c === QUESTION && flowSeparatorAt(pos + 1)) {
+      // Explicit-key single-pair entry ([? a: b] → [{a: b}]).
+      arr.push(parseFlowExplicitEntry());
     } else {
       const node = parseFlowValue();
       skipFlowWs();
@@ -354,6 +378,19 @@ function makeSinglePair(key: string): Record<string, unknown> {
   return pair;
 }
 
+/** An explicit-key sequence entry: `? key` optionally followed by `: value`. */
+function parseFlowExplicitEntry(): Record<string, unknown> {
+  pos++; // past '?'
+  skipFlowWs();
+  const c = src.charCodeAt(pos);
+  const key = c === COLON || c === COMMA || c === RBRACKET || c === RBRACE ? "" : keyToString(parseFlowValue());
+  skipFlowWs();
+  if (src.charCodeAt(pos) === COLON) return makeSinglePair(key); // consumes ':' + value
+  const pair: Record<string, unknown> = {};
+  storeKey(pair, key, null); // `? key` with no value
+  return pair;
+}
+
 // ---------------------------------------------------------------------------
 // Flow mapping  { k: v, ... }  (keys plain/quoted; values may be empty → null)
 // ---------------------------------------------------------------------------
@@ -370,7 +407,7 @@ function parseFlowMap(): Record<string, unknown> {
       break;
     }
     let key: string;
-    if (c === QUESTION && (pos + 1 >= len || isWsOrEol(src.charCodeAt(pos + 1)))) {
+    if (c === QUESTION && flowSeparatorAt(pos + 1)) {
       // Explicit `? key` (cold): the key is a full node up to ':'/','/'}'.
       pos++;
       skipFlowWs();
@@ -424,14 +461,28 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
   }
 }
 
-/** Coerce a resolved node into a mapping key string (JS object-key semantics). */
+/**
+ * Coerce a resolved node into a mapping key string (JS object-key semantics,
+ * matching the oracle): strings pass through; a null key becomes the empty
+ * string (`null: 1` → {"": 1}); numbers/bools stringify canonically.
+ */
 function keyToString(node: unknown): string {
   if (typeof node === "string") return node;
-  if (node === null) return "null";
+  if (node === null) return "";
   return String(node);
 }
 
-/** A flow mapping key: double-quoted, single-quoted, or a plain scalar (raw). */
+/**
+ * Intern a plain-scalar key span. A plain key is scalar-typed exactly like a
+ * plain value and then canonicalized to a string (so `00`, `0x10`, `True`, `~`
+ * become `"0"`, `"16"`, `"true"`, `""` — matching the oracle). Quoted keys are
+ * NOT typed (a quoted scalar is always a string), so they take a different path.
+ */
+function plainKey(start: number, end: number): string {
+  return internKey(keyToString(resolvePlain(start, end)));
+}
+
+/** A flow mapping key: double-quoted, single-quoted, or a plain scalar. */
 function parseFlowKey(): string {
   const c = src.charCodeAt(pos);
   if (c === DQUOTE) return internKey(parseDoubleQuoted());
@@ -439,7 +490,7 @@ function parseFlowKey(): string {
   const start = pos;
   const end = scanFlowPlainEnd();
   if (end === start) fail("expected a mapping key");
-  return internKey(src.slice(start, end));
+  return plainKey(start, end);
 }
 
 /** Return the cached copy of `s` if seen this parse, else record and return it. */
@@ -915,29 +966,82 @@ function parseDoubleQuotedSlow(start: number): string {
           result += "/";
           i++;
           break;
-        case 0x62: // b
+        case 0x30: // \0 → NUL
+          result += "\0";
+          i++;
+          break;
+        case 0x61: // \a → bell
+          result += "\x07";
+          i++;
+          break;
+        case 0x62: // \b
           result += "\b";
           i++;
           break;
-        case 0x66: // f
+        case 0x65: // \e → escape
+          result += "\x1b";
+          i++;
+          break;
+        case 0x66: // \f
           result += "\f";
           i++;
           break;
-        case 0x6e: // n
+        case 0x6e: // \n
           result += "\n";
           i++;
           break;
-        case 0x72: // r
+        case 0x72: // \r
           result += "\r";
           i++;
           break;
-        case 0x74: // t
+        case 0x74: // \t
           result += "\t";
           i++;
           break;
-        case 0x75: // u
-          result += String.fromCharCode(hex4(i + 1));
+        case 0x76: // \v → vertical tab
+          result += "\v";
+          i++;
+          break;
+        case SPACE: // "\ " → space
+          result += " ";
+          i++;
+          break;
+        case 0x4e: // \N → next line (U+0085)
+          result += "\x85";
+          i++;
+          break;
+        case 0x5f: // \_ → non-breaking space (U+00A0)
+          result += "\xa0";
+          i++;
+          break;
+        case 0x4c: // \L → line separator (U+2028)
+          result += "\u2028";
+          i++;
+          break;
+        case 0x50: // \P → paragraph separator (U+2029)
+          result += "\u2029";
+          i++;
+          break;
+        case 0x78: // \xNN
+          result += String.fromCharCode(readHex(i + 1, 2));
+          i += 3;
+          break;
+        case 0x75: // \uNNNN
+          result += String.fromCharCode(readHex(i + 1, 4));
           i += 5;
+          break;
+        case 0x55: // \UNNNNNNNN (may be astral → surrogate pair)
+          result += String.fromCodePoint(readHex(i + 1, 8));
+          i += 9;
+          break;
+        case LF: // escaped line break → line continuation (elide it)
+          i++;
+          while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
+          break;
+        case CR:
+          i++;
+          if (i < len && src.charCodeAt(i) === LF) i++;
+          while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
           break;
         default:
           fail("invalid escape sequence in double-quoted string");
@@ -949,14 +1053,15 @@ function parseDoubleQuotedSlow(start: number): string {
   }
 }
 
-function hex4(i: number): number {
-  if (i + 3 >= len) fail("truncated \\u escape");
-  return (
-    (hexVal(src.charCodeAt(i)) << 12) |
-    (hexVal(src.charCodeAt(i + 1)) << 8) |
-    (hexVal(src.charCodeAt(i + 2)) << 4) |
-    hexVal(src.charCodeAt(i + 3))
-  );
+/**
+ * Read `n` hex digits at `i` and return their value. Multiplication (not a
+ * 32-bit shift) keeps the 8-digit `\U` case exact for astral code points.
+ */
+function readHex(i: number, n: number): number {
+  if (i + n > len) fail("truncated \\x/\\u/\\U escape");
+  let v = 0;
+  for (let k = 0; k < n; k++) v = v * 16 + hexVal(src.charCodeAt(i + k));
+  return v;
 }
 
 function hexVal(c: number): number {
@@ -1014,6 +1119,14 @@ function isSpaceOrEolAt(i: number): boolean {
   if (i >= len) return true;
   const c = src.charCodeAt(i);
   return c === SPACE || c === TAB || c === LF || c === CR;
+}
+
+/** Whether a `---` or `...` document marker starts at position `i` (line start). */
+function isDocMarkerAt(i: number): boolean {
+  if (i !== lineStart) return false; // markers live at column 0
+  const c = src.charCodeAt(i);
+  if (c !== MINUS && c !== DOT) return false;
+  return src.charCodeAt(i + 1) === c && src.charCodeAt(i + 2) === c && isSpaceOrEolAt(i + 3);
 }
 
 /** Skip spaces and tabs on the current line (not line breaks). */
@@ -1148,6 +1261,19 @@ function parseBlockNode(parentCol: number): unknown {
     return parseBlockSeq(col);
   }
 
+  // Block scalars are a later milestone (M4). A plain scalar can never begin
+  // with `|`/`>`, so this is unambiguous — reject rather than silently fold the
+  // header into a bogus plain scalar.
+  if (c === 0x7c || c === 0x3e) {
+    throw new NotImplementedError("parse (block scalars | and >)");
+  }
+
+  // Explicit block mapping keys (`? key` / `: value`) are a later milestone.
+  // Reject the `? ` indicator rather than mis-reading it as a plain scalar.
+  if (c === QUESTION && isSpaceOrEolAt(pos + 1)) {
+    throw new NotImplementedError("parse (explicit block mapping keys '?' / ':')");
+  }
+
   if (c === LBRACKET || c === LBRACE || c === DQUOTE || c === SQUOTE) {
     // A flow collection or quoted scalar — either the node itself, or a mapping
     // key if a `: ` separator follows on the same line.
@@ -1166,7 +1292,7 @@ function parseBlockNode(parentCol: number): unknown {
   const start = pos;
   const end = scanBlockPlainEnd();
   if (plainStoppedAtColon) {
-    return parseBlockMap(col, internKey(src.slice(start, end)));
+    return parseBlockMap(col, plainKey(start, end));
   }
   return resolveBlockPlain(start, end, parentCol);
 }
@@ -1179,23 +1305,75 @@ function parseBlockNode(parentCol: number): unknown {
  * Advances to the next content line.
  */
 function resolveBlockPlain(start: number, end: number, parentCol: number): unknown {
-  nextLine();
+  let breaks = advanceCountingBreaks();
   if (pos >= len || pos - lineStart <= parentCol) {
     // Single-line plain scalar (the overwhelming case): one span, typed once.
     return resolvePlain(start, end);
   }
-  // Multi-line plain scalar (cold): fold the segments. A multi-line plain scalar
-  // is always a string (never re-typed as a number/bool).
+  // Multi-line plain scalar (cold): fold the segments. YAML line-break folding —
+  // a single break between content lines becomes a space; each *additional* break
+  // (a blank line) is preserved as a newline. A multi-line plain scalar is always
+  // a string (never re-typed as a number/bool).
   let result = src.slice(start, end);
   for (;;) {
+    result += breaks > 1 ? "\n".repeat(breaks - 1) : " ";
     const segStart = pos;
     const segEnd = scanBlockPlainEnd();
-    result += " " + src.slice(segStart, segEnd);
+    result += src.slice(segStart, segEnd);
     if (plainStoppedAtColon) fail("mapping value not allowed in a multi-line plain scalar");
-    nextLine();
+    breaks = advanceCountingBreaks();
     if (pos >= len || pos - lineStart <= parentCol) break;
   }
   return result;
+}
+
+/**
+ * Advance from the current line to the next content line, returning the number
+ * of line breaks consumed (1 = adjacent lines, N = with N-1 blank lines between).
+ * Like `nextLine` but reports the break count so plain-scalar folding can turn a
+ * single break into a space and blank lines into newlines. Sets `lineStart`.
+ */
+function advanceCountingBreaks(): number {
+  skipInlineSpaces();
+  if (pos < len && src.charCodeAt(pos) === HASH) {
+    const nl = src.indexOf("\n", pos);
+    pos = nl === -1 ? len : nl;
+  }
+  let breaks = 0;
+  for (;;) {
+    if (pos >= len) return breaks;
+    const c = src.charCodeAt(pos);
+    if (c === LF) {
+      pos++;
+      lineStart = pos;
+      breaks++;
+    } else if (c === CR) {
+      pos++;
+      if (pos < len && src.charCodeAt(pos) === LF) pos++;
+      lineStart = pos;
+      breaks++;
+    } else {
+      let p = pos;
+      while (p < len && (src.charCodeAt(p) === SPACE || src.charCodeAt(p) === TAB)) p++;
+      if (p >= len) {
+        pos = p;
+        return breaks;
+      }
+      const ch = src.charCodeAt(p);
+      if (ch === LF || ch === CR) {
+        pos = p;
+        continue; // blank line — the loop consumes its break next
+      }
+      if (ch === HASH) {
+        const nl = src.indexOf("\n", p);
+        pos = nl === -1 ? len : nl + 1;
+        lineStart = pos;
+        continue; // comment-only line
+      }
+      pos = p; // content
+      return breaks;
+    }
+  }
 }
 
 function parseBlockSeq(col: number): unknown[] {
@@ -1243,7 +1421,7 @@ function parseBlockMapKey(): string {
   const start = pos;
   const end = scanBlockPlainEnd();
   if (!plainStoppedAtColon) fail("expected ':' after mapping key");
-  return internKey(src.slice(start, end));
+  return plainKey(start, end);
 }
 
 /**
@@ -1257,7 +1435,16 @@ function parseBlockValue(parentCol: number): unknown {
   const c = pos < len ? src.charCodeAt(pos) : -1;
   if (c === -1 || c === LF || c === CR || c === HASH) {
     nextLine();
-    if (pos < len && pos - lineStart > parentCol) return parseBlockNode(parentCol);
+    if (pos < len) {
+      const nc = pos - lineStart;
+      if (nc > parentCol) return parseBlockNode(parentCol);
+      // Special YAML rule: a block SEQUENCE may be indented at the SAME column as
+      // its parent mapping key (the ubiquitous `key:\n- a\n- b` form), whereas a
+      // block mapping value must be indented deeper.
+      if (nc === parentCol && src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) {
+        return parseBlockSeq(nc);
+      }
+    }
     return null; // empty value (dedent or EOF)
   }
   return parseBlockNode(parentCol); // inline / compact node at the current column

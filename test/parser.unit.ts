@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
-import { parse, parseAll, YAMLParseError } from "../src/index.ts";
+import { parse, parseAll, YAMLParseError, NotImplementedError } from "../src/index.ts";
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
 import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
@@ -348,6 +348,96 @@ test("block round-trip corpus (600 seeded cases) matches js-yaml and the origina
     deepStrictEqual(ours, jsYamlLoad(text), `vs js-yaml #${i}\n${text}`);
   }
 });
+
+// --------------------------------------------------------------------------
+// Regression tests for the adversarial-review findings (2026-07). One test per
+// finding so a recurrence trips immediately. Fixed bugs assert the correct
+// (oracle-matching) behaviour; deferred features assert a clean error rather
+// than a silent mis-parse; the one known limitation locks its current output.
+// --------------------------------------------------------------------------
+
+test("regression [1]: plain mapping keys are scalar-typed and canonicalized (block + flow)", () => {
+  deepStrictEqual(parse("00: 1"), { "0": 1 });
+  deepStrictEqual(parse("0x10: 1"), { "16": 1 });
+  deepStrictEqual(parse("True: 1"), { true: 1 });
+  deepStrictEqual(parse("null: 1"), { "": 1 }); // null key → empty string
+  deepStrictEqual(parse("{0o17: x, 1.50: y}"), { "15": "x", "1.5": "y" });
+  deepStrictEqual(parse('"00": 1'), { "00": 1 }); // quoted key stays literal
+  for (const s of ["00: 1", "0x10: 1", "True: 1", "null: 1", "{1e3: x}", "-0: q"]) {
+    deepStrictEqual(parse(s), oracleParse(s));
+  }
+});
+
+test("regression [2]: leading ':' in a flow sequence is plain unless a boundary colon", () => {
+  deepStrictEqual(parse("[:ff]"), [":ff"]);
+  deepStrictEqual(parse("[:00:]"), [{ ":00": null }]);
+  deepStrictEqual(parse("[:]"), [{ "": null }]); // boundary → empty-key pair
+  for (const s of ["[:ff]", "[:00:]", "[:]", "[: x]", "[a, :b]"]) deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("regression [3]: document markers (--- / ...) throw NotImplementedError, not mis-parse", () => {
+  throws(() => parse("..."), NotImplementedError);
+  throws(() => parse("--- 5\n"), NotImplementedError);
+  throws(() => parse("---\nfoo\n"), NotImplementedError);
+});
+
+test("regression [4]: YAML double-quoted escapes decode", () => {
+  deepStrictEqual(parse('"\\x41"'), "A");
+  deepStrictEqual(parse('"\\U0001F600"'), "😀");
+  deepStrictEqual(parse('"\\0\\a\\v\\e\\_\\N"'), "\u0000\u0007\u000b\u001b\u00a0\u0085");
+  for (const s of ['"\\x41"', '"\\U0001F600"', '"\\0\\a\\v\\e\\_\\N"']) deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("regression [5]: explicit key '? ' inside a flow sequence", () => {
+  deepStrictEqual(parse("[? a: b]"), [{ a: "b" }]);
+  deepStrictEqual(parse("[? a]"), [{ a: null }]);
+  deepStrictEqual(parse("[? a: b]"), oracleParse("[? a: b]"));
+});
+
+test("regression [6]: '?' before a flow close is an explicit empty key", () => {
+  deepStrictEqual(parse("{?}"), { "": null });
+  deepStrictEqual(parse("{?}"), oracleParse("{?}"));
+});
+
+test("regression [7]: KNOWN LIMITATION — flow multi-line folding is not implemented", () => {
+  // A double-quoted scalar with a LITERAL newline should fold to a space in YAML
+  // (oracle → "a b"), but our fast path keeps the newline. Locked here so a
+  // future fix has to update this expectation deliberately.
+  strictEqual(parse('"a\nb"'), "a\nb");
+});
+
+test("regression [8]: block sequence indented at the parent mapping key's column", () => {
+  deepStrictEqual(parse("key:\n- a\n- b\nnext: 1\n"), { key: ["a", "b"], next: 1 });
+  deepStrictEqual(parse("a:\n- 1\nb:\n- 2\n"), { a: [1], b: [2] });
+  for (const s of ["key:\n- a\n- b\nnext: 1\n", "a:\n- 1\nb:\n- 2\n"]) deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("regression [9]: line-break folding in multi-line plain scalars (space vs newline)", () => {
+  deepStrictEqual(parse("a\nb\n"), "a b"); // single break → space
+  deepStrictEqual(parse("foo\n\nbar\n"), "foo\nbar"); // one blank → one newline
+  deepStrictEqual(parse("a\n\n\nb\n"), "a\n\nb"); // two blanks → two newlines
+  for (const s of ["a\nb\n", "foo\n\nbar\n", "a\n\n\nb\n"]) deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("regression [10]: explicit block keys ('? '/': ') throw NotImplementedError", () => {
+  throws(() => parse("? a\n: b\n"), NotImplementedError);
+});
+
+test("regression [11]: block scalars (| and >) throw NotImplementedError, not silent mis-parse", () => {
+  throws(() => parse("key: |\n  line1\n  line2\n"), NotImplementedError);
+  throws(() => parse("key: >\n  folded\n"), NotImplementedError);
+});
+
+test("regression [12]: integers spanning the Smi boundary accumulate exactly", () => {
+  deepStrictEqual(parse("n: 2147483648\n"), { n: 2147483648 }); // 2^31
+  deepStrictEqual(parse("n: 9999999999\n"), { n: 9999999999 });
+  deepStrictEqual(parse("n: 900000000000000\n"), { n: 900000000000000 }); // 15 digits
+  deepStrictEqual(parse("[2147483648, 4294967296]"), [2147483648, 4294967296]);
+});
+
+// [13] keyToString polymorphism is exercised by [1]; [14] (xlarge parse) is
+// correctness-gated by the JSON-fixture parity loop above (xlarge-records is a
+// json fixture), so both are covered without a dedicated case.
 
 // --------------------------------------------------------------------------
 // API surface.
