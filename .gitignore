@@ -3,6 +3,9 @@ node_modules/
 # Generated benchmark fixtures — regenerate with `pnpm gen:fixtures`
 bench/fixtures/data/
 
+# Vendored yaml-test-suite snapshot — regenerate with `pnpm gen:suite`
+bench/yaml-test-suite/data/
+
 # Benchmark output
 results/
 *.log
