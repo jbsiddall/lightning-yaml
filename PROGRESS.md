@@ -26,7 +26,8 @@ bench/conformance/run.ts [--dump-failures]`).
 | F1 doc-markers/multi-doc | 49.1% (183/373) | 86.6% | 97.1% | pos 45.0% / **neg 61.5%** (↓ leniency unmasked) |
 | F2 block scalars | **62.2%** (232/373) | 86.6%→94.9%¹ | 97.1% | pos 62.4% (+49) / neg 61.5% (flat) |
 | ↑ js-yaml **v5** upgrade | 62.2% (unchanged) | **94.9%** (354/373) | 97.1% | js-yaml v5 default schema → 1.2 CORE |
-| F3 anchors/aliases | **67.6%** (252/373) | 94.9% | 97.1% | pos 68.8% (+18) / neg 63.7% (+2, strictness). vitest 6→**3** red |
+| F3 anchors/aliases | 67.6% (252/373) | 94.9% | 97.1% | pos 68.8% (+18) / neg 63.7% (+2). vitest 6→3 red |
+| F4 tags + `!!binary` | **76.1%** (284/373) | 94.9% | 97.1% | pos 79.4% (+30) / neg 65.9% (+2). **vitest 43/43 GREEN** ✓ |
 
 ¹ **TARGET MOVED. js-yaml upgraded v4.3.0 → v5.2.1** (user request): v5's default
 schema is now YAML-1.2 CORE (was 1.1-ish), so js-yaml jumped 86.6%→**94.9%**. Our
@@ -40,15 +41,18 @@ Known bugs. Each feature agent must also make its construct's malformed forms ER
 
 ### Failure buckets (primary → count)
 
-After F2 (232/373, 141 failures, **109 clearly-fixable**): plain-scalar-typing **32**
-· anchor-alias **30** · doc-markers 27 · tag 26 · block-scalar 11 (residual — blocked
-by other features/1 pre-existing bug) · complex-key 7 · flow-only 6 · directive 2 ·
-**merge-key 0** (none in snapshot — NOT needed for target).
-Secondary co-occurrence: doc-markers 58, tag 38, plain-typing 32, anchor 31 — many
-multi-doc cases ALSO need anchors/tags, so those close as F3/F4 land.
+After F4 (284/373, 89 failures, **80 clearly-fixable**): **plain-scalar-typing 32** ·
+**doc-markers 27** · complex-key 7 · block-scalar 7 (residual) · flow-only 6 · tag 5
+(residual) · anchor-alias 3 (residual: 4JVG/KSS4/ZWK4) · directive 2. merge-key 0.
 
-(Baselines: Phase-0 block-scalar 58/doc-markers 44/plain 35/anchor 31/tag 25/dir 20.
-After F1: block-scalar 58/plain 32/anchor 31/doc-markers 29/tag 26/dir 2.)
+The two big buckets (plain-typing 32, doc-markers 27) are NOT new constructs — they're
+typing/boundary BUGS needing diagnosis (some likely shared root causes). complex-key (7)
+IS a real unimplemented feature (explicit `? key` / `: value`; still NotImplementedError)
+and also blocks residual tag/anchor cases (2XXW/35KP/L94M/ZWK4).
+
+(Trajectory: Phase-0 block-scalar 58/doc 44/plain 35/anchor 31/tag 25/dir 20 →
+F1 plain 32/anchor 31/doc 29/tag 26 → F2 plain 32/anchor 30/doc 27/tag 26 →
+F3 plain 32/doc 27/tag 26/anchor 10 → F4 plain 32/doc 27/complex 7/tag 5/anchor 3.)
 
 ### CROSS-CUTTING GAP: error-case strictness (over-lenient)
 
@@ -95,17 +99,29 @@ Closing this is required to reach js-yaml's overall rate — track as its own bu
   "anchor sharing" cases went GREEN.** test:unit 277/277, bench:self flat. VERIFIED.
   Skipped corners: 4JVG, ZWK4 (explicit keys), KSS4 (pre-existing multiline-dq).
 
-## Next
+- **F4 · tags + `!!binary` (done, `a068629`):** suite 67.6%→76.1% (+32). Tag-first &
+  tag+anchor both orders via F3's seam; `!!binary`→`Uint8Array`; `%TAG` handle resolution;
+  typing override; core-tag strictness. **vitest 43/43 FULLY GREEN — rich-consistency STOP
+  condition MET.** test:unit 325/325; no hot-path bench regression. VERIFIED. Tag bucket
+  26→5. Flagged pre-existing bugs: 9HCY (directive-ordering), FH7J (`parseDeferredBlockNode`
+  seq-value), empty-dash-comment seq — all pre-date F4.
 
-- **F4 · tags incl. `!!binary`** (26 primary, 38 secondary co-occurrence) — slot into the
-  F3 node-properties seam (tag+anchor either order). `!!binary`→`Uint8Array` (oracle
-  contract); core `!!str/int/float/bool/null/map/seq`; tag overrides implicit typing;
-  unknown tags error. **Greens the last 3 "parse matches oracle" yaml-rich vitest cases
-  → rich consistency FULLY GREEN (a STOP condition).** Also add strictness for malformed tags.
-- Then: **plain-scalar-typing** (32), **doc-markers residual** (27), **negative-strictness
-  pass** (neg 58/91 vs js-yaml 91/91), complex-key (7), flow-only (6), pre-existing seq bug.
-- **Milestone checkpoint after F4:** `bench:competition` (v5 head-to-head) + short adversarial
-  review (opus) — good point since F4 completes the rich-consistency milestone.
+## STOP-condition tracker
+
+- [x] yaml-rich consistency cases GREEN (vitest 43/43) — met at F4.
+- [ ] ours suite pass rate ≥ js-yaml (94.9%) — at 76.1%, need +70.
+- [x] full gate green (typecheck + test + test:unit) — currently green.
+
+## Next (milestone checkpoint at F4, then continue)
+
+- **Milestone checkpoint (NOW):** (1) opus diagnostic+fix pass on the two big buckets
+  (plain-typing 32 + doc-markers 27) + the 3 flagged pre-existing bugs — find shared root
+  causes, fix genuine bugs vs oracle (not new features), tighten negatives; (2) then
+  `bench:competition` refresh (justified: v5 dep change + rich-feature milestone).
+- **F5 · explicit `?`/`:` block keys** (complex-key 7 + unblocks 2XXW/35KP/L94M/ZWK4).
+- **Negative-strictness pass** (neg 60/91 vs js-yaml 91/91 — 31 gap; biggest single lever
+  after plain-typing since js-yaml v5 rejects ALL invalid inputs).
+- flow-only (6), residual block-scalar (7), directive (2).
 
 ## Known bugs (pre-existing, to fix in a cleanup / adversarial pass)
 
