@@ -1,0 +1,8 @@
+node_modules/
+
+# Generated benchmark fixtures — regenerate with `pnpm gen:fixtures`
+bench/fixtures/data/
+
+# Benchmark output
+results/
+*.log

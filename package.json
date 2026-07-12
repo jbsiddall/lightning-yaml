@@ -1,0 +1,27 @@
+{
+  "name": "lightning-yaml",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A fast YAML parser — starting with a benchmark harness vs JSON and the leading JS YAML parsers.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "gen:fixtures": "node --import tsx bench/fixtures/generate.ts",
+    "bench:speed": "node --expose-gc --import tsx bench/speed/parse.bench.ts && node --expose-gc --import tsx bench/speed/stringify.bench.ts",
+    "bench:memory": "node --expose-gc --import tsx bench/memory/run.ts",
+    "bench": "pnpm gen:fixtures && pnpm bench:speed && pnpm bench:memory",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.0",
+    "js-yaml": "^4.1.0",
+    "mitata": "^1.0.34",
+    "tsx": "^4.23.0",
+    "typescript": "^5.7.0",
+    "yaml": "^2.9.0"
+  }
+}
