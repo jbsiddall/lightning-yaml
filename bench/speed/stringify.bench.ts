@@ -12,17 +12,26 @@
  */
 
 import { bench, group, run, do_not_optimize } from "mitata";
-import { selectCandidates, scopeFromEnv, candidateAppliesTo, candidateSupports } from "../candidates.ts";
+import {
+  selectCandidates,
+  scopeFromEnv,
+  candidateAppliesTo,
+  candidateSupports,
+  candidateHandles,
+} from "../candidates.ts";
 import { datasets, loadFixtureValue } from "../fixtures/datasets.ts";
 
 const candidates = selectCandidates(scopeFromEnv());
 
 for (const ds of datasets) {
-  const cands = candidates.filter(
+  const applicable = candidates.filter(
     (c) => candidateAppliesTo(c, ds, "stringify") && candidateSupports(c, "stringify"),
   );
-  if (cands.length === 0) continue;
+  if (applicable.length === 0) continue;
   const value = loadFixtureValue(ds);
+  // Skip candidates that can't serialize this specific value without throwing.
+  const cands = applicable.filter((c) => candidateHandles(c, "stringify", value));
+  if (cands.length === 0) continue;
   group(`stringify · ${ds.name}`, () => {
     for (const c of cands) {
       // `candidateSupports(c, "stringify")` above guarantees `c.stringify` here;

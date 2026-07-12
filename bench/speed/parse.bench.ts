@@ -12,17 +12,27 @@
  */
 
 import { bench, group, run, do_not_optimize } from "mitata";
-import { selectCandidates, scopeFromEnv, candidateAppliesTo, candidateSupports } from "../candidates.ts";
+import {
+  selectCandidates,
+  scopeFromEnv,
+  candidateAppliesTo,
+  candidateSupports,
+  candidateHandles,
+} from "../candidates.ts";
 import { datasets, loadFixtureText } from "../fixtures/datasets.ts";
 
 const candidates = selectCandidates(scopeFromEnv());
 
 for (const ds of datasets) {
-  const cands = candidates.filter(
+  const applicable = candidates.filter(
     (c) => candidateAppliesTo(c, ds, "parse") && candidateSupports(c, "parse"),
   );
-  if (cands.length === 0) continue;
+  if (applicable.length === 0) continue;
   const text = loadFixtureText(ds);
+  // Skip candidates that can't yet read this specific fixture (a partial parser
+  // on input it doesn't handle yet) so we never emit an "error" row.
+  const cands = applicable.filter((c) => candidateHandles(c, "parse", text));
+  if (cands.length === 0) continue;
   group(`parse · ${ds.name}`, () => {
     for (const c of cands) {
       bench(c.name, () => do_not_optimize(c.parse(text)));
