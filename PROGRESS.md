@@ -16,14 +16,37 @@ rate. Target: OUR pass rate ≥ js-yaml's, closing the gap to `yaml`. Cases that
 
 ## yaml-test-suite pass rate
 
+Suite pinned to `data-2022-01-17` (402 cases → 373 scored [282 pos / 91 neg],
+29 unscorable/skipped). Run: `pnpm test:suite` (or `node --import tsx
+bench/conformance/run.ts [--dump-failures]`).
+
 | date | ours | js-yaml | yaml | notes |
 |------|------|---------|------|-------|
-| (pending Phase 0) | — | — | — | harness not built yet |
+| Phase 0 baseline | **39.4%** (147/373) | 86.6% (323/373) | 97.1% (362/373) | pos 29.4% / neg 70.3% |
+
+TARGET: ours ≥ **86.6%** (js-yaml). 188 of our failures are "clearly fixable"
+(both js-yaml & yaml pass); 11 are spec-corners `yaml` itself fails (skip).
+
+### Baseline failure buckets (primary → count)
+
+block-scalar **58** · doc-markers 44 · plain-scalar-typing 35 · anchor-alias 31 ·
+tag 25 · directive 20 · complex-key 7 · flow-only 6 · **merge-key 0** (none in
+this snapshot — NOT needed for the suite target).
+
+Secondary (raw multi-label co-occurrence): **doc-markers 108 (dominant)** — a
+leading bare `---` throws `NotImplementedError` today, blocking most bodies, so it
+co-occurs with almost every other bucket. Harness insight: doc-marker/multi-doc
+handling likely unblocks disproportionately many cases → strong candidate for
+feature 1 even though block-scalar is the largest *primary* bucket.
 
 ## Loop log
 
-- **Phase 0 (in progress):** vendor yaml-test-suite + build runner (ours vs
-  js-yaml vs yaml, grouped failures).
+- **Phase 0 (done, `77473c4`):** vendored yaml-test-suite (`bench/yaml-test-suite/`,
+  gitignored data + `fetch.sh` with git-clone fallback), built runner
+  (`bench/conformance/`: `run.ts` + `suite.ts`/`deepEqual.ts`/`classify.ts`), scripts
+  `gen:suite` + `test:suite`. Baseline recorded above.
+- **Baseline gate diagnostic (in progress):** confirm typecheck/test/test:unit true
+  state (a prior run showed ~10 test:unit failures — checking if fixture-related vs real).
 
 ## Feature backlog (likely order by failure-coverage)
 
