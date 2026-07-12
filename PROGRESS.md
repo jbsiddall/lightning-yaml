@@ -24,10 +24,18 @@ bench/conformance/run.ts [--dump-failures]`).
 |------|------|---------|------|-------|
 | Phase 0 baseline | 39.4% (147/373) | 86.6% (323/373) | 97.1% (362/373) | pos 29.4% / neg 70.3% |
 | F1 doc-markers/multi-doc | 49.1% (183/373) | 86.6% | 97.1% | pos 45.0% / **neg 61.5%** (↓ leniency unmasked) |
-| F2 block scalars | **62.2%** (232/373) | 86.6% | 97.1% | pos 62.4% (+49) / neg 61.5% (flat, no regression) |
+| F2 block scalars | **62.2%** (232/373) | 86.6%→94.9%¹ | 97.1% | pos 62.4% (+49) / neg 61.5% (flat) |
+| ↑ js-yaml **v5** upgrade | 62.2% (unchanged) | **94.9%** (354/373) | 97.1% | js-yaml v5 default schema → 1.2 CORE |
 
-TARGET: ours ≥ **86.6%** (js-yaml). 188 of our failures are "clearly fixable"
-(both js-yaml & yaml pass); 11 are spec-corners `yaml` itself fails (skip).
+¹ **TARGET MOVED. js-yaml upgraded v4.3.0 → v5.2.1** (user request): v5's default
+schema is now YAML-1.2 CORE (was 1.1-ish), so js-yaml jumped 86.6%→**94.9%**. Our
+new bar is **ours ≥ 94.9%**, i.e. essentially matching `yaml` (97.1%). 119 of our
+failures are now "clearly fixable" (both competitors pass); 11 are spec-corners
+`yaml` itself fails (skip).
+
+**js-yaml v5 scores 100% on NEGATIVES (91/91)**; ours is 56/91. Closing the error-
+strictness gap (35 cases we wrongly accept) is now MANDATORY, not optional — see
+Known bugs. Each feature agent must also make its construct's malformed forms ERROR.
 
 ### Failure buckets (primary → count)
 
@@ -96,9 +104,17 @@ Closing this is required to reach js-yaml's overall rate — track as its own bu
 - Error-case strictness gap (neg 56/91 vs js-yaml 78): we accept inputs both competitors
   reject. Address as features mature + a dedicated strictness pass.
 
-## js-yaml v5 upgrade detail
+## js-yaml v5 upgrade detail (DONE, `995d68d`)
 
-Sequence AFTER F2 lands
+Done. `js-yaml` ^5.2.1, `@types/js-yaml` removed (v5 bundles types). API accommodations:
+no default export (→ `import * as`), `Type`/`Schema.extend` → factory fns/`withTags`,
+`DEFAULT_SCHEMA`→`YAML11_SCHEMA`, `load('')` throws, option renames — all in
+`src/js-yaml-compat.ts` + `test/compat.unit.ts` (shim/harness only; parser untouched).
+Target moved 86.6%→94.9%. compat schema-1.1 bucket → **0** (our 1.2-core shim now fully
+agrees with v5's 1.2 default). test:compat js-yaml-compat 59.7% overall. Gate green.
+Re-run `bench:competition` at the next milestone checkpoint (js-yaml v5 competitor).
+
+Original plan (for reference)
   (reinstall mid-feature-run would corrupt that agent's live js-yaml tests). js-yaml is
   our north-star baseline + benchmark competitor + compat target, so:
   - bump `js-yaml` → `^5.2.1`; **remove `@types/js-yaml`** (v5 ships its own types —
