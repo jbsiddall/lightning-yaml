@@ -17,8 +17,8 @@
  *     a deliberate, documented simplification (per the task brief) — fine for
  *     the overwhelmingly common `doc.toJS()` / `doc.toJSON()` call pattern,
  *     not fine for code that walks `.contents` as a CST/AST.
- *   - `stringify` delegates to our `stringify`, which is a later milestone
- *     and currently always throws `NotImplementedError`.
+ *   - `stringify` delegates to our `stringify` (implemented: block-style
+ *     output with 1.2-core-safe quoting).
  *   - We don't wrap thrown errors in `yaml`'s own `YAMLParseError`/`YAMLWarning`
  *     classes (unlike js-yaml-compat.ts, which IS required to rethrow as its
  *     own `YAMLException` — see that file). Confusingly, our own error class
@@ -147,8 +147,7 @@ export function parseDocument(src: string, _opts?: Record<string, unknown>): Com
 }
 
 // ---------------------------------------------------------------------------
-// stringify — delegates to our `stringify` (a later milestone; currently
-// always throws `NotImplementedError`, per the task brief).
+// stringify — delegates to our `stringify`.
 // ---------------------------------------------------------------------------
 
 export function stringify(value: unknown, _replacerOrOptions?: unknown, _options?: unknown): string {
