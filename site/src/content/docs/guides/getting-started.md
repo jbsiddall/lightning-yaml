@@ -73,11 +73,11 @@ console.log(doc);
 `stringify` is the inverse of `parse`: a JS value in, block-style YAML text
 out. See [Stringifying](/guides/stringifying/) for the formatting options.
 
-## Typing the result with generics
+## Typing the result
 
-`parse` is generic — `parse<T = unknown>(source: string, options?: ParseOptions): T`
-— so you can annotate the shape you expect instead of narrowing an `unknown`
-by hand:
+`parse` returns `unknown` — like `JSON.parse`, but safer, since it forces you
+to acknowledge the shape rather than silently assume it. Assert the type you
+expect:
 
 ```ts
 interface Config {
@@ -86,19 +86,19 @@ interface Config {
   stable: boolean;
 }
 
-const config = parse<Config>(source);
-config.version.toFixed(0); // typed as number, no cast needed
+const config = parse(source) as Config;
+config.version.toFixed(0); // typed as number
 ```
 
-`T` only affects the *static* type — like `JSON.parse`, lightning-yaml does
-not validate that the parsed value actually matches `T` at runtime. For
+The assertion only affects the *static* type — lightning-yaml does not
+validate that the parsed value actually matches `Config` at runtime. For
 untrusted input, pair `parse` with a runtime validator (e.g. Zod) rather than
-trusting the generic alone.
+trusting the cast alone.
 
 ## Where to go next
 
-- [Parsing](/guides/parsing/) — `parse` vs `parseAll`, `isValid`, schema
-  selection, warnings, and error handling.
+- [Parsing](/guides/parsing/) — `parse` vs `parseAll`, scalar typing, and
+  error handling.
 - [Stringifying](/guides/stringifying/) — formatting options and round-tripping.
 - [API reference](/api/) — the full exported surface.
 - [Benchmarks](/benchmarks/) — speed and memory versus `JSON`, `js-yaml`, and `yaml`.

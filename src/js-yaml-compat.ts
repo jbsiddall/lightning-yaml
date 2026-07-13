@@ -160,9 +160,13 @@ export class Schema {
   }
 }
 
+/** Stub so `import { FAILSAFE_SCHEMA }` still works. We always parse as YAML 1.2 core, so the schema you pass has no effect. */
 export const FAILSAFE_SCHEMA: Schema = new Schema();
+/** Stub — see {@link FAILSAFE_SCHEMA}. */
 export const JSON_SCHEMA: Schema = new Schema();
+/** Stub — see {@link FAILSAFE_SCHEMA}. */
 export const CORE_SCHEMA: Schema = new Schema();
+/** Stub. Does NOT turn on YAML 1.1 typing — `yes`/`no`/`on`/`off` and sexagesimals stay plain values, because we always parse as YAML 1.2 core. See {@link FAILSAFE_SCHEMA}. */
 export const YAML11_SCHEMA: Schema = new Schema();
 
 // ---------------------------------------------------------------------------

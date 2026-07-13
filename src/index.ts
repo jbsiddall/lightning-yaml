@@ -126,7 +126,7 @@ const NO_DOCUMENT: unique symbol = Symbol("no-document");
 // ---------------------------------------------------------------------------
 
 /**
- * Thrown by anything not implemented yet (currently `stringify`). A dedicated
+ * Thrown by parts of the public API that aren't implemented yet. A dedicated
  * class lets the benchmark harness tell "not built yet" apart from a genuine
  * bug and skip the candidate rather than crash.
  */
@@ -140,7 +140,20 @@ export class NotImplementedError extends Error {
   }
 }
 
-/** A syntax/semantic error in the input document. */
+/**
+ * Thrown by {@link parse} / {@link parseAll} when the input is not well-formed
+ * YAML (or violates a parse constraint). The message includes the 1-based line
+ * and column of the problem, rendered as `… (line L, column C)`.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   parse("items: [1, 2");
+ * } catch (err) {
+ *   if (err instanceof YAMLParseError) console.error(err.message);
+ * }
+ * ```
+ */
 export class YAMLParseError extends Error {
   constructor(message: string) {
     super(message);
@@ -477,7 +490,28 @@ function resetForStream(text: string): void {
   }
 }
 
-/** Parse a single YAML document into a JS value. */
+/**
+ * Parse a single YAML document into a JavaScript value.
+ *
+ * Reads exactly one document — like `JSON.parse` and js-yaml's `load`. If
+ * `text` contains more than one `---`-separated document (or any trailing
+ * content after the first), `parse` throws rather than silently returning the
+ * first; use {@link parseAll} for multi-document streams. Plain scalars are
+ * typed per the YAML 1.2 core schema (`1` is a number, `true` a boolean,
+ * `null`/`~`/empty a `null`); an empty document is `null`.
+ *
+ * @param text - The YAML source text.
+ * @returns The document's value: an object, array, string, number, boolean,
+ * or `null`.
+ * @throws {@link YAMLParseError} if `text` is not well-formed YAML, or contains
+ * more than one document.
+ *
+ * @example
+ * ```ts
+ * parse("dish: pancakes\nserves: 4")
+ * // { dish: "pancakes", serves: 4 }
+ * ```
+ */
 export function parse(text: string): unknown {
   resetForStream(text);
   const value = parseNextDocument();
@@ -493,9 +527,23 @@ export function parse(text: string): unknown {
 }
 
 /**
- * Parse a multi-document stream into an array of values. Documents are
- * separated by `---` (start) and/or `...` (end) markers; a stream with no
- * markers at all is a single (possibly bare) document, same as `parse`.
+ * Parse a multi-document stream into an array of values, one entry per
+ * document.
+ *
+ * Documents are separated by `---` (start) and/or `...` (end) markers; a
+ * stream with no markers at all is a single (possibly bare) document, same as
+ * {@link parse}. A source with no documents returns an empty array.
+ *
+ * @param text - The YAML source text, potentially containing multiple documents.
+ * @returns One value per document, in document order.
+ * @throws {@link YAMLParseError} if any document in the stream is not
+ * well-formed YAML.
+ *
+ * @example
+ * ```ts
+ * parseAll("---\ndish: pancakes\n---\ndish: omelette\n")
+ * // [{ dish: "pancakes" }, { dish: "omelette" }]
+ * ```
  */
 export function parseAll(text: string): unknown[] {
   resetForStream(text);
@@ -509,11 +557,27 @@ export function parseAll(text: string): unknown[] {
 }
 
 /**
- * Serialize a JS value into a YAML document (M6). See the "Stringify (dump)"
- * section near the end of this file for the design (scalar quoting,
- * `Uint8Array` → `!!binary`, anchors/aliases for shared references and
- * cycles, block-style collections).
+ * Serialize a JavaScript value into a YAML document string (always ending in a
+ * trailing newline).
+ *
+ * Emits block-style collections; strings, numbers, booleans and `null` become
+ * scalars, and a `Uint8Array` becomes a `!!binary` scalar. Values that share a
+ * reference — or form a cycle — are emitted once with an anchor (`&`) and
+ * referenced by alias (`*`) rather than duplicated, so `parse(stringify(x))`
+ * reconstructs the same shared-reference graph rather than a deep copy.
+ *
+ * @param value - The value to serialize.
+ * @returns The YAML document text.
+ *
+ * @example
+ * ```ts
+ * stringify({ dish: "pancakes", ingredients: ["flour", "milk", "eggs"] })
+ * // "dish: pancakes\ningredients:\n  - flour\n  - milk\n  - eggs\n"
+ * ```
  */
+// Implementation design (scalar quoting, `Uint8Array` → `!!binary`,
+// anchors/aliases for shared references and cycles, block-style collections)
+// lives in the "Stringify (dump)" section near the end of this file.
 export function stringify(value: unknown): string {
   return dumpValue(value);
 }
