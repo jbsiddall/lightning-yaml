@@ -154,13 +154,23 @@ divergences (we follow the `yaml` oracle). dump=0% by design (stringify stub). T
 differential (402+64 cases vs BOTH libs) is itself strong adversarial validation — no
 systematic divergence surfaced.
 
-## Final milestone + DEFERRED (target met — for user to greenlight)
+## Final milestone + post-target work
 
-- **`bench:competition`** (v5 head-to-head) — refreshing now that the parser is feature-complete
-  (README head-to-head was stale re: js-yaml v5).
-- Property-based tests (fast-check) vs the `yaml` oracle — unblocked.
-- M7 deep perf polish (key-feedback intern upgrade) — unblocked.
-- `stringify` (v1 stub by design) — the only compat "gap"; implementing it would lift dump compat.
+- **`bench:competition`** (v5 head-to-head) — DONE (`397b7bb`); README numeric tables + prose
+  refreshed for the feature-complete parser (M0–M5, 97.6% suite).
+
+### Post-target plan (user greenlit 2026-07-13)
+
+- **S1 · stringify** — TEST-FIRST. Correctness = round-trip: `oracleParse(stringify(v))` and
+  `parse(stringify(v))` deep-equal `v`. Must handle: scalar quoting (esp. strings that look like
+  `true`/`123`/`null`/`~` MUST be quoted), `Uint8Array`→`!!binary`, **shared refs → anchor/alias
+  emission** (rich fixtures reuse anchors ×1000s — naive dup blows up), cycle-safety, key order,
+  empty containers, multiline strings. Activates the consistency-suite "stringify round-trips"
+  test + lifts compat `dump` from 0%. Sonnet agents.
+- **M7 · deep perf polish** — OPUS agents only (challenging). key-feedback intern upgrade + V8
+  hot-path tuning per dossier 12/06; EACH optimization gated on a MEASURED `bench:self` win, no
+  correctness regression.
+- **DEFERRED (user): property-based tests (fast-check)** — not now.
 - 9 spec-corner suite cases (`yaml` also fails) — genuine non-goals.
 
 ## Known bugs (pre-existing, to fix in a cleanup / adversarial pass)
