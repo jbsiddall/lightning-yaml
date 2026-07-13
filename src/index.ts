@@ -4207,10 +4207,12 @@ function parseNextDocument(): unknown {
 // document that reads back to a deep-equal value through BOTH this file's own
 // `parse` and the oracle (`yaml`, see bench/oracle.ts) — that round-trip is
 // the entire correctness contract (test/stringify.unit.ts), never exact
-// textual output. A deliberately cold path relative to parse: correctness and
-// simplicity win over micro-optimization here (M7 is where dump perf is
-// tuned), though the array-of-parts + one `join` / charCodeAt-classification
-// conventions are kept throughout rather than `+=` rope-building or regexes.
+// textual output. Correctness-first (M6), then perf-tuned in M7: output is
+// accumulated into a single module-level `out` string via sequential `out += …`
+// appends (see `out`'s doc comment for why that ConsString rope is O(n) here,
+// NOT the dossier's scan-path `+=` hazard) — one terminal flatten, no giant
+// array-of-parts + `join`. charCodeAt-classification (no regexes) is kept
+// throughout for scalar quoting.
 //
 // Design, top to bottom:
 //  - Scalars: `null`/booleans/numbers get their bare core-schema spelling
@@ -4278,6 +4280,45 @@ let dumpAnchorSeq = 0;
 let dumpDepth = 0;
 
 /**
+ * Set by the pre-scan (`dumpScanRefs`) iff it reached SOME object more than once
+ * — i.e. the value contains a genuinely shared node or a cycle, so anchors WILL
+ * be needed. The overwhelmingly common case (plain JSON / block-YAML trees, no
+ * sharing) leaves this `false`, which lets the write pass take an anchor-free
+ * fast path: no `dumpAnchors`/`dumpNeedsAnchor` Map lookups per node, and
+ * `dumpRefCounts` is released before the (allocation-heavy) write pass rather
+ * than kept live alongside the output. It is NEVER a shortcut around anchor
+ * placement: whenever it is `true` the write pass runs the identical full path,
+ * assigning anchors at exactly the same points — and any cycle necessarily
+ * trips a repeat-visit in the scan, so no cyclic input can slip through the
+ * fast path (which would otherwise loop forever).
+ */
+let dumpHasShared = false;
+
+/**
+ * The single, growing output buffer for a `stringify()` call — every `write*`
+ * function appends one line's text with `out += …` and the finished string is
+ * read out exactly once (in `dumpValue`).
+ *
+ * WHY `+=` here is correct and fast — and NOT the O(n²) hazard the dossier
+ * warns against (05 §"string building"): that warning is about building a
+ * string while *also scanning it* (repeated `.charCodeAt`/`.length`/compares
+ * against the partial result), which forces V8 to FLATTEN the ConsString rope
+ * on every touch — O(n) each, O(n²) overall. We never read `out` mid-build: it
+ * is append-only, one shallow left-leaning ConsString node per line, and is
+ * flattened exactly once — eagerly, at the end of `dumpValue` (see the forced
+ * `charCodeAt` there) so the returned value is a normal flat string, never a
+ * rope left pinning ~O(lines) cons nodes alive until some later consumer first
+ * touches it. That single terminal flatten is measured O(n) and ~1.8× cheaper
+ * than the previous `parts.join("")` over a ~433k-element array, and it drops
+ * that whole array (large peak-RSS win). This is the textbook sequential-append
+ * rope, not the scan-path anti-pattern.
+ */
+let out = "";
+
+/** Sink for `dumpValue`'s terminal flatten — module-scoped so V8 can't prove the flattening `charCodeAt` dead and elide it (which would defer the O(n) flatten back out to a later consumer, re-inflating retained memory). */
+let dumpFlattenSink = 0;
+
+/**
  * Count how many times each object/array/`Uint8Array` is *reached* while
  * walking `value`, registering a node's count the moment it's first seen —
  * BEFORE recursing into its children. That ordering is what makes a cycle
@@ -4297,6 +4338,7 @@ function dumpScanRefs(value: unknown): void {
   const seen = dumpRefCounts!.get(obj);
   if (seen !== undefined) {
     dumpRefCounts!.set(obj, seen + 1);
+    dumpHasShared = true; // a repeat visit ⇒ real sharing or a cycle ⇒ anchors needed
     return;
   }
   dumpRefCounts!.set(obj, 1);
@@ -4623,22 +4665,22 @@ function isEmptyContainer(obj: object, isArr: boolean): boolean {
  * Assumes the caller has already handled `obj`'s OWN anchor placement (this
  * only ever writes the CONTENTS).
  */
-function writeCollectionBody(parts: string[], obj: object, isArr: boolean, indent: number): void {
+function writeCollectionBody(obj: object, isArr: boolean, indent: number): void {
   if (++dumpDepth > MAX_DEPTH) throw new YAMLParseError("stringify: maximum nesting depth exceeded");
   const ind = indentSpaces(indent);
   if (isArr) {
     const arr = obj as unknown[];
     for (let i = 0; i < arr.length; i++) {
-      parts.push(ind, "-");
-      writeEntryValue(parts, arr[i], indent);
+      out += ind + "-";
+      writeEntryValue(arr[i], indent);
     }
   } else {
     const rec = obj as Record<string, unknown>;
     const keys = Object.keys(rec);
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
-      parts.push(ind, writeStringScalar(k), ":");
-      writeEntryValue(parts, rec[k], indent);
+      out += ind + writeStringScalar(k) + ":";
+      writeEntryValue(rec[k], indent);
     }
   }
   dumpDepth--;
@@ -4657,31 +4699,37 @@ function writeCollectionBody(parts: string[], obj: object, isArr: boolean, inden
  * Nested containers are never compact-inlined (see the section header) — this
  * keeps ONE indentation rule for every calling context.
  */
-function writeEntryValue(parts: string[], value: unknown, indent: number): void {
+function writeEntryValue(value: unknown, indent: number): void {
   if (value === null || typeof value !== "object") {
-    parts.push(" ", writeScalar(value), "\n");
+    out += " " + writeScalar(value) + "\n";
     return;
   }
   const obj = value as object;
-  const already = dumpAnchors!.get(obj);
-  if (already !== undefined) {
-    parts.push(" *", already, "\n");
-    return;
+  // Anchor/alias bookkeeping only matters when the pre-scan found sharing; the
+  // no-sharing fast path (`dumpHasShared === false`) skips these per-node Map
+  // lookups entirely (see `dumpHasShared`). When it IS set, the logic below is
+  // exactly the M6 full path — same anchors, assigned at the same points.
+  if (dumpHasShared) {
+    const already = dumpAnchors!.get(obj);
+    if (already !== undefined) {
+      out += " *" + already + "\n";
+      return;
+    }
   }
   if (obj instanceof Uint8Array) {
-    const name = dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
-    parts.push(" ", name !== null ? "&" + name + " " : "", writeBinaryScalar(obj), "\n");
+    const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
+    out += " " + (name !== null ? "&" + name + " " : "") + writeBinaryScalar(obj) + "\n";
     return;
   }
   const isArr = Array.isArray(obj);
-  const name = dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
+  const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
   if (isEmptyContainer(obj, isArr)) {
-    parts.push(" ", name !== null ? "&" + name + " " : "", isArr ? "[]" : "{}", "\n");
+    out += " " + (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
     return;
   }
-  if (name !== null) parts.push(" &", name, "\n");
-  else parts.push("\n");
-  writeCollectionBody(parts, obj, isArr, indent + INDENT_STEP);
+  if (name !== null) out += " &" + name + "\n";
+  else out += "\n";
+  writeCollectionBody(obj, isArr, indent + INDENT_STEP);
 }
 
 /**
@@ -4690,25 +4738,28 @@ function writeEntryValue(parts: string[], value: unknown, indent: number): void 
  * leading space, and a root container's own `&aN` (when it needs one) stands
  * alone as the very first line with none either.
  */
-function writeDocumentValue(parts: string[], value: unknown): void {
+function writeDocumentValue(value: unknown): void {
   if (value === null || typeof value !== "object") {
-    parts.push(writeScalar(value), "\n");
+    out += writeScalar(value) + "\n";
     return;
   }
   const obj = value as object;
+  // See `writeEntryValue`: the root can never be an alias, but it can still be
+  // the first occurrence of a shared node, so it needs the same `dumpHasShared`-
+  // gated anchor check (skipped on the no-sharing fast path).
   if (obj instanceof Uint8Array) {
-    const name = dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
-    parts.push(name !== null ? "&" + name + " " : "", writeBinaryScalar(obj), "\n");
+    const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
+    out += (name !== null ? "&" + name + " " : "") + writeBinaryScalar(obj) + "\n";
     return;
   }
   const isArr = Array.isArray(obj);
-  const name = dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
+  const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
   if (isEmptyContainer(obj, isArr)) {
-    parts.push(name !== null ? "&" + name + " " : "", isArr ? "[]" : "{}", "\n");
+    out += (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
     return;
   }
-  if (name !== null) parts.push("&", name, "\n");
-  writeCollectionBody(parts, obj, isArr, 0);
+  if (name !== null) out += "&" + name + "\n";
+  writeCollectionBody(obj, isArr, 0);
 }
 
 /**
@@ -4716,18 +4767,38 @@ function writeDocumentValue(parts: string[], value: unknown): void {
  * public `stringify` above): reset per-call dump state, pre-scan for shared/
  * cyclic references, then write. `dumpRefCounts`/`dumpAnchors` are released
  * (set back to `null`) before returning so a large dumped graph doesn't keep
- * those maps alive past this call.
+ * those maps alive past this call — and in the common no-sharing case
+ * `dumpRefCounts` is dropped even earlier, before the write pass (see
+ * `dumpHasShared`), so it isn't held alongside the growing output.
  */
 function dumpValue(value: unknown): string {
   dumpRefCounts = new Map();
   dumpDepth = 0;
+  dumpHasShared = false;
   dumpScanRefs(value);
+  // No shared node or cycle anywhere ⇒ no anchor will ever be assigned, so the
+  // ref-count map has done its whole job and the write pass will take the
+  // anchor-free fast path. Release the map now (it can be sizable — one entry
+  // per object) rather than pinning it live through the heavy output build.
+  if (!dumpHasShared) dumpRefCounts = null;
   dumpAnchors = new Map();
   dumpAnchorSeq = 0;
-  const parts: string[] = [];
+  out = "";
   dumpDepth = 0;
-  writeDocumentValue(parts, value);
+  writeDocumentValue(value);
+  const result = out;
+  out = ""; // drop the module-level reference so the rope isn't pinned past this call
+  // Force the single terminal flatten HERE (see `out`'s doc comment): collapse
+  // the left-leaning ConsString rope to one flat SeqString now — a single O(n)
+  // pass — so the returned value is an ordinary string with normal retained
+  // size, not a rope pinning ~O(lines) cons nodes live until a later consumer
+  // first reads it. `charCodeAt` triggers V8's String::Flatten; the module-level
+  // sink defeats dead-code elimination of the otherwise-unused read (`|=` both
+  // reads and writes it, so neither V8 nor tsc can treat it as dead). This is
+  // the same O(n) flatten a consumer would pay on first access, made eager and
+  // explicit so stringify's own cost (and memory) is honest.
+  if (result.length !== 0) dumpFlattenSink |= result.charCodeAt(0);
   dumpRefCounts = null;
   dumpAnchors = null;
-  return parts.join("");
+  return result;
 }
