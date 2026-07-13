@@ -5,6 +5,7 @@
 import ParseTrace from './ParseTrace.astro';
 import Stats from './Stats.astro';
 import Features from './Features.astro';
+import Priorities from './Priorities.astro';
 ---
 
 <div class="landing">
@@ -25,7 +26,7 @@ import Features from './Features.astro';
 
       <div class="cta">
         <a class="btn" href="/guides/getting-started/">Get started</a>
-        <code class="install"><span class="install__prompt" aria-hidden="true">$ </span>npm i lightning-yaml</code>
+        <code class="install"><span class="install__prompt" aria-hidden="true">$ </span>pnpm add lightning-yaml</code>
         <a class="seebench" href="/benchmarks/">See the benchmarks&nbsp;→</a>
       </div>
 
@@ -37,6 +38,7 @@ import Features from './Features.astro';
 
   <Stats />
   <Features />
+  <Priorities />
 </div>
 
 <style>
@@ -238,5 +240,12 @@ import Features from './Features.astro';
     > .content-panel:has(#_top)
     + .content-panel {
     border-top: 0;
+  }
+
+  /* Home page is theme-locked to dark (see the inline script in index.mdx's
+     frontmatter `head`) — the light/dark toggle would be a lie, so hide it
+     here only. The rest of the site keeps its normal toggle. */
+  html:not([data-has-sidebar]):not([data-has-hero]) starlight-theme-select {
+    display: none;
   }
 </style>

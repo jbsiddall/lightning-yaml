@@ -16,7 +16,7 @@ the numbers.
 ## Install
 
 ```sh
-npm i lightning-yaml
+pnpm add lightning-yaml
 ```
 
 ## Your first parse
