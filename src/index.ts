@@ -7,15 +7,19 @@
  *                       document follows, like js-yaml's `load`)
  *   - `parseAll(text)`  text → array of document values — a real multi-document
  *                       stream, split on `---`/`...` markers
- *   - `stringify(value)` — the dumper is a later milestone; still a stub.
+ *   - `stringify(value)` value → YAML text (M6): block-style maps/sequences,
+ *                       1.2-core-safe scalar quoting, `Uint8Array` → `!!binary`,
+ *                       and anchors/aliases for shared references and cycles —
+ *                       see the "Stringify (dump)" section near the end of this
+ *                       file for the design.
  *
  * Implementation status: the flow layer (JSON subset + YAML flow), block
  * structure (M3+), literal/folded block scalars (`|`/`>`, M4), document
  * markers (`---`/`...`), `%YAML`/`%TAG` directives, multi-document streams,
- * and now anchors/aliases (`&`/`*`, M5 — including self-referential/cyclic
- * anchors and structural sharing) are implemented. The remaining rich surface
- * — tags (`!!binary` and friends) and merge keys — is not here yet and throws
- * a controlled parse error (or is read as plain text) rather than mis-parsing.
+ * anchors/aliases (`&`/`*`, M5 — including self-referential/cyclic anchors and
+ * structural sharing), tags (`!!binary` and friends), and `stringify` (M6) are
+ * implemented. Merge keys (`<<`) are not here yet and throw a controlled parse
+ * error (or are read as plain text) rather than mis-parsing.
  *
  * Design invariants enforced throughout (V8 rules, see doc 12):
  *   - scan the flat JS string with `charCodeAt` (never `str[i]`) and hop long
@@ -483,9 +487,14 @@ export function parseAll(text: string): unknown[] {
   return docs;
 }
 
-/** Serialize a JS value into a YAML document. Not implemented yet (a later milestone). */
-export function stringify(_value: unknown): string {
-  throw new NotImplementedError("stringify");
+/**
+ * Serialize a JS value into a YAML document (M6). See the "Stringify (dump)"
+ * section near the end of this file for the design (scalar quoting,
+ * `Uint8Array` → `!!binary`, anchors/aliases for shared references and
+ * cycles, block-style collections).
+ */
+export function stringify(value: unknown): string {
+  return dumpValue(value);
 }
 
 // ---------------------------------------------------------------------------
@@ -4040,4 +4049,534 @@ function parseNextDocument(): unknown {
     bareDocAllowed = false;
   }
   return value;
+}
+
+// ===========================================================================
+// Stringify (dump) — M6. The inverse of the parser above: a JS value → a YAML
+// document that reads back to a deep-equal value through BOTH this file's own
+// `parse` and the oracle (`yaml`, see bench/oracle.ts) — that round-trip is
+// the entire correctness contract (test/stringify.unit.ts), never exact
+// textual output. A deliberately cold path relative to parse: correctness and
+// simplicity win over micro-optimization here (M7 is where dump perf is
+// tuned), though the array-of-parts + one `join` / charCodeAt-classification
+// conventions are kept throughout rather than `+=` rope-building or regexes.
+//
+// Design, top to bottom:
+//  - Scalars: `null`/booleans/numbers get their bare core-schema spelling
+//    (`.inf`/`-.inf`/`.nan`/`-0` handled explicitly; every other number is
+//    JS's own round-trip-exact `String()`, which already matches the
+//    core-schema int/float grammar `tryNumber`/`tryNumberGeneric` parse).
+//    Strings are written BARE only when doing so re-parses to the exact same
+//    string (`isPlainScalarSafe` — the mirror image of `resolvePlain`'s
+//    typing dispatch); otherwise single-quoted (cheap: only `'` needs
+//    escaping) unless a control character forces the escape-capable
+//    double-quoted style.
+//  - `Uint8Array` → `!!binary <base64>`: always safe BARE (the base64
+//    alphabet contains no YAML indicator/space/`:`/`#`, and the explicit tag
+//    overrides implicit typing regardless of what the text looks like) except
+//    the empty (0-byte) case, which needs an empty QUOTED scalar since a bare
+//    plain scalar can't be empty.
+//  - Shared references and cycles: a reference-counting PRE-SCAN
+//    (`dumpScanRefs`) walks the value once, registering each object/array/
+//    `Uint8Array` the moment it's first reached (BEFORE recursing into its
+//    children — the same register-before-children discipline `parse` uses for
+//    anchors, see `registerPendingAnchor`'s doc comment) so a cycle's back-edge
+//    is recognized as "already seen" instead of looping forever. Anything
+//    reached more than once — genuinely shared, or sitting on a cycle — gets
+//    an anchor; everything else gets none. The WRITE pass mirrors this: the
+//    first time a flagged node is actually written, it is assigned a fresh
+//    `&aN` name and registered immediately (again, before recursing into its
+//    children), so a cyclic back-edge reached during that very recursion finds
+//    the anchor already there and emits `*aN` instead of re-descending —
+//    exactly what keeps the heavily-shared and diamond-DAG stress cases linear
+//    rather than exponential.
+//  - Collections: block style for every nonempty map/array; `{}`/`[]` (flow)
+//    for empties, since block style has no way to spell zero entries. A
+//    nested container is NEVER compact-inlined (no `- key: value` first-line
+//    packing): it is always DEFERRED to a following line at
+//    `indent + INDENT_STEP`. This costs a little vertical space but gives
+//    every context (root value, map value, sequence item) the exact same
+//    "indent one step deeper" rule, including where an anchor line must sit
+//    alone (`key: &aN` / `- &aN`, nothing else on that line) — the same
+//    placement `parse`'s `parseAnchoredBlockNode` requires to attribute the
+//    anchor to the CONTAINER rather than to whatever scalar happens to follow
+//    it on the same line (see that function's doc comment for the same-line-
+//    vs-deferred distinction this design sidesteps entirely by always
+//    deferring). Object key order is preserved (a plain `Object.keys` walk);
+//    keys are quoted by the identical scalar rules as values.
+// ===========================================================================
+
+const INDENT_STEP = 2;
+
+/** Cached "N spaces" strings — indentation only ever grows by INDENT_STEP per nesting level, so this amortizes to O(1) amortized per line rather than a fresh `repeat` every time. */
+const INDENT_CACHE: string[] = [""];
+
+function indentSpaces(n: number): string {
+  for (let i = INDENT_CACHE.length; i <= n; i++) INDENT_CACHE.push(INDENT_CACHE[i - 1] + " ");
+  return INDENT_CACHE[n];
+}
+
+// ---------------------------------------------------------------------------
+// Reference-counting pre-scan + anchor bookkeeping.
+// ---------------------------------------------------------------------------
+
+/** Per-`stringify()` call state (reset in `dumpValue`; non-reentrant, matching the parser's own module-level-state discipline — see its state block near the top of this file). */
+let dumpRefCounts: Map<object, number> | null = null;
+let dumpAnchors: Map<object, string> | null = null;
+let dumpAnchorSeq = 0;
+let dumpDepth = 0;
+
+/**
+ * Count how many times each object/array/`Uint8Array` is *reached* while
+ * walking `value`, registering a node's count the moment it's first seen —
+ * BEFORE recursing into its children. That ordering is what makes a cycle
+ * terminate: the second (or later) visit to an already-registered node finds
+ * it already in the map and returns immediately without descending again, so
+ * a self-referential/cyclic structure is walked exactly once per node instead
+ * of infinitely. A final count > 1 means "reached from >= 2 places" — true
+ * of both an honestly-shared node and one sitting on a cycle (its own
+ * descendant re-reaches it) — either way it needs an anchor; a count of
+ * exactly 1 needs none. Depth-guarded like every recursive parser construct
+ * (`MAX_DEPTH`), so a pathologically deep (not merely wide) input fails
+ * cleanly here rather than blowing the native call stack.
+ */
+function dumpScanRefs(value: unknown): void {
+  if (value === null || typeof value !== "object") return;
+  const obj = value as object;
+  const seen = dumpRefCounts!.get(obj);
+  if (seen !== undefined) {
+    dumpRefCounts!.set(obj, seen + 1);
+    return;
+  }
+  dumpRefCounts!.set(obj, 1);
+  if (obj instanceof Uint8Array) return; // leaf content, no children to scan
+  if (++dumpDepth > MAX_DEPTH) throw new YAMLParseError("stringify: maximum nesting depth exceeded");
+  if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) dumpScanRefs(obj[i]);
+  } else {
+    const keys = Object.keys(obj as Record<string, unknown>);
+    for (let i = 0; i < keys.length; i++) dumpScanRefs((obj as Record<string, unknown>)[keys[i]]);
+  }
+  dumpDepth--;
+}
+
+/** Whether `obj` was reached more than once during the pre-scan (see `dumpScanRefs`) and therefore needs an anchor. */
+function dumpNeedsAnchor(obj: object): boolean {
+  return (dumpRefCounts!.get(obj) ?? 0) > 1;
+}
+
+/**
+ * Assign `obj` a fresh anchor name and register it immediately — callers MUST
+ * do this BEFORE recursing into `obj`'s own children (mirroring `parse`'s
+ * register-before-children discipline), so that a cyclic back-edge reached
+ * during that recursion finds the anchor already assigned and emits an alias
+ * instead of writing `obj` all over again.
+ */
+function dumpAssignAnchor(obj: object): string {
+  const name = "a" + ++dumpAnchorSeq;
+  dumpAnchors!.set(obj, name);
+  return name;
+}
+
+// ---------------------------------------------------------------------------
+// Scalar quoting — the exact inverse of `resolvePlain`'s typing dispatch: a
+// plain (bare) scalar is only ever emitted when it is guaranteed to re-parse
+// as the identical string.
+// ---------------------------------------------------------------------------
+
+/**
+ * Leading characters that would change a plain scalar's meaning if left
+ * unquoted (spec c-indicator: `- ? : , [ ] { } # & * ! | > ' " % @ \``` `` —
+ * `~` is deliberately excluded here since it is only special on an EXACT `~`
+ * match, handled by `looksLikeTypedScalar` instead, not merely as a leading
+ * character (`~foo` is an ordinary safe plain scalar).
+ */
+function isPlainLeadingIndicator(c: number): boolean {
+  switch (c) {
+    case MINUS:
+    case QUESTION:
+    case COLON:
+    case COMMA:
+    case LBRACKET:
+    case RBRACKET:
+    case LBRACE:
+    case RBRACE:
+    case HASH:
+    case AMP:
+    case STAR:
+    case EXCLAIM:
+    case PIPE:
+    case GT:
+    case SQUOTE:
+    case DQUOTE:
+    case PERCENT:
+    case AT:
+    case BACKTICK:
+      return true;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Whether `s`, written bare, would be re-typed as null/bool/number instead of
+ * staying the literal string it is — mirrors `resolvePlain`'s null/bool word
+ * dispatch exactly, and reuses `tryNumberGeneric` (the same core-schema
+ * int/float/`.inf`/`.nan` grammar `!!int`/`!!float` validate tag content
+ * against) rather than re-deriving the number grammar a third time.
+ */
+function looksLikeTypedScalar(s: string): boolean {
+  switch (s) {
+    case "~":
+    case "null":
+    case "Null":
+    case "NULL":
+    case "true":
+    case "True":
+    case "TRUE":
+    case "false":
+    case "False":
+    case "FALSE":
+      return true;
+    default:
+      return tryNumberGeneric(s) !== NOT_NUMERIC;
+  }
+}
+
+/**
+ * Whether `s` may be written as a bare plain scalar and re-parse to the exact
+ * same string under 1.2 core. Disqualified by: being empty; a leading or
+ * trailing space; a leading indicator character; ANY control character
+ * anywhere (never legal in a plain scalar, regardless of position — simpler
+ * and safer than reasoning about which positions are actually reachable); an
+ * interior `": "` (mapping separator) or `" #"` (comment) span; a trailing
+ * `:` (ambiguous with a separator once nothing follows); or content that
+ * would resolve to null/bool/number rather than staying a string.
+ */
+function isPlainScalarSafe(s: string): boolean {
+  const n = s.length;
+  if (n === 0) return false;
+  const c0 = s.charCodeAt(0);
+  if (c0 === SPACE || isPlainLeadingIndicator(c0)) return false;
+  const cLast = s.charCodeAt(n - 1);
+  if (cLast === SPACE || cLast === COLON) return false;
+  for (let i = 0; i < n; i++) {
+    const c = s.charCodeAt(i);
+    if (c < 0x20 || c === 0x7f) return false;
+    if (c === COLON && i + 1 < n && s.charCodeAt(i + 1) === SPACE) return false;
+    if (c === SPACE && i + 1 < n && s.charCodeAt(i + 1) === HASH) return false;
+  }
+  return !looksLikeTypedScalar(s);
+}
+
+/** Whether `s` needs the escape-capable double-quoted style: single-quoted YAML has no escape mechanism (besides doubling `'`), so a control character can only be represented via `\xNN`/named double-quote escapes. */
+function needsDoubleQuoting(s: string): boolean {
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c < 0x20 || c === 0x7f) return true;
+  }
+  return false;
+}
+
+/** `'`-quote `s`, doubling any embedded `'` — single-quoted YAML's only escape, and the only character that needs one here. */
+function encodeSingleQuoted(s: string): string {
+  const parts: string[] = ["'"];
+  let seg = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) === SQUOTE) {
+      parts.push(s.slice(seg, i), "''");
+      seg = i + 1;
+    }
+  }
+  parts.push(s.slice(seg), "'");
+  return parts.join("");
+}
+
+/** `\xNN` escape (uppercase hex, zero-padded to 2 digits) for a control character with no shorter named escape. */
+function hexEscape(c: number): string {
+  const hex = c.toString(16).toUpperCase();
+  return hex.length < 2 ? "\\x0" + hex : "\\x" + hex;
+}
+
+/**
+ * `"`-quote `s` with the minimal necessary escape set: `\` and `"` always;
+ * control characters via a named escape where double-quoted YAML has one
+ * (mirroring the parser's own decode table in `parseDoubleQuotedSlow`, in
+ * reverse), else `\xNN`. Everything else — including unicode/astral text,
+ * copied through verbatim as its underlying UTF-16 code units — needs no
+ * escaping at all in a double-quoted scalar.
+ */
+function encodeDoubleQuoted(s: string): string {
+  const parts: string[] = ['"'];
+  let seg = 0;
+  const n = s.length;
+  for (let i = 0; i < n; i++) {
+    const c = s.charCodeAt(i);
+    let esc: string | null = null;
+    switch (c) {
+      case BACKSLASH:
+        esc = "\\\\";
+        break;
+      case DQUOTE:
+        esc = '\\"';
+        break;
+      case 0:
+        esc = "\\0";
+        break;
+      case 7:
+        esc = "\\a";
+        break;
+      case 8:
+        esc = "\\b";
+        break;
+      case 9:
+        esc = "\\t";
+        break;
+      case 10:
+        esc = "\\n";
+        break;
+      case 11:
+        esc = "\\v";
+        break;
+      case 12:
+        esc = "\\f";
+        break;
+      case 13:
+        esc = "\\r";
+        break;
+      case 0x1b:
+        esc = "\\e";
+        break;
+      default:
+        if (c < 0x20 || c === 0x7f) esc = hexEscape(c);
+    }
+    if (esc !== null) {
+      if (i > seg) parts.push(s.slice(seg, i));
+      parts.push(esc);
+      seg = i + 1;
+    }
+  }
+  parts.push(s.slice(seg), '"');
+  return parts.join("");
+}
+
+/**
+ * Render a string as a scalar: bare when safe, else the cheapest quoting
+ * style that round-trips it exactly. Shared by ordinary string VALUES and by
+ * map KEYS — both follow the identical 1.2-core scalar rules, so there is no
+ * separate "key" quoting function.
+ */
+function writeStringScalar(s: string): string {
+  if (isPlainScalarSafe(s)) return s;
+  return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+}
+
+// ---------------------------------------------------------------------------
+// Numbers.
+// ---------------------------------------------------------------------------
+
+/**
+ * `NaN`/`Infinity`/`-Infinity`/`-0` get their core-schema spelling; every
+ * other number uses JS's own `String()`, which — by the ECMA-262 Number-to-
+ * String contract — always produces the shortest decimal (or exponential,
+ * for very large/small magnitudes) text that reads back to the identical
+ * double via `Number()`. That is exactly what `tryNumber`/`tryNumberGeneric`
+ * (this file) and the oracle's own core-schema float/int grammar do to parse
+ * it back, so no special-casing is needed for big integers, subnormals, or
+ * exponential notation — verified empirically against the oracle for every
+ * case in `basicScalars` (see the commit message for the probe transcript).
+ */
+function formatNumber(v: number): string {
+  if (Number.isNaN(v)) return ".nan";
+  if (v === Infinity) return ".inf";
+  if (v === -Infinity) return "-.inf";
+  if (Object.is(v, -0)) return "-0";
+  return String(v);
+}
+
+/**
+ * Render any scalar-shaped value (including `null`/`undefined`, though only
+ * `null` is in the tested data model — `undefined` is mapped the same way as
+ * a defensive fallback rather than crashing on a plausible-but-untested input)
+ * as inline text, with no surrounding quoting/anchor decoration — the callers
+ * below add that.
+ */
+function writeScalar(value: unknown): string {
+  if (value === null || value === undefined) return "null";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") return formatNumber(value);
+  if (typeof value === "string") return writeStringScalar(value);
+  return writeStringScalar(String(value)); // not in the tested data model (e.g. bigint/symbol) — best effort
+}
+
+// ---------------------------------------------------------------------------
+// `Uint8Array` → `!!binary`.
+// ---------------------------------------------------------------------------
+
+const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/** Standard base64 with `=` padding — the exact forward counterpart of `decodeBinary`'s `BASE64_INV` table. */
+function encodeBase64(bytes: Uint8Array): string {
+  const n = bytes.length;
+  if (n === 0) return "";
+  const parts: string[] = [];
+  let i = 0;
+  for (; i + 3 <= n; i += 3) {
+    const triple = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+    parts.push(
+      BASE64_ALPHABET[(triple >> 18) & 0x3f],
+      BASE64_ALPHABET[(triple >> 12) & 0x3f],
+      BASE64_ALPHABET[(triple >> 6) & 0x3f],
+      BASE64_ALPHABET[triple & 0x3f],
+    );
+  }
+  const rem = n - i;
+  if (rem === 1) {
+    const triple = bytes[i] << 16;
+    parts.push(BASE64_ALPHABET[(triple >> 18) & 0x3f], BASE64_ALPHABET[(triple >> 12) & 0x3f], "=", "=");
+  } else if (rem === 2) {
+    const triple = (bytes[i] << 16) | (bytes[i + 1] << 8);
+    parts.push(BASE64_ALPHABET[(triple >> 18) & 0x3f], BASE64_ALPHABET[(triple >> 12) & 0x3f], BASE64_ALPHABET[(triple >> 6) & 0x3f], "=");
+  }
+  return parts.join("");
+}
+
+/**
+ * `!!binary <base64>` — the base64 payload is always safe BARE (unquoted):
+ * its alphabet (`A-Za-z0-9+/=`) contains no leading-indicator character, no
+ * space, and no `:`/`#`, so the plain-scalar SCAN never misreads it — and any
+ * coincidental resemblance to null/bool/a number is irrelevant, since the
+ * explicit `!!binary` tag overrides implicit typing entirely (`applyScalarTag`
+ * decodes the tag's raw text directly, never through `resolvePlain`). Only
+ * the empty (0-byte) case needs quoting, since an empty plain scalar isn't
+ * legal at all.
+ */
+function writeBinaryScalar(bytes: Uint8Array): string {
+  const b64 = encodeBase64(bytes);
+  return b64.length === 0 ? '!!binary ""' : "!!binary " + b64;
+}
+
+// ---------------------------------------------------------------------------
+// Collections — block style for nonempty maps/arrays, flow `{}`/`[]` for
+// empties. A nested container is always DEFERRED to a following, deeper-
+// indented line (see the section header for why); see `writeEntryValue` for
+// where an anchor gets assigned and its `&aN`/`*aN` text emitted.
+// ---------------------------------------------------------------------------
+
+function isEmptyContainer(obj: object, isArr: boolean): boolean {
+  return isArr ? (obj as unknown[]).length === 0 : Object.keys(obj as Record<string, unknown>).length === 0;
+}
+
+/**
+ * Write a nonempty map's/array's entries, one per line, at column `indent`.
+ * Assumes the caller has already handled `obj`'s OWN anchor placement (this
+ * only ever writes the CONTENTS).
+ */
+function writeCollectionBody(parts: string[], obj: object, isArr: boolean, indent: number): void {
+  if (++dumpDepth > MAX_DEPTH) throw new YAMLParseError("stringify: maximum nesting depth exceeded");
+  const ind = indentSpaces(indent);
+  if (isArr) {
+    const arr = obj as unknown[];
+    for (let i = 0; i < arr.length; i++) {
+      parts.push(ind, "-");
+      writeEntryValue(parts, arr[i], indent);
+    }
+  } else {
+    const rec = obj as Record<string, unknown>;
+    const keys = Object.keys(rec);
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      parts.push(ind, writeStringScalar(k), ":");
+      writeEntryValue(parts, rec[k], indent);
+    }
+  }
+  dumpDepth--;
+}
+
+/**
+ * Write whatever follows an already-emitted `key:` or `-` token on the
+ * current line, ending with the newline(s) that close out this entry:
+ *  - a scalar, an alias to an already-anchored node, an empty container, or a
+ *    `!!binary` scalar — all inline, on this same line;
+ *  - a nonempty map/array — deferred: `\n` (optionally preceded by ` &aN` when
+ *    this is the node's first occurrence and it needs an anchor — assigned
+ *    and registered HERE, before recursing, so a cyclic back-edge inside that
+ *    recursion sees it already registered) followed by its entries at
+ *    `indent + INDENT_STEP`.
+ * Nested containers are never compact-inlined (see the section header) — this
+ * keeps ONE indentation rule for every calling context.
+ */
+function writeEntryValue(parts: string[], value: unknown, indent: number): void {
+  if (value === null || typeof value !== "object") {
+    parts.push(" ", writeScalar(value), "\n");
+    return;
+  }
+  const obj = value as object;
+  const already = dumpAnchors!.get(obj);
+  if (already !== undefined) {
+    parts.push(" *", already, "\n");
+    return;
+  }
+  if (obj instanceof Uint8Array) {
+    const name = dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
+    parts.push(" ", name !== null ? "&" + name + " " : "", writeBinaryScalar(obj), "\n");
+    return;
+  }
+  const isArr = Array.isArray(obj);
+  const name = dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
+  if (isEmptyContainer(obj, isArr)) {
+    parts.push(" ", name !== null ? "&" + name + " " : "", isArr ? "[]" : "{}", "\n");
+    return;
+  }
+  if (name !== null) parts.push(" &", name, "\n");
+  else parts.push("\n");
+  writeCollectionBody(parts, obj, isArr, indent + INDENT_STEP);
+}
+
+/**
+ * The root document value — like `writeEntryValue`, but with no preceding
+ * `key:`/`-` token: an inline scalar/empty-container/`!!binary` needs no
+ * leading space, and a root container's own `&aN` (when it needs one) stands
+ * alone as the very first line with none either.
+ */
+function writeDocumentValue(parts: string[], value: unknown): void {
+  if (value === null || typeof value !== "object") {
+    parts.push(writeScalar(value), "\n");
+    return;
+  }
+  const obj = value as object;
+  if (obj instanceof Uint8Array) {
+    const name = dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
+    parts.push(name !== null ? "&" + name + " " : "", writeBinaryScalar(obj), "\n");
+    return;
+  }
+  const isArr = Array.isArray(obj);
+  const name = dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
+  if (isEmptyContainer(obj, isArr)) {
+    parts.push(name !== null ? "&" + name + " " : "", isArr ? "[]" : "{}", "\n");
+    return;
+  }
+  if (name !== null) parts.push("&", name, "\n");
+  writeCollectionBody(parts, obj, isArr, 0);
+}
+
+/**
+ * Serialize `value` into a YAML document (the implementation behind the
+ * public `stringify` above): reset per-call dump state, pre-scan for shared/
+ * cyclic references, then write. `dumpRefCounts`/`dumpAnchors` are released
+ * (set back to `null`) before returning so a large dumped graph doesn't keep
+ * those maps alive past this call.
+ */
+function dumpValue(value: unknown): string {
+  dumpRefCounts = new Map();
+  dumpDepth = 0;
+  dumpScanRefs(value);
+  dumpAnchors = new Map();
+  dumpAnchorSeq = 0;
+  const parts: string[] = [];
+  dumpDepth = 0;
+  writeDocumentValue(parts, value);
+  dumpRefCounts = null;
+  dumpAnchors = null;
+  return parts.join("");
 }
