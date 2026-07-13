@@ -304,18 +304,23 @@ NOTE: all of the above (incl. the schema-1.1 finding) was measured against js-ya
 
 ## Deviations / skipped spec-corners
 
-Two **intentional divergences** from the `yaml` oracle, found in the adversarial pass
-(below), documented in `docs/research/13-adversarial-torture-tests.md` and locked by
+Correctness authority = the **YAML 1.2 spec** (via the spec-derived yaml-test-suite);
+the `yaml` implementation is a differential aid, not the definition of correct.
+Documented in `docs/research/13-adversarial-torture-tests.md`, locked by
 `test/adversarial.unit.ts`:
 
-- **Duplicate keys → last-wins** (`{lang:Y}`), not an error. Follows `JSON.parse`
-  (the library's north star); the oracle rejects. Security-relevant differential
-  (CVE-2017-12635 class) — adopters needing strict rejection validate upstream.
-- **Non-scalar key in a *flow* mapping** (`{[1,2]: v}`) → controlled `YAMLParseError`.
-  The *block* form (`? [a,b]`) IS supported; the flow form is spec-valid but absent
-  from the whole yaml-test-suite and only representable as a lossy string, so a clean
-  throw is the pinned behaviour (a `parseFlowKey` `[`/`{` dispatch reusing
-  `stringifyKeyNode` would close it if an adopter needs it).
+- **Duplicate keys → last-wins** (`{lang:Y}`) — our ONE deliberate deviation *from
+  spec*. Spec says keys are unique (duplicate = error); we follow `JSON.parse` (the
+  library's north star). Security-relevant differential (CVE-2017-12635 class);
+  adopters needing strict rejection validate upstream (a future opt-in strict mode
+  could reject).
+- **Implicit flow collection key** (`{[1,2]: v}`) → controlled `YAMLParseError` is
+  **spec-correct** (yaml-test-suite SBG9/X38W mark it an error), and we accept the
+  valid explicit form `{? [1,2]: v}`. NOT a deviation on our part — the `yaml`
+  implementation is the one that diverges (accepts it, failing SBG9/X38W → 89/91
+  negatives; we pass 91/91). An earlier draft mis-scored this as our limitation by
+  treating that implementation as the oracle — the mistake motivating the shift to
+  spec-as-oracle.
 
 ## Adversarial / torture-test pass (post-target, 2026-07-13)
 

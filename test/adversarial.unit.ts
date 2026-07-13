@@ -8,17 +8,19 @@
  * research, the official yaml-test-suite corners, and real CVEs).
  *
  * Two properties are tracked SEPARATELY (per that research doc):
- *   (a) conformance — `parse` matches the `yaml` oracle wherever we agree; and
+ *   (a) conformance — `parse` matches the YAML 1.2 SPEC (as operationalized by the
+ *       spec-derived yaml-test-suite). The `yaml` implementation is a differential
+ *       aid, not the definition of correct: where it diverges from spec, spec wins.
  *   (b) robustness — malformed bytes only ever raise our declared `YAMLParseError`,
  *       never an uncaught `TypeError`/`RangeError`/stack overflow (the "no
  *       unexpected exception" oracle from the Atheris fuzzing technique).
  *
- * Two behaviours here DELIBERATELY diverge from the oracle; each is locked with a
- * comment citing the rationale so the choice can't silently regress:
- *   - duplicate keys are last-wins (JSON.parse semantics), where the oracle throws;
- *   - a non-scalar key inside a *flow* mapping (`{[1,2]: v}`) is a controlled throw,
- *     where the oracle accepts it with a lossy stringified key. (The *block* form
- *     `? [a, b]` IS supported — see below.)
+ * Two spec-corner behaviours are locked below, each with its rationale:
+ *   - duplicate keys are last-wins (JSON.parse semantics) — our one DELIBERATE
+ *     deviation from spec (the spec, and the `yaml` impl, treat duplicates as error);
+ *   - an IMPLICIT non-scalar key in a *flow* mapping (`{[1,2]: v}`) is a controlled
+ *     throw — which is SPEC-CORRECT (suite SBG9/X38W); the `yaml` impl is the one
+ *     that diverges by accepting it. The explicit `{? [1,2]: v}` form IS accepted.
  *
  * Run: node --import tsx --test test/adversarial.unit.ts
  */
@@ -185,24 +187,32 @@ test("merge: DarkForge four-parser payload does not crash (merge unimplemented)"
 });
 
 // --------------------------------------------------------------------------
-// §4.12 Complex (non-scalar) mapping keys.
-// BLOCK form `? [a, b]` is fully supported and matches the oracle's lossy
-// key-stringification. The FLOW form `{[1,2]: v}` is a KNOWN LIMITATION: we
-// raise a controlled YAMLParseError rather than materialize a lossy key. This
-// construct is spec-valid but absent from the yaml-test-suite; the throw is
-// clean (never a crash) — see the research doc's triage for the rationale.
+// §4.12 Complex (non-scalar) mapping keys — SPEC is the oracle here.
+// A collection used as a key needs the explicit `?` indicator, so the EXPLICIT
+// forms (block `? [a,b]`, flow `{? [1,2]: v}`) are valid and we accept them;
+// the IMPLICIT flow form `{[1,2]: v}` is a spec ERROR — yaml-test-suite SBG9
+// (`{a: [b,c], [d,e]: f}`) and X38W mark it so. We match the spec on both sides.
+// The `yaml` implementation diverges: it accepts the implicit form (which is why
+// it fails SBG9/X38W, 89/91 negatives, while we pass 91/91). So this is NOT our
+// limitation — treating that implementation as the oracle would wrongly flag our
+// correct rejection as a bug.
 // --------------------------------------------------------------------------
 
-test("complex keys: BLOCK form (`? [a,b]` / `? {a:1}`) is supported and oracle-matched", () => {
-  deepStrictEqual(parse("? [a, b]\n: v"), { "[ a, b ]": "v" });
+test("complex keys: EXPLICIT `?` collection key (block + flow) is accepted per spec", () => {
+  deepStrictEqual(parse("? [a, b]\n: v"), { "[ a, b ]": "v" }); // block
   deepStrictEqual(parse("? [a, b]\n: v"), oracleParse("? [a, b]\n: v"));
   deepStrictEqual(parse("? {a: 1}\n: v"), oracleParse("? {a: 1}\n: v"));
+  deepStrictEqual(parse("{? [1, 2]: v}"), { "[ 1, 2 ]": "v" }); // explicit flow
+  deepStrictEqual(parse("{? [1, 2]: v}"), oracleParse("{? [1, 2]: v}"));
 });
 
-test("complex keys: FLOW form (`{[1,2]: v}`) is a controlled throw (known limitation)", () => {
-  throwsBecause(() => parse("{[1, 2]: v}"), /mapping key/); // flow sequence key
-  throwsBecause(() => parse("{{a: 1}: v}"), /mapping key/); // flow mapping key
-  // The oracle diverges here — it accepts the flow form with a lossy string key.
+test("complex keys: IMPLICIT flow collection key is a spec error — we reject it (impl diverges)", () => {
+  // yaml-test-suite SBG9 / X38W: a flow collection used as an implicit key is an error.
+  throwsBecause(() => parse("{[1, 2]: v}"), /mapping key/);
+  throwsBecause(() => parse("{{a: 1}: v}"), /mapping key/);
+  throwsBecause(() => parse("{a: [b, c], [d, e]: f}"), /mapping key/); // SBG9
+  // The `yaml` implementation diverges from spec by accepting it — pinned so the
+  // differential stays visible (one of the 2 suite negatives that implementation fails).
   deepStrictEqual(oracleParse("{[1, 2]: v}"), { "[ 1, 2 ]": "v" });
 });
 

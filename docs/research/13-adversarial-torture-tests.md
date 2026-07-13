@@ -39,12 +39,17 @@ pathological fuzz sweep:
   alias bomb (10 levels, ~387M logical nodes if expanded) parses in <1 ms because
   aliases resolve to the **same reference** (structural sharing, O(1) `Map.get`),
   building a small shared-reference DAG rather than materializing the expansion.
-- **Two intentional divergences** from the oracle, documented and locked (below).
+- **One deliberate deviation from spec** (duplicate keys → last-wins), and **one
+  case where the `yaml` oracle — not us — diverges from spec** (implicit flow
+  collection keys). Both documented and locked below. (An earlier draft of this doc
+  mis-scored the flow-key case as *our* limitation; that was an artifact of treating
+  the `yaml` implementation as the definition of correct — see the correction below.)
 
 ## Measured verdict per category
 
-Legend: ✅ spec-correct & oracle-matched · ⚠️ intentional divergence / policy ·
-🔒 newly locked by `test/adversarial.unit.ts` · (covered) already in the suite.
+Legend: ✅ spec-correct (and oracle agrees) · ✅✱ spec-correct but the `yaml`
+oracle diverges · ⚠️ deliberate deviation from spec · 🔒 newly locked by
+`test/adversarial.unit.ts` · (covered) already in the suite.
 
 | § | Construct | lightning-yaml | Verdict |
 | --- | --- | --- | --- |
@@ -55,12 +60,13 @@ Legend: ✅ spec-correct & oracle-matched · ⚠️ intentional divergence / pol
 | 4.2 | `8_000`, `0b1010`, `22:22:22` (sexagesimal) | **strings** (all 1.1-only) | ✅ 🔒 |
 | 4.2 | `-_` (Atheris ValueError case) | string `"-_"` — never throws | ✅ 🔒 |
 | 4.2 | `.inf`/`-.inf`/`.nan` | ±Infinity / NaN | ✅ (covered) |
-| 4.3 | **duplicate keys** `lang: X` / `lang: Y` | **last-wins** `{lang: Y}` | ⚠️ 🔒 diverges (oracle throws) |
+| 4.3 | **duplicate keys** `lang: X` / `lang: Y` | **last-wins** `{lang: Y}` | ⚠️ 🔒 deliberate deviation (spec: keys unique → error; we take JSON.parse last-wins) |
 | 4.4–4.9 | **merge key `<<`** | **literal string key** (not merged, not thrown) | ⚠️ 🔒 (merge unimplemented) |
 | 4.10 | billion-laughs / quadratic alias bomb | shared-ref DAG, <1 ms | ✅ 🔒 safe by sharing |
 | 4.11 | node-property / seq-under-map indentation | per 1.2 | ✅ (covered) |
 | 4.12 | **block** complex key `? [a, b]` | `{"[ a, b ]": …}` | ✅ (covered) |
-| 4.12 | **flow** complex key `{[1,2]: v}` | **controlled `YAMLParseError`** | ⚠️ 🔒 known limitation (oracle accepts, lossily) |
+| 4.12 | **explicit** flow collection key `{? [1,2]: v}` | `{"[ 1, 2 ]": …}` | ✅ 🔒 |
+| 4.12 | **implicit** flow collection key `{[1,2]: v}` | **controlled `YAMLParseError`** | ✅✱ 🔒 spec ERROR (suite SBG9/X38W) — we reject; the oracle wrongly accepts |
 | 4.12 | empty / inverted keys `: v`, `? k` | per 1.2 | ✅ (covered) |
 | 4.13 | `%YAML`/`%TAG` per-document reset | re-declared per doc | ✅ (covered) |
 | 4.14 | tabs as indentation | rejected | ✅ (covered) |
@@ -70,44 +76,51 @@ Legend: ✅ spec-correct & oracle-matched · ⚠️ intentional divergence / pol
 | 4.18 | literal NEL/LS/PS (U+0085/2028/2029) | **content, not line breaks** (1.2) | ✅ 🔒 |
 | 4.19 | empty-anchor alias, forward ref, redefinition | null / throw / last-wins | ✅ 🔒 |
 
-## The two intentional divergences (per the triage rules in the brief's §6)
+## Spec vs. oracle: the one deviation, and one place the oracle is wrong
 
-Both are spec-corner behaviours where we knowingly differ from the `yaml` oracle.
-They aren't in the fixture corpus, so the consistency suite never exercised them;
-they are now pinned in `test/adversarial.unit.ts` so the choice can't silently flip.
+The correctness authority here is the **YAML 1.2 spec** (as operationalized by the
+spec-derived yaml-test-suite), *not* the `yaml` implementation. That distinction is
+load-bearing: on the two constructs below the spec and the `yaml` implementation
+disagree, so "matches the oracle" would give the wrong verdict on one of them. Both
+are pinned in `test/adversarial.unit.ts`.
 
-### 1. Duplicate keys → last-wins (not an error)
+### 1. Duplicate keys → last-wins — a deliberate deviation *from spec*
 
-`parse("lang: X\nlang: Y")` → `{ lang: "Y" }`. The oracle instead throws
-("Map keys must be unique"). We follow **`JSON.parse` semantics** — the library's
-north star — where `JSON.parse('{"a":1,"a":2}')` is `{a:2}`. This is the exact
-security-relevant differential the brief flags (the CVE-2017-12635 class: two
-parsers in one pipeline disagreeing on a duplicated key). Adopters who need strict
-rejection must validate upstream; we document the last-wins contract rather than
-diverge from `JSON.parse`.
+`parse("lang: X\nlang: Y")` → `{ lang: "Y" }`. The YAML 1.2 spec requires mapping
+keys to be unique and treats a duplicate as an error (the yaml-test-suite happens
+not to cover mapping-key duplication directly — only duplicate *directives*, SF5V —
+so the spec text is the authority). The `yaml` implementation is spec-aligned here:
+it throws. We **deliberately deviate**, following **`JSON.parse` semantics** — the
+library's north star — where `JSON.parse('{"a":1,"a":2}')` is `{a:2}`. This is the
+security-relevant differential the brief flags (the CVE-2017-12635 class). It is the
+*only* place we knowingly choose behaviour the spec disallows; adopters needing
+strict rejection validate upstream. (A future opt-in strict mode could reject; the
+default stays JSON.parse-compatible.)
 
-### 2. Non-scalar key inside a *flow* mapping → controlled throw
+### 2. Implicit flow collection key → error — spec-correct; the *oracle* diverges
 
-`parse("{[1,2]: v}")` raises `YAMLParseError`. The oracle accepts it and renders a
-lossy stringified key (`{"[ 1, 2 ]": "v"}`). We already support the **block** form
-(`? [a, b]`) with the identical stringification, so this is a gap, not a design
-stance — but a deliberate one for now: the construct is spec-valid yet **absent
-from the entire yaml-test-suite**, the only faithful JS representation is a lossy
-string (JS objects can't key on a collection), and the current behaviour is a
-*clean* throw, never a crash or a mis-parse. Wiring `[`/`{` dispatch into
-`parseFlowKey` (reusing the existing `stringifyKeyNode`) would close it if a real
-adopter ever needs it; until then the throw is the pinned, documented behaviour.
+Per the grammar, a collection used as a key in flow context must carry the explicit
+`?` indicator. So `{? [1,2]: v}` is valid (we accept it → `{"[ 1, 2 ]": "v"}`), but
+the **implicit** form `{[1,2]: v}` is a **spec error** — yaml-test-suite **SBG9**
+(`{a: [b, c], [d, e]: f}`) and **X38W** both mark a flow collection used as an
+implicit key as an error. lightning-yaml matches the spec on **both** sides: it
+accepts the explicit form and raises `YAMLParseError` on the implicit one.
 
-**Scope note.** "Two intentional divergences" is scoped to the surveyed taxonomy
-above — the constructs where a divergence is a deliberate *design* choice. A few
-finer divergences exist outside it and are **not** separately enumerated here
-because they fall under an already-tracked bucket: the over-lenience gap (we accept
-some malformed inputs the oracle rejects — e.g. `{k: ? v}`), noted in `PROGRESS.md`
-as the "error-case strictness gap" to close as the parser matures; and minor tag
-resolutions (`!!float 1` → the number `1`, indistinguishable from `1.0` in JS;
-`!!merge` as a key → an empty-string key, under the merge non-goal). None crash and
-none contradict a locked row; they are catalogued here so the "two" figure can't be
-misread as a global count.
+The `yaml` implementation **diverges from spec** here — it accepts the implicit form
+and materializes a lossy stringified key. This is exactly why it fails suite
+negative-cases SBG9/X38W (scoring 89/91 on negatives) while we pass all 91. Under an
+implementation-as-oracle model this inverts: an earlier draft of this doc recorded
+our correct rejection as a "known limitation where we diverge from spec, the oracle
+accepts" — the precise mistake that motivates using the spec as the oracle.
+
+**Other minor spec differences** (none crash, none a design choice): a few
+over-lenient acceptances where we take input the spec rejects (e.g. `{k: ? v}`) fall
+under the "error-case strictness gap" tracked in `PROGRESS.md`; and some are places
+we are arguably *more* spec-correct than the `yaml` implementation (e.g. `!!bool yes`
+→ we throw, since `yes` is not a core-schema bool; the implementation returns the
+string `"yes"`). `!!float 1` → the number `1` is a JS representation limit (no
+distinct float type), not a divergence. These are re-triaged against the spec, not
+the implementation, as the correctness model shifts.
 
 ## Sources worth keeping (new to this repo)
 
