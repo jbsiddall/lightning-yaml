@@ -87,7 +87,7 @@ import { parse } from 'lightning-yaml/yaml';
 ```html
 <script src="https://cdn.jsdelivr.net/npm/lightning-yaml/dist/lightning-yaml.min.js"></script>
 <script>
-  const data = LightningYAML.parse('greeting: hello');
+  const data = YAML.parse('greeting: hello');
 </script>
 ```
 

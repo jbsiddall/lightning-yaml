@@ -4,7 +4,8 @@ import { defineConfig } from "tsup";
 //  1. The library: ESM (*.js) + CJS (*.cjs) + type declarations, for the three
 //     public entry points. Code-splitting shares the ~210 KB parser core in
 //     src/index.ts across the compat entries instead of duplicating it.
-//  2. A minified IIFE global (`LightningYAML`) for CDN / <script> use.
+//  2. A minified IIFE global (`YAML`, mirroring the built-in `JSON`) for
+//     CDN / <script> use.
 export default defineConfig([
   {
     entry: {
@@ -28,7 +29,7 @@ export default defineConfig([
   {
     entry: { "lightning-yaml.min": "src/index.ts" },
     format: ["iife"],
-    globalName: "LightningYAML",
+    globalName: "YAML",
     minify: true,
     dts: false,
     splitting: false,
