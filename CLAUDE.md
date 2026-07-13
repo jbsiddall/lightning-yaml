@@ -4,15 +4,17 @@ Guidance for Claude Code (and humans) working in this repo.
 
 ## What this is
 
-`lightning-yaml` aims to be a YAML parser that approaches `JSON.parse` /
-`JSON.stringify` speed and memory. **The parser is real and partial** —
-[`src/index.ts`](src/index.ts) implements `parse`/`parseAll` for the JSON subset
-and YAML flow + block syntax (milestones M0–M3): plain scalars with 1.2
-core-schema typing, quoting + escapes, comments, flow/block maps and sequences,
-implicit keys, and compact forms. Not yet implemented (they throw
-`NotImplementedError` or a clear parse error): `stringify`, block scalars
-(`|`/`>`), anchors/aliases + tags (`!!binary`), merge keys, and multi-document
-streams (`---`/`...`). The repo around it is:
+`lightning-yaml` is a YAML parser that approaches `JSON.parse` / `JSON.stringify`
+speed and memory. **The parser is feature-complete for YAML 1.2 core** —
+[`src/index.ts`](src/index.ts) implements `parse`/`parseAll`/`stringify`: the JSON
+subset, flow + block syntax, plain scalars with 1.2 core typing, quoting + escapes,
+comments, flow/block maps & sequences, implicit **and** explicit (`? `/`: `) keys,
+compact forms, block scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl.
+`!!binary`, `%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It
+passes **≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the
+`yaml` oracle). Only merge keys (`<<`, absent from the test corpus) are
+unimplemented. **[PROGRESS.md](PROGRESS.md)** holds the live status + audit trail —
+read it first. The repo around it is:
 
 - a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
   and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child
@@ -21,10 +23,77 @@ streams (`---`/`...`). The repo around it is:
   anchors); and
 - a **vitest consistency suite** (`pnpm test`) plus the parser's own node:test
   suite (`pnpm test:unit`) that check our `parse` against a single spec oracle
-  (the `yaml` library — see `bench/oracle.ts`). The JSON and block `yaml-plain`
-  cases pass; the `yaml-rich` cases stay red until anchors + `!!binary` land.
+  (the `yaml` library — see `bench/oracle.ts`). All three categories (JSON, block
+  `yaml-plain`, and rich `yaml-rich` with `!!binary` + anchors) now pass; the dumper
+  is covered by `pnpm test:stringify` (round-trip vs the oracle).
 
 See [README.md](README.md) for the design and rationale.
+
+## Orchestration loop — how to work in this repo
+
+This repo is driven by an **orchestrator + subagents** pattern. The top-level agent
+is a project manager: it decides *what* to do next and delegates *doing* it, keeping
+its own context lean. Follow this loop for any non-trivial request.
+
+### When to loop vs. act directly
+
+- **Act directly** (no loop, no subagent) for trivial requests — a README/doc/comment
+  tweak, a one-line change, answering something you already know: anything likely
+  **≤5 tool calls** (file *reads* don't count) with no code-correctness risk.
+- **Run the loop** for anything non-trivial: any task likely to need **>5 non-read
+  tool calls**, touch parser/harness correctness, or require multi-file reasoning.
+
+### The loop (repeat until the user's goal is met)
+
+1. **ASSESS.** State the user's goal and current status. Complete? Verify and finish.
+   Otherwise pick the **next concrete chunk** that moves closest to the goal. Record
+   the reasoning in `PROGRESS.md` (committed) and/or a scratch notes file.
+2. **PLAN** (if the chunk is non-trivial) — spawn an **opus** subagent to produce a
+   concrete plan: root cause, exact files/lines, minimal diff, verification, risks.
+   Skip only when the implementation is obvious.
+3. **IMPLEMENT** — spawn a subagent to do the work. **Default to Sonnet to save token
+   budget**; use **opus only** when the implementation is genuinely complex / needs
+   deep reasoning. It implements, adds/updates tests, runs the gate, writes its result
+   to a scratch file.
+4. **CRITIQUE (adversarial)** — spawn an **opus** subagent to *try to break* the change:
+   hunt oracle/spec divergences, edge-case regressions, and confirm the gate really
+   passes and the chunk is *actually* done. Fix confirmed findings (loop back to 3 if
+   needed). Never accept "looks fine."
+5. **COMMIT** — only once the gate is green and the critic confirms done. Commit the
+   chunk (push per milestone); update `PROGRESS.md`.
+6. **REPEAT** from 1.
+
+### Token discipline — temp files + tiny prompts (mandatory)
+
+Chat history does **not** retain files, and a big inline prompt/result is re-paid in
+tokens every turn it lingers in context — whereas a file on disk is durable, shared
+context at zero recurring cost. So:
+
+- **Coordinate through scratch files.** The orchestrator writes detailed task
+  instructions to a temp file (under the session scratchpad); each subagent writes its
+  plan/result/critique to a temp file. `PROGRESS.md` is the committed high-level
+  tracker; ephemeral per-task detail lives in scratch.
+- **Every subagent prompt is tiny** — essentially *"Your instructions are in `<path>`.
+  Read it immediately and follow it exactly."* Put ALL the detail in the file.
+- **Every subagent result is tiny** — the agent writes its full output to a result file
+  and returns ≤4 sentences + that path. The orchestrator reads only what it needs.
+- **The orchestrator keeps its context lean** — never read large files directly
+  (delegate); retain only short summaries + `PROGRESS.md`.
+
+### Concurrency
+
+Run independent chunks in parallel (multiple subagents in one message). But only **one**
+file-writing/committing subagent at a time per shared working tree — concurrent writers
+corrupt each other's typecheck/test runs and race the git index. Read-only agents may
+overlap freely. (For true parallel writers, isolate with a git worktree.)
+
+### The correctness gate (this repo)
+
+A chunk is **not done** until, as applicable: `pnpm typecheck` clean · `pnpm test`
+(vitest, all green) · `pnpm test:unit` · `pnpm test:stringify` · `pnpm test:suite`
+(yaml-test-suite pass rate must **not** drop) · `pnpm bench:self` shows **no** perf
+regression. Never claim progress or commit on a red gate; refresh the README bench
+blocks per the Benchmarking rules below.
 
 ## Research dossier — when to read it
 
