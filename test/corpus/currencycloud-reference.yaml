@@ -1,6 +1,4 @@
 # Source: https://raw.githubusercontent.com/CurrencyCloud/currencycloud-swagger/refs/heads/master/src/reference.yaml
-# Vendored verbatim (below this header) as a real-world parser test fixture: the CurrencyCloud API Swagger 2.0 spec,
-# a large (~24k-line) YAML document that has tripped up parsers in other languages. See test/corpus.test.ts.
 swagger: '2.0'
 info:
   description: >-
