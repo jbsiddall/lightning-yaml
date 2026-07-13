@@ -1,12 +1,12 @@
 ---
 title: Stringifying YAML
-description: Turn JS values back into YAML text with stringify and StringifyOptions.
+description: Turn JS values back into YAML text with stringify, including anchors for shared references and round-tripping.
 sidebar:
   order: 3
 ---
 
 ```ts
-stringify(value: unknown, options?: StringifyOptions): string
+stringify(value: unknown): string
 ```
 
 `stringify` serializes a JS value — strings, numbers, booleans, `null`,
@@ -30,30 +30,8 @@ console.log(
 //   - PORT=8080
 ```
 
-## `StringifyOptions`
-
-```ts
-interface StringifyOptions {
-  indent?: number;
-  sortKeys?: boolean;
-  lineWidth?: number;
-}
-```
-
-- **`indent`** — spaces per nesting level. Defaults to the conventional
-  2-space YAML indent.
-- **`sortKeys`** — when `true`, object keys are emitted in sorted order
-  instead of insertion order. Useful for deterministic output — stable
-  diffs, snapshot tests, reproducible config generation — where two
-  semantically-identical objects built in a different order should still
-  serialize identically.
-- **`lineWidth`** — the column width the dumper tries to wrap long scalars
-  at. Set it higher (or to a value comfortably larger than anything in your
-  data) if scalars need to stay on one line regardless of length.
-
-```ts
-stringify(value, { indent: 4, sortKeys: true });
-```
+`stringify` emits block-style YAML with the conventional 2-space indent and
+keys in the value's own insertion order.
 
 ## Round-tripping
 

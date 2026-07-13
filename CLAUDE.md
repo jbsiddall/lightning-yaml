@@ -51,6 +51,19 @@ much as to `src`. Reserve comments for non-obvious rationale: a constraint, a go
 or why a choice was made (especially where getting it wrong is costly). Prefer
 deleting a redundant or stale comment over keeping it. Don't add unnecessary comments.
 
+## Source-of-truth precedence — when sources disagree
+
+Highest wins; the lower source is the bug to fix (don't average, and "more detailed"
+doesn't win). Scope it to the claim — benchmarks own *numbers*, code owns *behavior*,
+README/research own *why*:
+
+**CLAUDE.md (process/policy) › measured output (`BENCHMARKS.md` + suite pass rate) ›
+`src/` (real behavior & API) › README / `PROGRESS.md` / `docs/research/` (intent) ›
+`site/` (downstream; its API reference is generated from `src/`, never ahead of it).**
+
+Code can still carry bugs — behavior that contradicts a stated design goal is a bug to
+fix, not intent to enshrine.
+
 ## Orchestration loop — how to work in this repo
 
 This repo is driven by an **orchestrator + subagents** pattern. The top-level agent
