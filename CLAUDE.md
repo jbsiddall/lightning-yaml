@@ -68,6 +68,14 @@ its own context lean. Follow this loop for any non-trivial request.
    chunk (push per milestone); update `PROGRESS.md`.
 6. **REPEAT** from 1.
 
+### PRs squash-merge — keep the title & description accurate
+
+PRs land on `main` as a **single squash commit** whose message is the PR **title +
+description** (internal commits are collapsed) — so those must describe the *whole*
+change, not any one commit. When a PR is opened (by you or the user), write the
+title/description to match the work; if later turns add commits to the branch, go back
+and update them so they stay accurate.
+
 ### Token discipline — temp files + tiny prompts (mandatory)
 
 Chat history does **not** retain files, and a big inline prompt/result is re-paid in
