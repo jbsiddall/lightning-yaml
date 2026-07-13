@@ -179,10 +179,15 @@ systematic divergence surfaced.
     parsers untouched, byte-identical). Net **records ~7–12% faster, nested ~5%**, yaml-plain
     records −9%. Full gate green, **suite holds 364/373**. VERIFIED. (Empirically validated first:
     removing the intern Map made records +11% slower → FastKeyMatch is the correct lever.)
-  - **M7-stringify (next):** S1 `parts[]`+join → `+=` ConsString (measured 1.8× on the concat;
-    ~9×→~5–6× JSON.stringify target); S2 pre-scan `Object.keys` dedupe. Bench-gated (heap-Δ/RSS
-    stable figures). Deferred: P3 flag-bookkeeping (high-risk), S3 key-quote memo (low payoff).
-  - **M7 finalize:** bench:self + bench:competition refresh + fix stale stringify README prose.
+  - **M7-stringify (done, `372fc47`):** S1 `parts[]`+join → `+=` ConsString with an EAGER terminal
+    flatten (`charCodeAt` sink — the agent caught that a lazy rope is a mitata mirage that also
+    blows retained heap 8×; the eager flatten keeps throughput honest + the flat-string contract)
+    + S2 no-shared-refs fast path (releases refcount map before the write pass). **Stringify
+    ~8.6×→~5.1× JSON.stringify on records** (−37 to −44%), peak-RSS down (xlarge now BELOW M6
+    baseline), yaml-rich flat, byte-identical, anchor placement untouched. Full gate green,
+    suite 364/373. VERIFIED. Deferred: P3 flag-bookkeeping (high-risk), S3 key-quote memo (low payoff).
+  - **M7 finalize (next):** bench:competition refresh (v5 + optimized parser/stringify) + fix
+    stale "stringify unimplemented" README prose.
 - **DEFERRED (user): property-based tests (fast-check)** — not now.
 - 9 spec-corner suite cases (`yaml` also fails) — genuine non-goals.
 
