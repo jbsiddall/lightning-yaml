@@ -11,9 +11,11 @@ with escapes, comments, flow and block maps/sequences, implicit keys, compact
 forms, block scalars (`|`/`>` with chomping and indent indicators),
 anchors/aliases (`&`/`*`, with structural sharing), tags including `!!binary` →
 `Uint8Array` plus `%YAML`/`%TAG` directives, `---`/`...` document markers and
-multi-document streams, and explicit `? key`/`: value` block mappings. Only
-`stringify` remains a stub (a deliberate v1 non-goal); merge keys (`<<`) aren't
-in the test corpus and are unimplemented too.
+multi-document streams, and explicit `? key`/`: value` block mappings.
+`stringify` (milestone **M6**) is implemented too — a block-style dumper with
+scalar quoting, `Uint8Array` → `!!binary`, and anchor/alias emission for shared
+references and cycles, round-tripping through the oracle. Only merge keys
+(`<<`) remain unimplemented — they aren't in the test corpus.
 
 On the [yaml-test-suite](https://github.com/yaml/yaml-test-suite) — the
 project's headline correctness result — lightning-yaml scores **364/373
@@ -22,12 +24,14 @@ oracle at 362/373 (97.1%)**, with **100% (91/91) on the negative/error cases**.
 The 9 remaining misses are spec corners `yaml` itself also fails. Reproduce with
 `pnpm test:suite` (runner: [`bench/conformance/`](bench/conformance/)).
 
-On the repo's benchmarks it parses the JSON fixtures at **~0.46× `JSON.parse`**
-and block YAML at **~39 MB/s**, **~4× faster than js-yaml** and **~38× faster
-than `yaml`**, with peak RSS **~1.3× `JSON.parse`** on the 10 MB fixture (see
-the head-to-head below). The benchmarks and [vitest](https://vitest.dev)
-consistency tests are wired to the parser, so progress shows up directly as
-green tests and moving numbers.
+On the repo's benchmarks it parses the JSON fixtures at **~0.50× `JSON.parse`**
+and block YAML at **~39 MB/s**, **~4.4× faster than js-yaml** and **~39×
+faster than `yaml`**, with peak RSS **~1.3× `JSON.parse`** on the 10 MB fixture
+(see the head-to-head below). `stringify` — implemented in M6, tuned for
+throughput in M7 — runs at **~5.1× `JSON.stringify`** on record data, with
+lower peak RSS than either competitor library. The benchmarks and
+[vitest](https://vitest.dev) consistency tests are wired to the parser, so
+progress shows up directly as green tests and moving numbers.
 
 ## Approach
 
@@ -97,23 +101,29 @@ iteration-independent.
 Grouped in [`bench/candidates.ts`](bench/candidates.ts) — a single registry
 reused by every benchmark:
 
-| name           | group       | kind | parse                    | stringify              |
+| name           | group       | kind | parse                    | stringify             |
 | -------------- | ----------- | ---- | ------------------------ | ---------------------- |
 | JSON           | baseline    | json | `JSON.parse`             | `JSON.stringify`       |
 | js-yaml        | competition | yaml | `load`                   | `dump`                 |
 | yaml           | competition | yaml | `parse`                  | `stringify`            |
-| lightning-yaml | ours        | yaml | `src/index.ts` _(M0–M5)_ | _(not implemented)_    |
+| lightning-yaml | ours        | yaml | `src/index.ts` _(M0–M5)_ | `src/index.ts` _(M6)_  |
 
 `lightning-yaml` (group `ours`) is wired to [`src/index.ts`](src/index.ts). Its
-`parse` now covers the full YAML 1.2 core feature set — flow/block syntax,
-block scalars, anchors/aliases, tags including `!!binary`, directives, and
-multi-document streams; `stringify` remains unimplemented (a deliberate v1
-non-goal), so `Candidate.stringify` is optional and the stringify benches/tests
-skip our parser rather than borrow another library's output. A per-fixture
-capability probe (`candidateHandles`) benchmarks it only on inputs it can read
-today — now the JSON, block `yaml-plain`, **and** anchor/`!!binary` `yaml-rich`
-rows, since `parse` handles all three categories. Each candidate's `kind`
-(`json` vs. `yaml`) decides which data categories it runs on.
+`parse` covers the full YAML 1.2 core feature set — flow/block syntax, block
+scalars, anchors/aliases, tags including `!!binary`, directives, and
+multi-document streams. `stringify` (milestone **M6**, tuned for throughput in
+**M7**) is implemented too — a block-style dumper with scalar quoting,
+`Uint8Array` → `!!binary`, and anchor/alias emission for shared references and
+cycles — so it now runs in the stringify benches/tests rather than being
+skipped. `Candidate.stringify` stays optional in the registry (for a
+hypothetical future candidate that can't dump), and we still never substitute
+a foreign serializer for one that lacks it — but today every candidate,
+including ours, provides one. A per-fixture capability probe
+(`candidateHandles`) benchmarks it only on inputs it can read today — now the
+JSON, block `yaml-plain`, **and** anchor/`!!binary` `yaml-rich` rows for both
+`parse` and `stringify`, since both ops handle all three categories. Each
+candidate's `kind` (`json` vs. `yaml`) decides which data categories it runs
+on.
 
 ## Correctness — the consistency suite
 
@@ -135,13 +145,18 @@ the benchmarks use (up to 1 MB — the 10 MB `xlarge` case is skipped, too heavy
 for an in-process oracle round-trip):
 
 - **[`test/consistency.test.ts`](test/consistency.test.ts)** — for every fixture,
-  `lightning-yaml.parse(text)` must deep-equal `oracle.parse(text)`. (The
-  stringify round-trip is skipped while our dumper is unimplemented — we don't
-  substitute a foreign serializer.) Rich fixtures additionally assert that
+  `lightning-yaml.parse(text)` must deep-equal `oracle.parse(text)`, and — now
+  that the dumper is implemented (M6; see also
+  [`test/stringify.unit.ts`](test/stringify.unit.ts), `pnpm test:stringify`,
+  **217/217 passing**) — `oracle.parse(lightning-yaml.stringify(value))` must
+  deep-equal `value` too; we still don't substitute a foreign serializer for a
+  candidate that lacks one. Rich fixtures additionally assert that
   `&anchor`/`*alias` reuse is reconstructed as **shared references**, not deep
   copies. Today the suite is **fully green** across all three categories — JSON,
-  block `yaml-plain`, and `yaml-rich` alike; it stayed red on `yaml-rich` only
-  until anchors + `!!binary` landed.
+  block `yaml-plain`, and `yaml-rich` alike, both parse and the now-active
+  stringify round-trip; it stayed red on `yaml-rich` parse only until anchors +
+  `!!binary` landed, and on the stringify round-trip only until the dumper (M6)
+  landed.
 - **[`test/parser.unit.ts`](test/parser.unit.ts)** — the parser's own fast
   node:test suite (`pnpm test:unit`, **364/364 passing**): exact `JSON.parse`
   parity on the JSON fixtures, an escape/unicode/bignum torture set,
@@ -197,17 +212,20 @@ cadences — see [CLAUDE.md](CLAUDE.md):
 The full matrix with **every** parser in one place — `JSON` (baseline), the
 competition (`js-yaml`, `yaml`), and **`lightning-yaml`** — so our numbers sit
 directly against theirs. Where a row shows only some parsers, the others can't
-(or don't yet) handle that fixture/op — e.g. `JSON.parse` can't read block
-`yaml-plain`/`yaml-rich` fixtures at all, and `lightning-yaml` doesn't stringify
-anything yet, but it now parses all three categories including anchor/`!!binary`
-`yaml-rich`. Refreshed by the slow `bench:competition` run; the fast per-commit
-tracker for our parser alone is the "Our implementation" block below.
+handle that fixture/op — e.g. `JSON.parse` can't read block
+`yaml-plain`/`yaml-rich` fixtures at all (though it still appears as a
+stringify baseline on JSON-compatible `yaml-plain` data). `lightning-yaml` now
+both parses and stringifies all three categories, including anchor/`!!binary`
+`yaml-rich`, so it appears on every parse **and** stringify row alongside the
+competition. Refreshed by the slow `bench:competition` run; the fast
+per-commit tracker for our parser alone is the "Our implementation" block
+below.
 
 <!-- BENCH:COMPETITION:START -->
 _Generated by `pnpm bench:competition`. Representative snapshot — timings drift run-to-run; peak-RSS/heap-Δ are the stable figures._
 
 ```
-clk: ~1.56 GHz
+clk: ~1.53 GHz
 cpu: Intel(R) Xeon(R) Processor @ 2.80GHz
 runtime: node 22.22.2 (x64-linux)
 ```
@@ -216,161 +234,174 @@ runtime: node 22.22.2 (x64-linux)
 
 | • parse · small-records |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON           | `  6.47 µs/iter` | `  6.37 µs` | `  6.50 µs` | `  6.60 µs` | `  6.62 µs` |
-| js-yaml        | ` 64.15 µs/iter` | ` 50.18 µs` | ` 61.12 µs` | `159.33 µs` | `791.44 µs` |
-| yaml           | `733.02 µs/iter` | `523.94 µs` | `624.30 µs` | `  3.04 ms` | `  5.74 ms` |
-| lightning-yaml | ` 16.97 µs/iter` | ` 16.64 µs` | ` 16.91 µs` | ` 17.67 µs` | ` 17.67 µs` |
+| JSON           | `  6.75 µs/iter` | `  6.38 µs` | `  6.84 µs` | `  7.34 µs` | `  7.66 µs` |
+| js-yaml        | ` 65.85 µs/iter` | ` 49.26 µs` | ` 65.87 µs` | `171.74 µs` | `829.22 µs` |
+| yaml           | `680.49 µs/iter` | `514.66 µs` | `663.96 µs` | `  1.51 ms` | `  1.99 ms` |
+| lightning-yaml | ` 15.64 µs/iter` | ` 15.10 µs` | ` 15.91 µs` | ` 16.02 µs` | ` 16.30 µs` |
 
 | • parse · medium-records |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON           | `695.35 µs/iter` | `645.83 µs` | `699.99 µs` | `962.15 µs` | `  1.49 ms` |
-| js-yaml        | `  5.91 ms/iter` | `  5.48 ms` | `  6.10 ms` | `  8.44 ms` | `  9.51 ms` |
-| yaml           | ` 75.22 ms/iter` | ` 64.48 ms` | ` 75.85 ms` | ` 97.51 ms` | `101.08 ms` |
-| lightning-yaml | `  1.65 ms/iter` | `  1.56 ms` | `  1.63 ms` | `  2.54 ms` | `  2.66 ms` |
+| JSON           | `766.78 µs/iter` | `640.49 µs` | `770.34 µs` | `  1.36 ms` | `  1.90 ms` |
+| js-yaml        | `  6.57 ms/iter` | `  5.59 ms` | `  7.61 ms` | `  8.58 ms` | `  9.07 ms` |
+| yaml           | ` 82.96 ms/iter` | ` 74.24 ms` | ` 82.92 ms` | ` 98.01 ms` | `108.20 ms` |
+| lightning-yaml | `  1.54 ms/iter` | `  1.39 ms` | `  1.56 ms` | `  2.56 ms` | `  2.71 ms` |
 
 | • parse · large-records |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON           | `  8.10 ms/iter` | `  7.65 ms` | `  7.80 ms` | ` 10.45 ms` | ` 10.56 ms` |
-| js-yaml        | ` 83.86 ms/iter` | ` 80.61 ms` | ` 83.93 ms` | ` 89.08 ms` | ` 90.68 ms` |
-| yaml           | `794.17 ms/iter` | `756.01 ms` | `786.06 ms` | `860.14 ms` | `882.00 ms` |
-| lightning-yaml | ` 20.08 ms/iter` | ` 18.01 ms` | ` 21.45 ms` | ` 22.51 ms` | ` 22.63 ms` |
+| JSON           | `  8.56 ms/iter` | `  7.78 ms` | `  8.58 ms` | ` 11.29 ms` | ` 11.69 ms` |
+| js-yaml        | `104.18 ms/iter` | ` 92.43 ms` | `104.74 ms` | `120.32 ms` | `129.28 ms` |
+| yaml           | `964.01 ms/iter` | `859.44 ms` | `   1.01 s` | `   1.09 s` | `   1.11 s` |
+| lightning-yaml | ` 19.19 ms/iter` | ` 16.40 ms` | ` 20.84 ms` | ` 24.28 ms` | ` 26.60 ms` |
 
 | • parse · xlarge-records |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON           | ` 88.36 ms/iter` | ` 84.28 ms` | ` 87.88 ms` | ` 90.69 ms` | `104.60 ms` |
-| js-yaml        | `824.77 ms/iter` | `774.67 ms` | `837.10 ms` | `844.47 ms` | `907.78 ms` |
-| yaml           | `   8.03 s/iter` | `   7.59 s` | `   8.25 s` | `   8.49 s` | `   8.65 s` |
-| lightning-yaml | `192.48 ms/iter` | `184.94 ms` | `194.32 ms` | `198.24 ms` | `205.92 ms` |
+| JSON           | ` 97.52 ms/iter` | ` 89.18 ms` | ` 95.50 ms` | `116.08 ms` | `125.90 ms` |
+| js-yaml        | `997.99 ms/iter` | `860.77 ms` | `   1.06 s` | `   1.17 s` | `   1.26 s` |
+| yaml           | `   9.89 s/iter` | `   8.71 s` | `   9.99 s` | `  11.33 s` | `  13.99 s` |
+| lightning-yaml | `196.25 ms/iter` | `177.66 ms` | `192.63 ms` | `232.06 ms` | `235.68 ms` |
 
 | • parse · medium-nested |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON           | `  1.42 ms/iter` | `  1.34 ms` | `  1.42 ms` | `  2.03 ms` | `  2.77 ms` |
-| js-yaml        | ` 10.99 ms/iter` | `  9.39 ms` | ` 12.04 ms` | ` 13.44 ms` | ` 13.62 ms` |
-| yaml           | `112.49 ms/iter` | `102.04 ms` | `117.06 ms` | `122.01 ms` | `146.78 ms` |
-| lightning-yaml | `  2.92 ms/iter` | `  2.81 ms` | `  2.91 ms` | `  3.83 ms` | `  4.08 ms` |
+| JSON           | `  1.51 ms/iter` | `  1.36 ms` | `  1.54 ms` | `  2.48 ms` | `  2.78 ms` |
+| js-yaml        | ` 11.81 ms/iter` | `  9.74 ms` | ` 13.03 ms` | ` 15.28 ms` | ` 15.50 ms` |
+| yaml           | `130.00 ms/iter` | `121.68 ms` | `129.75 ms` | `143.63 ms` | `151.34 ms` |
+| lightning-yaml | `  2.94 ms/iter` | `  2.71 ms` | `  2.97 ms` | `  3.96 ms` | `  4.26 ms` |
 
 | • parse · large-nested |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON           | ` 10.33 ms/iter` | `  9.93 ms` | ` 10.09 ms` | ` 12.82 ms` | ` 13.00 ms` |
-| js-yaml        | ` 98.16 ms/iter` | ` 91.63 ms` | `100.71 ms` | `105.49 ms` | `117.08 ms` |
-| yaml           | `813.75 ms/iter` | `760.89 ms` | `823.85 ms` | `853.81 ms` | `971.64 ms` |
-| lightning-yaml | ` 21.91 ms/iter` | ` 20.79 ms` | ` 22.98 ms` | ` 24.52 ms` | ` 24.58 ms` |
+| JSON           | ` 10.92 ms/iter` | ` 10.30 ms` | ` 10.90 ms` | ` 13.15 ms` | ` 13.17 ms` |
+| js-yaml        | `112.47 ms/iter` | ` 98.43 ms` | `113.47 ms` | `135.62 ms` | `152.38 ms` |
+| yaml           | `930.87 ms/iter` | `875.45 ms` | `957.17 ms` | `975.34 ms` | `   1.01 s` |
+| lightning-yaml | ` 22.24 ms/iter` | ` 20.00 ms` | ` 22.62 ms` | ` 25.01 ms` | ` 34.82 ms` |
 
 | • parse · yaml-plain-small-records |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| js-yaml        | ` 64.06 µs/iter` | ` 54.62 µs` | ` 61.21 µs` | `140.70 µs` | `626.75 µs` |
-| yaml           | `746.68 µs/iter` | `598.67 µs` | `717.54 µs` | `  1.92 ms` | `  2.21 ms` |
-| lightning-yaml | ` 20.60 µs/iter` | ` 20.48 µs` | ` 20.63 µs` | ` 20.77 µs` | ` 20.83 µs` |
+| js-yaml        | ` 65.92 µs/iter` | ` 53.64 µs` | ` 63.80 µs` | `165.25 µs` | `632.01 µs` |
+| yaml           | `748.84 µs/iter` | `574.84 µs` | `736.33 µs` | `  1.74 ms` | `  2.13 ms` |
+| lightning-yaml | ` 20.29 µs/iter` | ` 19.78 µs` | ` 20.44 µs` | ` 21.26 µs` | ` 21.45 µs` |
 
 | • parse · yaml-plain-medium-records |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| js-yaml        | `  7.55 ms/iter` | `  7.02 ms` | `  7.92 ms` | `  9.33 ms` | `  9.35 ms` |
-| yaml           | ` 97.67 ms/iter` | ` 91.40 ms` | ` 96.55 ms` | `107.08 ms` | `122.90 ms` |
-| lightning-yaml | `  2.55 ms/iter` | `  2.41 ms` | `  2.50 ms` | `  3.75 ms` | `  4.06 ms` |
+| js-yaml        | `  7.78 ms/iter` | `  7.05 ms` | `  8.30 ms` | ` 10.36 ms` | ` 10.62 ms` |
+| yaml           | `103.36 ms/iter` | ` 94.21 ms` | `106.11 ms` | `110.25 ms` | `132.21 ms` |
+| lightning-yaml | `  2.44 ms/iter` | `  2.25 ms` | `  2.45 ms` | `  3.55 ms` | `  3.92 ms` |
 
 | • parse · yaml-plain-large-records |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| js-yaml        | `104.07 ms/iter` | ` 91.33 ms` | `115.02 ms` | `123.48 ms` | `125.92 ms` |
-| yaml           | `970.45 ms/iter` | `944.58 ms` | `977.16 ms` | `   1.01 s` | `   1.02 s` |
-| lightning-yaml | ` 25.76 ms/iter` | ` 24.51 ms` | ` 27.19 ms` | ` 27.51 ms` | ` 28.34 ms` |
+| js-yaml        | `111.95 ms/iter` | ` 96.10 ms` | `115.93 ms` | `122.23 ms` | `147.58 ms` |
+| yaml           | `   1.01 s/iter` | `953.83 ms` | `   1.06 s` | `   1.08 s` | `   1.08 s` |
+| lightning-yaml | ` 25.72 ms/iter` | ` 23.24 ms` | ` 27.00 ms` | ` 29.19 ms` | ` 30.33 ms` |
 
 | • parse · yaml-plain-medium-nested |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| js-yaml        | `  3.75 ms/iter` | `  3.34 ms` | `  3.93 ms` | `  5.27 ms` | `  6.44 ms` |
-| yaml           | ` 39.71 ms/iter` | ` 37.71 ms` | ` 39.89 ms` | ` 41.84 ms` | ` 42.93 ms` |
-| lightning-yaml | `  1.25 ms/iter` | `  1.20 ms` | `  1.26 ms` | `  1.71 ms` | `  2.06 ms` |
+| js-yaml        | `  3.82 ms/iter` | `  3.36 ms` | `  4.03 ms` | `  5.39 ms` | `  5.78 ms` |
+| yaml           | ` 59.35 ms/iter` | ` 42.04 ms` | ` 68.50 ms` | ` 75.63 ms` | `124.21 ms` |
+| lightning-yaml | `  1.33 ms/iter` | `  1.20 ms` | `  1.33 ms` | `  2.09 ms` | `  2.22 ms` |
 
 | • parse · yaml-rich-small |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| yaml           | `  1.02 ms/iter` | `806.14 µs` | `999.14 µs` | `  2.17 ms` | `  2.45 ms` |
-| lightning-yaml | ` 31.46 µs/iter` | ` 28.91 µs` | ` 32.50 µs` | ` 33.71 µs` | ` 38.49 µs` |
+| yaml           | `  1.04 ms/iter` | `819.33 µs` | `  1.02 ms` | `  2.12 ms` | `  2.63 ms` |
+| lightning-yaml | ` 30.19 µs/iter` | ` 29.78 µs` | ` 30.21 µs` | ` 30.29 µs` | ` 32.01 µs` |
 
 | • parse · yaml-rich-medium |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| yaml           | ` 77.10 ms/iter` | ` 69.24 ms` | ` 73.72 ms` | ` 90.60 ms` | `110.47 ms` |
-| lightning-yaml | `  2.19 ms/iter` | `  2.09 ms` | `  2.17 ms` | `  3.27 ms` | `  3.34 ms` |
+| yaml           | ` 85.33 ms/iter` | ` 76.75 ms` | ` 83.25 ms` | ` 90.83 ms` | `122.72 ms` |
+| lightning-yaml | `  2.36 ms/iter` | `  2.05 ms` | `  2.41 ms` | `  3.35 ms` | `  3.47 ms` |
 
 | • parse · yaml-rich-large |              avg |         min |         p75 |         p99 |         max |
 | -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| yaml           | `   1.02 s/iter` | `961.65 ms` | `   1.05 s` | `   1.06 s` | `   1.06 s` |
-| lightning-yaml | ` 21.20 ms/iter` | ` 20.27 ms` | ` 22.13 ms` | ` 22.92 ms` | ` 23.09 ms` |
+| yaml           | `   1.18 s/iter` | `   1.12 s` | `   1.20 s` | `   1.21 s` | `   1.36 s` |
+| lightning-yaml | ` 21.16 ms/iter` | ` 19.93 ms` | ` 22.16 ms` | ` 23.37 ms` | ` 23.60 ms` |
 
 ### Speed — stringify (mitata, sequential)
 
 | • stringify · small-records |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | `  4.42 µs/iter` | `  4.36 µs` | `  4.50 µs` | `  4.58 µs` | `  4.59 µs` |
-| js-yaml | `126.78 µs/iter` | `102.90 µs` | `121.70 µs` | `242.33 µs` | `  2.56 ms` |
-| yaml    | `353.51 µs/iter` | `283.24 µs` | `342.62 µs` | `  1.71 ms` | `  2.10 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | `  4.48 µs/iter` | `  4.41 µs` | `  4.54 µs` | `  4.60 µs` | `  4.64 µs` |
+| js-yaml        | `130.45 µs/iter` | `103.08 µs` | `137.85 µs` | `271.48 µs` | `  1.03 ms` |
+| yaml           | `368.33 µs/iter` | `281.39 µs` | `361.98 µs` | `  1.94 ms` | `  2.48 ms` |
+| lightning-yaml | ` 18.75 µs/iter` | ` 17.79 µs` | ` 18.78 µs` | ` 19.89 µs` | ` 20.87 µs` |
 
 | • stringify · medium-records |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | `520.19 µs/iter` | `451.86 µs` | `507.06 µs` | `956.35 µs` | `  1.12 ms` |
-| js-yaml | ` 15.27 ms/iter` | ` 12.77 ms` | ` 16.14 ms` | ` 21.30 ms` | ` 21.49 ms` |
-| yaml    | ` 36.20 ms/iter` | ` 34.85 ms` | ` 36.26 ms` | ` 38.94 ms` | ` 40.76 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | `529.17 µs/iter` | `462.56 µs` | `541.99 µs` | `759.99 µs` | `  1.13 ms` |
+| js-yaml        | ` 15.46 ms/iter` | ` 13.46 ms` | ` 16.17 ms` | ` 19.17 ms` | ` 19.24 ms` |
+| yaml           | ` 41.02 ms/iter` | ` 38.34 ms` | ` 43.89 ms` | ` 45.86 ms` | ` 46.63 ms` |
+| lightning-yaml | `  2.42 ms/iter` | `  2.11 ms` | `  2.39 ms` | `  4.12 ms` | `  4.18 ms` |
 
 | • stringify · large-records |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | `  6.42 ms/iter` | `  5.98 ms` | `  6.22 ms` | ` 11.14 ms` | ` 11.17 ms` |
-| js-yaml | `169.81 ms/iter` | `162.35 ms` | `168.28 ms` | `182.75 ms` | `186.33 ms` |
-| yaml    | `439.61 ms/iter` | `418.36 ms` | `451.01 ms` | `467.57 ms` | `487.41 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | `  7.43 ms/iter` | `  6.30 ms` | `  7.08 ms` | ` 13.66 ms` | ` 13.76 ms` |
+| js-yaml        | `201.88 ms/iter` | `188.56 ms` | `199.71 ms` | `207.17 ms` | `251.16 ms` |
+| yaml           | `443.16 ms/iter` | `421.60 ms` | `451.91 ms` | `468.75 ms` | `490.53 ms` |
+| lightning-yaml | ` 35.60 ms/iter` | ` 33.40 ms` | ` 36.51 ms` | ` 37.46 ms` | ` 37.81 ms` |
 
 | • stringify · xlarge-records |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | ` 65.26 ms/iter` | ` 60.56 ms` | ` 62.36 ms` | ` 71.51 ms` | ` 88.08 ms` |
-| js-yaml | `   1.61 s/iter` | `   1.50 s` | `   1.62 s` | `   1.75 s` | `   1.90 s` |
-| yaml    | `   3.88 s/iter` | `   3.78 s` | `   3.92 s` | `   3.93 s` | `   4.01 s` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | ` 66.92 ms/iter` | ` 64.30 ms` | ` 68.65 ms` | ` 69.09 ms` | ` 72.75 ms` |
+| js-yaml        | `   1.90 s/iter` | `   1.75 s` | `   1.93 s` | `   2.09 s` | `   2.11 s` |
+| yaml           | `   4.06 s/iter` | `   3.94 s` | `   4.09 s` | `   4.13 s` | `   4.23 s` |
+| lightning-yaml | `538.88 ms/iter` | `482.06 ms` | `552.06 ms` | `581.85 ms` | `621.49 ms` |
 
 | • stringify · medium-nested |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | `959.24 µs/iter` | `842.93 µs` | `931.05 µs` | `  1.39 ms` | `  7.68 ms` |
-| js-yaml | ` 22.71 ms/iter` | ` 22.11 ms` | ` 23.06 ms` | ` 23.50 ms` | ` 23.97 ms` |
-| yaml    | ` 64.80 ms/iter` | ` 59.30 ms` | ` 68.18 ms` | ` 70.59 ms` | ` 81.06 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | `945.57 µs/iter` | `858.83 µs` | `951.17 µs` | `  1.14 ms` | `  2.86 ms` |
+| js-yaml        | ` 24.18 ms/iter` | ` 22.40 ms` | ` 24.90 ms` | ` 26.96 ms` | ` 29.47 ms` |
+| yaml           | ` 64.68 ms/iter` | ` 59.31 ms` | ` 63.38 ms` | ` 72.84 ms` | ` 89.24 ms` |
+| lightning-yaml | `  4.06 ms/iter` | `  3.54 ms` | `  3.97 ms` | `  5.81 ms` | `  6.02 ms` |
 
 | • stringify · large-nested |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | `  7.44 ms/iter` | `  6.42 ms` | `  7.15 ms` | ` 12.03 ms` | ` 12.07 ms` |
-| js-yaml | `196.45 ms/iter` | `186.27 ms` | `199.32 ms` | `203.80 ms` | `220.58 ms` |
-| yaml    | `447.65 ms/iter` | `422.42 ms` | `467.03 ms` | `472.49 ms` | `504.91 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | `  7.04 ms/iter` | `  6.51 ms` | `  7.25 ms` | `  8.53 ms` | `  8.59 ms` |
+| js-yaml        | `197.52 ms/iter` | `191.58 ms` | `199.24 ms` | `201.49 ms` | `208.01 ms` |
+| yaml           | `483.46 ms/iter` | `441.35 ms` | `473.93 ms` | `502.39 ms` | `627.13 ms` |
+| lightning-yaml | ` 36.96 ms/iter` | ` 31.99 ms` | ` 42.75 ms` | ` 43.59 ms` | ` 45.16 ms` |
 
 | • stringify · yaml-plain-small-records |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | `  3.56 µs/iter` | `  3.47 µs` | `  3.63 µs` | `  3.74 µs` | `  3.74 µs` |
-| js-yaml | ` 99.34 µs/iter` | ` 78.21 µs` | ` 93.23 µs` | `223.90 µs` | `931.43 µs` |
-| yaml    | `300.48 µs/iter` | `215.89 µs` | `294.93 µs` | `  1.01 ms` | `  2.54 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | `  3.63 µs/iter` | `  3.50 µs` | `  3.68 µs` | `  3.88 µs` | `  3.89 µs` |
+| js-yaml        | ` 95.61 µs/iter` | ` 78.75 µs` | ` 95.01 µs` | `196.19 µs` | `936.04 µs` |
+| yaml           | `274.60 µs/iter` | `210.52 µs` | `273.01 µs` | `  1.11 ms` | `  2.80 ms` |
+| lightning-yaml | ` 13.96 µs/iter` | ` 13.88 µs` | ` 13.99 µs` | ` 14.06 µs` | ` 14.08 µs` |
 
 | • stringify · yaml-plain-medium-records |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | `503.86 µs/iter` | `423.52 µs` | `501.37 µs` | `858.86 µs` | `  1.14 ms` |
-| js-yaml | ` 12.34 ms/iter` | ` 11.31 ms` | ` 12.89 ms` | ` 14.41 ms` | ` 14.46 ms` |
-| yaml    | ` 34.94 ms/iter` | ` 33.21 ms` | ` 35.36 ms` | ` 36.47 ms` | ` 38.08 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | `462.45 µs/iter` | `420.48 µs` | `466.69 µs` | `765.04 µs` | `  1.07 ms` |
+| js-yaml        | ` 12.52 ms/iter` | ` 11.52 ms` | ` 13.10 ms` | ` 13.82 ms` | ` 13.97 ms` |
+| yaml           | ` 34.65 ms/iter` | ` 33.04 ms` | ` 35.49 ms` | ` 37.42 ms` | ` 38.09 ms` |
+| lightning-yaml | `  2.09 ms/iter` | `  1.88 ms` | `  2.02 ms` | `  3.55 ms` | `  4.10 ms` |
 
 | • stringify · yaml-plain-large-records |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | `  5.63 ms/iter` | `  5.00 ms` | `  5.76 ms` | ` 10.50 ms` | ` 10.57 ms` |
-| js-yaml | `154.76 ms/iter` | `147.22 ms` | `154.33 ms` | `165.71 ms` | `172.94 ms` |
-| yaml    | `353.66 ms/iter` | `339.24 ms` | `354.13 ms` | `372.65 ms` | `373.22 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | `  5.58 ms/iter` | `  5.13 ms` | `  5.69 ms` | `  6.61 ms` | `  6.83 ms` |
+| js-yaml        | `163.48 ms/iter` | `147.73 ms` | `164.33 ms` | `185.59 ms` | `208.33 ms` |
+| yaml           | `361.04 ms/iter` | `339.96 ms` | `360.90 ms` | `381.57 ms` | `394.36 ms` |
+| lightning-yaml | ` 34.18 ms/iter` | ` 30.47 ms` | ` 35.60 ms` | ` 35.76 ms` | ` 35.83 ms` |
 
 | • stringify · yaml-plain-medium-nested |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| JSON    | `214.37 µs/iter` | `191.03 µs` | `216.01 µs` | `352.16 µs` | `760.00 µs` |
-| js-yaml | `  5.22 ms/iter` | `  4.73 ms` | `  5.50 ms` | `  7.04 ms` | `  7.28 ms` |
-| yaml    | ` 15.30 ms/iter` | ` 13.70 ms` | ` 15.63 ms` | ` 19.01 ms` | ` 21.46 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| JSON           | `220.20 µs/iter` | `189.53 µs` | `228.67 µs` | `368.64 µs` | `887.95 µs` |
+| js-yaml        | `  5.72 ms/iter` | `  5.00 ms` | `  6.24 ms` | `  8.18 ms` | `  8.27 ms` |
+| yaml           | ` 15.19 ms/iter` | ` 13.60 ms` | ` 15.63 ms` | ` 19.09 ms` | ` 20.88 ms` |
+| lightning-yaml | `876.43 µs/iter` | `753.44 µs` | `851.27 µs` | `  1.91 ms` | `  2.30 ms` |
 
 | • stringify · yaml-rich-small |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| js-yaml | `115.10 µs/iter` | ` 97.62 µs` | `111.39 µs` | `238.12 µs` | `829.48 µs` |
-| yaml    | `527.97 µs/iter` | `399.67 µs` | `507.26 µs` | `  2.07 ms` | `  2.72 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| js-yaml        | `114.99 µs/iter` | ` 98.83 µs` | `110.95 µs` | `241.40 µs` | `919.93 µs` |
+| yaml           | `521.12 µs/iter` | `396.35 µs` | `512.61 µs` | `  1.93 ms` | `  2.38 ms` |
+| lightning-yaml | ` 23.21 µs/iter` | ` 22.27 µs` | ` 23.42 µs` | ` 23.75 µs` | ` 24.24 µs` |
 
 | • stringify · yaml-rich-medium |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| js-yaml | `  9.03 ms/iter` | `  8.28 ms` | `  9.65 ms` | ` 10.16 ms` | ` 10.41 ms` |
-| yaml    | ` 41.47 ms/iter` | ` 40.11 ms` | ` 42.30 ms` | ` 42.70 ms` | ` 42.73 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| js-yaml        | `  9.69 ms/iter` | `  8.60 ms` | ` 10.39 ms` | ` 12.00 ms` | ` 12.02 ms` |
+| yaml           | ` 45.84 ms/iter` | ` 40.87 ms` | ` 46.54 ms` | ` 50.64 ms` | ` 51.41 ms` |
+| lightning-yaml | `  2.35 ms/iter` | `  1.99 ms` | `  2.24 ms` | `  4.00 ms` | `  4.22 ms` |
 
 | • stringify · yaml-rich-large |              avg |         min |         p75 |         p99 |         max |
-| ------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
-| js-yaml | ` 99.20 ms/iter` | ` 95.05 ms` | ` 99.02 ms` | `102.09 ms` | `111.39 ms` |
-| yaml    | `402.60 ms/iter` | `390.39 ms` | `407.81 ms` | `411.94 ms` | `423.97 ms` |
+| -------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| js-yaml        | `113.25 ms/iter` | `103.03 ms` | `117.31 ms` | `121.44 ms` | `140.13 ms` |
+| yaml           | `414.84 ms/iter` | `393.81 ms` | `416.66 ms` | `438.11 ms` | `438.72 ms` |
+| lightning-yaml | ` 30.01 ms/iter` | ` 27.63 ms` | ` 31.19 ms` | ` 31.41 ms` | ` 31.57 ms` |
 
 ### Peak memory (isolated processes, sequential)
 
@@ -378,209 +409,222 @@ runtime: node 22.22.2 (x64-linux)
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 91.40 MB | 1.00x | -3.37 KB | 1.00x |
-| js-yaml | 95.07 MB | 1.04x | 181.74 KB | -53.97x |
-| yaml | 100.23 MB | 1.10x | 593.41 KB | -176.23x |
-| lightning-yaml | 95.14 MB | 1.04x | 87.45 KB | -25.97x |
+| JSON | 91.18 MB | 1.00x | -2.88 KB | 1.00x |
+| js-yaml | 95.48 MB | 1.05x | 182.18 KB | -63.37x |
+| yaml | 101.26 MB | 1.11x | 595.05 KB | -206.98x |
+| lightning-yaml | 92.92 MB | 1.02x | 87.48 KB | -30.43x |
 
 **stringify · small-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 87.18 MB | 1.00x | -6.58 KB | 1.00x |
-| js-yaml | 95.31 MB | 1.09x | 187.09 KB | -28.44x |
-| yaml | 93.21 MB | 1.07x | 235.15 KB | -35.75x |
+| JSON | 91.66 MB | 1.00x | -5.74 KB | 1.00x |
+| js-yaml | 92.25 MB | 1.01x | 177.09 KB | -30.84x |
+| yaml | 94.51 MB | 1.03x | 235.85 KB | -41.07x |
+| lightning-yaml | 95.34 MB | 1.04x | 30.80 KB | -5.36x |
 
 **parse · medium-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 96.78 MB | 1.00x | 172.83 KB | 1.00x |
-| js-yaml | 107.44 MB | 1.11x | 573.31 KB | 3.32x |
-| yaml | 174.54 MB | 1.80x | 1.23 MB | 7.31x |
-| lightning-yaml | 96.89 MB | 1.00x | 456.95 KB | 2.64x |
+| JSON | 98.02 MB | 1.00x | 173.86 KB | 1.00x |
+| js-yaml | 109.70 MB | 1.12x | 570.90 KB | 3.28x |
+| yaml | 172.65 MB | 1.76x | 1.23 MB | 7.25x |
+| lightning-yaml | 96.05 MB | 0.98x | 464.53 KB | 2.67x |
 
 **stringify · medium-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 96.32 MB | 1.00x | 98.70 KB | 1.00x |
-| js-yaml | 117.29 MB | 1.22x | 484.13 KB | 4.91x |
-| yaml | 143.84 MB | 1.49x | 515.69 KB | 5.23x |
+| JSON | 93.72 MB | 1.00x | 96.54 KB | 1.00x |
+| js-yaml | 125.76 MB | 1.34x | 463.01 KB | 4.80x |
+| yaml | 141.36 MB | 1.51x | 516.32 KB | 5.35x |
+| lightning-yaml | 104.28 MB | 1.11x | 217.98 KB | 2.26x |
 
 **parse · large-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 120.80 MB | 1.00x | 1.95 MB | 1.00x |
-| js-yaml | 272.33 MB | 2.25x | 3.37 MB | 1.73x |
-| yaml | 520.66 MB | 4.31x | 4.24 MB | 2.17x |
-| lightning-yaml | 129.19 MB | 1.07x | 3.25 MB | 1.67x |
+| JSON | 122.73 MB | 1.00x | 1.95 MB | 1.00x |
+| js-yaml | 261.80 MB | 2.13x | 3.37 MB | 1.73x |
+| yaml | 526.25 MB | 4.29x | 4.25 MB | 2.18x |
+| lightning-yaml | 135.93 MB | 1.11x | 3.27 MB | 1.68x |
 
 **stringify · large-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 110.99 MB | 1.00x | 1.13 MB | 1.00x |
-| js-yaml | 287.94 MB | 2.59x | 1.13 MB | 0.99x |
-| yaml | 271.89 MB | 2.45x | 533.09 KB | 0.46x |
+| JSON | 105.65 MB | 1.00x | 1.14 MB | 1.00x |
+| js-yaml | 276.49 MB | 2.62x | 1.14 MB | 1.01x |
+| yaml | 268.47 MB | 2.54x | 533.32 KB | 0.46x |
+| lightning-yaml | 160.86 MB | 1.52x | 1.33 MB | 1.17x |
 
 **parse · xlarge-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 278.45 MB | 1.00x | 17.43 MB | 1.00x |
-| js-yaml | 985.69 MB | 3.54x | 26.81 MB | 1.54x |
-| yaml | 3.31 GB | 12.19x | 39.83 MB | 2.29x |
-| lightning-yaml | 362.87 MB | 1.30x | 27.78 MB | 1.59x |
+| JSON | 284.16 MB | 1.00x | 17.43 MB | 1.00x |
+| js-yaml | 974.90 MB | 3.43x | 26.81 MB | 1.54x |
+| yaml | 2.68 GB | 9.64x | 39.83 MB | 2.29x |
+| lightning-yaml | 368.52 MB | 1.30x | 27.80 MB | 1.59x |
 
 **stringify · xlarge-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 297.21 MB | 1.00x | 10.23 MB | 1.00x |
-| js-yaml | 1.15 GB | 3.97x | 15.99 MB | 1.56x |
-| yaml | 658.16 MB | 2.21x | 10.18 MB | 1.00x |
+| JSON | 301.12 MB | 1.00x | 10.23 MB | 1.00x |
+| js-yaml | 1.14 GB | 3.88x | 16.02 MB | 1.57x |
+| yaml | 985.20 MB | 3.27x | 10.19 MB | 1.00x |
+| lightning-yaml | 566.65 MB | 1.88x | 10.00 MB | 0.98x |
 
 **parse · medium-nested**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 94.22 MB | 1.00x | 227.25 KB | 1.00x |
-| js-yaml | 143.14 MB | 1.52x | 549.24 KB | 2.42x |
-| yaml | 211.84 MB | 2.25x | 1.15 MB | 5.17x |
-| lightning-yaml | 95.86 MB | 1.02x | 430.28 KB | 1.89x |
+| JSON | 93.95 MB | 1.00x | 228.03 KB | 1.00x |
+| js-yaml | 138.71 MB | 1.48x | 551.57 KB | 2.42x |
+| yaml | 215.07 MB | 2.29x | 1.13 MB | 5.09x |
+| lightning-yaml | 100.46 MB | 1.07x | 415.79 KB | 1.82x |
 
 **stringify · medium-nested**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 96.70 MB | 1.00x | 161.63 KB | 1.00x |
-| js-yaml | 130.36 MB | 1.35x | 543.75 KB | 3.36x |
-| yaml | 151.25 MB | 1.56x | 631.62 KB | 3.91x |
+| JSON | 96.98 MB | 1.00x | 162.86 KB | 1.00x |
+| js-yaml | 130.93 MB | 1.35x | 537.88 KB | 3.30x |
+| yaml | 157.21 MB | 1.62x | 633.61 KB | 3.89x |
+| lightning-yaml | 107.30 MB | 1.11x | 358.46 KB | 2.20x |
 
 **parse · large-nested**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 115.66 MB | 1.00x | 1.63 MB | 1.00x |
-| js-yaml | 255.94 MB | 2.21x | 2.11 MB | 1.30x |
-| yaml | 484.26 MB | 4.19x | 2.02 MB | 1.24x |
-| lightning-yaml | 132.00 MB | 1.14x | 1.99 MB | 1.22x |
+| JSON | 113.27 MB | 1.00x | 1.63 MB | 1.00x |
+| js-yaml | 257.28 MB | 2.27x | 2.11 MB | 1.30x |
+| yaml | 508.02 MB | 4.49x | 2.01 MB | 1.24x |
+| lightning-yaml | 131.50 MB | 1.16x | 2.01 MB | 1.23x |
 
 **stringify · large-nested**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 110.96 MB | 1.00x | 1.19 MB | 1.00x |
-| js-yaml | 289.48 MB | 2.61x | 1023.68 KB | 0.84x |
-| yaml | 246.46 MB | 2.22x | 1.09 MB | 0.92x |
+| JSON | 107.75 MB | 1.00x | 1.19 MB | 1.00x |
+| js-yaml | 292.24 MB | 2.71x | 1022.70 KB | 0.84x |
+| yaml | 256.79 MB | 2.38x | 2.18 MB | 1.84x |
+| lightning-yaml | 176.06 MB | 1.63x | 1.91 MB | 1.61x |
 
 **parse · yaml-plain-small-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| js-yaml | 95.16 MB | — | 191.12 KB | — |
-| yaml | 100.12 MB | — | 665.02 KB | — |
-| lightning-yaml | 94.35 MB | — | 107.24 KB | — |
+| js-yaml | 93.96 MB | — | 192.77 KB | — |
+| yaml | 98.44 MB | — | 665.54 KB | — |
+| lightning-yaml | 95.42 MB | — | 108.57 KB | — |
 
 **stringify · yaml-plain-small-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 95.26 MB | 1.00x | -12.84 KB | 1.00x |
-| js-yaml | 93.32 MB | 0.98x | 170.62 KB | -13.29x |
-| yaml | 97.55 MB | 1.02x | 196.59 KB | -15.32x |
+| JSON | 88.93 MB | 1.00x | -12.02 KB | 1.00x |
+| js-yaml | 92.91 MB | 1.04x | 168.67 KB | -14.03x |
+| yaml | 94.66 MB | 1.06x | 198.02 KB | -16.47x |
+| lightning-yaml | 92.36 MB | 1.04x | 23.02 KB | -1.91x |
 
 **parse · yaml-plain-medium-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| js-yaml | 125.41 MB | — | 611.22 KB | — |
-| yaml | 193.84 MB | — | 1.20 MB | — |
-| lightning-yaml | 96.64 MB | — | 530.91 KB | — |
+| js-yaml | 123.63 MB | — | 612.05 KB | — |
+| yaml | 183.82 MB | — | 1.21 MB | — |
+| lightning-yaml | 99.51 MB | — | 545.17 KB | — |
 
 **stringify · yaml-plain-medium-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 116.50 MB | 1.00x | 85.95 KB | 1.00x |
-| js-yaml | 130.67 MB | 1.12x | 443.80 KB | 5.16x |
-| yaml | 150.72 MB | 1.29x | 449.55 KB | 5.23x |
+| JSON | 117.04 MB | 1.00x | 88.45 KB | 1.00x |
+| js-yaml | 128.29 MB | 1.10x | 448.86 KB | 5.07x |
+| yaml | 154.62 MB | 1.32x | 426.90 KB | 4.83x |
+| lightning-yaml | 126.19 MB | 1.08x | 204.42 KB | 2.31x |
 
 **parse · yaml-plain-large-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| js-yaml | 242.48 MB | — | 2.87 MB | — |
-| yaml | 467.84 MB | — | 2.45 MB | — |
-| lightning-yaml | 131.02 MB | — | 2.78 MB | — |
+| js-yaml | 242.75 MB | — | 2.86 MB | — |
+| yaml | 472.95 MB | — | 2.45 MB | — |
+| lightning-yaml | 131.39 MB | — | 2.80 MB | — |
 
 **stringify · yaml-plain-large-records**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 213.67 MB | 1.00x | 939.71 KB | 1.00x |
-| js-yaml | 279.36 MB | 1.31x | 745.99 KB | 0.79x |
-| yaml | 259.00 MB | 1.21x | 251.30 KB | 0.27x |
+| JSON | 214.51 MB | 1.00x | 939.73 KB | 1.00x |
+| js-yaml | 258.90 MB | 1.21x | 791.79 KB | 0.84x |
+| yaml | 258.86 MB | 1.21x | 253.80 KB | 0.27x |
+| lightning-yaml | 224.01 MB | 1.04x | 1.09 MB | 1.19x |
 
 **parse · yaml-plain-medium-nested**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| js-yaml | 104.08 MB | — | 362.02 KB | — |
-| yaml | 166.93 MB | — | 890.33 KB | — |
-| lightning-yaml | 96.63 MB | — | 304.40 KB | — |
+| js-yaml | 108.39 MB | — | 393.86 KB | — |
+| yaml | 164.25 MB | — | 894.79 KB | — |
+| lightning-yaml | 95.32 MB | — | 309.69 KB | — |
 
 **stringify · yaml-plain-medium-nested**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| JSON | 104.21 MB | 1.00x | 29.29 KB | 1.00x |
-| js-yaml | 108.32 MB | 1.04x | 333.77 KB | 11.40x |
-| yaml | 126.13 MB | 1.21x | 397.38 KB | 13.57x |
+| JSON | 105.92 MB | 1.00x | 29.80 KB | 1.00x |
+| js-yaml | 114.68 MB | 1.08x | 333.69 KB | 11.20x |
+| yaml | 119.48 MB | 1.13x | 397.88 KB | 13.35x |
+| lightning-yaml | 105.95 MB | 1.00x | 161.97 KB | 5.43x |
 
 **parse · yaml-rich-small**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| yaml | 96.77 MB | — | 737.40 KB | — |
-| lightning-yaml | 91.21 MB | — | 166.27 KB | — |
+| yaml | 102.24 MB | — | 736.93 KB | — |
+| lightning-yaml | 90.50 MB | — | 172.38 KB | — |
 
 **stringify · yaml-rich-small**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| js-yaml | 95.61 MB | — | 183.00 KB | — |
-| yaml | 100.66 MB | — | 279.42 KB | — |
+| js-yaml | 97.15 MB | — | 172.55 KB | — |
+| yaml | 101.64 MB | — | 285.45 KB | — |
+| lightning-yaml | 96.09 MB | — | 30.66 KB | — |
 
 **parse · yaml-rich-medium**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| yaml | 184.85 MB | — | 1.29 MB | — |
-| lightning-yaml | 99.73 MB | — | 625.17 KB | — |
+| yaml | 189.63 MB | — | 1.29 MB | — |
+| lightning-yaml | 99.97 MB | — | 636.87 KB | — |
 
 **stringify · yaml-rich-medium**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| js-yaml | 123.45 MB | — | 456.83 KB | — |
-| yaml | 161.26 MB | — | 541.43 KB | — |
+| js-yaml | 129.31 MB | — | 457.98 KB | — |
+| yaml | 157.76 MB | — | 546.98 KB | — |
+| lightning-yaml | 120.76 MB | — | 228.29 KB | — |
 
 **parse · yaml-rich-large**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| yaml | 338.31 MB | — | 1.42 MB | — |
-| lightning-yaml | 130.36 MB | — | 2.35 MB | — |
+| yaml | 355.31 MB | — | 1.43 MB | — |
+| lightning-yaml | 127.45 MB | — | 2.36 MB | — |
 
 **stringify · yaml-rich-large**
 
 | candidate | peak RSS | vs JSON | heap Δ | vs JSON |
 | --- | ---: | ---: | ---: | ---: |
-| js-yaml | 245.33 MB | — | 1.55 MB | — |
-| yaml | 296.97 MB | — | 1.03 MB | — |
+| js-yaml | 242.21 MB | — | 1.65 MB | — |
+| yaml | 297.98 MB | — | 1.02 MB | — |
+| lightning-yaml | 205.77 MB | — | 923.41 KB | — |
 <!-- BENCH:COMPETITION:END -->
 
 ### Our implementation
@@ -897,7 +941,7 @@ runtime: node 22.22.2 (x64-linux)
 
 ```
 src/
-  index.ts             # the parser — parse/parseAll (M0–M5); stringify still a stub
+  index.ts             # the parser — parse/parseAll (M0–M5) + stringify (M6)
 bench/
   candidates.ts        # candidates + groups + kind; applies/supports/handles gating
   oracle.ts            # the spec oracle (yaml) used by the fixtures + tests
