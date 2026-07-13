@@ -24,6 +24,14 @@ env:
   VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
 
+# Collapse redundant docs/preview builds: a PR with several rapid commits only keeps
+# the latest run (superseded preview builds are cancelled), while cross-branch runs stay
+# independent (the ref is in the group key). Crucially, `cancel-in-progress` is FALSE on
+# `main` — a production deploy must never be interrupted mid-flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Fast headless sanity build — fails CI before the Vercel steps if the site is broken.
   build-check:

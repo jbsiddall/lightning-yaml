@@ -6,10 +6,14 @@ on:
   push:
     branches: [main]
 
-# Cancel superseded runs on the same ref (e.g. new pushes to a PR branch).
+# Cancel superseded runs on the same ref (e.g. new pushes to a PR branch), while
+# letting every push to `main` finish — those are distinct commits whose CI status
+# we want recorded, and cross-branch runs stay independent (the ref is in the group
+# key). `refs/pull/<n>/merge` is stable across pushes to a PR, so rapid-fire commits
+# collapse to a single run.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-test:
