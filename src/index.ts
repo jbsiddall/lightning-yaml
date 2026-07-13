@@ -269,6 +269,26 @@ let nextNewline = -1;
 let keyCache: Map<string, string> = new Map();
 
 /**
+ * FastKeyMatch feedback slot (M7, doc 07 §5 L107–108). Holds the canonical,
+ * encounter-ordered key list of the most-recently-completed mapping. When the
+ * NEXT mapping opens (the common case: the next homogeneous record in a
+ * sequence), its loop byte-compares each upcoming source key against this list
+ * and, on a full match, reuses the identical interned string with **no slice,
+ * no hash, no `keyCache` probe** — collapsing `internKey`'s per-key
+ * slice→hash→discard-on-hit churn to a byte scan + pointer reuse.
+ *
+ * A pure fast path IN FRONT of `keyCache` (which stays load-bearing — the
+ * intern Map still canonicalizes on any miss). The byte-compare is
+ * self-validating: it only succeeds when the source bytes exactly spell the
+ * canonical key and a proper terminator follows, so a stale/wrong list (a
+ * non-sibling map that happened to finish last, or cross-record shape drift)
+ * can only waste a compare, never mis-parse. Reset per stream; never leaks into
+ * the leaf parsers (`parseDoubleQuoted`/`resolvePlain`/`internKey`) — the
+ * machinery lives entirely inside `parseFlowMap`/`parseBlockMap`.
+ */
+let lastRecordKeys: string[] | null = null;
+
+/**
  * `%TAG <handle> <prefix>` is per-document state (doc 07 §4) — never
  * inherited across documents in a stream. Created lazily (pay-on-first-use,
  * like `anchorMap`) and stored only so a later milestone can resolve
@@ -440,6 +460,7 @@ function resetForStream(text: string): void {
   nextNewline = -1;
   lineStart = 0;
   keyCache = new Map();
+  lastRecordKeys = null;
   tagHandles = null;
   anchorMap = null;
   pendingAnchorName = null;
@@ -515,10 +536,29 @@ function flowSeparatorAt(i: number): boolean {
 
 /**
  * Skip inter-token whitespace in flow context: spaces, tabs, line breaks (flow
- * collections may span lines) and `#` comments (to end of line). A local cursor
- * keeps the loop off the module global until it writes back once.
+ * collections may span lines) and `#` comments (to end of line).
+ *
+ * Split into a tiny always-inlinable guard + an out-of-line `skipFlowWsSlow`
+ * (M7, doc 07 §5): the loop is ~10% of flow self-time yet on tightly-packed
+ * input (JSON has NO inter-token whitespace) almost every call is a no-op that
+ * still paid loop setup + a module-global write. The guard peeks one char and,
+ * unless it is actual whitespace/`#`/a `-`/`.` (the only first chars whose slow
+ * body does anything but "clear the flag and leave `pos`"), clears the crossed-
+ * line flag and returns — byte-identical to running the full loop. `-`/`.` are
+ * routed to the slow body because a col-0 `---`/`...` there is an unterminated-
+ * collection error the slow body must still raise (yaml-test-suite N782).
  */
 function skipFlowWs(): void {
+  const c0 = src.charCodeAt(pos);
+  if (c0 !== SPACE && c0 !== TAB && c0 !== LF && c0 !== CR && c0 !== HASH && c0 !== MINUS && c0 !== DOT) {
+    flowWsCrossedLine = false;
+    return;
+  }
+  skipFlowWsSlow();
+}
+
+/** The full flow-whitespace loop; see `skipFlowWs` for why it is out-of-line. */
+function skipFlowWsSlow(): void {
   flowWsCrossedLine = false;
   let p = pos;
   let lineHead = -1; // col-0 offset of the most recent line crossed (-1 = none)
@@ -1389,6 +1429,14 @@ function parseFlowMap(): Record<string, unknown> {
   pos++; // past '{'
   const obj: Record<string, unknown> = {};
   registerPendingAnchor(obj); // before children, so `&a {self: *a}` self-references correctly
+  // FastKeyMatch (M7): `expected` is the previous sibling map's canonical key
+  // list; `produced` accumulates THIS map's keys for the next sibling, reusing
+  // `expected`'s array verbatim while the shapes stay identical (zero alloc on
+  // homogeneous records) and only materialising a fresh copy on divergence.
+  const expected = lastRecordKeys;
+  let produced: string[] | null = expected;
+  let matched = true; // produced[0..kc) === expected[0..kc) so far
+  let kc = 0; // keys produced so far
   for (;;) {
     skipFlowWs();
     let c = src.charCodeAt(pos);
@@ -1404,8 +1452,21 @@ function parseFlowMap(): Record<string, unknown> {
       c = src.charCodeAt(pos);
       key = c === COLON || c === COMMA || c === RBRACE ? "" : keyToString(parseFlowValue());
     } else {
-      key = parseFlowKey();
+      const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
+      key = ek !== null && fastMatchFlowKey(c, ek) ? ek : parseFlowKey();
     }
+    // Record `key` into `produced` (see the entry comment): stay on the shared
+    // `expected` array while it still matches, else fork a private copy.
+    if (matched && expected !== null && kc < expected.length && expected[kc] === key) {
+      // identical so far — keep sharing `expected`
+    } else {
+      if (matched) {
+        produced = expected === null ? [] : expected.slice(0, kc);
+        matched = false;
+      }
+      produced!.push(key);
+    }
+    kc++;
     skipFlowWs();
     let value: unknown = null;
     if (src.charCodeAt(pos) === COLON) {
@@ -1427,6 +1488,7 @@ function parseFlowMap(): Record<string, unknown> {
     }
     fail("expected ',' or '}' in flow mapping");
   }
+  lastRecordKeys = publishRecordKeys(expected, produced, matched, kc);
   depth--;
   return obj;
 }
@@ -1658,6 +1720,73 @@ function internKey(s: string): string {
   if (hit !== undefined) return hit;
   keyCache.set(s, s);
   return s;
+}
+
+/**
+ * FastKeyMatch (M7) — flow context. Try to recognise the upcoming flow mapping
+ * key as the previous sibling's canonical key `ek` WITHOUT slicing/hashing.
+ * Only the hot shape is fast-pathed: a double-quoted JSON key `"…"`. `c` is the
+ * already-read char at `pos`. On a full byte match + closing quote it advances
+ * `pos` past the close quote and returns `true` (caller reuses `ek`); on ANY
+ * mismatch it returns `false` and leaves `pos` untouched for the slow
+ * `parseFlowKey`. The byte-for-byte compare against the *canonical* string
+ * inherently excludes escapes and folds (a `\`/newline in the source can't
+ * equal the decoded key), so the closing-quote check guarantees the slow path
+ * would have produced exactly `ek` — and skipping `parseDoubleQuoted` is safe
+ * for the `nextBackslash`/`nextNewline` memos precisely because the matched
+ * span is provably escape- and break-free.
+ */
+function fastMatchFlowKey(c: number, ek: string): boolean {
+  if (c !== DQUOTE) return false;
+  const n = ek.length;
+  const q = pos + 1;
+  let i = 0;
+  while (i < n && src.charCodeAt(q + i) === ek.charCodeAt(i)) i++;
+  if (i !== n || src.charCodeAt(q + n) !== DQUOTE) return false;
+  pos = q + n + 1;
+  return true;
+}
+
+/**
+ * FastKeyMatch (M7) — block context. Try to recognise the upcoming block
+ * mapping key as the previous sibling's canonical key `ek` without slicing,
+ * typing, or hashing. Only a bare plain key is fast-pathed; a key that opens a
+ * flow collection, a quote, or an anchor/alias/tag is canonicalised differently
+ * (flow padding, escape decoding, `!!`-typing) and must fall through to
+ * `parseBlockMapKey`. On a full byte match followed by a `:` + space/EOL
+ * terminator it leaves `pos` AT the `:` (parseBlockMapKey's contract) and
+ * returns `true`; otherwise `pos` is untouched. Self-validating like the flow
+ * variant: a byte-equal plain span with a `: ` terminator resolves through
+ * `resolvePlain` to exactly `ek` (numbers/bools/`~` that RE-type would differ
+ * in source bytes and so never match here).
+ */
+function fastMatchBlockKey(ek: string): boolean {
+  const n = ek.length;
+  if (n === 0) return false;
+  const c0 = src.charCodeAt(pos);
+  if (c0 === LBRACKET || c0 === LBRACE || c0 === DQUOTE || c0 === SQUOTE || c0 === AMP || c0 === STAR || c0 === EXCLAIM) return false;
+  let i = 0;
+  while (i < n && src.charCodeAt(pos + i) === ek.charCodeAt(i)) i++;
+  if (i !== n) return false;
+  if (src.charCodeAt(pos + n) !== COLON || !isSpaceOrEolAt(pos + n + 1)) return false;
+  pos += n; // leave pos at the ':' separator
+  return true;
+}
+
+/**
+ * Compute the key list a just-finished mapping publishes to `lastRecordKeys`
+ * for its next sibling (see `lastRecordKeys`). `matched` means every key so far
+ * equalled the previous sibling's, so `produced` is still the shared `expected`
+ * array: reuse it verbatim when the shapes are identical (`kc === length`, the
+ * homogeneous-record hot path — zero allocation), otherwise this map is a
+ * strict prefix and needs its own trimmed copy. On divergence (`!matched`)
+ * `produced` is already this map's private array.
+ */
+function publishRecordKeys(expected: string[] | null, produced: string[] | null, matched: boolean, kc: number): string[] | null {
+  if (!matched) return produced;
+  if (kc === 0) return null; // empty map, or a first sibling with no keys
+  if (expected !== null && kc === expected.length) return expected; // identical shape → reuse
+  return expected!.slice(0, kc); // matched a strict prefix of a longer sibling
 }
 
 // ---------------------------------------------------------------------------
@@ -3246,7 +3375,27 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
   let key = firstKey;
   let hasValue = firstHasValue;
   let isExplicit = firstIsExplicit;
+  // FastKeyMatch (M7) — see parseFlowMap for the shared scheme. `firstKey` was
+  // already parsed by the caller (block maps enter with their first key in
+  // hand), so it is only RECORDED here, never byte-matched; the loop fast-paths
+  // keys 2..N against the previous sibling's `expected` list.
+  const expected = lastRecordKeys;
+  let produced: string[] | null = expected;
+  let matched = true;
+  let kc = 0;
   for (;;) {
+    // Record `key` (firstKey on the first turn, then each looped key) for the
+    // next sibling, staying on the shared `expected` array until it diverges.
+    if (matched && expected !== null && kc < expected.length && expected[kc] === key) {
+      // identical so far — keep sharing `expected`
+    } else {
+      if (matched) {
+        produced = expected === null ? [] : expected.slice(0, kc);
+        matched = false;
+      }
+      produced!.push(key);
+    }
+    kc++;
     if (hasValue) {
       // pos is at the ':' separator for `key`.
       pos++; // past ':'
@@ -3272,11 +3421,13 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
       hasValue = explicitValueFollows(col);
       isExplicit = true;
     } else {
-      key = parseBlockMapKey();
+      const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
+      key = ek !== null && fastMatchBlockKey(ek) ? ek : parseBlockMapKey();
       hasValue = true;
       isExplicit = false;
     }
   }
+  lastRecordKeys = publishRecordKeys(expected, produced, matched, kc);
   depth--;
   return obj;
 }
