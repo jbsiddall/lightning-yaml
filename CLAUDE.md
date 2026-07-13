@@ -54,15 +54,29 @@ deleting a redundant or stale comment over keeping it. Don't add unnecessary com
 ## Source-of-truth precedence — when sources disagree
 
 Highest wins; the lower source is the bug to fix (don't average, and "more detailed"
-doesn't win). Scope it to the claim — benchmarks own *numbers*, code owns *behavior*,
-README/research own *why*:
+doesn't win). Scope it to the claim — the **YAML 1.2.2 spec owns parse/dump
+correctness**, benchmarks own *numbers*, code owns *behavior*, README/research own
+*why*:
 
-**CLAUDE.md (process/policy) › measured output (`BENCHMARKS.md` + suite pass rate) ›
-`src/` (real behavior & API) › README / `PROGRESS.md` / `docs/research/` (intent) ›
-`site/` (downstream; its API reference is generated from `src/`, never ahead of it).**
+**YAML 1.2.2 spec (via the yaml-test-suite = the spec operationalized) › CLAUDE.md
+(process/policy) › measured output (`BENCHMARKS.md` + suite pass rate) › `src/` (real
+behavior & API) › README / `PROGRESS.md` / `docs/research/` (intent) › `site/`
+(downstream; its API reference is generated from `src/`, never ahead of it).**
 
-Code can still carry bugs — behavior that contradicts a stated design goal is a bug to
-fix, not intent to enshrine.
+The reference implementations we test against — `yaml` (`bench/oracle.ts`) and
+js-yaml — are **differential aids, NOT the definition of correct.** A disagreement
+between our output and an implementation flags a *candidate* to investigate; the
+**spec adjudicates**. Where an implementation diverges from the spec, the spec wins,
+and lightning-yaml deliberately matches the spec against it — e.g. we reject an
+implicit flow collection key (`{[1,2]: v}`), a spec error (yaml-test-suite SBG9/X38W)
+that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof of
+correctness, and "differs from the oracle" is never on its own a bug: check the spec.
+Trust an implementation only where it agrees with the spec. The one sanctioned
+deviation *from* the spec is explicit and documented — duplicate-key last-wins, for
+`JSON.parse` parity (see `docs/research/13-adversarial-torture-tests.md`).
+
+Code can still carry bugs — behavior that contradicts the spec (or a stated design
+goal) is a bug to fix, not intent to enshrine.
 
 ## Orchestration loop — how to work in this repo
 
@@ -267,11 +281,14 @@ PATH. Not needed on ordinary commits. See [bench/bundlesize](bench/bundlesize/RE
   auto-generates only the **missing** ones — after editing the generator or
   dataset defs, run `pnpm gen:fixtures` to regenerate all, or tests run on stale
   data.
-- **The oracle** (`bench/oracle.ts`) is the one library we treat as ground truth
-  for correctness (`yaml`). Fixtures' in-memory values (for stringify) and the
-  consistency tests both go through it. It parses with `maxAliasCount: -1` (our
-  rich fixtures reuse anchors thousands of times); the `yaml` candidate does too.
-  Don't cross-check competitors against each other — only ours against the oracle.
+- **The reference aid** (`bench/oracle.ts`) is `yaml` — a *differential aid*, NOT
+  ground truth for correctness (the spec is; see the precedence rule above).
+  Fixtures' in-memory values (for stringify) and the consistency tests both go
+  through it; that's sound because the fixtures avoid spec-contested constructs. It
+  parses with `maxAliasCount: -1` (our rich fixtures reuse anchors thousands of
+  times); the `yaml` candidate does too. Don't cross-check competitors against each
+  other — compare ours against this reference, and adjudicate any disagreement
+  against the spec (the yaml-test-suite conformance run), never assume it's our bug.
 - Both harnesses run **sequentially**. Speed can't be parallelized without
   corrupting timing; the memory harness isn't parallelized either, to avoid
   co-running heavy parses swapping the machine and corrupting RSS. The vitest
