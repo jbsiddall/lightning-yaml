@@ -1,6 +1,6 @@
 /**
- * Regenerate the README benchmark tables. Two modes, matching the two refresh
- * cadences (see CLAUDE.md):
+ * Regenerate the BENCHMARKS.md benchmark tables. Two modes, matching the two
+ * refresh cadences (see CLAUDE.md):
  *
  *   node --expose-gc --import tsx bench/report.ts self
  *     Benchmarks ONLY this repo's own parser (group "ours") + JSON baseline, and
@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import { candidatesInGroup, candidateSupports, type Scope } from "./candidates.ts";
 import { runMemoryMatrix, formatMarkdown } from "./memory/run.ts";
 
-const README = fileURLToPath(new URL("../README.md", import.meta.url));
+const BENCHMARKS = fileURLToPath(new URL("../BENCHMARKS.md", import.meta.url));
 
 function speedPath(script: string): string {
   return fileURLToPath(new URL(`./speed/${script}`, import.meta.url));
@@ -80,20 +80,20 @@ async function buildBlock(scope: Scope, generatedBy: string): Promise<string> {
   ].join("\n");
 }
 
-function inject(readme: string, marker: string, content: string): string {
+function inject(doc: string, marker: string, content: string): string {
   const start = `<!-- BENCH:${marker}:START -->`;
   const end = `<!-- BENCH:${marker}:END -->`;
-  const si = readme.indexOf(start);
-  const ei = readme.indexOf(end);
+  const si = doc.indexOf(start);
+  const ei = doc.indexOf(end);
   if (si === -1 || ei === -1) {
-    throw new Error(`README is missing the ${start} … ${end} markers`);
+    throw new Error(`BENCHMARKS.md is missing the ${start} … ${end} markers`);
   }
-  return readme.slice(0, si + start.length) + "\n" + content + "\n" + readme.slice(ei);
+  return doc.slice(0, si + start.length) + "\n" + content + "\n" + doc.slice(ei);
 }
 
 async function main(): Promise<void> {
   const mode = process.argv[2];
-  let readme = readFileSync(README, "utf8");
+  let doc = readFileSync(BENCHMARKS, "utf8");
 
   if (mode === "competition") {
     console.log("Benchmarking all parsers (JSON + js-yaml + yaml + lightning-yaml), full matrix…");
@@ -102,7 +102,7 @@ async function main(): Promise<void> {
     // lightning-yaml from fixtures it can't read yet (e.g. yaml-rich anchors),
     // so those rows honestly show only the parsers that handle them.
     const block = await buildBlock("all", "pnpm bench:competition");
-    readme = inject(readme, "COMPETITION", block);
+    doc = inject(doc, "COMPETITION", block);
   } else if (mode === "self") {
     const ours = candidatesInGroup("ours");
     const ready = ours.filter((c) => candidateSupports(c, "parse") || candidateSupports(c, "stringify"));
@@ -114,19 +114,19 @@ async function main(): Promise<void> {
         "to benchmark here._\n\n" +
         "_This block refreshes automatically once `src/index.ts` implements them; until " +
         "then, `pnpm test` runs the consistency suite that specifies what \"correct\" means._";
-      readme = inject(readme, "OURS", block);
+      doc = inject(doc, "OURS", block);
     } else {
       console.log(`Benchmarking our implementation (${ready.map((c) => c.name).join(", ")}) + JSON baseline…`);
       const block = await buildBlock("ours", "pnpm bench:self");
-      readme = inject(readme, "OURS", block);
+      doc = inject(doc, "OURS", block);
     }
   } else {
     console.error("Usage: report.ts <self|competition>");
     process.exit(1);
   }
 
-  writeFileSync(README, readme);
-  console.log(`Updated ${README}`);
+  writeFileSync(BENCHMARKS, doc);
+  console.log(`Updated ${BENCHMARKS}`);
 }
 
 await main();
