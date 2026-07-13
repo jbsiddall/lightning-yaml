@@ -28,6 +28,7 @@ machine-specific; the ratios are the durable signal.
 | [10-adversarial-verdicts.md](10-adversarial-verdicts.md) | 12 adversarial verifications: 9 confirmed, 3 refuted |
 | [11-completeness-critique.md](11-completeness-critique.md) | Ranked gaps: what none of the designs handled (stringify! N-API! block-mode spike! …) |
 | [12-v8-optimization-guide.md](12-v8-optimization-guide.md) | User-supplied V8 coding guide (tier model, JIT rules, tier-residency CI recipe), reviewed and edited to defer to the dossier's measurements |
+| [13-adversarial-torture-tests.md](13-adversarial-torture-tests.md) | **Correctness under hostile input** (2026-07-13 addition): parser-differential taxonomy, CVEs, and lightning-yaml's measured verdict per construct — incl. two intentional divergences. Locked by `test/adversarial.unit.ts` |
 
 ## Executive summary
 

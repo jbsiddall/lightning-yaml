@@ -304,4 +304,28 @@ NOTE: all of the above (incl. the schema-1.1 finding) was measured against js-ya
 
 ## Deviations / skipped spec-corners
 
-- (none yet)
+Two **intentional divergences** from the `yaml` oracle, found in the adversarial pass
+(below), documented in `docs/research/13-adversarial-torture-tests.md` and locked by
+`test/adversarial.unit.ts`:
+
+- **Duplicate keys → last-wins** (`{lang:Y}`), not an error. Follows `JSON.parse`
+  (the library's north star); the oracle rejects. Security-relevant differential
+  (CVE-2017-12635 class) — adopters needing strict rejection validate upstream.
+- **Non-scalar key in a *flow* mapping** (`{[1,2]: v}`) → controlled `YAMLParseError`.
+  The *block* form (`? [a,b]`) IS supported; the flow form is spec-valid but absent
+  from the whole yaml-test-suite and only representable as a lossy string, so a clean
+  throw is the pinned behaviour (a `parseFlowKey` `[`/`{` dispatch reusing
+  `stringifyKeyNode` would close it if an adopter needs it).
+
+## Adversarial / torture-test pass (post-target, 2026-07-13)
+
+Distilled an external parser-differential/security research brief into
+`docs/research/13-adversarial-torture-tests.md` and locked the findings in a new
+`test/adversarial.unit.ts` (44 cases, folded into `pnpm test:unit`). Method:
+differential harness (ours vs oracle) over the brief's full §4 taxonomy + a 31-input
+"no unexpected exception" fuzz sweep. **Result: zero uncaught exceptions** (deep
+nesting → `MAX_DEPTH` throw, not stack overflow; alias bombs → structural-sharing DAG,
+<1 ms), suite unchanged at **364/373**, and the two divergences above pinned. Net-new
+coverage: bool-words-as-keys distinctness, exact `010`/`-_` typing, `\L`/`\P` escapes,
+literal NEL/LS/PS, dedicated billion-laughs sharing check. No parser (`src/`) change
+was needed — the adversarial pass confirmed robustness rather than uncovering bugs.

@@ -153,6 +153,7 @@ implementation, or performance — pick by task:
 - Anything WASM or native → `04-wasm-route.md` + `08-design-b-wasm.md` (route was rejected — read before reopening)
 - Before relying on a perf claim from the dossier → `10-adversarial-verdicts.md` (three claims were refuted)
 - Planning benchmarks, fixtures, stringify, or conformance work → `11-completeness-critique.md`
+- Adversarial / security / torture testing, or parser-differential work → `13-adversarial-torture-tests.md` (its findings are locked by `test/adversarial.unit.ts`)
 
 ## Key commands
 
