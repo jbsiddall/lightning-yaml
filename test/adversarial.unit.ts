@@ -34,6 +34,13 @@ const NEL = String.fromCharCode(0x85); // U+0085 NEL
 const LS = String.fromCharCode(0x2028); // U+2028 LINE SEPARATOR
 const PS = String.fromCharCode(0x2029); // U+2029 PARAGRAPH SEPARATOR
 
+// Assert a SPECIFIC error cause, not merely "some" YAMLParseError. Every parser
+// error is a YAMLParseError, so a bare `throws(fn, YAMLParseError)` would still
+// pass if the input later started throwing for an unrelated reason — masking a
+// behaviour change on exactly the divergence/limitation rows we mean to pin.
+const throwsBecause = (fn: () => unknown, cause: RegExp) =>
+  throws(fn, (e: unknown) => e instanceof YAMLParseError && cause.test(e.message));
+
 // --------------------------------------------------------------------------
 // Robustness — the "no unexpected exception" oracle. For ANY byte sequence the
 // parser must either return a value or throw YAMLParseError; anything else
@@ -193,8 +200,8 @@ test("complex keys: BLOCK form (`? [a,b]` / `? {a:1}`) is supported and oracle-m
 });
 
 test("complex keys: FLOW form (`{[1,2]: v}`) is a controlled throw (known limitation)", () => {
-  throws(() => parse("{[1, 2]: v}"), YAMLParseError, "flow sequence key");
-  throws(() => parse("{{a: 1}: v}"), YAMLParseError, "flow mapping key");
+  throwsBecause(() => parse("{[1, 2]: v}"), /mapping key/); // flow sequence key
+  throwsBecause(() => parse("{{a: 1}: v}"), /mapping key/); // flow mapping key
   // The oracle diverges here — it accepts the flow form with a lossy string key.
   deepStrictEqual(oracleParse("{[1, 2]: v}"), { "[ 1, 2 ]": "v" });
 });
@@ -257,5 +264,5 @@ test("unicode: `\\N` `\\L` `\\P` double-quote escapes decode to U+0085/U+2028/U+
 test("anchors: empty anchor aliases to null; redefinition is last-wins; forward ref throws", () => {
   deepStrictEqual(parse("x: &e\ny: *e"), { x: null, y: null }, "alias to empty node ⇒ null");
   deepStrictEqual(parse("p: &a 1\nq: &a 2\nr: *a"), { p: 1, q: 2, r: 2 }, "redefinition last-wins");
-  throws(() => parse("x: *later\nlater: &later 1"), YAMLParseError, "forward reference is illegal");
+  throwsBecause(() => parse("x: *later\nlater: &later 1"), /unresolved alias/); // forward reference is illegal
 });

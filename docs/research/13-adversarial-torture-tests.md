@@ -98,6 +98,17 @@ string (JS objects can't key on a collection), and the current behaviour is a
 `parseFlowKey` (reusing the existing `stringifyKeyNode`) would close it if a real
 adopter ever needs it; until then the throw is the pinned, documented behaviour.
 
+**Scope note.** "Two intentional divergences" is scoped to the surveyed taxonomy
+above — the constructs where a divergence is a deliberate *design* choice. A few
+finer divergences exist outside it and are **not** separately enumerated here
+because they fall under an already-tracked bucket: the over-lenience gap (we accept
+some malformed inputs the oracle rejects — e.g. `{k: ? v}`), noted in `PROGRESS.md`
+as the "error-case strictness gap" to close as the parser matures; and minor tag
+resolutions (`!!float 1` → the number `1`, indistinguishable from `1.0` in JS;
+`!!merge` as a key → an empty-string key, under the merge non-goal). None crash and
+none contradict a locked row; they are catalogued here so the "two" figure can't be
+misread as a global count.
+
 ## Sources worth keeping (new to this repo)
 
 The implementation dossier cites parser internals; these are the **adversarial /
