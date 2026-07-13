@@ -125,6 +125,11 @@ Production ships **only** through the visible workflow in
 **not** Vercel's git auto-deploy. Disable auto-deploy in the Vercel project so the
 Actions log is the single auditable deploy path.
 
+On pull requests the `deploy` job posts (and updates) a **sticky comment with a
+clickable preview URL** so you can open the built site straight from the PR. This needs
+`pull-requests: write` on the job (already set) — for same-repo PRs the built-in
+`GITHUB_TOKEN` covers it; PRs from forks get a read-only token and skip the comment.
+
 **Vercel project settings:** set **Root Directory = `site`** so `vercel build`/`deploy`
 operate on this nested project.
 
