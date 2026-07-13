@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref (e.g. new pushes to a PR branch).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the `packageManager` field (pnpm@10.33.0) from package.json —
+      # do not pin a version here, it would fight that field.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test (vitest consistency suite vs. oracle)
+        run: pnpm test
+
+      - name: Test (parser unit suite)
+        run: pnpm test:unit
+
+      - name: Test (stringify round-trip suite)
+        run: pnpm test:stringify
+
+      - name: Build
+        run: pnpm build
+
+      - name: Smoke test built dist (ESM + CJS + compat subpaths)
+        run: |
+          set -eu
+
+          cat > ./.smoke-test.mjs <<'EOF'
+          import { existsSync, statSync } from 'node:fs';
+          import { parse, stringify } from './dist/index.js';
+          import { parse as yamlCompatParse } from './dist/yaml-compat.js';
+          import { load as jsYamlLoad } from './dist/js-yaml-compat.js';
+
+          // Main ESM entry.
+          const esmParsed = parse('a: 1');
+          if (esmParsed.a !== 1) {
+            throw new Error('ESM parse() failed: ' + JSON.stringify(esmParsed));
+          }
+          if (typeof stringify({ a: 1 }) !== 'string') {
+            throw new Error('ESM stringify() did not return a string');
+          }
+
+          // `lightning-yaml/yaml` compat subpath (ESM).
+          const yamlCompatParsed = yamlCompatParse('a: 1');
+          if (yamlCompatParsed.a !== 1) {
+            throw new Error('yaml-compat parse() failed: ' + JSON.stringify(yamlCompatParsed));
+          }
+
+          // `lightning-yaml/js-yaml` compat subpath (ESM).
+          const jsYamlLoaded = jsYamlLoad('a: 1');
+          if (jsYamlLoaded.a !== 1) {
+            throw new Error('js-yaml-compat load() failed: ' + JSON.stringify(jsYamlLoaded));
+          }
+
+          // CDN/IIFE bundle must exist and be non-empty.
+          const cdnPath = './dist/lightning-yaml.min.js';
+          if (!existsSync(cdnPath)) {
+            throw new Error(cdnPath + ' is missing');
+          }
+          if (statSync(cdnPath).size === 0) {
+            throw new Error(cdnPath + ' is empty');
+          }
+
+          console.log('ESM + compat subpaths + CDN bundle smoke test passed');
+          EOF
+
+          cat > ./.smoke-test.cjs <<'EOF'
+          const { parse, stringify } = require('./dist/index.cjs');
+
+          const cjsParsed = parse('a: 1');
+          if (cjsParsed.a !== 1) {
+            throw new Error('CJS parse() failed: ' + JSON.stringify(cjsParsed));
+          }
+          if (typeof stringify({ a: 1 }) !== 'string') {
+            throw new Error('CJS stringify() did not return a string');
+          }
+
+          console.log('CJS smoke test passed');
+          EOF
+
+          node ./.smoke-test.mjs
+          node ./.smoke-test.cjs
+
+          rm -f ./.smoke-test.mjs ./.smoke-test.cjs
