@@ -188,6 +188,17 @@ systematic divergence surfaced.
     suite 364/373. VERIFIED. Deferred: P3 flag-bookkeeping (high-risk), S3 key-quote memo (low payoff).
   - **M7 finalize (next):** bench:competition refresh (v5 + optimized parser/stringify) + fix
     stale "stringify unimplemented" README prose.
+- **Bundle-size benchmark — DONE.** New `pnpm bench:bundlesize` (`bench/bundlesize/`, plain
+  `.mjs`) measures shipped size of `parse`+`stringify` for lightning-yaml vs `yaml` vs `js-yaml`
+  across **five bundlers** (Vite, Webpack, Bun, Deno, Rolldown) — tree-shaking + identifier
+  mangling, browser platform → ESM builds — reporting raw/gzip/brotli. Deterministic → committed
+  to the README "Bundle size" block. **Headline: lightning-yaml ~11.9 KB gz < js-yaml ~15.6 KB <
+  `yaml` ~29.4 KB**; the five bundlers agree within a few %. `--verify` proves tree-shaking is on
+  (namespace-import is larger; lightning's ~1% delta is expected for a single-file module).
+  Toolchain isolated in `bench/bundlesize/package.json` (root install + `pnpm typecheck`
+  untouched; `.mjs` is excluded from the gate). Turbopack omitted (no standalone library CLI) —
+  Rolldown is the Rust stand-in. Docker path deferred: daemon unavailable in-session, but the
+  core is container-portable for a later verified wrapper.
 - **DEFERRED (user): property-based tests (fast-check)** — not now.
 - 9 spec-corner suite cases (`yaml` also fails) — genuine non-goals.
 

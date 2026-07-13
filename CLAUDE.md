@@ -181,6 +181,27 @@ commit it when:
 This is the slow one (the xlarge/`yaml` cases take several minutes) — not needed
 on ordinary commits.
 
+### 3. Refresh bundle size on dependency or notable `src`-size changes
+
+Run:
+
+```bash
+pnpm bench:bundlesize
+```
+
+This bundles each library's `parse` + `stringify` with five bundlers (Vite, Webpack,
+Bun, Deno, Rolldown) — tree-shaking + minification, browser platform — and rewrites the
+"Bundle size" block. Sizes are **deterministic** (unlike timings), so commit the
+refreshed block when:
+
+- **dependency versions change** — `yaml`, `js-yaml`, or a bundler is bumped; or
+- **`src/index.ts` grows/shrinks materially** — our own bundle size moved.
+
+The bundler toolchain is isolated in `bench/bundlesize/package.json` (installed on first
+run), so it never touches the root install or `pnpm typecheck`; the harness is plain
+`.mjs` and excluded from the gate. Bun/Deno rows appear only when those runtimes are on
+PATH. Not needed on ordinary commits. See [bench/bundlesize](bench/bundlesize/README.md).
+
 ## Notes for changes to the harness
 
 - `bench/candidates.ts` is the single source of truth. `lightning-yaml` is
