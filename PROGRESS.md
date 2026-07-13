@@ -171,10 +171,18 @@ systematic divergence surfaced.
   **compat dump 0%→100%** (js-yaml-compat 80.2%→91.6%, yaml-compat 86.2%→97.9%), parse bench flat.
   VERIFIED by orchestrator. Stringify perf baseline ~60ms/iter (large-records) = M7 target.
   NOTE: README bench tables + "stringify unimplemented" prose are STALE — refreshed at M7.
-- **M7 · deep perf polish — NEXT (OPUS agents only, challenging).** key-feedback intern upgrade
-  + V8 hot-path tuning per dossier 12/06; EACH optimization gated on a MEASURED `bench:self` win,
-  no correctness regression. Also tune the new (correctness-first) stringify. Finish with a
-  bench:self + bench:competition refresh AND fix the stale stringify README prose.
+- **M7 · deep perf polish — IN PROGRESS (OPUS agents only).** Analysis pass (opus) confirmed the
+  parser is deopt-clean + flow/block separation survived F1–F5; produced a ranked, bench-validated
+  plan (noise floor ±3–4% parse, separate-process min-column protocol).
+  - **M7-parse (done, `10c426b`):** P2 `skipFlowWs` fast-path split (byte-identical) + P1
+    **FastKeyMatch** key-intern upgrade (design §5 flagship; confined to the two map loops, leaf
+    parsers untouched, byte-identical). Net **records ~7–12% faster, nested ~5%**, yaml-plain
+    records −9%. Full gate green, **suite holds 364/373**. VERIFIED. (Empirically validated first:
+    removing the intern Map made records +11% slower → FastKeyMatch is the correct lever.)
+  - **M7-stringify (next):** S1 `parts[]`+join → `+=` ConsString (measured 1.8× on the concat;
+    ~9×→~5–6× JSON.stringify target); S2 pre-scan `Object.keys` dedupe. Bench-gated (heap-Δ/RSS
+    stable figures). Deferred: P3 flag-bookkeeping (high-risk), S3 key-quote memo (low payoff).
+  - **M7 finalize:** bench:self + bench:competition refresh + fix stale stringify README prose.
 - **DEFERRED (user): property-based tests (fast-check)** — not now.
 - 9 spec-corner suite cases (`yaml` also fails) — genuine non-goals.
 
