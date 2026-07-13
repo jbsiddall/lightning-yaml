@@ -29,6 +29,15 @@ read it first. The repo around it is:
 
 See [README.md](README.md) for the design and rationale.
 
+## Integrity of benchmarks and claims — non-negotiable
+
+Every number and claim this repo publishes must be true and fair. When you run
+benchmarks or write copy (README, docs, comments, commit messages), report the
+honest result — never tune, cherry-pick, or phrase anything to flatter
+lightning-yaml, and never bend the methodology in its favour. Hold every parser we
+compare against to the same rules. If honest measurement makes our speed or
+conformance claims worse, change the claims: accuracy outranks looking good.
+
 ## Orchestration loop — how to work in this repo
 
 This repo is driven by an **orchestrator + subagents** pattern. The top-level agent
@@ -144,16 +153,17 @@ change.
 
 `bench:self` benchmarks only this repo's own parser (group `ours` in
 `bench/candidates.ts`) plus the JSON baseline — fast, so run it every commit. The
-per-fixture capability probe (`candidateHandles`) benchmarks lightning-yaml only
-on the fixtures it can read today (JSON + block `yaml-plain`) and skips those
-whose constructs aren't implemented yet (e.g. `yaml-rich` anchors/`!!binary`), so
-no "error" rows appear. Do **not** run the (slow) full-matrix benchmark on
-ordinary commits.
+per-fixture capability probe (`candidateHandles`) still drops any candidate from a
+fixture it can't parse (so no bogus "error" rows appear), but lightning-yaml now
+reads every committed category — JSON, block `yaml-plain`, and rich `yaml-rich`
+(`!!binary` + `&`/`*` anchors) — so nothing is skipped for it today. Do **not** run
+the (slow) full-matrix benchmark on ordinary commits.
 
 Also run `pnpm test` (vitest consistency vs the oracle) and `pnpm test:unit`
 (the parser's own node:test suite) before committing parser changes — together
-they are the correctness gate. The `yaml-rich` consistency cases stay red until
-anchors + `!!binary` land (a later milestone); everything else is green.
+they are the correctness gate. All consistency categories — JSON, block
+`yaml-plain`, and rich `yaml-rich` (`!!binary` + anchors) — currently pass; keep
+them green.
 
 Note: timings drift run-to-run — that's normal. Update to the latest
 representative run; peak-RSS / heap-Δ are the stable figures. Run on an
