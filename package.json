@@ -18,6 +18,7 @@
     "bench": "pnpm gen:fixtures && pnpm bench:competition && pnpm bench:self",
     "test": "vitest run",
     "test:unit": "node --import tsx --test test/parser.unit.ts",
+    "test:stringify": "node --import tsx --test test/stringify.unit.ts",
     "test:watch": "vitest",
     "test:suite": "pnpm gen:suite && node --import tsx bench/conformance/run.ts",
     "test:compat": "node --import tsx bench/conformance/compat.ts",
