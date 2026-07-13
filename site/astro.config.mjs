@@ -33,6 +33,13 @@ export default defineConfig({
             // markdown plugin is auto-added by starlight-typedoc; keep output clean
             skipErrorChecking: true,
             excludeInternal: true,
+            // Without a configured readme, starlight-typedoc deletes every
+            // per-module README page (libs/typedoc.ts onRendererPageEnd) — which is
+            // exactly where each module's TSDoc block renders. The compat shims'
+            // top-of-file `@packageDocumentation` blocks (the master source for the
+            // compatibility matrix) live on those pages, so point readme at a real
+            // file to keep them.
+            readme: './typedoc-readme.md',
           },
         }),
       ],

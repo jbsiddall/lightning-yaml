@@ -9,16 +9,19 @@
 lightning-yaml is a pure-JS YAML 1.2 parser and stringifier that parses and
 writes at speeds approaching native `JSON.parse`/`JSON.stringify` — while passing
 ~97.6% of the official [yaml-test-suite](https://github.com/yaml/yaml-test-suite),
-ahead of js-yaml and the `yaml` library. It's a drop-in replacement for either:
-same shape of API, ESM + CJS + full TypeScript types, small bundle. No more
-trading YAML's readability for JSON's performance.
+ahead of js-yaml and the `yaml` library. It's an API-level drop-in for either —
+same exports and call signatures, ESM + CJS + full TypeScript types, small bundle
+(option arguments aren't honoured yet; see [Drop-in](#drop-in-for-js-yaml-or-yaml)).
+No more trading YAML's readability for JSON's performance.
 
 - **Fast.** Parses and stringifies at speeds approaching native
   `JSON.parse`/`JSON.stringify` — far ahead of existing JS YAML libraries.
 - **Spec-compliant.** Passes ~97.6% of the official yaml-test-suite — more than
   js-yaml or `yaml`.
-- **Drop-in.** API-compatible with both `yaml` and `js-yaml`; swap the import,
-  keep the code.
+- **Drop-in (API-level).** Same exports and signatures as `yaml` and `js-yaml` —
+  swap the import and your code runs. Option arguments (`schema`, `sortKeys`,
+  `indent`, …) are still accepted-but-ignored today; see
+  [Drop-in](#drop-in-for-js-yaml-or-yaml).
 - **Lean.** Small bundle; ships ESM + CJS + full TypeScript types.
 - **Complete.** Full YAML 1.2 core — flow & block syntax, anchors/aliases, tags
   incl. `!!binary`, multi-document streams, and more.
@@ -81,6 +84,18 @@ import { load, dump } from 'lightning-yaml/js-yaml';
 // Using the `yaml` library? Same deal:
 import { parse } from 'lightning-yaml/yaml';
 ```
+
+> **Honest status — API-level today.** The shims match the *surface* (same
+> exports and call signatures), so your code compiles and runs. They do **not**
+> yet honour most **option arguments**: `load(text, { schema })`,
+> `dump(obj, { sortKeys, indent })`, `parse(text, { version })` and friends are
+> accepted but currently **ignored**, so behaviour can differ from the original
+> library. This layer is genuinely useful for migrating — but it isn't where we
+> want it yet. The full per-option support matrix (and what's easy to add next)
+> is the module doc for [`src/js-yaml-compat.ts`](src/js-yaml-compat.ts) and
+> [`src/yaml-compat.ts`](src/yaml-compat.ts), also published under the
+> [API reference](https://lightning-yaml.dev). Goal: maximise compatibility
+> without ever compromising YAML-1.2 correctness or core speed.
 
 ### Browser / CDN
 

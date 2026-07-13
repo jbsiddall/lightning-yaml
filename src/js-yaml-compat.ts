@@ -1,13 +1,77 @@
 /**
- * js-yaml-compat.ts — a drop-in-ish replacement for the `js-yaml` v5 public
- * API, backed by lightning-yaml's own parser (./index.ts).
+ * @packageDocumentation
  *
- * Goal: a codebase that does `import { load } from "js-yaml"` can swap the
- * import for this module and keep working, AS FAR AS lightning-yaml's current
- * milestone allows. Full fidelity is NOT the goal — see
- * bench/conformance/compat.ts for a differential report quantifying exactly
- * how far we are, grouped by which YAML construct caused the gap. Gaps are
- * expected and intentional:
+ * js-yaml-compat.ts — a drop-in-ish replacement for the `js-yaml` v5 public
+ * API (`load`/`loadAll`/`dump`), backed by lightning-yaml's own parser
+ * (./index.ts).
+ *
+ * This module doc block is the MASTER SOURCE for js-yaml compatibility: it is
+ * published verbatim to the website's API reference (site/astro.config.mjs
+ * wires this file through starlight-typedoc), so keep it accurate and honest.
+ *
+ * ## Compatibility level TODAY
+ *
+ * **API-level, not behaviour-complete.** Every export and call signature the
+ * real `js-yaml` exposes exists here, so code that imports `load`/`loadAll`/
+ * `dump` compiles and runs unchanged. What is NOT yet honoured is almost every
+ * **option argument**: `load(text, { schema, json, maxAliases, maxDepth })`
+ * and `dump(obj, { sortKeys, indent, noRefs, ... })` are accepted so call
+ * sites type-check, but are currently **ignored** — only `filename` (threaded
+ * into a thrown error's mark) and `loadAll`'s iterator actually do anything.
+ * The shim is genuinely useful for migrating today, but a call that relies on
+ * an option will silently behave differently from real js-yaml.
+ *
+ * ## Goal
+ *
+ * Maximise drop-in compatibility **without ever compromising the two things
+ * that outrank it: YAML-1.2-spec correctness and core (./index.ts) speed.**
+ * Per-option cost is therefore paid either in this shim (pre-/post-processing
+ * the plain-JS value, the way the `yaml` shim's reviver already does) or behind
+ * a gated core seam that leaves the options-free fast path byte-identical. An
+ * option we can't yet honour should eventually FAIL LOUD, not be silently
+ * ignored. We are not there yet — this file tracks the gap honestly.
+ *
+ * ## Option support matrix
+ *
+ * `path` — `done`: already honoured · `compat`: addable in THIS shim, no core
+ * change and no core perf cost · `core`: gated core change, options-free fast
+ * path stays byte-identical · `feature`: needs a parser/dumper capability that
+ * does not exist yet.
+ *
+ * ```text
+ * load / loadAll (LoadOptions)
+ *   filename           attach source path to error marks          done
+ *   json               dup-key: last-wins (true) vs throw (false) core        [1]
+ *   schema             FAILSAFE / JSON / CORE / YAML11 typing      core        [2]
+ *   maxAliases         cap alias expansions (billion-laughs)      compat/core
+ *   maxDepth           cap nesting depth                          compat/core  (core already tracks depth)
+ *   maxTotalMergeKeys  cap `<<` merge expansion                   feature      (merge keys unimplemented)
+ *
+ * dump (DumpOptions)
+ *   sortKeys           sort map keys on output                    compat       <- easy win (pre-sort the graph)
+ *   skipInvalid        drop functions/undefined vs emit/throw     compat       <- easy win (pre-clean input)
+ *   indent             block indent width (we hardcode 2)         core
+ *   quoteStyle         prefer 'single' vs "double"                core
+ *   forceQuotes        always quote strings                       core
+ *   schema             output schema                              core
+ *   noRefs             expand shared refs instead of &/*          feature      [3]
+ *   lineWidth          fold long lines                            feature      (no line folding exists)
+ *   flowLevel + seqNoIndent + seqInlineFirst + flowBracketPadding feature      (no flow-collection writer)
+ *     + flowSkipCommaSpace + flowSkipColonSpace + quoteFlowKeys
+ *     + tagBeforeAnchor
+ *   transform          mutate documents before dump              feature      (needs a Document/AST model)
+ * ```
+ *
+ * [1] Our default is already last-wins (= `json: true`). Worth knowing: the
+ *     yaml-test-suite treats duplicate keys as VALID (case 2JQS), so
+ *     throw-on-duplicate is a js-yaml-PARITY knob, NOT a spec-conformance win.
+ * [2] js-yaml v5's own default schema is 1.2-core, same as ours — so default
+ *     typing already agrees; only an explicitly non-default schema diverges.
+ * [3] `noRefs` can't just skip anchoring: the shared-reference pre-scan is also
+ *     the cycle guard, so it must first tell a shared DAG node from a cycle.
+ *
+ * The construct-level gaps below are the current intentional simplifications
+ * (a `NotImplementedError` here means "can't read this yet", not "malformed"):
  *
  *   - `load`/`loadAll` on a construct we don't parse yet (block scalars,
  *     anchors/aliases, tags, merge keys) throw our own `NotImplementedError`

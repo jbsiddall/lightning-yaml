@@ -3,6 +3,7 @@
 const features = [
   'Anchors, aliases, !!binary & multi-doc streams',
   'parse · parseAll · stringify',
+  'js-yaml / yaml drop-in shims',
   'TypeScript-first types',
   'Zero dependencies',
 ];
@@ -17,6 +18,14 @@ const features = [
       </li>
     ))}
   </ul>
+
+  <p class="features__note">
+    <b>Drop-in is API-level today.</b> Imports and call signatures match
+    <code>js-yaml</code> and <code>yaml</code>, so existing code runs — but their
+    option arguments (<code>schema</code>, <code>sortKeys</code>, <code>indent</code>, …)
+    are still <b>accepted&nbsp;but&nbsp;ignored</b>. Useful for migrating now; not
+    yet a 1:1 behavioural match.
+  </p>
 </section>
 
 <style>
@@ -54,5 +63,27 @@ const features = [
     background: var(--ly-spark);
     box-shadow: 0 0 8px var(--ly-spark-glow);
     flex: none;
+  }
+
+  .features__note {
+    margin: 0.9rem auto 0;
+    max-width: 66ch;
+    text-align: center;
+    color: var(--ly-muted);
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+  .features__note b {
+    color: var(--ly-ink);
+    font-weight: 600;
+  }
+  .features__note code {
+    font-family: var(--sl-font-mono);
+    font-size: 0.92em;
+    color: var(--ly-ink);
+    background: rgba(124, 92, 255, 0.12);
+    border: 1px solid var(--ly-line);
+    border-radius: 5px;
+    padding: 0.03em 0.32em;
   }
 </style>
