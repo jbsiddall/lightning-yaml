@@ -10,7 +10,10 @@ name: Deploy docs
 # into `site/src/data/benchmarks/` BEFORE building (the benchmarks page + TypeDoc are
 # consumed during `astro build`, which `vercel build` invokes).
 #
-# Required repo secrets: VERCEL_API_KEY (the Vercel token), VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+# Auth: VERCEL_API_KEY as a repo SECRET (the Vercel token). VERCEL_ORG_ID and
+# VERCEL_PROJECT_ID as repo VARIABLES (plain identifiers — not sensitive), read from
+# the `vars` context below. (Store them as secrets instead? then switch these to
+# `secrets.` — the two contexts are separate and don't fall through to each other.)
 
 on:
   push:
@@ -18,8 +21,8 @@ on:
   pull_request:
 
 env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
 
 jobs:
   # Fast headless sanity build — fails CI before the Vercel steps if the site is broken.

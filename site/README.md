@@ -128,13 +128,16 @@ Actions log is the single auditable deploy path.
 **Vercel project settings:** set **Root Directory = `site`** so `vercel build`/`deploy`
 operate on this nested project.
 
-**Required repository secrets:**
+**Required CI config** (GitHub → Settings → Secrets and variables → Actions). Only the
+token is sensitive, so the two IDs are plain **variables** and the token is a **secret**
+(the workflow reads them from the `vars` and `secrets` contexts respectively — they are
+separate and do not fall through to each other):
 
-| secret               | what it is / where to find it                                       |
-| -------------------- | ------------------------------------------------------------------- |
-| `VERCEL_API_KEY`     | a Vercel **token** — Vercel → Account Settings → Tokens (used as `--token`) |
-| `VERCEL_ORG_ID`      | opaque `team_…` / user id — `.vercel/project.json` after `vercel link` (`orgId`); NOT the `jbsiddalls-projects` slug |
-| `VERCEL_PROJECT_ID`  | opaque `prj_…` — `.vercel/project.json` after `vercel link` (`projectId`); NOT the `lightning-yaml` project name |
+| name                | kind         | what it is / where to find it                                  |
+| ------------------- | ------------ | -------------------------------------------------------------- |
+| `VERCEL_API_KEY`    | **secret**   | a Vercel **token** — Vercel → Account Settings → Tokens (used as `--token`) |
+| `VERCEL_ORG_ID`     | **variable** | opaque `team_…` / user id — `.vercel/project.json` after `vercel link` (`orgId`); NOT the `jbsiddalls-projects` slug |
+| `VERCEL_PROJECT_ID` | **variable** | opaque `prj_…` — `.vercel/project.json` after `vercel link` (`projectId`); NOT the `lightning-yaml` project name |
 
 An optional **GitHub Pages** fallback lives in `.github/workflows/pages.yml`
 (`workflow_dispatch`); it builds with a base path and uploads `dist/`. Vercel is primary.
