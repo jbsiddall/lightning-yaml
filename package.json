@@ -1,12 +1,63 @@
 {
   "name": "lightning-yaml",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
-  "description": "A fast YAML parser — starting with a benchmark harness vs JSON and the leading JS YAML parsers.",
+  "description": "A fast, spec-compliant YAML 1.2 parser and stringifier for JavaScript — approaching JSON.parse speed.",
+  "license": "Apache-2.0",
+  "author": "Joseph Siddall <j.b.siddall@gmail.com>",
+  "homepage": "https://lightning-yaml.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jbsiddall/lightning-yaml.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jbsiddall/lightning-yaml/issues"
+  },
+  "keywords": [
+    "yaml",
+    "parser",
+    "yaml-parser",
+    "yaml-1.2",
+    "json",
+    "stringify",
+    "fast"
+  ],
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./yaml": {
+      "types": "./dist/yaml-compat.d.ts",
+      "import": "./dist/yaml-compat.js",
+      "require": "./dist/yaml-compat.cjs"
+    },
+    "./js-yaml": {
+      "types": "./dist/js-yaml-compat.d.ts",
+      "import": "./dist/js-yaml-compat.js",
+      "require": "./dist/js-yaml-compat.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "unpkg": "./dist/lightning-yaml.min.js",
+  "jsdelivr": "./dist/lightning-yaml.min.js",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "gen:fixtures": "node --import tsx bench/fixtures/generate.ts",
@@ -17,6 +68,8 @@
     "bench:competition": "node --expose-gc --import tsx bench/report.ts competition",
     "bench:bundlesize": "node bench/bundlesize/run.mjs",
     "bench": "pnpm gen:fixtures && pnpm bench:competition && pnpm bench:self",
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "test:unit": "node --import tsx --test test/parser.unit.ts",
     "test:stringify": "node --import tsx --test test/stringify.unit.ts",
@@ -29,6 +82,7 @@
     "@types/node": "^22.10.0",
     "js-yaml": "^5.2.1",
     "mitata": "^1.0.34",
+    "tsup": "^8.5.1",
     "tsx": "^4.23.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.10",
