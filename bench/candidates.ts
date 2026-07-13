@@ -19,7 +19,7 @@
 
 import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
 import { parse as yamlParse, stringify as yamlStringify } from "yaml";
-import { parse as ourParse, NotImplementedError } from "../src/index.ts";
+import { parse as ourParse, stringify as ourStringify, NotImplementedError } from "../src/index.ts";
 import type { Category, DatasetDef } from "./fixtures/datasets.ts";
 
 export type Group = "baseline" | "competition" | "ours";
@@ -78,8 +78,7 @@ export const candidates: Candidate[] = [
     group: "ours",
     kind: "yaml",
     parse: (text) => ourParse(text),
-    // No `stringify` yet — the dumper is a later milestone. The harness skips it
-    // for stringify benches/tests rather than borrowing another library's output.
+    stringify: (value) => ourStringify(value),
   },
 ];
 
