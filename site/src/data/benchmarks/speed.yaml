@@ -1,0 +1,172 @@
+# Lightning YAML — SPEED benchmark suite (mitata, per-iteration wall time).
+#
+# Append-only, multi-document YAML. Each '---' document is one full RUN: a
+# snapshot of every workload at a point in time. A CI job APPENDS a new document
+# (it never rewrites earlier ones), so runs accumulate as history with no
+# read-modify-write and no merge conflicts. The site parses every document and
+# renders the newest by default; older documents power trend charts.
+#
+# Canonical unit: nanoseconds per iteration (ns/iter). Lower is better.
+---
+suite: speed
+scope: competition            # produced by `pnpm bench:competition` (all parsers)
+tool: mitata
+unit: ns/iter
+lower_is_better: true
+generated: "2026-07-13"
+source: "README.md@6b0c56e"
+env:
+  clk: "~1.53 GHz"
+  cpu: "Intel(R) Xeon(R) Processor @ 2.80GHz"
+  runtime: "node 22.22.2 (x64-linux)"
+libraries:
+  - { id: JSON,           label: JSON,            baseline: true }
+  - { id: js-yaml,        label: js-yaml }
+  - { id: yaml,           label: yaml (eemeli) }
+  - { id: lightning-yaml, label: Lightning YAML,  self: true }
+operations:
+  parse:
+    - workload: small-records
+      values:
+        JSON: { avg: 6750, min: 6380, p75: 6840, p99: 7340, max: 7660 }
+        js-yaml: { avg: 65850, min: 49260, p75: 65870, p99: 171740, max: 829220 }
+        yaml: { avg: 680490, min: 514660, p75: 663960, p99: 1510000, max: 1990000 }
+        lightning-yaml: { avg: 15640, min: 15100, p75: 15910, p99: 16020, max: 16300 }
+    - workload: medium-records
+      values:
+        JSON: { avg: 766780, min: 640490, p75: 770340, p99: 1360000, max: 1900000 }
+        js-yaml: { avg: 6570000, min: 5590000, p75: 7610000, p99: 8580000, max: 9070000 }
+        yaml: { avg: 82960000, min: 74240000, p75: 82920000, p99: 98010000, max: 108200000 }
+        lightning-yaml: { avg: 1540000, min: 1390000, p75: 1560000, p99: 2560000, max: 2710000 }
+    - workload: large-records
+      values:
+        JSON: { avg: 8560000, min: 7780000, p75: 8580000, p99: 11290000, max: 11690000 }
+        js-yaml: { avg: 104180000, min: 92430000, p75: 104740000, p99: 120320000, max: 129280000 }
+        yaml: { avg: 964010000, min: 859440000, p75: 1010000000, p99: 1090000000, max: 1110000000 }
+        lightning-yaml: { avg: 19190000, min: 16400000, p75: 20840000, p99: 24280000, max: 26600000 }
+    - workload: xlarge-records
+      values:
+        JSON: { avg: 97520000, min: 89180000, p75: 95500000, p99: 116080000, max: 125900000 }
+        js-yaml: { avg: 997990000, min: 860770000, p75: 1060000000, p99: 1170000000, max: 1260000000 }
+        yaml: { avg: 9890000000, min: 8710000000, p75: 9990000000, p99: 11330000000, max: 13990000000 }
+        lightning-yaml: { avg: 196250000, min: 177660000, p75: 192630000, p99: 232060000, max: 235680000 }
+    - workload: medium-nested
+      values:
+        JSON: { avg: 1510000, min: 1360000, p75: 1540000, p99: 2480000, max: 2780000 }
+        js-yaml: { avg: 11810000, min: 9740000, p75: 13030000, p99: 15280000, max: 15500000 }
+        yaml: { avg: 130000000, min: 121680000, p75: 129750000, p99: 143630000, max: 151340000 }
+        lightning-yaml: { avg: 2940000, min: 2710000, p75: 2970000, p99: 3960000, max: 4260000 }
+    - workload: large-nested
+      values:
+        JSON: { avg: 10920000, min: 10300000, p75: 10900000, p99: 13150000, max: 13170000 }
+        js-yaml: { avg: 112470000, min: 98430000, p75: 113470000, p99: 135620000, max: 152380000 }
+        yaml: { avg: 930870000, min: 875450000, p75: 957170000, p99: 975340000, max: 1010000000 }
+        lightning-yaml: { avg: 22240000, min: 20000000, p75: 22620000, p99: 25010000, max: 34820000 }
+    - workload: yaml-plain-small-records
+      values:
+        js-yaml: { avg: 65920, min: 53640, p75: 63800, p99: 165250, max: 632010 }
+        yaml: { avg: 748840, min: 574840, p75: 736330, p99: 1740000, max: 2130000 }
+        lightning-yaml: { avg: 20290, min: 19780, p75: 20440, p99: 21260, max: 21450 }
+    - workload: yaml-plain-medium-records
+      values:
+        js-yaml: { avg: 7780000, min: 7050000, p75: 8300000, p99: 10360000, max: 10620000 }
+        yaml: { avg: 103360000, min: 94210000, p75: 106110000, p99: 110250000, max: 132210000 }
+        lightning-yaml: { avg: 2440000, min: 2250000, p75: 2450000, p99: 3550000, max: 3920000 }
+    - workload: yaml-plain-large-records
+      values:
+        js-yaml: { avg: 111950000, min: 96100000, p75: 115930000, p99: 122230000, max: 147580000 }
+        yaml: { avg: 1010000000, min: 953830000, p75: 1060000000, p99: 1080000000, max: 1080000000 }
+        lightning-yaml: { avg: 25720000, min: 23240000, p75: 27000000, p99: 29190000, max: 30330000 }
+    - workload: yaml-plain-medium-nested
+      values:
+        js-yaml: { avg: 3820000, min: 3360000, p75: 4030000, p99: 5390000, max: 5780000 }
+        yaml: { avg: 59350000, min: 42040000, p75: 68500000, p99: 75630000, max: 124210000 }
+        lightning-yaml: { avg: 1330000, min: 1200000, p75: 1330000, p99: 2090000, max: 2220000 }
+    - workload: yaml-rich-small
+      values:
+        yaml: { avg: 1040000, min: 819330, p75: 1020000, p99: 2120000, max: 2630000 }
+        lightning-yaml: { avg: 30190, min: 29780, p75: 30210, p99: 30290, max: 32010 }
+    - workload: yaml-rich-medium
+      values:
+        yaml: { avg: 85330000, min: 76750000, p75: 83250000, p99: 90830000, max: 122720000 }
+        lightning-yaml: { avg: 2360000, min: 2050000, p75: 2410000, p99: 3350000, max: 3470000 }
+    - workload: yaml-rich-large
+      values:
+        yaml: { avg: 1180000000, min: 1120000000, p75: 1200000000, p99: 1210000000, max: 1360000000 }
+        lightning-yaml: { avg: 21160000, min: 19930000, p75: 22160000, p99: 23370000, max: 23600000 }
+  stringify:
+    - workload: small-records
+      values:
+        JSON: { avg: 4480, min: 4410, p75: 4540, p99: 4600, max: 4640 }
+        js-yaml: { avg: 130450, min: 103080, p75: 137850, p99: 271480, max: 1030000 }
+        yaml: { avg: 368330, min: 281390, p75: 361980, p99: 1940000, max: 2480000 }
+        lightning-yaml: { avg: 18750, min: 17790, p75: 18780, p99: 19890, max: 20870 }
+    - workload: medium-records
+      values:
+        JSON: { avg: 529170, min: 462560, p75: 541990, p99: 759990, max: 1130000 }
+        js-yaml: { avg: 15460000, min: 13460000, p75: 16170000, p99: 19170000, max: 19240000 }
+        yaml: { avg: 41020000, min: 38340000, p75: 43890000, p99: 45860000, max: 46630000 }
+        lightning-yaml: { avg: 2420000, min: 2110000, p75: 2390000, p99: 4120000, max: 4180000 }
+    - workload: large-records
+      values:
+        JSON: { avg: 7430000, min: 6300000, p75: 7080000, p99: 13660000, max: 13760000 }
+        js-yaml: { avg: 201880000, min: 188560000, p75: 199710000, p99: 207170000, max: 251160000 }
+        yaml: { avg: 443160000, min: 421600000, p75: 451910000, p99: 468750000, max: 490530000 }
+        lightning-yaml: { avg: 35600000, min: 33400000, p75: 36510000, p99: 37460000, max: 37810000 }
+    - workload: xlarge-records
+      values:
+        JSON: { avg: 66920000, min: 64300000, p75: 68650000, p99: 69090000, max: 72750000 }
+        js-yaml: { avg: 1900000000, min: 1750000000, p75: 1930000000, p99: 2090000000, max: 2110000000 }
+        yaml: { avg: 4060000000, min: 3940000000, p75: 4090000000, p99: 4130000000, max: 4230000000 }
+        lightning-yaml: { avg: 538880000, min: 482060000, p75: 552060000, p99: 581850000, max: 621490000 }
+    - workload: medium-nested
+      values:
+        JSON: { avg: 945570, min: 858830, p75: 951170, p99: 1140000, max: 2860000 }
+        js-yaml: { avg: 24180000, min: 22400000, p75: 24900000, p99: 26960000, max: 29470000 }
+        yaml: { avg: 64680000, min: 59310000, p75: 63380000, p99: 72840000, max: 89240000 }
+        lightning-yaml: { avg: 4060000, min: 3540000, p75: 3970000, p99: 5810000, max: 6020000 }
+    - workload: large-nested
+      values:
+        JSON: { avg: 7040000, min: 6510000, p75: 7250000, p99: 8530000, max: 8590000 }
+        js-yaml: { avg: 197520000, min: 191580000, p75: 199240000, p99: 201490000, max: 208010000 }
+        yaml: { avg: 483460000, min: 441350000, p75: 473930000, p99: 502390000, max: 627130000 }
+        lightning-yaml: { avg: 36960000, min: 31990000, p75: 42750000, p99: 43590000, max: 45160000 }
+    - workload: yaml-plain-small-records
+      values:
+        JSON: { avg: 3630, min: 3500, p75: 3680, p99: 3880, max: 3890 }
+        js-yaml: { avg: 95610, min: 78750, p75: 95010, p99: 196190, max: 936040 }
+        yaml: { avg: 274600, min: 210520, p75: 273010, p99: 1110000, max: 2800000 }
+        lightning-yaml: { avg: 13960, min: 13880, p75: 13990, p99: 14060, max: 14080 }
+    - workload: yaml-plain-medium-records
+      values:
+        JSON: { avg: 462450, min: 420480, p75: 466690, p99: 765040, max: 1070000 }
+        js-yaml: { avg: 12520000, min: 11520000, p75: 13100000, p99: 13820000, max: 13970000 }
+        yaml: { avg: 34650000, min: 33040000, p75: 35490000, p99: 37420000, max: 38090000 }
+        lightning-yaml: { avg: 2090000, min: 1880000, p75: 2020000, p99: 3550000, max: 4100000 }
+    - workload: yaml-plain-large-records
+      values:
+        JSON: { avg: 5580000, min: 5130000, p75: 5690000, p99: 6610000, max: 6830000 }
+        js-yaml: { avg: 163480000, min: 147730000, p75: 164330000, p99: 185590000, max: 208330000 }
+        yaml: { avg: 361040000, min: 339960000, p75: 360900000, p99: 381570000, max: 394360000 }
+        lightning-yaml: { avg: 34180000, min: 30470000, p75: 35600000, p99: 35760000, max: 35830000 }
+    - workload: yaml-plain-medium-nested
+      values:
+        JSON: { avg: 220200, min: 189530, p75: 228670, p99: 368640, max: 887950 }
+        js-yaml: { avg: 5720000, min: 5000000, p75: 6240000, p99: 8180000, max: 8270000 }
+        yaml: { avg: 15190000, min: 13600000, p75: 15630000, p99: 19090000, max: 20880000 }
+        lightning-yaml: { avg: 876430, min: 753440, p75: 851270, p99: 1910000, max: 2300000 }
+    - workload: yaml-rich-small
+      values:
+        js-yaml: { avg: 114990, min: 98830, p75: 110950, p99: 241400, max: 919930 }
+        yaml: { avg: 521120, min: 396350, p75: 512610, p99: 1930000, max: 2380000 }
+        lightning-yaml: { avg: 23210, min: 22270, p75: 23420, p99: 23750, max: 24240 }
+    - workload: yaml-rich-medium
+      values:
+        js-yaml: { avg: 9690000, min: 8600000, p75: 10390000, p99: 12000000, max: 12020000 }
+        yaml: { avg: 45840000, min: 40870000, p75: 46540000, p99: 50640000, max: 51410000 }
+        lightning-yaml: { avg: 2350000, min: 1990000, p75: 2240000, p99: 4000000, max: 4220000 }
+    - workload: yaml-rich-large
+      values:
+        js-yaml: { avg: 113250000, min: 103030000, p75: 117310000, p99: 121440000, max: 140130000 }
+        yaml: { avg: 414840000, min: 393810000, p75: 416660000, p99: 438110000, max: 438720000 }
+        lightning-yaml: { avg: 30010000, min: 27630000, p75: 31190000, p99: 31410000, max: 31570000 }

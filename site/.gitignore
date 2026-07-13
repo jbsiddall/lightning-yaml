@@ -1,0 +1,19 @@
+# build output
+dist/
+
+# generated types
+.astro/
+
+# generated TypeDoc API reference — regenerated from src/lib TSDoc on every build
+# (starlight-typedoc writes these during `astro build`; never hand-edit or commit)
+src/content/docs/api/
+
+# dependencies
+node_modules/
+
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
+.DS_Store

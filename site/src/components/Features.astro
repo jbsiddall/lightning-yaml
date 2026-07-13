@@ -1,0 +1,58 @@
+---
+// Features.astro — terse capability strip. Static, no client JS.
+const features = [
+  'Anchors, aliases, !!binary & multi-doc streams',
+  'parse · parseAll · stringify · isValid',
+  'TypeScript-first types',
+  'Zero dependencies',
+];
+---
+
+<section class="features" aria-label="Capabilities">
+  <ul class="features__list">
+    {features.map((f) => (
+      <li class="chip">
+        <span class="chip__spark" aria-hidden="true"></span>
+        <span class="chip__text">{f}</span>
+      </li>
+    ))}
+  </ul>
+</section>
+
+<style>
+  .features {
+    width: 100%;
+  }
+  .features__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--ly-line);
+    border-radius: 999px;
+    background: var(--ly-panel);
+    color: var(--ly-ink);
+    font-family: var(--sl-font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
+  }
+
+  .chip__spark {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ly-spark);
+    box-shadow: 0 0 8px var(--ly-spark-glow);
+    flex: none;
+  }
+</style>

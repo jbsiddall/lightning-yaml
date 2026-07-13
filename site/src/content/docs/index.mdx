@@ -1,0 +1,30 @@
+---
+title: Lightning YAML
+description: A YAML parser at JSON speed — and more spec-conformant than js-yaml or yaml.
+template: splash
+head:
+  - tag: script
+    content: |
+      (function () {
+        // Home page is always dark, regardless of the toggle / OS preference —
+        // deliberately does NOT touch localStorage, so it never clobbers the
+        // visitor's site-wide preference used on every other page.
+        var html = document.documentElement;
+        function lockDark() {
+          if (html.dataset.theme !== 'dark') html.dataset.theme = 'dark';
+        }
+        lockDark();
+        // Starlight's own theme-provider script (and the theme-select custom
+        // element) run after this one and set data-theme from localStorage /
+        // prefers-color-scheme — observe and immediately revert any change,
+        // which happens before the next paint, so there is no visible flash.
+        new MutationObserver(lockDark).observe(html, {
+          attributes: true,
+          attributeFilter: ['data-theme'],
+        });
+      })();
+---
+
+import Landing from '../../components/Landing.astro'
+
+<Landing />

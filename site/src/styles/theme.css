@@ -1,0 +1,48 @@
+/* ==========================================================================
+   Lightning YAML — global theme tokens
+   "Code instrument" aesthetic: dark, precise, electric-violet accent.
+   ========================================================================== */
+
+:root {
+  /* --- Brand palette (also reused by the benchmark charts) --------------- */
+  --ly-void: #0b0d14; /* deepest background */
+  --ly-panel: #141824; /* instrument surface */
+  --ly-line: #232a3b; /* borders / hairlines */
+  --ly-ink: #e8ecf6; /* primary text on dark */
+  --ly-muted: #9aa4bc; /* secondary text on dark */
+  --ly-charge: #7c5cff; /* electric violet accent */
+  --ly-spark: #35e0d8; /* cyan */
+  --ly-amber: #ffb020; /* amber */
+
+  /* Derived tints used by the hero instrument. */
+  --ly-charge-glow: rgba(124, 92, 255, 0.55);
+  --ly-spark-glow: rgba(53, 224, 216, 0.35);
+  --ly-panel-2: #10131d; /* recessed panel */
+
+  /* --- Typography ------------------------------------------------------- */
+  --sl-font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sl-font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- Accent (base = Starlight's dark defaults) ------------------------ */
+  --sl-color-accent: #7c5cff;
+  --sl-color-accent-low: #241b4d;
+  --sl-color-accent-high: #cbb9ff;
+}
+
+/* Dark theme: pull the page background toward the void palette. */
+:root[data-theme='dark'] {
+  --sl-color-accent: #7c5cff;
+  --sl-color-accent-low: #241b4d;
+  --sl-color-accent-high: #cbb9ff;
+
+  --sl-color-bg: #0b0d14;
+  --sl-color-bg-nav: #0d1019;
+}
+
+/* Light theme stays clean; re-map the accent trio so it keeps AA contrast
+   on a white background (accent-high must be dark = text, accent-low = tint). */
+:root[data-theme='light'] {
+  --sl-color-accent: #5b3ff0;
+  --sl-color-accent-low: #ece7ff;
+  --sl-color-accent-high: #2b1d6e;
+}

@@ -1,0 +1,141 @@
+---
+// Priorities.astro — "what we optimise for": four tight cards on the same
+// dark instrument aesthetic as Stats/Features. Static HTML only, no client JS.
+---
+
+<section class="priorities" aria-labelledby="priorities-title">
+  <h2 class="priorities__heading" id="priorities-title">What we optimise for</h2>
+
+  <div class="priorities__grid">
+    <div class="pcard">
+      <span class="pcard__dot pcard__dot--charge" aria-hidden="true"></span>
+      <h3 class="pcard__title">Spec-correct</h3>
+      <p class="pcard__body">
+        <b>97.6%</b> of the YAML Test Suite — more of the spec than <code>js-yaml</code>
+        (94.9%) or <code>yaml</code> (97.1%).
+      </p>
+    </div>
+
+    <div class="pcard">
+      <span class="pcard__dot pcard__dot--spark" aria-hidden="true"></span>
+      <h3 class="pcard__title">JSON-class speed</h3>
+      <p class="pcard__body">
+        Parses at <b>~0.5×</b> <code>JSON.parse</code>; <b>4–39×</b> the JS competition on
+        block YAML.
+      </p>
+    </div>
+
+    <div class="pcard">
+      <span class="pcard__dot pcard__dot--amber" aria-hidden="true"></span>
+      <h3 class="pcard__title">Lean memory</h3>
+      <p class="pcard__body">
+        Peak RSS <b>≈1.3×</b> <code>JSON.parse</code> — well under <code>js-yaml</code> /
+        <code>yaml</code>.
+      </p>
+    </div>
+
+    <div class="pcard">
+      <span class="pcard__dot pcard__dot--charge" aria-hidden="true"></span>
+      <h3 class="pcard__title">Small bundle</h3>
+      <p class="pcard__body"><b>≈14&nbsp;kB</b> min+gzip · tree-shakeable · zero deps.</p>
+      <p class="pcard__note">representative target — bundle-size benchmark not wired up yet</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .priorities {
+    width: 100%;
+  }
+
+  .priorities__heading {
+    margin: 0 0 1rem;
+    text-align: center;
+    font-family: var(--sl-font);
+    font-weight: 600;
+    font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+    color: var(--ly-ink);
+  }
+
+  .priorities__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(0.6rem, 1.6vw, 1rem);
+    width: 100%;
+  }
+
+  .pcard {
+    position: relative;
+    padding: 1.15rem 1.15rem 1.05rem;
+    border: 1px solid var(--ly-line);
+    border-radius: 12px;
+    background: var(--ly-panel);
+    box-shadow: 0 14px 34px -26px rgba(0, 0, 0, 0.9);
+  }
+
+  .pcard__dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-bottom: 0.7rem;
+    border-radius: 50%;
+    flex: none;
+  }
+  .pcard__dot--charge {
+    background: var(--ly-charge);
+    box-shadow: 0 0 8px var(--ly-charge-glow);
+  }
+  .pcard__dot--spark {
+    background: var(--ly-spark);
+    box-shadow: 0 0 8px var(--ly-spark-glow);
+  }
+  .pcard__dot--amber {
+    background: var(--ly-amber);
+    box-shadow: 0 0 8px rgba(255, 176, 32, 0.45);
+  }
+
+  .pcard__title {
+    margin: 0 0 0.45rem;
+    font-family: var(--sl-font);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--ly-ink);
+  }
+
+  .pcard__body {
+    margin: 0;
+    color: var(--ly-muted);
+    font-size: 0.85rem;
+    line-height: 1.55;
+  }
+  .pcard__body b {
+    font-family: var(--sl-font-mono);
+    font-weight: 500;
+    color: var(--ly-ink);
+  }
+  .pcard__body code {
+    font-family: var(--sl-font-mono);
+    font-size: 0.92em;
+    color: var(--ly-ink);
+    background: rgba(124, 92, 255, 0.12);
+    border: 1px solid var(--ly-line);
+    border-radius: 5px;
+    padding: 0.05em 0.35em;
+  }
+
+  .pcard__note {
+    margin: 0.6rem 0 0;
+    color: var(--ly-muted);
+    opacity: 0.75;
+    font-size: 0.68rem;
+    font-style: italic;
+    letter-spacing: 0.01em;
+  }
+
+  @media (max-width: 860px) {
+    .priorities__grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 460px) {
+    .priorities__grid { grid-template-columns: 1fr; }
+  }
+</style>

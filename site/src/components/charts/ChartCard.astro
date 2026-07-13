@@ -1,0 +1,117 @@
+---
+// ChartCard.astro — presentational chrome for one benchmark chart.
+//
+// The <svg> string passed in (built by src/lib/benchmarks.ts) contains ONLY
+// the plot: axes, gridlines, bars, direct value labels. The heading, the
+// "lower/higher is better" note, and the legend all render here as ordinary
+// HTML — real text reflows and never clips or overlaps the way scaled SVG
+// text can on narrow viewports, and it matches the "chip" look already used
+// by Features.astro. Static, zero client JS: this is pure Astro chrome
+// around a `set:html` plot.
+interface LegendItem {
+  label: string;
+  color: string;
+  self?: boolean;
+}
+
+interface Props {
+  heading: string;
+  note?: string;
+  legend?: LegendItem[];
+  svg: string;
+}
+
+const { heading, note, legend, svg } = Astro.props;
+---
+
+<figure class="chart-card">
+  <figcaption class="chart-card__caption">
+    <h3 class="chart-card__heading">{heading}</h3>
+    {note && <p class="chart-card__note">{note}</p>}
+  </figcaption>
+  {
+    legend && legend.length > 0 && (
+      <ul class="chart-card__legend">
+        {legend.map((item) => (
+          <li class:list={['chart-card__legend-item', { 'chart-card__legend-item--self': item.self }]}>
+            <span class="chart-card__swatch" style={`background:${item.color}`} aria-hidden="true" />
+            {item.label}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  <div class="chart-card__plot" set:html={svg} />
+</figure>
+
+<style>
+  .chart-card {
+    margin: 1.5rem 0;
+    padding: 1.1rem 1.2rem 1.2rem;
+    border: 1px solid var(--ly-line);
+    border-radius: 12px;
+    background: var(--ly-panel);
+    box-shadow: 0 14px 34px -26px rgba(0, 0, 0, 0.9);
+  }
+
+  .chart-card__caption {
+    margin: 0 0 0.75rem;
+  }
+
+  .chart-card__heading {
+    margin: 0;
+    color: var(--ly-ink);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .chart-card__note {
+    margin: 0.2rem 0 0;
+    color: var(--ly-muted);
+    font-family: var(--sl-font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
+  }
+
+  .chart-card__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    margin: 0 0 0.9rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .chart-card__legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--ly-ink);
+    font-family: var(--sl-font-mono);
+    font-size: 0.76rem;
+  }
+
+  .chart-card__legend-item--self {
+    font-weight: 600;
+  }
+
+  .chart-card__swatch {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    flex: none;
+  }
+
+  .chart-card__plot {
+    width: 100%;
+  }
+
+  /* Belt-and-suspenders: the builder already inlines width/height/display on
+     the <svg> itself (set:html content isn't reachable by scoped selectors
+     without :global), but keep a CSS fallback in case that ever changes. */
+  .chart-card__plot :global(svg) {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+</style>
