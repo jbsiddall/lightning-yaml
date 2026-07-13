@@ -161,15 +161,20 @@ systematic divergence surfaced.
 
 ### Post-target plan (user greenlit 2026-07-13)
 
-- **S1 · stringify** — TEST-FIRST. Correctness = round-trip: `oracleParse(stringify(v))` and
-  `parse(stringify(v))` deep-equal `v`. Must handle: scalar quoting (esp. strings that look like
-  `true`/`123`/`null`/`~` MUST be quoted), `Uint8Array`→`!!binary`, **shared refs → anchor/alias
-  emission** (rich fixtures reuse anchors ×1000s — naive dup blows up), cycle-safety, key order,
-  empty containers, multiline strings. Activates the consistency-suite "stringify round-trips"
-  test + lifts compat `dump` from 0%. Sonnet agents.
-- **M7 · deep perf polish** — OPUS agents only (challenging). key-feedback intern upgrade + V8
-  hot-path tuning per dossier 12/06; EACH optimization gated on a MEASURED `bench:self` win, no
-  correctness regression.
+- **S1 · stringify (M6) — DONE** (`23ca953` test spec → `34e7e7d` impl → `7b00950` candidate
+  activation). TEST-FIRST: 217-case spec authored + confirmed red-on-stub, THEN implemented.
+  `stringify` (src/index.ts ~L496/L4058): safe-plain-or-quote (strings that look like
+  null/bool/number are quoted), `Uint8Array`→`!!binary`, **shared-ref/cycle anchor emission via
+  an O(nodes) pre-scan** (3000-ref fan-out & 2^18 diamond-DAG stay linear), block-style collections,
+  key-order preserved, `__proto__` safe. Gate: **test:stringify 217/217**, test:unit 364/364,
+  **vitest 43→55** (12 stringify round-trip cases now active across json/yaml-plain/yaml-rich),
+  **compat dump 0%→100%** (js-yaml-compat 80.2%→91.6%, yaml-compat 86.2%→97.9%), parse bench flat.
+  VERIFIED by orchestrator. Stringify perf baseline ~60ms/iter (large-records) = M7 target.
+  NOTE: README bench tables + "stringify unimplemented" prose are STALE — refreshed at M7.
+- **M7 · deep perf polish — NEXT (OPUS agents only, challenging).** key-feedback intern upgrade
+  + V8 hot-path tuning per dossier 12/06; EACH optimization gated on a MEASURED `bench:self` win,
+  no correctness regression. Also tune the new (correctness-first) stringify. Finish with a
+  bench:self + bench:competition refresh AND fix the stale stringify README prose.
 - **DEFERRED (user): property-based tests (fast-check)** — not now.
 - 9 spec-corner suite cases (`yaml` also fails) — genuine non-goals.
 
