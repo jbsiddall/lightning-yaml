@@ -1,0 +1,65 @@
+name: Publish to npm
+
+# Only fires on pushes to main (i.e. when a PR merges) — never on pull_request,
+# so feature branches / PRs can never trigger a publish.
+on:
+  push:
+    branches: [main]
+
+# Publishes must run one-at-a-time, in order — never cancel one mid-publish.
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Enables npm provenance (OIDC-signed attestation of build origin).
+      id-token: write
+    # Optional: a maintainer may attach a protected GitHub `environment:` here
+    # (e.g. `environment: npm-publish`) to require manual approval before this
+    # job runs. Left unset by default — pointing at an undefined environment
+    # would block the job, so only add it once that environment is created.
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the `packageManager` field (pnpm@10.33.0) from package.json —
+      # do not pin a version here, it would fight that field.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Re-run the correctness gate
+        run: pnpm typecheck && pnpm test && pnpm test:unit && pnpm test:stringify
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check if this version is already published
+        id: guard
+        run: |
+          set -eu
+          VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view "lightning-yaml@$VERSION" version 2>/dev/null || true)
+          if [ -n "$PUBLISHED" ]; then
+            echo "lightning-yaml@$VERSION already on npm — skipping"
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "lightning-yaml@$VERSION not yet on npm — publishing"
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.guard.outputs.should_publish == 'true'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

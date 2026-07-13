@@ -27,7 +27,12 @@ read it first. The repo around it is:
   `yaml-plain`, and rich `yaml-rich` with `!!binary` + anchors) now pass; the dumper
   is covered by `pnpm test:stringify` (round-trip vs the oracle).
 
-See [README.md](README.md) for the design and rationale.
+[README.md](README.md) is the **adopter-facing** doc — the pitch, install, usage,
+and drop-in story for developers picking up the library, plus the design/rationale
+of the harness lower down. The **full auto-generated benchmark tables live in
+[BENCHMARKS.md](BENCHMARKS.md)** (and on the docs site, <https://lightning-yaml.dev>),
+not in the README, which carries only a compact snapshot. `PROGRESS.md` remains the
+status tracker.
 
 ## Orchestration loop — how to work in this repo
 
@@ -63,6 +68,14 @@ its own context lean. Follow this loop for any non-trivial request.
    chunk (push per milestone); update `PROGRESS.md`.
 6. **REPEAT** from 1.
 
+### PRs squash-merge — keep the title & description accurate
+
+PRs land on `main` as a **single squash commit** whose message is the PR **title +
+description** (internal commits are collapsed) — so those must describe the *whole*
+change, not any one commit. When a PR is opened (by you or the user), write the
+title/description to match the work; if later turns add commits to the branch, go back
+and update them so they stay accurate.
+
 ### Token discipline — temp files + tiny prompts (mandatory)
 
 Chat history does **not** retain files, and a big inline prompt/result is re-paid in
@@ -92,8 +105,8 @@ overlap freely. (For true parallel writers, isolate with a git worktree.)
 A chunk is **not done** until, as applicable: `pnpm typecheck` clean · `pnpm test`
 (vitest, all green) · `pnpm test:unit` · `pnpm test:stringify` · `pnpm test:suite`
 (yaml-test-suite pass rate must **not** drop) · `pnpm bench:self` shows **no** perf
-regression. Never claim progress or commit on a red gate; refresh the README bench
-blocks per the Benchmarking rules below.
+regression. Never claim progress or commit on a red gate; refresh the BENCHMARKS.md
+bench blocks per the Benchmarking rules below.
 
 ## Research dossier — when to read it
 
@@ -122,14 +135,17 @@ pnpm bench:self         # benchmark OUR implementation only (fast)
 pnpm bench:competition  # benchmark the competition, full matrix (slow)
 ```
 
-Fixtures and `results/` are gitignored; the README benchmark tables are
+Fixtures and `results/` are gitignored; the BENCHMARKS.md benchmark tables are
 committed.
 
 ## Benchmarking rules — read before committing
 
-Benchmark results live in [README.md](README.md) in two blocks with two
+Benchmark results live in [BENCHMARKS.md](BENCHMARKS.md) in three
+auto-generated blocks (head-to-head, our implementation, bundle size) with
 different refresh cadences. Keep them current so we can always see how our
-parser stands against the competition.
+parser stands against the competition. (The README carries only a small
+hand-written snapshot — refresh it too if the representative numbers move
+materially.)
 
 ### 1. Before every commit or PR: refresh OUR results
 
@@ -139,7 +155,7 @@ Run:
 pnpm bench:self
 ```
 
-and commit the updated `README.md` "Our implementation" block along with your
+and commit the updated `BENCHMARKS.md` "Our implementation" block along with your
 change.
 
 `bench:self` benchmarks only this repo's own parser (group `ours` in

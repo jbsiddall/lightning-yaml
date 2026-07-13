@@ -1,7 +1,7 @@
 // Bundle-size benchmark: how many KB does each YAML library add to a browser
 // bundle when an app imports ONLY parse + stringify and ships it minified?
 //
-//   node bench/bundlesize/run.mjs            # measure + rewrite the README block
+//   node bench/bundlesize/run.mjs            # measure + rewrite the BENCHMARKS.md block
 //   node bench/bundlesize/run.mjs --no-readme  # measure + print only
 //   node bench/bundlesize/run.mjs --verify     # also prove tree-shaking is real
 //
@@ -18,7 +18,7 @@ import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 const HERE = dirname(fileURLToPath(import.meta.url)); // bench/bundlesize
 const ROOT = join(HERE, "..", ".."); // repo root
 const SRC_INDEX = join(ROOT, "src", "index.ts");
-const README = join(ROOT, "README.md");
+const BENCHMARKS = join(ROOT, "BENCHMARKS.md");
 const WORK = join(ROOT, "results", "bundlesize"); // gitignored (results/)
 const ENTRIES = join(WORK, "entries");
 const OUT = join(WORK, "out");
@@ -72,16 +72,16 @@ function brotli(buf) {
   }).length;
 }
 
-/** report.ts's README marker-replace, copied so this .mjs has no TS import. */
-function inject(readme, marker, content) {
+/** report.ts's BENCHMARKS.md marker-replace, copied so this .mjs has no TS import. */
+function inject(doc, marker, content) {
   const start = `<!-- BENCH:${marker}:START -->`;
   const end = `<!-- BENCH:${marker}:END -->`;
-  const si = readme.indexOf(start);
-  const ei = readme.indexOf(end);
+  const si = doc.indexOf(start);
+  const ei = doc.indexOf(end);
   if (si === -1 || ei === -1) {
-    throw new Error(`README is missing the ${start} … ${end} markers`);
+    throw new Error(`BENCHMARKS.md is missing the ${start} … ${end} markers`);
   }
-  return readme.slice(0, si + start.length) + "\n" + content + "\n" + readme.slice(ei);
+  return doc.slice(0, si + start.length) + "\n" + content + "\n" + doc.slice(ei);
 }
 
 /** Ensure the isolated bundler toolchain is installed (once). */
@@ -175,11 +175,11 @@ async function main() {
   console.log("\n" + md + "\n");
 
   if (WRITE_README) {
-    const readme = readFileSync(README, "utf8");
-    writeFileSync(README, inject(readme, "BUNDLESIZE", md));
-    console.log(`Updated ${README} (BENCH:BUNDLESIZE block).`);
+    const doc = readFileSync(BENCHMARKS, "utf8");
+    writeFileSync(BENCHMARKS, inject(doc, "BUNDLESIZE", md));
+    console.log(`Updated ${BENCHMARKS} (BENCH:BUNDLESIZE block).`);
   } else {
-    console.log("(--no-readme: README not modified)");
+    console.log("(--no-readme: BENCHMARKS.md not modified)");
   }
 }
 

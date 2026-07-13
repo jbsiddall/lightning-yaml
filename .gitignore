@@ -1,5 +1,8 @@
 node_modules/
 
+# Build output — produced by `pnpm build` (tsup), built in CI, never committed
+dist/
+
 # Generated benchmark fixtures — regenerate with `pnpm gen:fixtures`
 bench/fixtures/data/
 

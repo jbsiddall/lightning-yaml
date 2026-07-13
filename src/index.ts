@@ -1534,7 +1534,7 @@ function keyToString(node: unknown): string {
 // serializes the key's own YAML AST in flow style with padding (`yaml`
 // package's `addPairToJSMap.ts`: `key.toString({ inFlow: true, ... })`), e.g.
 // `[a, b]` -> `"[ a, b ]"`, `{a: 1}` -> `"{ a: 1 }"`, `[]` -> `"[]"`. This is
-// NOT the general `stringify` (still a stub, a later milestone) — it only
+// NOT the general `stringify` (the public dumper) — it only
 // ever has to render what a key node can be: nested scalars/arrays/objects
 // (and, rarely, a `!!set`/`!!omap` used as a key), never anchors/tags/comments.
 // ---------------------------------------------------------------------------

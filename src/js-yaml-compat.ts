@@ -18,9 +18,8 @@
  *     the same "this document is broken" signal js-yaml would give it, and
  *     anything else (including ours-only NotImplementedError) simply isn't
  *     mistaken for that.
- *   - `dump` delegates to our `stringify`, which is a later milestone and
- *     currently always throws `NotImplementedError` — accepted-and-documented,
- *     per the task brief.
+ *   - `dump` delegates to our `stringify` (implemented); options beyond the
+ *     value itself are currently ignored.
  *   - Custom schemas/tags (`defineScalarTag`/`defineSequenceTag`/
  *     `defineMappingTag`, `Schema`, the `*_SCHEMA` constants, and the `schema`
  *     option) are cheap stubs: they exist so imports resolve and
@@ -247,7 +246,7 @@ export function loadAll(input: string, iterator?: ((doc: unknown) => void) | nul
   return docs;
 }
 
-/** Delegates to our `stringify` — currently always throws `NotImplementedError` (a later milestone). */
+/** Delegates to our `stringify`. */
 export function dump(obj: unknown, _opts?: DumpOptions): string {
   return ourStringify(obj);
 }
