@@ -16,3 +16,6 @@ results/
 # Local calibration/scratch scripts (not part of the committed harness)
 .scratch/
 *.scratch.*
+
+# Transient subagent worktrees created by the Claude Code harness
+.claude/worktrees/
