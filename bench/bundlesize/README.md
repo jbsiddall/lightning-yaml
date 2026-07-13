@@ -75,5 +75,8 @@ here and all build output (under `results/bundlesize/`) are gitignored. The harn
 plain ESM (`.mjs`) on purpose — it stays out of `pnpm typecheck` so the heavy toolchain is
 never required for the correctness gate.
 
+The committed table names each bundler's version (Vite/Webpack/Rolldown are pinned by this
+directory's lockfile; **Bun and Deno are whatever is installed on the machine**, so their
+rows can shift when you upgrade those runtimes — the version label makes that visible).
 Refresh the committed figures when the parser's `src` size changes materially, or when
-`yaml` / `js-yaml` / a bundler version is bumped.
+`yaml` / `js-yaml` / a bundler (including the Bun/Deno runtime) version changes.
