@@ -31,19 +31,34 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./yaml": {
-      "types": "./dist/yaml-compat.d.ts",
-      "import": "./dist/yaml-compat.js",
-      "require": "./dist/yaml-compat.cjs"
+      "import": {
+        "types": "./dist/yaml-compat.d.ts",
+        "default": "./dist/yaml-compat.js"
+      },
+      "require": {
+        "types": "./dist/yaml-compat.d.cts",
+        "default": "./dist/yaml-compat.cjs"
+      }
     },
     "./js-yaml": {
-      "types": "./dist/js-yaml-compat.d.ts",
-      "import": "./dist/js-yaml-compat.js",
-      "require": "./dist/js-yaml-compat.cjs"
+      "import": {
+        "types": "./dist/js-yaml-compat.d.ts",
+        "default": "./dist/js-yaml-compat.js"
+      },
+      "require": {
+        "types": "./dist/js-yaml-compat.d.cts",
+        "default": "./dist/js-yaml-compat.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
