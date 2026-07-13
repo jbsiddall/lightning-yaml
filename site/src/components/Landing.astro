@@ -1,0 +1,242 @@
+---
+// Landing.astro — fully custom splash landing for Lightning YAML.
+// Composes the parse-trace hero, the stat band, and the feature strip.
+// Static HTML + CSS + inline SVG only; no framework islands, no client JS.
+import ParseTrace from './ParseTrace.astro';
+import Stats from './Stats.astro';
+import Features from './Features.astro';
+---
+
+<div class="landing">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="console">
+      <p class="kicker">YAML&nbsp;·&nbsp;1.2&nbsp;CORE</p>
+
+      <h1 class="title" id="hero-title">
+        Parse YAML at <span class="grad">JSON speed</span>.<br />
+        Pass more of the spec than anyone.
+      </h1>
+
+      <p class="sub">
+        Dramatically faster than <code>js-yaml</code> and <code>yaml</code>, and
+        more spec-conformant — <b>97.6%</b> of the YAML Test Suite — with peak
+        memory close to <code>JSON.parse</code>.
+      </p>
+
+      <div class="cta">
+        <a class="btn" href="/guides/getting-started/">Get started</a>
+        <code class="install"><span class="install__prompt" aria-hidden="true">$ </span>npm i lightning-yaml</code>
+        <a class="seebench" href="/benchmarks/">See the benchmarks&nbsp;→</a>
+      </div>
+
+      <div class="console__trace">
+        <ParseTrace />
+      </div>
+    </div>
+  </section>
+
+  <Stats />
+  <Features />
+</div>
+
+<style>
+  .landing {
+    max-width: 1100px;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.25rem, 3.5vw, 2.25rem);
+    padding-block: clamp(0.5rem, 2vw, 1.5rem);
+  }
+
+  /* --- Hero console (self-contained dark instrument) ------------------ */
+  .hero {
+    width: 100%;
+  }
+  .console {
+    position: relative;
+    padding: clamp(1.5rem, 4vw, 3rem) clamp(1.25rem, 4vw, 3rem) clamp(1.75rem, 4vw, 2.75rem);
+    border: 1px solid var(--ly-line);
+    border-radius: 20px;
+    background:
+      radial-gradient(90% 65% at 50% -12%, rgba(124, 92, 255, 0.16), transparent 62%),
+      radial-gradient(70% 60% at 108% 8%, rgba(53, 224, 216, 0.08), transparent 60%),
+      linear-gradient(180deg, #0e111b, #0b0d14 62%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 40px 90px -50px rgba(0, 0, 0, 0.95);
+    overflow: hidden;
+  }
+  /* Faint precision grid texture. */
+  .console::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--ly-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--ly-line) 1px, transparent 1px);
+    background-size: 44px 44px;
+    opacity: 0.14;
+    mask-image: radial-gradient(120% 90% at 50% 0%, #000 15%, transparent 75%);
+    pointer-events: none;
+  }
+  .console > * {
+    position: relative;
+  }
+
+  .kicker {
+    margin: 0 0 0.9rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--ly-spark);
+  }
+
+  .title {
+    margin: 0;
+    max-width: 20ch;
+    font-family: var(--sl-font);
+    font-weight: 600;
+    font-size: clamp(1.85rem, 5.2vw, 3.15rem);
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    color: var(--ly-ink);
+  }
+  .grad {
+    color: var(--ly-spark); /* fallback if background-clip unsupported */
+  }
+  @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+    .grad {
+      background: linear-gradient(92deg, var(--ly-charge) 8%, var(--ly-spark));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  }
+
+  .sub {
+    margin: 1rem 0 0;
+    max-width: 62ch;
+    color: var(--ly-muted);
+    font-size: clamp(0.98rem, 1.6vw, 1.12rem);
+    line-height: 1.55;
+  }
+  .sub b {
+    color: var(--ly-ink);
+    font-weight: 600;
+  }
+  .sub code {
+    font-family: var(--sl-font-mono);
+    font-size: 0.9em;
+    color: var(--ly-ink);
+    background: rgba(124, 92, 255, 0.12);
+    border: 1px solid var(--ly-line);
+    border-radius: 5px;
+    padding: 0.05em 0.4em;
+  }
+
+  /* --- CTAs ----------------------------------------------------------- */
+  .cta {
+    margin-top: 1.6rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 0.9rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.62rem 1.25rem;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6d4cff, #5b3ff0);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    border: 1px solid rgba(124, 92, 255, 0.6);
+    box-shadow: 0 12px 30px -12px rgba(124, 92, 255, 0.75);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .btn:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 16px 36px -12px rgba(124, 92, 255, 0.9);
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 0.85rem;
+    border-radius: 10px;
+    background: var(--ly-panel-2);
+    border: 1px solid var(--ly-line);
+    color: var(--ly-ink);
+    font-family: var(--sl-font-mono);
+    font-size: 0.86rem;
+    white-space: nowrap;
+  }
+  .install__prompt {
+    color: var(--ly-charge);
+    user-select: none;
+  }
+
+  .seebench {
+    color: var(--ly-spark);
+    font-weight: 600;
+    font-size: 0.92rem;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+  .seebench:hover {
+    border-bottom-color: var(--ly-spark);
+  }
+
+  .console__trace {
+    margin-top: clamp(1.75rem, 4vw, 2.75rem);
+  }
+
+  @media (max-width: 720px) {
+    .cta {
+      gap: 0.7rem;
+    }
+    .install {
+      order: 3;
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Focus visibility (a11y). */
+  .btn:focus-visible,
+  .seebench:focus-visible {
+    outline: 2px solid var(--ly-spark);
+    outline-offset: 3px;
+    border-radius: 8px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn { transition: none; }
+  }
+</style>
+
+<style is:global>
+  /* Suppress Starlight's automatic page-title <h1> on this custom splash
+     landing — the hero supplies its own <h1>. Scoped to splash-without-hero
+     pages via the html data-attributes Starlight emits, and only shipped on
+     pages that render <Landing>. */
+  html:not([data-has-sidebar]):not([data-has-hero]) main > .content-panel:has(#_top) {
+    display: none;
+  }
+  html:not([data-has-sidebar]):not([data-has-hero])
+    main
+    > .content-panel:has(#_top)
+    + .content-panel {
+    border-top: 0;
+  }
+</style>

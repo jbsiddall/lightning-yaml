@@ -2,13 +2,26 @@ import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
 import starlightTypeDoc, { typeDocSidebarGroup } from 'starlight-typedoc'
 
+// Primary deploy is Vercel (root path). The optional GitHub Pages fallback workflow
+// sets PAGES_BASE (e.g. "/lightning-yaml") so project-page asset paths resolve.
+const PAGES_BASE = process.env.PAGES_BASE
+
 export default defineConfig({
-  site: 'https://lightning-yaml.vercel.app',
+  site: PAGES_BASE ? 'https://jbsiddall.github.io' : 'https://lightning-yaml.vercel.app',
+  base: PAGES_BASE || undefined,
   integrations: [
     starlight({
       title: 'Lightning YAML',
       tagline: 'A YAML parser at JSON speed.',
-      customCss: ['./src/styles/theme.css'],
+      customCss: [
+        // Self-hosted fonts (Inter = body, IBM Plex Mono = display/data/code).
+        // Loaded BEFORE theme.css so --sl-font / --sl-font-mono resolve to them.
+        '@fontsource/inter/400.css',
+        '@fontsource/inter/600.css',
+        '@fontsource/ibm-plex-mono/400.css',
+        '@fontsource/ibm-plex-mono/500.css',
+        './src/styles/theme.css',
+      ],
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/jbsiddall/lightning-yaml' }],
       plugins: [
         starlightTypeDoc({

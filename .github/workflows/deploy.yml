@@ -1,0 +1,83 @@
+name: Deploy docs
+
+# Visible, auditable deploys via the Vercel CLI (NOT Vercel's git auto-deploy —
+# disable that in the Vercel project so production only ships through this workflow).
+# Production on `main`; preview deploys on pull requests.
+#
+# The docs site is the nested, self-contained pnpm project in `site/`. The Vercel
+# project's "Root Directory" must be set to `site` so `vercel build`/`deploy` operate
+# there. Benchmark data lives on the orphan `benchmark-data` branch and is overlaid
+# into `site/src/data/benchmarks/` BEFORE building (the benchmarks page + TypeDoc are
+# consumed during `astro build`, which `vercel build` invokes).
+#
+# Required repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # Fast headless sanity build — fails CI before the Vercel steps if the site is broken.
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # site code (main / PR branch)
+      - uses: actions/checkout@v4 # benchmark data (orphan branch)
+        with:
+          ref: benchmark-data
+          path: .benchmark-data
+          fetch-depth: 1
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+      - run: pnpm --dir site install --frozen-lockfile
+      - name: Overlay real benchmark data over the committed sample
+        run: cp .benchmark-data/*.yaml site/src/data/benchmarks/ 2>/dev/null || true
+      - name: Build (astro build → starlight-typedoc → static dist)
+        run: pnpm --dir site build
+      - name: Assert static output exists
+        run: test -f site/dist/index.html && test -d site/dist/api
+
+  deploy:
+    needs: build-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: benchmark-data
+          path: .benchmark-data
+          fetch-depth: 1
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+      - run: pnpm --dir site install --frozen-lockfile
+      # The overlay MUST run before `vercel build`, because starlight-typedoc and the
+      # benchmarks page consume files during the Astro build that `vercel build` invokes.
+      - name: Overlay real benchmark data before building
+        run: cp .benchmark-data/*.yaml site/src/data/benchmarks/ 2>/dev/null || true
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Build with Vercel (uses project Root Directory = site)
+        run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy prebuilt output
+        run: vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
