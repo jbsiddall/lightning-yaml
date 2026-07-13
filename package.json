@@ -15,6 +15,7 @@
     "bench:memory": "node --expose-gc --import tsx bench/memory/run.ts",
     "bench:self": "node --expose-gc --import tsx bench/report.ts self",
     "bench:competition": "node --expose-gc --import tsx bench/report.ts competition",
+    "bench:bundlesize": "node bench/bundlesize/run.mjs",
     "bench": "pnpm gen:fixtures && pnpm bench:competition && pnpm bench:self",
     "test": "vitest run",
     "test:unit": "node --import tsx --test test/parser.unit.ts",

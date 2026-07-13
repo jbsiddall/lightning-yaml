@@ -1,0 +1,17 @@
+{
+  "name": "lightning-yaml-bundlesize-bench",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated toolchain for the bundle-size benchmark (bench/bundlesize). Kept out of the root manifest so the parser's own install stays lean. Not a pnpm workspace member.",
+  "scripts": {
+    "run": "node run.mjs"
+  },
+  "devDependencies": {
+    "esbuild-loader": "^4.5.0",
+    "rolldown": "^1.1.5",
+    "terser": "^5.49.0",
+    "vite": "^8.1.4",
+    "webpack": "^5.108.4"
+  }
+}
