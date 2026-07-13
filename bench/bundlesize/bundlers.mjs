@@ -18,7 +18,7 @@
 // (bun/deno) are external runtimes, detected on PATH.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -186,9 +186,28 @@ export const BUNDLERS = [
     available: () => resolveBin("bun", [join(homedir(), ".bun/bin/bun")]),
   },
   {
+    // `deno bundle`'s engine is esbuild (Go), NOT the Deno runtime's Rust — so
+    // this is not a "rust bundler". Rolldown (oxc) is the only Rust one here.
     name: "deno",
-    rust: true,
+    rust: false,
     run: denoBuild,
     available: () => resolveBin("deno", [join(homedir(), ".deno/bin/deno")]),
   },
 ];
+
+/** Version string for a bundler — pins the otherwise-drifting numbers to a build. */
+function pkgVersion(name) {
+  try {
+    return JSON.parse(readFileSync(join(NESTED_NM, name, "package.json"), "utf8")).version;
+  } catch {
+    return "?";
+  }
+}
+export function bundlerVersion(bundler, bin) {
+  if (bundler.name === "bun" || bundler.name === "deno") {
+    const r = spawnSync(bin, ["--version"], { encoding: "utf8" });
+    const m = /(\d+\.\d+\.\d+\S*)/.exec(r.stdout || ""); // deno prints "deno x.y.z (...)"
+    return m ? m[1] : "?";
+  }
+  return pkgVersion(bundler.name); // vite/webpack/rolldown from the nested lockfile
+}

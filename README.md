@@ -950,9 +950,9 @@ runtime: node 22.22.2 (x64-linux)
 How many kilobytes each parser adds to a **browser** bundle when an app imports only
 `parse` + `stringify` and ships it minified — the third axis alongside speed and memory.
 Every library is bundled by **five real bundlers** (Vite, Webpack, Bun, Deno, Rolldown),
-each with **tree-shaking on** and **true minification** (whitespace + comments stripped,
-identifiers mangled), resolving each library's **ESM** build. Sizes are deterministic, so
-these figures are committed; refresh with `pnpm bench:bundlesize`. Method + rationale:
+each with **tree-shaking on** and **true minification** (whitespace removed, identifiers
+mangled), resolving each library's **ESM** build. Sizes are deterministic, so these figures
+are committed; refresh with `pnpm bench:bundlesize`. Method + rationale:
 [`bench/bundlesize`](bench/bundlesize/).
 
 <!-- BENCH:BUNDLESIZE:START -->
@@ -966,19 +966,19 @@ Sizes are deterministic. Lower is better._
 |  | webpack | 39.95 KB | 11.93 KB | 10.46 KB |
 |  | rolldown _(rust)_ | 39.78 KB | 11.54 KB | 10.15 KB |
 |  | bun | 41.33 KB | 12.06 KB | 10.44 KB |
-|  | deno _(rust)_ | 40.08 KB | 11.89 KB | 10.46 KB |
+|  | deno | 40.08 KB | 11.89 KB | 10.46 KB |
 | **yaml** | vite | 96.50 KB | 29.36 KB | 26.43 KB |
 |  | webpack | 96.25 KB | 29.32 KB | 26.37 KB |
 |  | rolldown _(rust)_ | 95.10 KB | 29.14 KB | 26.20 KB |
 |  | bun | 97.49 KB | 30.26 KB | 26.94 KB |
-|  | deno _(rust)_ | 95.80 KB | 29.91 KB | 27.00 KB |
+|  | deno | 95.80 KB | 29.91 KB | 27.00 KB |
 | **js-yaml** | vite | 52.13 KB | 15.51 KB | 14.00 KB |
 |  | webpack | 51.75 KB | 15.53 KB | 13.96 KB |
 |  | rolldown _(rust)_ | 51.23 KB | 15.59 KB | 14.10 KB |
 |  | bun | 52.97 KB | 16.04 KB | 14.38 KB |
-|  | deno _(rust)_ | 51.73 KB | 15.79 KB | 14.34 KB |
+|  | deno | 51.73 KB | 15.79 KB | 14.34 KB |
 
-**Bundlers:** vite, webpack, rolldown (rust), bun, deno (rust).
+**Bundlers:** vite 8.1.4, webpack 5.108.4, rolldown 1.1.5 (rust), bun 1.3.11, deno 2.9.2.
 **Method:** `yaml`/`js-yaml` resolve their ESM builds (browser platform); `lightning-yaml` is bundled from `src/index.ts`. Turbopack is omitted — it has no standalone library-bundling CLI (Next.js-only).
 <!-- BENCH:BUNDLESIZE:END -->
 
