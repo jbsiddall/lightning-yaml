@@ -10,7 +10,7 @@ name: Deploy docs
 # into `site/src/data/benchmarks/` BEFORE building (the benchmarks page + TypeDoc are
 # consumed during `astro build`, which `vercel build` invokes).
 #
-# Required repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+# Required repo secrets: VERCEL_API_KEY (the Vercel token), VERCEL_ORG_ID, VERCEL_PROJECT_ID.
 
 on:
   push:
@@ -72,12 +72,12 @@ jobs:
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=$VERCEL_TOKEN
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_API_KEY }}
       - name: Build with Vercel (uses project Root Directory = site)
         run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_API_KEY }}
       - name: Deploy prebuilt output
         run: vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_API_KEY }}

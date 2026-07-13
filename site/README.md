@@ -130,11 +130,11 @@ operate on this nested project.
 
 **Required repository secrets:**
 
-| secret               | where to find it                                             |
-| -------------------- | ----------------------------------------------------------- |
-| `VERCEL_TOKEN`       | Vercel → Account Settings → Tokens                          |
-| `VERCEL_ORG_ID`      | `.vercel/project.json` after `vercel link` (the `orgId`)    |
-| `VERCEL_PROJECT_ID`  | `.vercel/project.json` after `vercel link` (the `projectId`)|
+| secret               | what it is / where to find it                                       |
+| -------------------- | ------------------------------------------------------------------- |
+| `VERCEL_API_KEY`     | a Vercel **token** — Vercel → Account Settings → Tokens (used as `--token`) |
+| `VERCEL_ORG_ID`      | opaque `team_…` / user id — `.vercel/project.json` after `vercel link` (`orgId`); NOT the `jbsiddalls-projects` slug |
+| `VERCEL_PROJECT_ID`  | opaque `prj_…` — `.vercel/project.json` after `vercel link` (`projectId`); NOT the `lightning-yaml` project name |
 
 An optional **GitHub Pages** fallback lives in `.github/workflows/pages.yml`
 (`workflow_dispatch`); it builds with a base path and uploads `dist/`. Vercel is primary.
