@@ -24,6 +24,11 @@ env:
   VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
 
+# Cancel superseded preview builds, but never interrupt a production deploy on main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Fast headless sanity build — fails CI before the Vercel steps if the site is broken.
   build-check:

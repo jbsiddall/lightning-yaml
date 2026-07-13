@@ -43,6 +43,14 @@ lightning-yaml, and never bend the methodology in its favour. Hold every parser 
 compare against to the same rules. If honest measurement makes our speed or
 conformance claims worse, change the claims: accuracy outranks looking good.
 
+## Comments — explain *why*, not *what*
+
+Only comment when the code can't speak for itself. If a reader can work out what a
+line does from the code alone, don't comment it — this applies to CI/workflow YAML as
+much as to `src`. Reserve comments for non-obvious rationale: a constraint, a gotcha,
+or why a choice was made (especially where getting it wrong is costly). Prefer
+deleting a redundant or stale comment over keeping it. Don't add unnecessary comments.
+
 ## Orchestration loop — how to work in this repo
 
 This repo is driven by an **orchestrator + subagents** pattern. The top-level agent
