@@ -73,15 +73,18 @@
  * The construct-level gaps below are the current intentional simplifications
  * (a `NotImplementedError` here means "can't read this yet", not "malformed"):
  *
- *   - `load`/`loadAll` on a construct we don't parse yet (block scalars,
- *     anchors/aliases, tags, merge keys) throw our own `NotImplementedError`
- *     — NOT a `YAMLException` — since the input isn't malformed, we just
- *     can't read it yet. This is deliberately distinguishable from a genuine
- *     syntax error (which DOES become a `YAMLException`, below), so a caller
- *     doing `catch (e) { if (e instanceof YAMLException) ... }` sees exactly
- *     the same "this document is broken" signal js-yaml would give it, and
- *     anything else (including ours-only NotImplementedError) simply isn't
- *     mistaken for that.
+ *   - Parser coverage: the core is feature-complete for YAML 1.2 core — block
+ *     scalars, anchors/aliases, and tags (incl. `!!binary`) all parse, so
+ *     `load`/`loadAll` return values for them rather than rejecting. The one
+ *     known gap is merge keys (`<<`): they are neither merged nor rejected —
+ *     `<<` comes back as an ordinary key (e.g. `{ "<<": {...}, y: 2 }`), which
+ *     diverges from js-yaml's merge semantics. (See the matrix above.)
+ *   - Errors: a genuine syntax error surfaces as a `YAMLException` (see below),
+ *     so a caller's `catch (e) { if (e instanceof YAMLException) ... }` gets the
+ *     same "this document is broken" signal js-yaml gives. `load`/`loadAll` also
+ *     re-throw our `NotImplementedError` unwrapped rather than mislabeling it a
+ *     `YAMLException` — but that path is defensive: the current parser is
+ *     complete and never throws it.
  *   - `dump` delegates to our `stringify` (implemented); options beyond the
  *     value itself are currently ignored.
  *   - Custom schemas/tags (`defineScalarTag`/`defineSequenceTag`/
