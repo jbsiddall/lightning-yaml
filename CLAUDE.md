@@ -41,24 +41,11 @@ lightning-yaml, and never bend the methodology in its favour. Hold every parser 
 compare against to the same rules. If honest measurement makes our speed or
 conformance claims worse, change the claims: accuracy outranks looking good.
 
-## Provenance markers — keep published numbers checkable
-
-Docs go stale as our parser, the competitors, and the benchmark data each move
-independently. So in any `.md`/`.mdx` (README + `site/`), tag every hardcoded
-number or competitor claim with an **invisible HTML comment** pinning what it
-depends on. Comments render nowhere — GitHub, npm, MDX alike — but stay greppable
-in source; `<sup>`/hover render inconsistently across those surfaces, so we don't
-use them. Put the marker right after the claim, with only the pins that apply:
-
-- benchmark number (speed / memory / % / size) → `<!-- bench:<benchmark-data short-sha> -->`
-- names `js-yaml` / `yaml` → `<!-- js-yaml:<version> -->` / `<!-- yaml:<version> -->`
-- perf/conformance claim about ours → `<!-- ly:<repo short-sha> -->`
-
-Combine when several apply: `<!-- bench:6d6d8a3 js-yaml:5.2.1 ly:b43c991 -->`.
-Audit with `grep -rnE 'bench:|js-yaml:|yaml:|ly:' README.md site` and re-verify any
-pin that lags benchmark-data HEAD, the installed competitor version, or repo HEAD.
-Better still: **derive** a number from the data (MDX interpolation) so it can't go
-stale and needs no marker at all.
+**Provenance markers.** Tag every hardcoded number or competitor claim in a
+`.md`/`.mdx` with an invisible HTML comment of what it depends on —
+`<!-- bench:<data sha> js-yaml:<ver> ly:<repo sha> -->` (only the pins that apply)
+— so `grep -rnE 'bench:|js-yaml:|yaml:|ly:'` catches drift; prefer deriving from
+the data over hardcoding. Full scheme + rollout: issue #30.
 
 ## Comments — explain *why*, not *what*
 
