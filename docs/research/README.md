@@ -81,12 +81,12 @@ copies before parsing. See doc 01 for the full list with file:line cites.
 It lives in **V8** (which Chromium and Node vendor), written in **C++**:
 [`src/json/json-parser.h`](https://github.com/v8/v8/blob/main/src/json/json-parser.h)
 (542 lines) + `json-parser.cc` (2,259 lines), wired via
-`src/builtins/builtins-json.cc`. Fully stealable from JS: 256-entry
+`src/builtins/builtins-json.cc`. Fully reusable from JS: 256-entry
 char-class flag tables, zero-copy offset-recorded scalars with lazy
 `slice`, the Smi digit-accumulation number path, recursion with an
-iterative fallback. Partially stealable: hidden-class/key feedback
+iterative fallback. Partially reusable: hidden-class/key feedback
 (FastKeyMatch → our key-intern cache + previous-sibling key comparison).
-Not stealable: string-table internalization, write-barrier tricks, real
+Not reusable: string-table internalization, write-barrier tricks, real
 SIMD (Highway) — but `String.prototype.indexOf` runs at memchr/SIMD speed
 (~5+ GB/s measured) and is the legal substitute; the `indexOf` hop is how
 the research parser *beat* native on string-heavy input.

@@ -147,7 +147,7 @@ security** references behind the taxonomy above, kept for future torture work:
     for our documented last-wins policy.
 - **Fuzzing corpora / firehoses** — `google/oss-fuzz` → `projects/libyaml`,
   `k8s.io/kubernetes/test/fuzz/yaml` (roundtrip oracle: unmarshal→marshal→assert),
-  `brandonprry/yaml-fuzz`. Oracles to steal: differential, roundtrip, and
+  `brandonprry/yaml-fuzz`. Oracles to borrow: differential, roundtrip, and
   "no unexpected exception" (Atheris) — the last is what `test/adversarial.unit.ts`
   encodes directly.
 - **Implicit-typing footguns** — StrictYAML's "Norway Problem" writeup; the
