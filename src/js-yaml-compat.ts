@@ -7,7 +7,7 @@
  *
  * This module doc block is the MASTER SOURCE for js-yaml compatibility: it is
  * published verbatim to the website's API reference (site/astro.config.mjs
- * wires this file through starlight-typedoc), so keep it accurate and honest.
+ * wires this file through starlight-typedoc), so keep it accurate and up to date.
  *
  * ## Compatibility level TODAY
  *
@@ -29,7 +29,7 @@
  * the plain-JS value, the way the `yaml` shim's reviver already does) or behind
  * a gated core seam that leaves the options-free fast path byte-identical. An
  * option we can't yet honour should eventually FAIL LOUD, not be silently
- * ignored. We are not there yet — this file tracks the gap honestly.
+ * ignored. We are not there yet — this file tracks the gap.
  *
  * ## Option support matrix
  *

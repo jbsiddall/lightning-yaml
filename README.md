@@ -85,7 +85,7 @@ import { load, dump } from 'lightning-yaml/js-yaml';
 import { parse } from 'lightning-yaml/yaml';
 ```
 
-> **Honest status — API-level today.** The shims match the *surface* (same
+> **Status — API-level today.** The shims match the *surface* (same
 > exports and call signatures), so your code compiles and runs. They do **not**
 > yet honour most **option arguments**: `load(text, { schema })`,
 > `dump(obj, { sortKeys, indent })`, `parse(text, { version })` and friends are
