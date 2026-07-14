@@ -41,6 +41,12 @@ lightning-yaml, and never bend the methodology in its favour. Hold every parser 
 compare against to the same rules. If honest measurement makes our speed or
 conformance claims worse, change the claims: accuracy outranks looking good.
 
+**Provenance markers.** Tag every hardcoded number or competitor claim in a
+`.md`/`.mdx` with an invisible HTML comment of what it depends on —
+`<!-- bench:<data sha> js-yaml:<ver> ly:<repo sha> -->` (only the pins that apply)
+— so `grep -rnE 'bench:|js-yaml:|yaml:|ly:'` catches drift; prefer deriving from
+the data over hardcoding. Full scheme + rollout: issue #30.
+
 ## Comments — explain *why*, not *what*
 
 Only comment when the code can't speak for itself. If a reader can work out what a

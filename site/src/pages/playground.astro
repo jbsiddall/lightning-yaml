@@ -1,0 +1,626 @@
+---
+// /playground — an interactive, in-browser comparison tool.
+//
+// Paste YAML or JSON on the left; the right shows lightning-yaml's parsed value
+// (pretty-printed JSON) plus a traffic-light panel comparing lightning-yaml,
+// `yaml`, and js-yaml on the SAME input. All three run client-side, loaded from
+// jsDelivr — so this page reflects the real, published parsers, and the honest
+// answer to "do they agree?" for whatever you throw at it.
+//
+// Standalone route (not the Starlight docs layout) so it can own the full width.
+// The comparison script is `is:inline` so Astro/Vite leaves the CDN imports for
+// the browser to resolve natively at runtime.
+const title = 'Playground — Lightning YAML'
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta
+      name="description"
+      content="Paste YAML or JSON and see how lightning-yaml, yaml, and js-yaml parse it — side by side, in your browser, with a structural diff when they disagree."
+    />
+    <link rel="icon" href="/favicon.svg" />
+    <style is:global>
+      :root {
+        --ground: #0b0d12;
+        --panel: #12151c;
+        --panel-2: #171b24;
+        --line: rgba(255, 255, 255, 0.09);
+        --ink: #e6e8ee;
+        --muted: #8b93a7;
+        --charge: #7c5cff;
+        --spark: #35e0d8;
+        --amber: #ffb454;
+        --ok: #3ad07f;
+        --warn: #ffb454;
+        --err: #ff5c6c;
+        --radius: 12px;
+        --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        --sans: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --ground: #f6f7f9;
+          --panel: #ffffff;
+          --panel-2: #eef0f4;
+          --line: rgba(9, 12, 20, 0.12);
+          --ink: #1a1d26;
+          --muted: #5c6373;
+          --charge: #5b3df0;
+          --spark: #109b93;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--ground);
+        color: var(--ink);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
+      }
+      a { color: var(--spark); }
+
+      .pg-top {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.7rem 1.1rem;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+      }
+      .pg-top__brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-weight: 600;
+        color: var(--ink);
+        text-decoration: none;
+        letter-spacing: -0.01em;
+      }
+      .pg-top__brand b { color: var(--charge); }
+      .pg-top__tag {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .pg-top__links { margin-inline-start: auto; display: flex; gap: 1rem; font-size: 0.85rem; }
+      .pg-top__links a { color: var(--muted); text-decoration: none; }
+      .pg-top__links a:hover { color: var(--ink); }
+
+      .pg {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: var(--line);
+      }
+      @media (max-width: 820px) {
+        .pg { grid-template-columns: 1fr; }
+      }
+
+      .pane {
+        background: var(--ground);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+      }
+      .pane__bar {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.55rem 0.9rem;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        letter-spacing: 0.02em;
+        flex-wrap: wrap;
+      }
+      .pane__title { color: var(--ink); }
+      .pane__hint { color: var(--muted); opacity: 0.8; margin-inline-start: auto; }
+
+      .examples { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-inline-start: auto; }
+      .examples button {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted);
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.2rem 0.6rem;
+        cursor: pointer;
+      }
+      .examples button:hover { color: var(--ink); border-color: var(--charge); }
+
+      #input {
+        flex: 1;
+        resize: none;
+        border: 0;
+        outline: none;
+        background: transparent;
+        color: var(--ink);
+        font-family: var(--mono);
+        font-size: 0.86rem;
+        line-height: 1.7;
+        padding: 1rem 1.1rem;
+        tab-size: 2;
+        min-height: 40vh;
+      }
+
+      .output {
+        margin: 0;
+        padding: 1rem 1.1rem;
+        overflow: auto;
+        flex: 1;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        line-height: 1.65;
+        color: var(--ink);
+        white-space: pre;
+        min-height: 22vh;
+      }
+
+      .verdict {
+        border-top: 1px solid var(--line);
+        background: var(--panel);
+        padding: 0.75rem 1.1rem 1rem;
+        font-size: 0.85rem;
+      }
+      .chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.7rem; }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        padding: 0.28rem 0.6rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+      }
+      .chip__name b { color: var(--charge); font-weight: 600; }
+      .dot {
+        width: 9px; height: 9px; border-radius: 50%;
+        background: var(--muted); flex: none;
+      }
+      .dot--ok { background: var(--ok); box-shadow: 0 0 8px color-mix(in srgb, var(--ok) 70%, transparent); }
+      .dot--warn { background: var(--warn); box-shadow: 0 0 8px color-mix(in srgb, var(--warn) 70%, transparent); }
+      .dot--err { background: var(--err); box-shadow: 0 0 8px color-mix(in srgb, var(--err) 70%, transparent); }
+      .chip__label { color: var(--muted); }
+
+      .summary { font-weight: 500; margin: 0 0 0.4rem; }
+      .summary--ok { color: var(--ok); }
+      .summary--warn { color: var(--warn); }
+      .summary--muted { color: var(--muted); }
+
+      .diffs { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }
+      .diff {
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        line-height: 1.5;
+        padding: 0.5rem 0.65rem;
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--warn);
+        border-radius: 6px;
+        background: var(--panel-2);
+        overflow-x: auto;
+      }
+      .diff__pair { color: var(--ink); }
+      .diff__pair b { color: var(--charge); font-weight: 600; }
+      .diff__path { color: var(--spark); }
+      .diff__vals { color: var(--muted); }
+      .diff__reason { color: var(--muted); opacity: 0.8; }
+
+      .note {
+        color: var(--muted);
+        font-size: 0.74rem;
+        line-height: 1.55;
+        margin-top: 0.7rem;
+        padding-top: 0.6rem;
+        border-top: 1px dashed var(--line);
+      }
+      .note code { font-family: var(--mono); color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <header class="pg-top">
+      <a class="pg-top__brand" href="/"><b>⚡</b> lightning-yaml</a>
+      <span class="pg-top__tag">playground</span>
+      <nav class="pg-top__links">
+        <a href="/guides/getting-started/">Docs</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="https://github.com/jbsiddall/lightning-yaml">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="pg">
+      <section class="pane">
+        <div class="pane__bar">
+          <span class="pane__title">Input — YAML or JSON</span>
+          <div class="examples" id="examples">
+            <button data-ex="config">Config</button>
+            <button data-ex="anchors">Anchors + binary</button>
+            <button data-ex="merge">Merge keys</button>
+            <button data-ex="json">JSON</button>
+          </div>
+        </div>
+        <textarea id="input" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+      </section>
+
+      <section class="pane">
+        <div class="pane__bar">
+          <span class="pane__title">lightning-yaml output</span>
+          <span class="pane__hint">JSON.stringify(value, null, 2)</span>
+        </div>
+        <pre class="output" id="output">Loading parsers…</pre>
+        <div class="verdict" id="verdict"></div>
+      </section>
+    </main>
+
+    <script is:inline type="module">
+      const CDN = {
+        'lightning-yaml': 'https://cdn.jsdelivr.net/npm/lightning-yaml/+esm',
+        'yaml': 'https://cdn.jsdelivr.net/npm/yaml/+esm',
+        'js-yaml': 'https://cdn.jsdelivr.net/npm/js-yaml/+esm',
+      }
+
+      const EXAMPLES = {
+        config:
+          '# A typical config — all three parsers should agree\n' +
+          'name: billing-service\n' +
+          'replicas: 3\n' +
+          'ports: [8080, 8443]\n' +
+          'env:\n' +
+          '  - name: LOG_LEVEL\n' +
+          '    value: info\n' +
+          'healthcheck:\n' +
+          '  path: /healthz\n' +
+          '  timeoutSeconds: 2\n' +
+          'enabled: true\n' +
+          'notes: null\n',
+        anchors:
+          '# Anchors & aliases (&/*) plus a !!binary blob\n' +
+          'defaults: &defaults\n' +
+          '  retries: 3\n' +
+          '  timeout: 30\n' +
+          'service_a:\n' +
+          '  settings: *defaults\n' +
+          '  name: a\n' +
+          'logo: !!binary |\n' +
+          '  R0lGODlhAQABAAAAACw=\n',
+        merge:
+          '# Merge keys (<<): js-yaml applies the old merge convention and MERGES this.\n' +
+          '# lightning-yaml and the `yaml` library keep "<<" as a literal key by default\n' +
+          '# (merge keys are not in YAML 1.2 core) — so here js-yaml is the outlier.\n' +
+          'base: &base\n' +
+          '  a: 1\n' +
+          '  b: 2\n' +
+          'derived:\n' +
+          '  <<: *base\n' +
+          '  b: 3\n',
+        json: '{ "name": "lightning-yaml", "version": "0.1.0", "features": ["fast", "spec-compliant"], "deps": null }\n',
+      }
+
+      const inputEl = document.getElementById('input')
+      const outputEl = document.getElementById('output')
+      const verdictEl = document.getElementById('verdict')
+
+      // --- value classification & normalization -----------------------------
+      function isBytes(v) {
+        return (
+          v instanceof Uint8Array ||
+          v instanceof ArrayBuffer ||
+          (typeof Buffer !== 'undefined' && Buffer.isBuffer && Buffer.isBuffer(v))
+        )
+      }
+      function toBytes(v) {
+        if (v instanceof ArrayBuffer) return new Uint8Array(v)
+        return v
+      }
+      function kind(v) {
+        if (v === undefined) return 'undefined'
+        if (v === null) return 'null'
+        if (Array.isArray(v)) return 'array'
+        if (isBytes(v)) return 'bytes'
+        if (v instanceof Map) return 'map'
+        return typeof v
+      }
+      function asObj(v) {
+        if (v instanceof Map) {
+          const o = {}
+          for (const [k, val] of v) o[String(k)] = val
+          return o
+        }
+        return v
+      }
+
+      // First structural divergence between two parsed values, or null if equal.
+      // Byte containers are compared by their bytes; !!binary → raw bytes, so a
+      // Uint8Array and an equivalent Buffer count as equal.
+      function diff(a, b, path) {
+        path = path || '(root)'
+        const ka = kind(a)
+        const kb = kind(b)
+        if (ka !== kb) return { path, a, b, reason: 'type ' + ka + ' vs ' + kb }
+        switch (ka) {
+          case 'bytes': {
+            const A = toBytes(a)
+            const B = toBytes(b)
+            if (A.length !== B.length)
+              return { path, a, b, reason: 'byte length ' + A.length + ' vs ' + B.length }
+            for (let i = 0; i < A.length; i++)
+              if (A[i] !== B[i]) return { path: path + '[byte ' + i + ']', a: A[i], b: B[i], reason: 'byte value' }
+            return null
+          }
+          case 'array': {
+            if (a.length !== b.length) return { path, a, b, reason: 'length ' + a.length + ' vs ' + b.length }
+            for (let i = 0; i < a.length; i++) {
+              const d = diff(a[i], b[i], path + '[' + i + ']')
+              if (d) return d
+            }
+            return null
+          }
+          case 'map':
+          case 'object': {
+            const ao = asObj(a)
+            const bo = asObj(b)
+            const ak = Object.keys(ao)
+            const bo_keys = Object.keys(bo)
+            for (const k of ak) if (!(k in bo)) return { path: path + '.' + k, a: ao[k], b: undefined, reason: 'key only in left' }
+            for (const k of bo_keys) if (!(k in ao)) return { path: path + '.' + k, a: undefined, b: bo[k], reason: 'key only in right' }
+            for (const k of ak) {
+              const d = diff(ao[k], bo[k], path + '.' + k)
+              if (d) return d
+            }
+            return null
+          }
+          case 'number': {
+            if (Number.isNaN(a) && Number.isNaN(b)) return null
+            return a === b ? null : { path, a, b, reason: 'number value' }
+          }
+          default:
+            return a === b ? null : { path, a, b, reason: ka + ' value' }
+        }
+      }
+
+      // --- display ----------------------------------------------------------
+      function displayClone(v, seen) {
+        seen = seen || new Set()
+        const k = kind(v)
+        if (k === 'bytes') {
+          const b = toBytes(v)
+          return 'Uint8Array(' + b.length + ') [' + Array.from(b).join(', ') + ']'
+        }
+        if (k === 'undefined') return '(undefined)'
+        if (k === 'number' && !Number.isFinite(v)) return String(v)
+        if (typeof v === 'bigint') return v.toString() + 'n'
+        if (v === null || typeof v !== 'object') return v
+        if (seen.has(v)) return '[Circular]'
+        seen.add(v)
+        let out
+        if (Array.isArray(v)) out = v.map((x) => displayClone(x, seen))
+        else {
+          const src = asObj(v)
+          out = {}
+          for (const key of Object.keys(src)) out[key] = displayClone(src[key], seen)
+        }
+        seen.delete(v)
+        return out
+      }
+      function safeStringify(v) {
+        if (v === undefined) return '(undefined — empty document)'
+        try {
+          return JSON.stringify(displayClone(v), null, 2)
+        } catch (e) {
+          return String(v)
+        }
+      }
+      function esc(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      }
+      function preview(v) {
+        const k = kind(v)
+        if (k === 'bytes') return 'bytes(' + toBytes(v).length + ')'
+        if (k === 'array') return 'Array(' + v.length + ')'
+        if (k === 'map') return 'Map(' + v.size + ')'
+        if (k === 'object') {
+          const ks = Object.keys(v)
+          return '{ ' + ks.slice(0, 3).join(', ') + (ks.length > 3 ? ', …' : '') + ' }'
+        }
+        if (k === 'undefined') return '∅ (missing)'
+        if (k === 'string') return JSON.stringify(v.length > 30 ? v.slice(0, 30) + '…' : v)
+        return String(v)
+      }
+
+      // --- parsers ----------------------------------------------------------
+      let parsers = []
+
+      async function boot() {
+        const ids = Object.keys(CDN)
+        const settled = await Promise.allSettled(ids.map((id) => import(CDN[id])))
+        const mods = {}
+        const loadErr = {}
+        settled.forEach((res, i) => {
+          if (res.status === 'fulfilled') mods[ids[i]] = res.value
+          else loadErr[ids[i]] = (res.reason && res.reason.message) || 'failed to load from CDN'
+        })
+
+        const jsy = mods['js-yaml']
+        const jsyLoad = jsy && (jsy.load || (jsy.default && jsy.default.load))
+
+        parsers = [
+          {
+            id: 'lightning-yaml',
+            run: mods['lightning-yaml'] ? (t) => mods['lightning-yaml'].parse(t) : null,
+            loadError: loadErr['lightning-yaml'],
+          },
+          {
+            id: 'yaml',
+            // maxAliasCount: -1 matches the benchmark harness (anchor-heavy inputs).
+            run: mods['yaml'] ? (t) => mods['yaml'].parse(t, { maxAliasCount: -1 }) : null,
+            loadError: loadErr['yaml'],
+          },
+          {
+            id: 'js-yaml',
+            run: jsyLoad ? (t) => jsyLoad(t) : null,
+            loadError: loadErr['js-yaml'],
+          },
+        ]
+        run()
+      }
+
+      function run() {
+        const text = inputEl.value
+        const results = parsers.map((p) => {
+          if (!p.run) return { id: p.id, state: 'loaderror', error: p.loadError }
+          try {
+            return { id: p.id, state: 'ok', value: p.run(text) }
+          } catch (e) {
+            const msg = (e && e.message ? e.message : String(e)).split('\n')[0]
+            return { id: p.id, state: 'error', error: msg }
+          }
+        })
+
+        const ly = results.find((r) => r.id === 'lightning-yaml')
+        if (ly.state === 'ok') outputEl.textContent = safeStringify(ly.value)
+        else if (ly.state === 'error') outputEl.textContent = '// lightning-yaml parse error:\n// ' + ly.error
+        else outputEl.textContent = '// lightning-yaml failed to load: ' + (ly.error || 'unknown')
+
+        renderVerdict(results)
+      }
+
+      function renderVerdict(results) {
+        const ok = results.filter((r) => r.state === 'ok')
+
+        // Cluster the successful parses by structural equality.
+        const clusters = []
+        for (const r of ok) {
+          const c = clusters.find((cl) => diff(cl[0].value, r.value) === null)
+          if (c) c.push(r)
+          else clusters.push([r])
+        }
+        clusters.sort((a, b) => b.length - a.length)
+        const majority = clusters[0] || []
+        const allAgree = ok.length >= 2 && clusters.length === 1
+
+        function statusOf(r) {
+          if (r.state === 'loaderror') return { cls: 'err', label: 'CDN load failed' }
+          if (r.state === 'error') return { cls: 'err', label: 'parse error' }
+          if (ok.length < 2) return { cls: 'ok', label: 'parsed' }
+          if (majority.indexOf(r) !== -1) return { cls: 'ok', label: allAgree ? 'agrees' : 'agrees (majority)' }
+          return { cls: 'warn', label: 'differs' }
+        }
+
+        const chips = results
+          .map((r) => {
+            const s = statusOf(r)
+            const nm = r.id === 'lightning-yaml' ? '<b>lightning-yaml</b>' : r.id
+            return (
+              '<span class="chip"><span class="dot dot--' +
+              s.cls +
+              '"></span><span class="chip__name">' +
+              nm +
+              '</span><span class="chip__label">' +
+              esc(s.label) +
+              '</span></span>'
+            )
+          })
+          .join('')
+
+        let summary
+        if (ok.length < 2) summary = { cls: 'muted', text: 'Need at least two parsers to compare.' }
+        else if (allAgree) summary = { cls: 'ok', text: '✓ All ' + ok.length + ' parsers agree on the parsed value.' }
+        else summary = { cls: 'warn', text: '⚠ Parsers disagree — divergences below.' }
+
+        // Divergences, framed relative to lightning-yaml where possible.
+        const rows = []
+        const lyR = results.find((r) => r.id === 'lightning-yaml')
+        if (lyR && lyR.state === 'ok') {
+          for (const other of ok) {
+            if (other.id === 'lightning-yaml') continue
+            const d = diff(lyR.value, other.value)
+            if (d) rows.push(diffRow('lightning-yaml', other.id, d))
+          }
+        }
+        // If lightning-yaml errored/failed, still surface a yaml↔js-yaml split.
+        if ((!lyR || lyR.state !== 'ok') && ok.length === 2) {
+          const d = diff(ok[0].value, ok[1].value)
+          if (d) rows.push(diffRow(ok[0].id, ok[1].id, d))
+        }
+        // Report parse errors explicitly too.
+        for (const r of results) {
+          if (r.state === 'error') rows.push(errRow(r.id, r.error))
+        }
+
+        verdictEl.innerHTML =
+          '<div class="chips">' +
+          chips +
+          '</div>' +
+          '<p class="summary summary--' +
+          summary.cls +
+          '">' +
+          esc(summary.text) +
+          '</p>' +
+          (rows.length ? '<div class="diffs">' + rows.join('') + '</div>' : '') +
+          '<p class="note">All three parsers run in your browser (loaded from jsDelivr). ' +
+          'Values are compared <em>structurally</em>; <code>!!binary</code> is normalized to raw bytes and ' +
+          '<code>yaml</code> runs with <code>maxAliasCount: -1</code> to match the benchmark harness. ' +
+          'A disagreement is not automatically a lightning-yaml bug — the YAML 1.2 spec adjudicates.</p>'
+      }
+
+      function diffRow(a, b, d) {
+        const nameA = a === 'lightning-yaml' ? '<b>lightning-yaml</b>' : a
+        const nameB = b === 'lightning-yaml' ? '<b>lightning-yaml</b>' : b
+        return (
+          '<div class="diff"><span class="diff__pair">' +
+          nameA +
+          ' ⟷ ' +
+          nameB +
+          '</span> — at <span class="diff__path">' +
+          esc(d.path) +
+          '</span>: <span class="diff__vals">' +
+          esc(preview(d.a)) +
+          ' vs ' +
+          esc(preview(d.b)) +
+          '</span> <span class="diff__reason">(' +
+          esc(d.reason) +
+          ')</span></div>'
+        )
+      }
+      function errRow(id, msg) {
+        const nm = id === 'lightning-yaml' ? '<b>lightning-yaml</b>' : id
+        return (
+          '<div class="diff" style="border-left-color: var(--err)"><span class="diff__pair">' +
+          nm +
+          '</span> — <span class="diff__reason">threw: ' +
+          esc(msg) +
+          '</span></div>'
+        )
+      }
+
+      // --- wiring -----------------------------------------------------------
+      let timer = null
+      inputEl.addEventListener('input', () => {
+        clearTimeout(timer)
+        timer = setTimeout(run, 150)
+      })
+      document.getElementById('examples').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-ex]')
+        if (!btn) return
+        inputEl.value = EXAMPLES[btn.dataset.ex] || ''
+        run()
+      })
+
+      inputEl.value = EXAMPLES.config
+      boot()
+    </script>
+  </body>
+</html>
