@@ -14,9 +14,15 @@
     "@fontsource/ibm-plex-mono": "5.2.7",
     "@fontsource/inter": "5.2.8",
     "astro": "7.0.7",
+    "js-yaml": "4.1.0",
     "starlight-typedoc": "0.23.0",
     "typedoc": "0.28.20",
     "typedoc-plugin-markdown": "4.12.0",
     "yaml": "2.9.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "js-yaml": "4.1.0"
+    }
   }
 }

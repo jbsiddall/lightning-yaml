@@ -1,14 +1,82 @@
 /**
- * yaml-compat.ts — a drop-in-ish replacement for the `yaml` v2 public API
- * (github.com/eemeli/yaml — also this repo's own correctness oracle, see
- * bench/oracle.ts), backed by lightning-yaml's own parser (./index.ts).
+ * @packageDocumentation
  *
- * Goal: a codebase doing `import { parse } from "yaml"` (or
- * `import YAML from "yaml"`) can swap the import for this module and keep
- * working, as far as lightning-yaml's current milestone allows. Full fidelity
- * is NOT the goal — see bench/conformance/compat.ts for a differential report
- * quantifying the gap, grouped by construct. Known simplifications, called
- * out where they matter below:
+ * yaml-compat.ts — a drop-in-ish replacement for the `yaml` v2 public API
+ * (github.com/eemeli/yaml — also this repo's own correctness reference /
+ * oracle, see bench/oracle.ts), backed by lightning-yaml's own parser
+ * (./index.ts).
+ *
+ * This module doc block is the MASTER SOURCE for `yaml` compatibility: it is
+ * published verbatim to the website's API reference (site/astro.config.mjs
+ * wires this file through starlight-typedoc), so keep it accurate and up to date.
+ *
+ * ## Compatibility level TODAY
+ *
+ * **API-level, not behaviour-complete.** The exports and call signatures match
+ * the real `yaml` library, so `import { parse } from "yaml"` (or the default
+ * import) can swap to this module and keep running. What is NOT yet honoured is
+ * almost every **option argument**: `parse(text, { version, schema, mapAsMap,
+ * intAsBigInt })` and `stringify(value, { sortMapEntries, indent, ... })` are
+ * accepted so call sites type-check, but are currently **ignored** — only the
+ * `parse` reviver function actually runs. The shim is genuinely useful for
+ * migrating today, but a call that relies on an option (or walks `.contents`
+ * as an AST — see the Document note below) will diverge from real `yaml`.
+ *
+ * ## Goal
+ *
+ * Maximise drop-in compatibility **without ever compromising the two things
+ * that outrank it: YAML-1.2-spec correctness and core (./index.ts) speed.**
+ * Per-option cost is paid either in this shim (pre-/post-processing the
+ * plain-JS value, as the reviver already does — proof a hook here costs the
+ * core nothing) or behind a gated core seam that leaves the options-free fast
+ * path byte-identical. An option we can't yet honour should eventually FAIL
+ * LOUD, not be silently ignored. We are not there yet — this file tracks it.
+ *
+ * ## Option support matrix
+ *
+ * `path` — `done`: already honoured · `compat`: addable in THIS shim, no core
+ * change and no core perf cost · `core`: gated core change, options-free fast
+ * path stays byte-identical · `feature`: needs a parser/dumper capability that
+ * does not exist yet.
+ *
+ * ```text
+ * parse / parseDocument / parseAllDocuments (ParseOptions·DocumentOptions·SchemaOptions·ToJSOptions)
+ *   reviver           JSON.parse-style revive walk               done
+ *   prettyErrors      line/col in errors                         done         (our errors carry them)
+ *   mapAsMap          mappings as Map, not Object                compat       [1] (deep Object->Map post-parse)
+ *   intAsBigInt       big ints as exact BigInt                   core         (cold >15-digit fallback fork)
+ *   uniqueKeys        dup-key throw/comparator vs keep           core         [2]
+ *   stringKeys        require scalar string keys                 core
+ *   maxAliasCount     cap alias expansions                       compat/core
+ *   version           1.1 | 1.2 | next scalar typing             core         [3]
+ *   schema            failsafe / core / json / yaml-1.1          core         [3]
+ *   customTags        plug in custom tag resolvers               core         (needs a tag registry)
+ *   resolveKnownTags  !!omap/!!set/!!timestamp under core        core         (we resolve !!binary only)
+ *   merge             enable `<<` merge keys                     feature      (merge keys unimplemented)
+ *   keepSourceTokens · lineCounter · onAnchor                    feature      (need CST / retained metadata)
+ *
+ * stringify (ToStringOptions·CreateNodeOptions·SchemaOptions)
+ *   replacer          JSON.stringify-style replacer              compat       (pre-process the value)
+ *   sortMapEntries    sort map keys on output                    compat       <- easy win (pre-sort the graph)
+ *   indent            block indent width (we hardcode 2)         core
+ *   nullStr/trueStr/falseStr  spelling of null/true/false        core
+ *   singleQuote       prefer single quotes                       core
+ *   indentSeq         indent block sequences                     core
+ *   directives        emit `---` / %YAML markers                 core
+ *   lineWidth · minContentWidth · blockQuote (folding)           feature      (no line folding exists)
+ *   collectionStyle:flow · flowCollectionPadding · trailingComma feature      (no flow-collection writer)
+ *   aliasDuplicateObjects / noRefs · anchorPrefix                core/feature (see js-yaml-compat noRefs note)
+ * ```
+ *
+ * [1] Our core already coerces non-scalar keys to strings, so `mapAsMap` keys
+ *     come back as strings — partial fidelity vs real `yaml`.
+ * [2] Our core is last-wins by default (= `uniqueKeys: false`). Throw-on-dup is
+ *     a `yaml`-parity knob, NOT a spec/suite win — the yaml-test-suite treats
+ *     duplicate keys as VALID (see js-yaml-compat.ts note [1]).
+ * [3] Default 1.2-core already matches `yaml`'s own default; only `version: 1.1`
+ *     / a non-core schema changes typing (yes->true, sexagesimal, legacy octal).
+ *
+ * The remaining known simplifications, called out where they matter below:
  *
  *   - Document wrappers (`parseDocument`/`parseAllDocuments`) return a MINIMAL
  *     stand-in: `{ toJS(), toJSON(), contents, errors, warnings }` where
