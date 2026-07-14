@@ -130,9 +130,10 @@ import { parse, stringify } from 'lightning-yaml/yaml';
 > **Status — surface-level today.** The shims are a TypeScript drop-in (same
 > exports and signatures), so your code compiles and runs — but option arguments
 > (`schema`, `sortKeys`, `indent`, …) are currently **accepted-and-ignored**.
-> Full option compatibility is the goal; the
-> [compatibility matrix](https://lightning-yaml.dev) details which options are
-> easy or hard to support next.
+> Full option compatibility is the goal; each shim's **option-support matrix**
+> ([js-yaml](https://lightning-yaml.dev/api/js-yaml-compat/readme/#option-support-matrix),
+> [yaml](https://lightning-yaml.dev/api/yaml-compat/readme/#option-support-matrix))
+> lists which options are easy or hard to support next.
 
 ## Project priorities
 
@@ -144,9 +145,9 @@ In order:
    is our north star; where even that is ambiguous, we fall back to matching the
    behaviour of the `yaml` and js-yaml libraries.
 2. **Speed and memory within reach of native `JSON.parse` / `JSON.stringify`.**
-   Not parity — we'll never match native byte-for-byte, and we know it — but we
-   treat that gap as a bug to shrink, chasing every last nanosecond so there's no
-   performance reason left to reach for JSON over YAML.
+   We'll never match native byte-for-byte, and we know it — but we treat that gap
+   as a bug to shrink, chasing every last nanosecond so there's no performance
+   reason left to reach for JSON over YAML.
 
 ## Contributing & feedback
 
@@ -163,6 +164,12 @@ and tell me what happens** — I'm hugely grateful to anyone who gives it a run.
   in your environment, please
   [open an issue](https://github.com/jbsiddall/lightning-yaml/issues) — I'd
   genuinely love to dig into it.
+- **Spot a claim that doesn't hold up?** If a benchmark looks wrong, a number or
+  claim reads as inaccurate, or we're configuring js-yaml or `yaml` in a way
+  that's unfair to them — where a fairer setup would make *them* look faster — I
+  want to know. [Open an issue](https://github.com/jbsiddall/lightning-yaml/issues):
+  benchmark honesty and accuracy matter more here than looking good, and I'll fix
+  anything that's off.
 - **Ideas, questions, or just want to chat?**
   [GitHub Discussions](https://github.com/jbsiddall/lightning-yaml/discussions)
   is the place for anything that would make the library better.
