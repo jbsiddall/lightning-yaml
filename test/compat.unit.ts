@@ -37,7 +37,6 @@ import jsYamlCompatDefault, {
   FAILSAFE_SCHEMA,
 } from "../src/js-yaml-compat.ts";
 import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify } from "../src/yaml-compat.ts";
-import { NotImplementedError } from "../src/index.ts";
 
 // --------------------------------------------------------------------------
 // API surface — named + default exports resolve to the right shapes.
@@ -165,16 +164,24 @@ test("YAMLException carries name/reason/message/mark like js-yaml's", () => {
 });
 
 // --------------------------------------------------------------------------
-// dump/stringify are wired to our stringify() — currently NotImplementedError.
-// This is the one place we DO assert the (intentional, documented) gap
-// directly, since it's part of the shim's own contract, not a parser-feature
-// gap tracked elsewhere.
+// dump/stringify delegate to our implemented stringify() (M6): they emit YAML
+// that round-trips through the REAL library — the drop-in contract. They used
+// to throw NotImplementedError; the dumper closed that gap, so we now assert
+// the working behavior directly.
 // --------------------------------------------------------------------------
 
-test("js-yaml-compat.dump surfaces our NotImplementedError (stringify is a later milestone)", () => {
-  throws(() => dump({ a: 1 }), (err: unknown) => err instanceof NotImplementedError);
+// Deliberately free of YAML-1.1-ambiguous tokens (yes/no/on/off) so the
+// round-trip is schema-agnostic across both real libraries.
+const DUMP_VALUE = { name: "svc", replicas: 3, enabled: true, tags: ["a", "b"] };
+
+test("js-yaml-compat.dump emits YAML the real js-yaml reads back", () => {
+  const text = dump(DUMP_VALUE);
+  strictEqual(typeof text, "string");
+  deepStrictEqual(jsyamlReal.load(text), DUMP_VALUE);
 });
 
-test("yaml-compat.stringify surfaces our NotImplementedError (stringify is a later milestone)", () => {
-  throws(() => stringify({ a: 1 }), (err: unknown) => err instanceof NotImplementedError);
+test("yaml-compat.stringify emits YAML the real yaml reads back", () => {
+  const text = stringify(DUMP_VALUE);
+  strictEqual(typeof text, "string");
+  deepStrictEqual(yamlReal.parse(text), DUMP_VALUE);
 });

@@ -20,14 +20,14 @@
  *     is round-tripped through shim.dump/stringify(value) vs. the real
  *     library's dump/stringify(value). PASS iff both throw, or both succeed
  *     AND re-parsing the shim's output (through the REAL library) deep-equals
- *     the original value. Our `stringify` is a later milestone and today
- *     always throws `NotImplementedError`, so in practice every dump check
- *     currently fails — bucketed under "dump/stringify-unimplemented" rather
- *     than diluting the construct-based buckets below. This check runs ONLY
- *     over the curated corpus (not the yaml-test-suite fold-in): the point of
- *     folding in yaml-test-suite is read-side construct BREADTH, and running
- *     ~350 more guaranteed-fail dump checks would just balloon one already-
- *     fully-understood bucket without adding signal.
+ *     the original value. Our `stringify` is implemented (M6), so these dump
+ *     checks now genuinely round-trip instead of failing wholesale; the
+ *     "dump/stringify-unimplemented" bucket only fires if our dumper throws
+ *     while the real library succeeds. This check runs ONLY over the curated
+ *     corpus (not the yaml-test-suite fold-in): the point of folding in
+ *     yaml-test-suite is read-side construct BREADTH, and running ~350 more
+ *     dump checks over it would balloon the report without adding read-side
+ *     signal.
  *
  * Corpus: a curated set of ~50-80 hand-written snippets (below), covering
  * plain/quoted scalars, 1.2-core typing, flow & block maps/seqs, multi-doc
