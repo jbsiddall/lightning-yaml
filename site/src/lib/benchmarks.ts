@@ -205,8 +205,9 @@ const TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:0.85rem';
 /**
  * The "table view" twin for the parse-time charts (every workload, every
  * library) — the dataviz skill requires every chart have one, and it's also
- * just the fuller precision readers want next to a log-scale chart. Returns
- * a ready `<table>` string for `set:html`; built here (not as inline MDX
+ * where cross-workload comparison lives: the charts scale each row
+ * independently, so this table is the one place to read raw values across
+ * rows. Returns a ready `<table>` string for `set:html`; built here (not as inline MDX
  * JSX with nested `.map()`s) to keep escaping in one place and avoid MDX's
  * blank-line/indentation gotchas around nested JSX loops.
  */
@@ -285,22 +286,9 @@ export function formatNs(ns: number): string {
   return `${Math.round(ns)} ns`;
 }
 
-/** ns -> human units for an AXIS TICK (ticks are already "nice" round numbers). */
-function formatNsTick(ns: number): string {
-  const clean = (v: number) => Math.round(v * 100) / 100;
-  if (ns >= 1e9) return `${clean(ns / 1e9)} s`;
-  if (ns >= 1e6) return `${clean(ns / 1e6)} ms`;
-  if (ns >= 1e3) return `${clean(ns / 1e3)} µs`;
-  return `${Math.round(ns)} ns`;
-}
-
 /** MB -> data label, e.g. `91.2 MB`, `2744 MB`. */
 export function formatMB(mb: number): string {
   return `${fixedByMagnitude(mb)} MB`;
-}
-
-function formatMBTick(mb: number): string {
-  return `${Math.round(mb * 100) / 100} MB`;
 }
 
 /** Percent -> data label, e.g. `97.6%`. */
@@ -323,7 +311,7 @@ function fx(n: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Scales + ticks
+// Scale
 // ---------------------------------------------------------------------------
 
 type Scale = (v: number) => number;
@@ -333,35 +321,6 @@ function linearScale(domain: [number, number], range: [number, number]): Scale {
   const [r0, r1] = range;
   const span = d1 - d0 || 1;
   return (v) => r0 + ((v - d0) / span) * (r1 - r0);
-}
-
-function logScaleFn(domain: [number, number], range: [number, number]): Scale {
-  const d0 = Math.log10(domain[0]);
-  const d1 = Math.log10(domain[1]);
-  const [r0, r1] = range;
-  const span = d1 - d0 || 1;
-  return (v) => r0 + ((Math.log10(v) - d0) / span) * (r1 - r0);
-}
-
-/**
- * Log-scale ticks at 1/2/5 x 10^k, "nice" numbers per the mark spec. Falls
- * back to decade-only ticks (1 x 10^k) once the domain spans more than ~3
- * decades so labels stay legible instead of colliding (our time data ranges
- * from microseconds to seconds — 6+ decades in the widest chart).
- */
-function logTicks(min: number, max: number): number[] {
-  const startExp = Math.floor(Math.log10(min));
-  const endExp = Math.ceil(Math.log10(max));
-  const wide = endExp - startExp > 3;
-  const mults = wide ? [1] : [1, 2, 5];
-  const ticks: number[] = [];
-  for (let e = startExp; e <= endExp; e++) {
-    for (const m of mults) {
-      const v = m * 10 ** e;
-      if (v >= min * 0.999 && v <= max * 1.001) ticks.push(v);
-    }
-  }
-  return Array.from(new Set(ticks.map((v) => Number(v.toPrecision(6))))).sort((a, b) => a - b);
 }
 
 // ---------------------------------------------------------------------------
@@ -422,10 +381,16 @@ function svgOpen(id: string, w: number, h: number, title: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// groupedBarSVG — N groups (workloads) x M series (libraries). The legend
-// and descriptive note are NOT drawn here: they render as real HTML around
-// the <svg> (see ChartCard.astro) so that text reflows and never clips —
-// only the plot itself (axes, bars, direct value labels) is SVG.
+// groupedBarSVG — N workloads x M libraries. Each workload is scaled to its
+// OWN slowest parser (linear), so within a row bar length is proportional to
+// the value — lightning-yaml being ~50x faster reads as a ~50x shorter bar.
+// Why per-row and not one shared axis: the data spans ~6 orders of magnitude
+// across workloads (µs to s), so a shared linear axis crushes the small
+// workloads to sub-pixel, and a log axis compresses the very ratios the chart
+// exists to show. The cost is that rows aren't comparable to each other — so
+// every bar carries its exact value label and the card note states the
+// per-workload scaling. Legend + note render as real HTML around the <svg>
+// (ChartCard.astro) so text reflows and never clips.
 // ---------------------------------------------------------------------------
 
 export interface GroupedSeries {
@@ -446,19 +411,19 @@ export interface GroupedBarOptions {
   groups: GroupedGroup[];
   unit: 'ns' | 'MB';
   lowerIsBetter: boolean;
-  logScale?: boolean;
 }
 
 export function groupedBarSVG(opts: GroupedBarOptions): string {
-  const { id, title, series, groups, unit, lowerIsBetter, logScale = false } = opts;
+  const { id, title, series, groups, unit, lowerIsBetter } = opts;
   const formatValue = unit === 'ns' ? formatNs : formatMB;
-  const formatTick = unit === 'ns' ? formatNsTick : formatMBTick;
 
   const W = 620;
   const marginTop = 14;
-  const marginBottom = 26;
+  const marginBottom = 10;
   const marginLeft = 190;
-  const marginRight = 64;
+  // Holds the value label of the slowest (full-width) bar in each row; its tip
+  // sits at the plot's right edge, so this IS the worst-case label budget.
+  const marginRight = 72;
   const barH = 15;
   const barGap = 2;
   const rowH = barH + barGap;
@@ -470,33 +435,17 @@ export function groupedBarSVG(opts: GroupedBarOptions): string {
   const plotX = marginLeft;
   const plotY = marginTop;
 
-  const allValues = groups.flatMap((g) =>
-    series.map((s) => g.values[s.id]).filter((v): v is number => typeof v === 'number' && v > 0),
-  );
-  const maxV = Math.max(...allValues);
-  const minV = Math.min(...allValues);
-
-  const domain: [number, number] = logScale ? [minV / 1.6, maxV * 1.15] : [0, maxV * 1.08];
-  const scale = logScale ? logScaleFn(domain, [0, plotW]) : linearScale(domain, [0, plotW]);
-  const ticks = logScale
-    ? logTicks(domain[0], domain[1])
-    : [0, maxV * 0.25, maxV * 0.5, maxV * 0.75, maxV];
-
-  const gridSvg = ticks
-    .map((t) => {
-      const x = plotX + scale(t);
-      return (
-        `<line x1="${fx(x)}" y1="${fx(plotY)}" x2="${fx(x)}" y2="${fx(plotY + plotH)}" stroke="var(--ly-line)" stroke-width="1"/>` +
-        `<text x="${fx(x)}" y="${fx(plotY + plotH + 16)}" class="ly-axis" text-anchor="middle">${escapeXml(formatTick(t))}</text>`
-      );
-    })
-    .join('');
-
-  const x0 = plotX + (logScale ? 0 : scale(0));
-
   const groupsSvg = groups
     .map((g, gi) => {
       const gy = plotY + gi * groupH;
+      // Per-workload linear scale: 0 .. this row's slowest parser. The `1`
+      // floor only guards the empty-row case (Math.max() -> -Infinity); real
+      // ns/MB values are far larger, so it never clamps a genuine bar.
+      const groupMax = Math.max(
+        ...series.map((s) => g.values[s.id]).filter((v): v is number => typeof v === 'number' && v > 0),
+        1,
+      );
+      const scale = linearScale([0, groupMax], [0, plotW]);
       const rows = series
         .map((s, si) => {
           const v = g.values[s.id];
@@ -504,7 +453,7 @@ export function groupedBarSVG(opts: GroupedBarOptions): string {
           const y0 = gy + si * rowH;
           const y1 = y0 + barH;
           const x1 = plotX + scale(v);
-          const path = hBarPath(x0, x1, y0, y1, 4);
+          const path = hBarPath(plotX, x1, y0, y1, 4);
           const isSelf = s.id === 'lightning-yaml';
           const glow = isSelf ? ` filter="url(#${id}-glow)"` : '';
           const valClass = isSelf ? 'ly-val ly-val--self' : 'ly-val';
@@ -522,9 +471,14 @@ export function groupedBarSVG(opts: GroupedBarOptions): string {
     })
     .join('');
 
+  // Single origin rule at x=0 to ground every row's bars. There is no numeric
+  // x-axis: each row has its own scale, so a shared axis would be wrong — the
+  // exact value label beside each bar is the scale.
+  const baseline = `<line x1="${fx(plotX)}" y1="${fx(plotY)}" x2="${fx(plotX)}" y2="${fx(plotY + plotH)}" stroke="var(--ly-line)" stroke-width="1"/>`;
+
   const dir = lowerIsBetter ? 'lower is better' : 'higher is better';
-  const scaleNote = logScale ? ', log scale' : '';
-  const descText = `${title} — ${dir}${scaleNote}. Series: ${series.map((s) => s.label).join(', ')}. ${groups.length} workloads: ${groups.map((g) => g.label).join(', ')}.`;
+  const measure = unit === 'ns' ? 'time' : 'memory';
+  const descText = `${title} — ${dir}. Each workload is scaled to its own slowest parser, so bar length is proportional to ${measure} within a row; rows are not comparable to each other, and every bar is labelled with its exact value. Series: ${series.map((s) => s.label).join(', ')}. ${groups.length} workloads: ${groups.map((g) => g.label).join(', ')}.`;
 
   return (
     svgOpen(id, W, H, title) +
@@ -532,7 +486,7 @@ export function groupedBarSVG(opts: GroupedBarOptions): string {
     `<desc id="${id}-d">${escapeXml(descText)}</desc>` +
     `<defs>${glowFilter(id)}</defs>` +
     `<style>${chartStyle()}</style>` +
-    gridSvg +
+    baseline +
     groupsSvg +
     `</svg>`
   );
