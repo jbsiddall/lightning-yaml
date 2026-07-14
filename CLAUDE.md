@@ -158,7 +158,7 @@ relevant file first. Skip it entirely for harness tweaks, fixtures, docs,
 or dependency chores. Read it when the task touches parser design,
 implementation, or performance — pick by task:
 
-- Implementing/designing parser code → `2026-07-12-research-dossier-overview.md` (verdict) then `2026-07-12-design-a-pure-js-parser.md`
+- Implementing/designing parser code → `2026-07-12-design-a-pure-js-parser.md` (the recommended pure-JS design)
 - Debugging slow code / optimizing a hot path → `2026-07-12-pure-js-speed-ceiling.md` + `2026-07-12-local-microbenchmarks.md` (V8 tricks: `2026-07-12-v8-json-parse-anatomy.md`)
 - Writing or reviewing perf-sensitive JS (JIT tiers, monomorphism, deopt checks) → `2026-07-12-v8-optimization-guide.md`
 - Comparing against js-yaml / yaml behavior or speed → `2026-07-12-js-yaml-internals.md` / `2026-07-12-eemeli-yaml-internals.md`
@@ -166,7 +166,7 @@ implementation, or performance — pick by task:
 - Before relying on a perf claim from the dossier → `2026-07-12-adversarial-verdicts.md` (three claims were refuted)
 - Planning benchmarks, fixtures, stringify, or conformance work → `2026-07-12-completeness-critique.md`
 - Adversarial / security / torture testing, or parser-differential work → `2026-07-12-adversarial-torture-tests.md` (its findings are locked by `test/adversarial.unit.ts`)
-- Chasing `JSON.parse` / `JSON.stringify` performance → `2026-07-14-json-performance-research-overview.md` (round-2 index)
+- Chasing `JSON.parse` / `JSON.stringify` performance → the `2026-07-14-*` performance notes (e.g. `2026-07-14-stringify-speedup-via-key-caching.md`, `2026-07-14-parse-multiline-speedup-lever.md`, `2026-07-14-memory-value-interning.md`)
 
 When **creating or editing** a file under `docs/research/`, follow
 [`docs/research/CONVENTIONS.md`](docs/research/CONVENTIONS.md) — the flat-folder layout,

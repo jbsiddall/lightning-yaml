@@ -16,7 +16,6 @@ memory effect.
 measurement of the previously-unmeasured multiline case, but **no end-to-end prototype**
 wiring the one-scan classifier into the live dumper. That is the missing step.
 
-*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for the
 whole set. It shares the "per-scalar work is the residual floor" theme with the codegen
 ceiling in
 [`./2026-07-14-stringify-codegen-speed-ceiling.md`](./2026-07-14-stringify-codegen-speed-ceiling.md), and

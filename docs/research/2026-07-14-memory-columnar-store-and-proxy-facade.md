@@ -16,7 +16,7 @@ read throughput measured in-process).
 
 ## Background
 
-The round-2 memory gap is that lightning-yaml retains 2.3–2.7× `JSON`'s heap on
+The memory gap is that lightning-yaml retains 2.3–2.7× `JSON`'s heap on
 medium record arrays. The owner's "wild idea" is to stop paying a full JS object
 plus repeated field slots per record: store a homogeneous record array
 **columnar** (one array per field — struct-of-arrays), and expose objects that

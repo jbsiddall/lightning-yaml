@@ -1,6 +1,5 @@
 # Runtime shape-codegen and record-structure techniques from binary and schema serializers
 
-> Part of the round-2 performance studies — see [`2026-07-14-json-performance-research-overview.md`](2026-07-14-json-performance-research-overview.md) for the index.
 
 ## Abstract
 

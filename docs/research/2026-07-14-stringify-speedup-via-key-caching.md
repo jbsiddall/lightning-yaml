@@ -13,7 +13,6 @@ only. There is no benefit for scalar-only payloads or a single small object.
 to current output across 22 cases, timed with a garbage collection between every sample
 and medians of 40–400 samples.
 
-*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for
 the whole set. Its natural partner is
 [`./2026-07-14-stringify-speedup-via-single-pass-dumping.md`](./2026-07-14-stringify-speedup-via-single-pass-dumping.md): the
 two levers are independent and stack into the `combo` result reported there.*

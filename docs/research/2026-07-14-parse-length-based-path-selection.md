@@ -13,7 +13,6 @@ optimizations rather than an optimization in itself.
 [`2026-07-14-parse-tiny-document-overhead.md`](./2026-07-14-parse-tiny-document-overhead.md); no separate experiment was run,
 because the tiny-document overhead study already measured the exact quantity this idea depends on.
 
-*Part of the round-2 parse studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md).*
 
 ## Background
 

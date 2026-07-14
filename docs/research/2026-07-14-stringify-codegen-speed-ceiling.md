@@ -18,7 +18,6 @@ browser audience (see the availability caveat below).
 specialized to the `records` shape, verified byte-identical, timed GC-between. It measures
 a ceiling, not a shippable optimization.
 
-*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for the
 whole set. It shares the per-scalar quote-check floor with
 [`./2026-07-14-stringify-multiline-one-scan-classifier.md`](./2026-07-14-stringify-multiline-one-scan-classifier.md); a
 cheaper classifier lowers the residual floor described here.*

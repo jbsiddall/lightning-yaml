@@ -28,7 +28,7 @@ boolean-ish tokens, and tag words are all drawn from small vocabularies. If the
 same value text is materialised once per row, an array of N records holds N copies
 of `"active"`. Interning values the same way we intern keys would let all those
 rows share one heap string — directly attacking the documented parse-memory gap
-(retained heap 2.3–2.7× `JSON` on medium records, per the round-2 baseline), which
+(retained heap 2.3–2.7× `JSON` on medium records), which
 is the one parse-memory axis with real headroom.
 
 A quick dictionary-mode check ran first, because if the record objects were falling

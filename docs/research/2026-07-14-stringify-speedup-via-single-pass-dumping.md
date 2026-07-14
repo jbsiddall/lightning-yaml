@@ -14,7 +14,6 @@ below.
 byte-identical to current output across 22 cases including synthetic shared and cyclic
 graphs, timed GC-between with medians of 40–400 samples.
 
-*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for
 the whole set. It stacks with the key-quote cache in
 [`./2026-07-14-stringify-speedup-via-key-caching.md`](./2026-07-14-stringify-speedup-via-key-caching.md); the `combo`
 table here is the two landed together.*

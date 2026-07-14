@@ -14,7 +14,6 @@ effect.
 against its candidate replacements, read against the function's measured share of a full
 dump profile.
 
-*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for the
 whole set.*
 
 ## Background
