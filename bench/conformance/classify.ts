@@ -8,7 +8,7 @@
  * a certified oracle.
  *
  * Buckets are checked in a fixed priority order — most-fundamental/"root"
- * construct first — mirroring PROGRESS.md's feature backlog order (block
+ * construct first — roughly the parser's feature-dependency order (block
  * scalars -> anchors/aliases -> tags -> merge keys -> directives/doc
  * markers -> …), so `primary` lines up with "what to implement next for the
  * most impact" even when a case matches multiple buckets at once.

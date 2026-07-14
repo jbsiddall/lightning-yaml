@@ -41,7 +41,7 @@
  * Failures are grouped by inferred construct, mirroring run.ts's style, so
  * the orchestrator can pick the highest-impact feature to implement next:
  * most of these buckets (block-scalar, anchor-alias, tag, schema-1.1) close
- * automatically as the parser itself grows (tracked in PROGRESS.md) — they
+ * automatically as the parser itself grows — they
  * are NOT gaps in this compat layer specifically.
  */
 

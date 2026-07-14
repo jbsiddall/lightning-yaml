@@ -13,8 +13,7 @@ compact forms, block scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl.
 `!!binary`, `%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It
 passes **≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the
 `yaml` oracle). Only merge keys (`<<`, absent from the test corpus) are
-unimplemented. **[PROGRESS.md](PROGRESS.md)** holds the live status + audit trail —
-read it first. The repo around it is:
+unimplemented. The repo around it is:
 
 - a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
   and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child
@@ -31,8 +30,7 @@ read it first. The repo around it is:
 and drop-in story for developers picking up the library, plus the design/rationale
 of the harness lower down. The **full auto-generated benchmark tables live in
 [BENCHMARKS.md](BENCHMARKS.md)** (and on the docs site, <https://lightning-yaml.dev>),
-not in the README, which carries only a compact snapshot. `PROGRESS.md` remains the
-status tracker.
+not in the README, which carries only a compact snapshot.
 
 ## Integrity of benchmarks and claims — non-negotiable
 
@@ -54,15 +52,29 @@ deleting a redundant or stale comment over keeping it. Don't add unnecessary com
 ## Source-of-truth precedence — when sources disagree
 
 Highest wins; the lower source is the bug to fix (don't average, and "more detailed"
-doesn't win). Scope it to the claim — benchmarks own *numbers*, code owns *behavior*,
-README/research own *why*:
+doesn't win). Scope it to the claim — the **YAML 1.2.2 spec owns parse/dump
+correctness**, benchmarks own *numbers*, code owns *behavior*, README/research own
+*why*:
 
-**CLAUDE.md (process/policy) › measured output (`BENCHMARKS.md` + suite pass rate) ›
-`src/` (real behavior & API) › README / `PROGRESS.md` / `docs/research/` (intent) ›
-`site/` (downstream; its API reference is generated from `src/`, never ahead of it).**
+**YAML 1.2.2 spec (via the yaml-test-suite = the spec operationalized) › CLAUDE.md
+(process/policy) › measured output (`BENCHMARKS.md` + suite pass rate) › `src/` (real
+behavior & API) › README / `docs/research/` (intent) › `site/`
+(downstream; its API reference is generated from `src/`, never ahead of it).**
 
-Code can still carry bugs — behavior that contradicts a stated design goal is a bug to
-fix, not intent to enshrine.
+The reference implementations we test against — `yaml` (`bench/oracle.ts`) and
+js-yaml — are **differential aids, NOT the definition of correct.** A disagreement
+between our output and an implementation flags a *candidate* to investigate; the
+**spec adjudicates**. Where an implementation diverges from the spec, the spec wins,
+and lightning-yaml deliberately matches the spec against it — e.g. we reject an
+implicit flow collection key (`{[1,2]: v}`), a spec error (yaml-test-suite SBG9/X38W)
+that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof of
+correctness, and "differs from the oracle" is never on its own a bug: check the spec.
+Trust an implementation only where it agrees with the spec. The one sanctioned
+deviation *from* the spec is explicit and documented — duplicate-key last-wins, for
+`JSON.parse` parity (see `docs/research/13-adversarial-torture-tests.md`).
+
+Code can still carry bugs — behavior that contradicts the spec (or a stated design
+goal) is a bug to fix, not intent to enshrine.
 
 ## Orchestration loop — how to work in this repo
 
@@ -82,7 +94,7 @@ its own context lean. Follow this loop for any non-trivial request.
 
 1. **ASSESS.** State the user's goal and current status. Complete? Verify and finish.
    Otherwise pick the **next concrete chunk** that moves closest to the goal. Record
-   the reasoning in `PROGRESS.md` (committed) and/or a scratch notes file.
+   the reasoning in a scratch notes file.
 2. **PLAN** (if the chunk is non-trivial) — spawn an **opus** subagent to produce a
    concrete plan: root cause, exact files/lines, minimal diff, verification, risks.
    Skip only when the implementation is obvious.
@@ -95,7 +107,7 @@ its own context lean. Follow this loop for any non-trivial request.
    passes and the chunk is *actually* done. Fix confirmed findings (loop back to 3 if
    needed). Never accept "looks fine."
 5. **COMMIT** — only once the gate is green and the critic confirms done. Commit the
-   chunk (push per milestone); update `PROGRESS.md`.
+   chunk (push per milestone).
 6. **REPEAT** from 1.
 
 ### PRs squash-merge — keep the title & description accurate
@@ -114,14 +126,14 @@ context at zero recurring cost. So:
 
 - **Coordinate through scratch files.** The orchestrator writes detailed task
   instructions to a temp file (under the session scratchpad); each subagent writes its
-  plan/result/critique to a temp file. `PROGRESS.md` is the committed high-level
-  tracker; ephemeral per-task detail lives in scratch.
+  plan/result/critique to a temp file. Ephemeral per-task detail lives in scratch,
+  never in committed docs.
 - **Every subagent prompt is tiny** — essentially *"Your instructions are in `<path>`.
   Read it immediately and follow it exactly."* Put ALL the detail in the file.
 - **Every subagent result is tiny** — the agent writes its full output to a result file
   and returns ≤4 sentences + that path. The orchestrator reads only what it needs.
 - **The orchestrator keeps its context lean** — never read large files directly
-  (delegate); retain only short summaries + `PROGRESS.md`.
+  (delegate); retain only short summaries.
 
 ### Concurrency
 
@@ -153,6 +165,7 @@ implementation, or performance — pick by task:
 - Anything WASM or native → `04-wasm-route.md` + `08-design-b-wasm.md` (route was rejected — read before reopening)
 - Before relying on a perf claim from the dossier → `10-adversarial-verdicts.md` (three claims were refuted)
 - Planning benchmarks, fixtures, stringify, or conformance work → `11-completeness-critique.md`
+- Adversarial / security / torture testing, or parser-differential work → `13-adversarial-torture-tests.md` (its findings are locked by `test/adversarial.unit.ts`)
 
 ## Key commands
 
@@ -266,11 +279,14 @@ PATH. Not needed on ordinary commits. See [bench/bundlesize](bench/bundlesize/RE
   auto-generates only the **missing** ones — after editing the generator or
   dataset defs, run `pnpm gen:fixtures` to regenerate all, or tests run on stale
   data.
-- **The oracle** (`bench/oracle.ts`) is the one library we treat as ground truth
-  for correctness (`yaml`). Fixtures' in-memory values (for stringify) and the
-  consistency tests both go through it. It parses with `maxAliasCount: -1` (our
-  rich fixtures reuse anchors thousands of times); the `yaml` candidate does too.
-  Don't cross-check competitors against each other — only ours against the oracle.
+- **The reference aid** (`bench/oracle.ts`) is `yaml` — a *differential aid*, NOT
+  ground truth for correctness (the spec is; see the precedence rule above).
+  Fixtures' in-memory values (for stringify) and the consistency tests both go
+  through it; that's sound because the fixtures avoid spec-contested constructs. It
+  parses with `maxAliasCount: -1` (our rich fixtures reuse anchors thousands of
+  times); the `yaml` candidate does too. Don't cross-check competitors against each
+  other — compare ours against this reference, and adjudicate any disagreement
+  against the spec (the yaml-test-suite conformance run), never assume it's our bug.
 - Both harnesses run **sequentially**. Speed can't be parallelized without
   corrupting timing; the memory harness isn't parallelized either, to avoid
   co-running heavy parses swapping the machine and corrupting RSS. The vitest

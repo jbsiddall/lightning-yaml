@@ -1,25 +1,34 @@
 /**
- * The oracle — the single competing library we treat as the source of truth for
- * "correct" YAML behaviour.
+ * The differential oracle — a high-quality reference implementation we test
+ * AGAINST, but NOT the definition of "correct". The definition of correct is the
+ * YAML 1.2.2 spec, operationalized by the yaml-test-suite (scored in
+ * `bench/conformance/`). This library is a differential AID: a disagreement between
+ * lightning-yaml and it flags a *candidate* to investigate, and the spec — not this
+ * library — adjudicates. Where this library diverges from the spec, the spec wins
+ * and lightning-yaml deliberately matches the spec against it (e.g. rejecting an
+ * implicit flow collection key `{[1,2]: v}`, a spec error per yaml-test-suite
+ * SBG9/X38W that `yaml` wrongly accepts; see CLAUDE.md's source-of-truth precedence
+ * and `docs/research/13-adversarial-torture-tests.md`).
  *
  * We do NOT cross-check every competitor against every other (js-yaml and yaml
  * legitimately disagree — e.g. on timestamps, and generally because js-yaml
- * targets YAML 1.1 while `yaml` targets 1.2). We only need ONE reference so that
- * lightning-yaml can be checked for correctness. We pick `yaml`
- * (github.com/eemeli/yaml): it implements YAML 1.1 **and** 1.2, is the most
- * complete/spec-compliant of the JS parsers (it passes the yaml-test-suite most
- * thoroughly), and — verified empirically — parses the constructs our fixtures
- * exercise faithfully: `!!binary` → `Uint8Array`, and `&anchor`/`*alias` → real
- * shared references.
+ * targets YAML 1.1 while `yaml` targets 1.2). We pick ONE reference aid: `yaml`
+ * (github.com/eemeli/yaml) — it implements YAML 1.1 **and** 1.2 and is the most
+ * spec-compliant of the JS parsers (it passes the yaml-test-suite most thoroughly),
+ * i.e. the aid that diverges from spec least often — and, verified empirically,
+ * parses the constructs our fixtures exercise faithfully: `!!binary` → `Uint8Array`,
+ * and `&anchor`/`*alias` → real shared references. Its residual spec-divergences are
+ * documented where they bite.
  *
  * Used in two places:
  *   - fixtures: to turn YAML fixture text into the in-memory value the stringify
- *     benchmarks serialize (`loadFixtureValue`);
+ *     benchmarks serialize (`loadFixtureValue`); the fixtures deliberately avoid
+ *     spec-contested constructs, so this library's output there is spec-faithful;
  *   - tests: as the reference `parse`/`stringify` the consistency suite compares
- *     lightning-yaml against.
+ *     lightning-yaml against — sound only where this library agrees with the spec.
  *
- * To change the reference, change it here — nothing else references a competitor
- * by name for correctness.
+ * To change the reference aid, change it here — nothing else references a competitor
+ * by name.
  */
 
 import { parse as yamlParse, stringify as yamlStringify, type ScalarTag } from "yaml";

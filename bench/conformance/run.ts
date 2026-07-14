@@ -6,8 +6,7 @@
  *   node --import tsx bench/conformance/run.ts [--dump-failures]
  *   pnpm test:suite              # runs both of the above in sequence
  *
- * Scoring (see CLAUDE.md-adjacent task spec / PROGRESS.md for the full
- * rationale — this is Phase 0 of the parser-completion effort):
+ * Scoring:
  *   - positive case (has in.json)  -> PASS iff the parser doesn't throw AND
  *     its ordered document sequence deep-equals the expected sequence.
  *   - negative case (has `error`, no in.json) -> PASS iff the parser throws.

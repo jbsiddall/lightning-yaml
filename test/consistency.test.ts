@@ -1,23 +1,21 @@
 /**
- * Consistency suite — the correctness gate for lightning-yaml.
+ * Consistency suite — a differential check over the benchmark fixtures.
  *
- * The plan: build a custom YAML parser, but only trust its benchmark numbers
- * once it produces the *right* answers. "Right" is defined by a single oracle —
- * the `yaml` library, the most spec-compliant JS parser (see bench/oracle.ts).
- * We check OUR implementation against the oracle over the exact same data the
- * benchmarks use; we deliberately do NOT cross-check the competitors against
- * each other.
+ * The definition of "right" is the YAML 1.2.2 spec (operationalized by the
+ * yaml-test-suite; scored in `bench/conformance/` — that is the conformance gate).
+ * This suite is a complementary DIFFERENTIAL aid: it checks OUR implementation
+ * against the `yaml` reference (`bench/oracle.ts`) over the exact data the
+ * benchmarks use. It is sound only because the fixtures deliberately avoid
+ * spec-contested constructs, so the reference's output on them is spec-faithful; a
+ * disagreement is a *candidate* to investigate against the spec, not a proven bug.
+ * We deliberately do NOT cross-check the competitors against each other.
  *
  * Two properties per fixture:
- *   - parse:     ours.parse(text) deep-equals oracle.parse(text).
- *   - stringify: oracle.parse(ours.stringify(value)) deep-equals value — i.e.
- *     ours serializes to something the oracle reads back unchanged. (Two YAML
+ *   - parse:     ours.parse(text) deep-equals reference.parse(text).
+ *   - stringify: reference.parse(ours.stringify(value)) deep-equals value — i.e.
+ *     ours serializes to something the reference reads back unchanged. (Two YAML
  *     writers can emit different-but-equivalent text, so a round-trip through
- *     the oracle is the right check, not textual equality.)
- *
- * Today `lightning-yaml` is a stub whose parse/stringify throw, so every test
- * here is expected to FAIL. That's intentional: the framework is ready, and each
- * red test is a concrete spec for the parser to satisfy in a later PR.
+ *     the reference is the right check, not textual equality.)
  */
 
 import { describe, it, expect } from "vitest";

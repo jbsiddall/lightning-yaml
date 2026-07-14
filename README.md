@@ -248,8 +248,11 @@ disagree on schema-typing edge cases, tag/anchor handling, and error
 strictness (this is no longer a YAML-1.1-vs-1.2 split: js-yaml **v5**'s default
 schema is now 1.2 core too, same as `yaml`): [`bench/oracle.ts`](bench/oracle.ts)
 designates **`yaml`** — the more spec-compliant of the two reference libraries,
-per the yaml-test-suite result above — as ground truth. It's the only
-competitor we compare ourselves against for correctness. The oracle
+per the yaml-test-suite result above — as our **differential reference**. The
+actual correctness authority is the **YAML 1.2 spec** (operationalized by the
+yaml-test-suite); `yaml` is the one library we diff against — sound where it
+agrees with the spec, with any disagreement adjudicated against the spec rather
+than assumed to be our bug. The oracle
 normalizes `!!binary` to a portable plain `Uint8Array` (the library defaults to a
 Node `Buffer`, which wouldn't deep-equal a spec-portable `Uint8Array`) and reads
 with `maxAliasCount: -1` for the anchor-heavy rich fixtures.

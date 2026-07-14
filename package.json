@@ -86,7 +86,7 @@
     "build": "tsup",
     "prepublishOnly": "pnpm build",
     "test": "vitest run",
-    "test:unit": "node --import tsx --test test/parser.unit.ts",
+    "test:unit": "node --import tsx --test test/parser.unit.ts test/adversarial.unit.ts",
     "test:stringify": "node --import tsx --test test/stringify.unit.ts",
     "test:watch": "vitest",
     "test:suite": "pnpm gen:suite && node --import tsx bench/conformance/run.ts",
