@@ -14,9 +14,9 @@ below.
 byte-identical to current output across 22 cases including synthetic shared and cyclic
 graphs, timed GC-between with medians of 40–400 samples.
 
-*Part of the round-2 stringify studies; see [`./00-overview.md`](./00-overview.md) for
+*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for
 the whole set. It stacks with the key-quote cache in
-[`./stringify-01-key-quote-cache.md`](./stringify-01-key-quote-cache.md); the `combo`
+[`./2026-07-14-stringify-speedup-via-key-caching.md`](./2026-07-14-stringify-speedup-via-key-caching.md); the `combo`
 table here is the two landed together.*
 
 ## Background
@@ -107,7 +107,7 @@ exactly the cost of keeping that visited structure for correctness.
 ### Stacking with the key-quote cache: the `combo`
 
 The single write pass and the key-quote cache from
-[`./stringify-01-key-quote-cache.md`](./stringify-01-key-quote-cache.md) are independent
+[`./2026-07-14-stringify-speedup-via-key-caching.md`](./2026-07-14-stringify-speedup-via-key-caching.md) are independent
 and compose. Together (`combo`) they measured, as a percentage faster than `base`:
 
 | lever | medium-rec | large-rec | xlarge-rec | medium-nest | large-nest |

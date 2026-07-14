@@ -71,7 +71,7 @@ that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof
 correctness, and "differs from the oracle" is never on its own a bug: check the spec.
 Trust an implementation only where it agrees with the spec. The one sanctioned
 deviation *from* the spec is explicit and documented — duplicate-key last-wins, for
-`JSON.parse` parity (see `docs/research/13-adversarial-torture-tests.md`).
+`JSON.parse` parity (see `docs/research/2026-07-12-adversarial-torture-tests.md`).
 
 Code can still carry bugs — behavior that contradicts the spec (or a stated design
 goal) is a bug to fix, not intent to enshrine.
@@ -158,14 +158,19 @@ relevant file first. Skip it entirely for harness tweaks, fixtures, docs,
 or dependency chores. Read it when the task touches parser design,
 implementation, or performance — pick by task:
 
-- Implementing/designing parser code → `README.md` (verdict) then `07-design-a-pure-js.md`
-- Debugging slow code / optimizing a hot path → `05-pure-js-ceiling.md` + `06-local-microbenchmarks.md` (V8 tricks: `03-v8-json-parse.md`)
-- Writing or reviewing perf-sensitive JS (JIT tiers, monomorphism, deopt checks) → `12-v8-optimization-guide.md`
-- Comparing against js-yaml / yaml behavior or speed → `01-js-yaml-internals.md` / `02-eemeli-yaml-internals.md`
-- Anything WASM or native → `04-wasm-route.md` + `08-design-b-wasm.md` (route was rejected — read before reopening)
-- Before relying on a perf claim from the dossier → `10-adversarial-verdicts.md` (three claims were refuted)
-- Planning benchmarks, fixtures, stringify, or conformance work → `11-completeness-critique.md`
-- Adversarial / security / torture testing, or parser-differential work → `13-adversarial-torture-tests.md` (its findings are locked by `test/adversarial.unit.ts`)
+- Implementing/designing parser code → `2026-07-12-research-dossier-overview.md` (verdict) then `2026-07-12-design-a-pure-js-parser.md`
+- Debugging slow code / optimizing a hot path → `2026-07-12-pure-js-speed-ceiling.md` + `2026-07-12-local-microbenchmarks.md` (V8 tricks: `2026-07-12-v8-json-parse-anatomy.md`)
+- Writing or reviewing perf-sensitive JS (JIT tiers, monomorphism, deopt checks) → `2026-07-12-v8-optimization-guide.md`
+- Comparing against js-yaml / yaml behavior or speed → `2026-07-12-js-yaml-internals.md` / `2026-07-12-eemeli-yaml-internals.md`
+- Anything WASM or native → `2026-07-12-wasm-route-evaluation.md` + `2026-07-12-design-b-wasm-parser.md` (route was rejected — read before reopening)
+- Before relying on a perf claim from the dossier → `2026-07-12-adversarial-verdicts.md` (three claims were refuted)
+- Planning benchmarks, fixtures, stringify, or conformance work → `2026-07-12-completeness-critique.md`
+- Adversarial / security / torture testing, or parser-differential work → `2026-07-12-adversarial-torture-tests.md` (its findings are locked by `test/adversarial.unit.ts`)
+- Chasing `JSON.parse` / `JSON.stringify` performance → `2026-07-14-json-performance-research-overview.md` (round-2 index)
+
+When **creating or editing** a file under `docs/research/`, follow
+[`docs/research/CONVENTIONS.md`](docs/research/CONVENTIONS.md) — the flat-folder layout,
+`YYYY-MM-DD-<goal>.md` naming, tone, and required structure for research notes.
 
 ## Key commands
 

@@ -9,7 +9,7 @@ than the plain object array (0.17× its heap), but the facade that preserves
 `arr[i].field` access pushes total heap to **2.43× the plain array** and reads to
 **2.8× slower**. This is a **memory-and-CPU loss** for the plain-object contract on
 every shape. The transferable part of the win (deduping repeated string values) is
-already captured, parity-safe, by value interning (memory-01).
+already captured, parity-safe, by value interning (the value-interning study).
 
 **Rigor:** fail-fast probe (one synthetic record corpus, one Proxy design, heap and
 read throughput measured in-process).
@@ -32,7 +32,7 @@ trouble.
 
 ## Experiment
 
-Starting from a parsed 5,000-record array (the same corpus as memory-01: flat
+Starting from a parsed 5,000-record array (the same corpus as the value-interning study: flat
 scalar fields plus a nested `tags[]` and `meta{}` per row), I built three
 representations and measured the heap each retains, using `process.memoryUsage()`
 around GC settles:
@@ -121,12 +121,12 @@ facade both keeps the API and saves memory.
 Crucially, the *transferable* portion of the columnar idea — the fact that repeated
 string values are deduplicated — does **not** require the store or the facade at
 all. Interning string values while emitting ordinary `{}` records
-(**memory-01**) captures that benefit (−28% retained heap on this corpus),
+(**the value-interning study**) captures that benefit (−28% retained heap on this corpus),
 parity-safe, at a modest CPU cost. That is where the recoverable memory lives; the
 struct-of-arrays scaffolding around it is what fails to pay off.
 
 Recommendation: close the facade direction and route the effort into value interning
-(memory-01). Confidence: **high** that the facade is a net loss for the plain-object
+(the value-interning study). Confidence: **high** that the facade is a net loss for the plain-object
 contract; the numbers are lopsided (2.43× heap, 2.8× reads) and not sensitive to
 tuning. Audience: this conclusion holds for any shape that must present as plain JS
 objects, which is all of lightning-yaml's output.

@@ -28,7 +28,7 @@ Freezing is a visible behaviour change, so it could only ever be opt-in.
 
 ## Experiment
 
-From the parsed 5,000-record corpus (same as memory-01/02) I measured four things:
+From the parsed 5,000-record corpus (same as the value-interning and columnar studies) I measured four things:
 
 1. **Build cost** — warm timing of `parse(text)` versus `deepFreeze(parse(text))`,
    where `deepFreeze` recursively freezes every object and array in the tree.

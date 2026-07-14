@@ -10,10 +10,10 @@ possibly value interning) is worth setting up for a given input.
 optimizations rather than an optimization in itself.
 
 **Rigor:** analysis of the fail-fast data already gathered in
-[`parse-03-tiny-doc-overhead.md`](./parse-03-tiny-doc-overhead.md); no separate experiment was run,
-because parse-03 already measured the exact quantity this idea depends on.
+[`2026-07-14-parse-tiny-document-overhead.md`](./2026-07-14-parse-tiny-document-overhead.md); no separate experiment was run,
+because the tiny-document overhead study already measured the exact quantity this idea depends on.
 
-*Part of the round-2 parse studies; see [`./00-overview.md`](./00-overview.md).*
+*Part of the round-2 parse studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md).*
 
 ## Background
 
@@ -30,7 +30,7 @@ bound how much work is coming, and a fixed setup cost matters more, in relative 
 tiny input. The question is purely empirical: is the fixed setup cost the parser actually pays large
 enough for a size-gate to reclaim anything worthwhile?
 
-## What we already know (from parse-03)
+## What we already know (from the tiny-document overhead study)
 
 The tiny-document study measured exactly this. The parser's entire fixed per-call floor — everything
 it pays regardless of content — is about **0.39µs above `JSON.parse`** (roughly 0.52µs versus
@@ -50,11 +50,11 @@ of the "setup" a gate would try to avoid is not actually paid on a tiny document
 
 Where length genuinely earns its place is one level up, as a cheap **gate on the expensive, optional
 optimizations** rather than as an optimization itself. A runtime-compiled serializer (see
-[`../perf-round-2/stringify-06-shape-codegen-ceiling.md`](./stringify-06-shape-codegen-ceiling.md)
+[`./2026-07-14-stringify-codegen-speed-ceiling.md`](./2026-07-14-stringify-codegen-speed-ceiling.md)
 and the survey) only pays off once enough same-shape records exist to amortize the `new Function`
 compile; input length — or, better, an early record count — is exactly the signal that decides
 whether to bother. Value interning
-([`./memory-01-value-interning.md`](./memory-01-value-interning.md)) has a similar shape: its Map
+([`./2026-07-14-memory-value-interning.md`](./2026-07-14-memory-value-interning.md)) has a similar shape: its Map
 probe adds about 16% to parse time, so on a small input where the memory saving is negligible you
 would simply not enable it. In both cases length is a control knob that keeps a heavier feature from
 firing when it cannot pay for itself.
@@ -64,14 +64,14 @@ The recommendation, then, is not to build a length-based fast/slow parse path as
 the second code path to maintain. The idea should be kept on hand as the natural gating signal for
 codegen and interning if and when those are built.
 
-**Confidence:** high that the standalone version is not worth it (it rests directly on parse-03's
+**Confidence:** high that the standalone version is not worth it (it rests directly on the tiny-document overhead study's
 measurement); the gating role is a design note rather than a measured result.
 
 ## Provenance & sources
 
 - Repo: lightning-yaml @ 0f6943e (branch claude/yaml-parser-perf-research-l73742), 2026-07-14.
 - Runtime: Node 22.22.2 / V8 12.4. Machine: Intel(R) Xeon(R) @ 2.80GHz, Linux 6.18.5.
-- Basis: the fixed-floor and per-size ratio measurements in `parse-03-tiny-doc-overhead.md` (a
+- Basis: the fixed-floor and per-size ratio measurements in `2026-07-14-parse-tiny-document-overhead.md` (a
   fail-fast probe). No new benchmark was run for this note — it reuses that data.
 - `String.prototype.length` being O(1) is a documented V8 property (the length is stored in the
   string header, not recomputed on access).

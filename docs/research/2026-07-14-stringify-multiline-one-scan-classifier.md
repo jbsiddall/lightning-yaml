@@ -16,10 +16,10 @@ memory effect.
 measurement of the previously-unmeasured multiline case, but **no end-to-end prototype**
 wiring the one-scan classifier into the live dumper. That is the missing step.
 
-*Part of the round-2 stringify studies; see [`./00-overview.md`](./00-overview.md) for the
+*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for the
 whole set. It shares the "per-scalar work is the residual floor" theme with the codegen
 ceiling in
-[`./stringify-06-shape-codegen-ceiling.md`](./stringify-06-shape-codegen-ceiling.md), and
+[`./2026-07-14-stringify-codegen-speed-ceiling.md`](./2026-07-14-stringify-codegen-speed-ceiling.md), and
 should be done before or alongside any codegen work.*
 
 ## Background
@@ -98,7 +98,7 @@ writer.
 Recommendation: **medium confidence** that it is worth doing for string-heavy and
 multiline data; low expected benefit for numeric records. Do it before or together with
 any shape-codegen work
-([`./stringify-06-shape-codegen-ceiling.md`](./stringify-06-shape-codegen-ceiling.md)),
+([`./2026-07-14-stringify-codegen-speed-ceiling.md`](./2026-07-14-stringify-codegen-speed-ceiling.md)),
 because both bottom out on the same mandatory per-string classification and a cheaper
 classifier lowers that shared floor.
 

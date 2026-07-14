@@ -12,7 +12,7 @@ measurement so the choice is not revisited without new evidence.
 verified byte-identical to current output, timed GC-between with medians of 40–400
 samples.
 
-*Part of the round-2 stringify studies; see [`./00-overview.md`](./00-overview.md) for
+*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for
 the whole set.*
 
 ## Background

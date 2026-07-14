@@ -13,9 +13,9 @@ only. There is no benefit for scalar-only payloads or a single small object.
 to current output across 22 cases, timed with a garbage collection between every sample
 and medians of 40–400 samples.
 
-*Part of the round-2 stringify studies; see [`./00-overview.md`](./00-overview.md) for
+*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for
 the whole set. Its natural partner is
-[`./stringify-02-single-pass-restart.md`](./stringify-02-single-pass-restart.md): the
+[`./2026-07-14-stringify-speedup-via-single-pass-dumping.md`](./2026-07-14-stringify-speedup-via-single-pass-dumping.md): the
 two levers are independent and stack into the `combo` result reported there.*
 
 ## Background
@@ -134,7 +134,7 @@ How to apply, in `src/index.ts`:
 
 This is the highest-return change on the dump side. It composes cleanly with the
 single-pass write pass in
-[`./stringify-02-single-pass-restart.md`](./stringify-02-single-pass-restart.md); landing
+[`./2026-07-14-stringify-speedup-via-single-pass-dumping.md`](./2026-07-14-stringify-speedup-via-single-pass-dumping.md); landing
 both together is the recommended outcome and produces the `combo` numbers reported in
 that paper.
 

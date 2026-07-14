@@ -12,14 +12,14 @@ scalars) or size (1 KB → 1 MB).
 
 **Rigor:** fail-fast probe. One warm `--trace-opt --trace-deopt` run over the whole
 fixture corpus (three parse+stringify rounds), analysed chronologically. This is the
-tier-residency check the dossier (doc 12 §7) specified but that was never actually run
+tier-residency check the V8 optimization guide in the dossier (§7) specified but that was never actually run
 against the parser until now.
 
 ---
 
 ## Background
 
-The dossier's V8 optimization guide (doc 12 §7) wrote out a recipe to verify that V8
+The dossier's V8 optimization guide (§7) wrote out a recipe to verify that V8
 actually optimizes lightning-yaml's hot functions and does not repeatedly *deoptimize*
 them, but a grep confirms it was never executed — there is no `--allow-natives-syntax`
 or `%GetOptimizationStatus` anywhere in the tree, and no tiering trace had been captured.

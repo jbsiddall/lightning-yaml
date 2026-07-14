@@ -18,9 +18,9 @@ browser audience (see the availability caveat below).
 specialized to the `records` shape, verified byte-identical, timed GC-between. It measures
 a ceiling, not a shippable optimization.
 
-*Part of the round-2 stringify studies; see [`./00-overview.md`](./00-overview.md) for the
+*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for the
 whole set. It shares the per-scalar quote-check floor with
-[`./stringify-05-multiline-classifier.md`](./stringify-05-multiline-classifier.md); a
+[`./2026-07-14-stringify-multiline-one-scan-classifier.md`](./2026-07-14-stringify-multiline-one-scan-classifier.md); a
 cheaper classifier lowers the residual floor described here.*
 
 ## Background
@@ -87,12 +87,12 @@ runtime shape detection, `new Function` codegen, a compiled-serializer cache wit
 fallback for unrecognized shapes, and the safety burden of generated code — and it is only
 worth undertaking if the dumper becomes a headline metric for the project. The cheap
 ~20–30% is available first and at far lower risk from the key-quote cache
-([`./stringify-01-key-quote-cache.md`](./stringify-01-key-quote-cache.md)) and the
+([`./2026-07-14-stringify-speedup-via-key-caching.md`](./2026-07-14-stringify-speedup-via-key-caching.md)) and the
 single-pass write
-([`./stringify-02-single-pass-restart.md`](./stringify-02-single-pass-restart.md)); this
+([`./2026-07-14-stringify-speedup-via-single-pass-dumping.md`](./2026-07-14-stringify-speedup-via-single-pass-dumping.md)); this
 codegen route would roughly double that headroom but should follow, not precede, those.
 Reducing the per-string classification cost via the one-scan classifier
-([`./stringify-05-multiline-classifier.md`](./stringify-05-multiline-classifier.md)) is the
+([`./2026-07-14-stringify-multiline-one-scan-classifier.md`](./2026-07-14-stringify-multiline-one-scan-classifier.md)) is the
 one change that would lower the residual floor this ceiling bottoms out on.
 
 ### Availability caveat: `new Function` and browser CSP

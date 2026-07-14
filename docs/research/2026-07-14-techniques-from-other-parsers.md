@@ -1,6 +1,6 @@
 # Runtime shape-codegen and record-structure techniques from binary and schema serializers
 
-> Part of the round-2 performance studies — see [`00-overview.md`](00-overview.md) for the index.
+> Part of the round-2 performance studies — see [`2026-07-14-json-performance-research-overview.md`](2026-07-14-json-performance-research-overview.md) for the index.
 
 ## Abstract
 
@@ -36,11 +36,11 @@ independently reproduced facts — no local benchmarks were run for this documen
 have perturbed the measurement agents running concurrently).
 
 Cross-references: the getter/Proxy facade this survey must respect is rejected in
-[`../09-design-c-hybrid.md`](../09-design-c-hybrid.md) §5; the plain-`{}` mandate is
-[`../12-v8-optimization-guide.md`](../12-v8-optimization-guide.md) §6; the "allocation is the
-whole game" finding is [`../07-design-a-pure-js.md`](../07-design-a-pure-js.md) §2; and the
+[`../2026-07-12-design-c-hybrid-parser.md`](2026-07-12-design-c-hybrid-parser.md) §5; the plain-`{}` mandate is
+[`../2026-07-12-v8-optimization-guide.md`](2026-07-12-v8-optimization-guide.md) §6; the "allocation is the
+whole game" finding is [`../2026-07-12-design-a-pure-js-parser.md`](2026-07-12-design-a-pure-js-parser.md) §2; and the
 "construction-path overhead is unreachable from JS (≈1.62× RSS floor)" refutation is
-[`../10-adversarial-verdicts.md`](../10-adversarial-verdicts.md).
+[`../2026-07-12-adversarial-verdicts.md`](2026-07-12-adversarial-verdicts.md).
 
 ---
 
@@ -70,8 +70,8 @@ stringify, parse, or memory.
 
 Our hard constraints, which every candidate technique is judged against:
 
-- **Plain `{}` objects and real arrays only.** This is the API-parity mandate (doc 12 §6). The
-  lazy getter/Proxy facade is already rejected (doc 09 §5) because it breaks `Object.keys`,
+- **Plain `{}` objects and real arrays only.** This is the API-parity mandate (the V8 optimization guide, §6). The
+  lazy getter/Proxy facade is already rejected (the hybrid-design study, §5) because it breaks `Object.keys`,
   spread, and `deepEqual`, damages consumer inline caches, and pins the source string via
   SlicedString. Any idea from a *zero-copy* format (FlatBuffers, simdjson On-Demand) inherits
   that rejection.
@@ -247,15 +247,15 @@ evidence**, not as a standalone technique.
 read fields **by vtable offset, on demand, straight from the buffer**. **simdjson On-Demand**
 builds a SIMD **structural index** (the positions of `{`, `}`, `:`, `,`, and quotes) and then
 **lazily** materializes values as you navigate. Both are lazy-access designs, and the lazy
-facade is **already rejected** for us (doc 09 §5: it breaks `Object.keys`, spread, and
-`deepEqual`, pins the source string, and wrecks consumer inline caches; doc 10 additionally
+facade is **already rejected** for us (the hybrid-design study, §5: it breaks `Object.keys`, spread, and
+`deepEqual`, pins the source string, and wrecks consumer inline caches; the adversarial-verdicts study additionally
 refuted the RSS win).
 
 The one *non-lazy* idea worth a footnote, for the memory/parse direction, is a **structural
 offset/index pre-scan** — simdjson's "tape." This would be a compact `Int32Array` of node
 boundaries, built in one SIMD-like `indexOf` sweep and then materialized *eagerly* into plain
 `{}`. That is an offset-table idea for a possible future experiment, not a facade. It is worth
-a mention only: scanning is only about **8% of our budget** (doc 06 finding #4), so a better
+a mention only: scanning is only about **8% of our budget** (the local-microbenchmarks study, finding #4), so a better
 index cannot move the headline much.
 
 ### Contrast: typia — AOT, and why it is off-limits
@@ -280,7 +280,7 @@ reaches the same steady-state speed.
 | 5 | **Scope-injected codegen utility** (build a function from string parts + `Function` + injected deps, with no text interpolation). | `@protobufjs/codegen` (protobuf.js 8.7.1) | **Yes, as tooling** — the safe way to implement #2 or #3 if we adopt them | stringify / parse | **infra** |
 | 6 | **AOT ≈ runtime codegen** (reflected is within noise of static). | protobuf.js 8.7.1 | N/A — this is *evidence* that underwrites the stringify verdict | supports stringify | **evidence** |
 | 7 | **Structural offset/index pre-scan** (an eager tape materialized into plain `{}`). | simdjson On-Demand (concept) | Maybe, non-lazy variant only | memory / parse | **LOW** (scanning is ~8% of budget) |
-| 8 | **Zero-copy lazy field access** (vtable offsets). | FlatBuffers | **No** — the lazy facade is already rejected (doc 09 §5) | — | **rejected** |
+| 8 | **Zero-copy lazy field access** (vtable offsets). | FlatBuffers | **No** — the lazy facade is already rejected (the hybrid-design study, §5) | — | **rejected** |
 
 ---
 

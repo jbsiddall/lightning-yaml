@@ -14,7 +14,7 @@ effect.
 against its candidate replacements, read against the function's measured share of a full
 dump profile.
 
-*Part of the round-2 stringify studies; see [`./00-overview.md`](./00-overview.md) for the
+*Part of the round-2 stringify studies; see [`./2026-07-14-json-performance-research-overview.md`](./2026-07-14-json-performance-research-overview.md) for the
 whole set.*
 
 ## Background
@@ -64,9 +64,9 @@ and not worth the added branch and maintenance surface.
 
 Recommendation: leave `formatNumber` as it is. The lever to pull for dump CPU is not
 number formatting; it is the key-quote cache
-([`./stringify-01-key-quote-cache.md`](./stringify-01-key-quote-cache.md)) and the
+([`./2026-07-14-stringify-speedup-via-key-caching.md`](./2026-07-14-stringify-speedup-via-key-caching.md)) and the
 single-pass write
-([`./stringify-02-single-pass-restart.md`](./stringify-02-single-pass-restart.md)), which
+([`./2026-07-14-stringify-speedup-via-single-pass-dumping.md`](./2026-07-14-stringify-speedup-via-single-pass-dumping.md)), which
 together move the needle by tens of percent rather than fractions of one.
 
 ## Provenance & sources
