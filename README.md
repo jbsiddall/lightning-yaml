@@ -2,7 +2,7 @@
 
 **Spec-compliant YAML parsing, out to give `JSON.parse` a run for its money.**
 
-⚡ **~4× faster than js-yaml** · **near-`JSON.parse` memory** (≈1.3× even on a 10 MB document) — [see the benchmarks ↓](#benchmarks-at-a-glance)
+⚡ **~4× faster** and **~1.1–2.6× lighter** than js-yaml (bigger file, bigger gap) — with **near-`JSON.parse` memory** even at 10 MB. [See the benchmarks ↓](#benchmarks-at-a-glance)
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/jbsiddall/lightning-yaml/actions/workflows/ci.yml/badge.svg)](https://github.com/jbsiddall/lightning-yaml/actions/workflows/ci.yml)
