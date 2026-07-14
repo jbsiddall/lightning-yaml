@@ -114,8 +114,8 @@ our correct rejection as a "known limitation where we diverge from spec, the ora
 accepts" — the precise mistake that motivates using the spec as the oracle.
 
 **Other minor spec differences** (none crash, none a design choice): a few
-over-lenient acceptances where we take input the spec rejects (e.g. `{k: ? v}`) fall
-under the "error-case strictness gap" tracked in `PROGRESS.md`; and some are places
+over-lenient acceptances where we take input the spec rejects (e.g. `{k: ? v}`) — an
+error-case strictness gap to close as the parser matures; and some are places
 we are arguably *more* spec-correct than the `yaml` implementation (e.g. `!!bool yes`
 → we throw, since `yes` is not a core-schema bool; the implementation returns the
 string `"yes"`). `!!float 1` → the number `1` is a JS representation limit (no

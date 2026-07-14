@@ -13,8 +13,7 @@ compact forms, block scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl.
 `!!binary`, `%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It
 passes **≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the
 `yaml` oracle). Only merge keys (`<<`, absent from the test corpus) are
-unimplemented. **[PROGRESS.md](PROGRESS.md)** holds the live status + audit trail —
-read it first. The repo around it is:
+unimplemented. The repo around it is:
 
 - a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
   and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child
@@ -31,8 +30,7 @@ read it first. The repo around it is:
 and drop-in story for developers picking up the library, plus the design/rationale
 of the harness lower down. The **full auto-generated benchmark tables live in
 [BENCHMARKS.md](BENCHMARKS.md)** (and on the docs site, <https://lightning-yaml.dev>),
-not in the README, which carries only a compact snapshot. `PROGRESS.md` remains the
-status tracker.
+not in the README, which carries only a compact snapshot.
 
 ## Integrity of benchmarks and claims — non-negotiable
 
@@ -60,7 +58,7 @@ correctness**, benchmarks own *numbers*, code owns *behavior*, README/research o
 
 **YAML 1.2.2 spec (via the yaml-test-suite = the spec operationalized) › CLAUDE.md
 (process/policy) › measured output (`BENCHMARKS.md` + suite pass rate) › `src/` (real
-behavior & API) › README / `PROGRESS.md` / `docs/research/` (intent) › `site/`
+behavior & API) › README / `docs/research/` (intent) › `site/`
 (downstream; its API reference is generated from `src/`, never ahead of it).**
 
 The reference implementations we test against — `yaml` (`bench/oracle.ts`) and
@@ -96,7 +94,7 @@ its own context lean. Follow this loop for any non-trivial request.
 
 1. **ASSESS.** State the user's goal and current status. Complete? Verify and finish.
    Otherwise pick the **next concrete chunk** that moves closest to the goal. Record
-   the reasoning in `PROGRESS.md` (committed) and/or a scratch notes file.
+   the reasoning in a scratch notes file.
 2. **PLAN** (if the chunk is non-trivial) — spawn an **opus** subagent to produce a
    concrete plan: root cause, exact files/lines, minimal diff, verification, risks.
    Skip only when the implementation is obvious.
@@ -109,7 +107,7 @@ its own context lean. Follow this loop for any non-trivial request.
    passes and the chunk is *actually* done. Fix confirmed findings (loop back to 3 if
    needed). Never accept "looks fine."
 5. **COMMIT** — only once the gate is green and the critic confirms done. Commit the
-   chunk (push per milestone); update `PROGRESS.md`.
+   chunk (push per milestone).
 6. **REPEAT** from 1.
 
 ### PRs squash-merge — keep the title & description accurate
@@ -128,14 +126,14 @@ context at zero recurring cost. So:
 
 - **Coordinate through scratch files.** The orchestrator writes detailed task
   instructions to a temp file (under the session scratchpad); each subagent writes its
-  plan/result/critique to a temp file. `PROGRESS.md` is the committed high-level
-  tracker; ephemeral per-task detail lives in scratch.
+  plan/result/critique to a temp file. Ephemeral per-task detail lives in scratch,
+  never in committed docs.
 - **Every subagent prompt is tiny** — essentially *"Your instructions are in `<path>`.
   Read it immediately and follow it exactly."* Put ALL the detail in the file.
 - **Every subagent result is tiny** — the agent writes its full output to a result file
   and returns ≤4 sentences + that path. The orchestrator reads only what it needs.
 - **The orchestrator keeps its context lean** — never read large files directly
-  (delegate); retain only short summaries + `PROGRESS.md`.
+  (delegate); retain only short summaries.
 
 ### Concurrency
 
