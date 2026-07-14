@@ -2,6 +2,8 @@
 
 **Spec-compliant YAML parsing, out to give `JSON.parse` a run for its money.**
 
+⚡ **~4× faster than js-yaml** · **near-`JSON.parse` memory** (≈1.3× even on a 10 MB document) — [see the benchmarks ↓](#benchmarks-at-a-glance)
+
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/jbsiddall/lightning-yaml/actions/workflows/ci.yml/badge.svg)](https://github.com/jbsiddall/lightning-yaml/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/lightning-yaml.svg)](https://www.npmjs.com/package/lightning-yaml)
@@ -18,8 +20,8 @@ runtime dependencies**. No more trading YAML's readability for JSON's performanc
 Everything else is secondary to those two.
 
 - **Fast.** Parses and stringifies at speeds approaching native
-  `JSON.parse`/`JSON.stringify` — around **3× faster than js-yaml** on typical
-  block YAML.
+  `JSON.parse`/`JSON.stringify` — **3–5× faster than js-yaml** on parse, across
+  our benchmark workloads.
 - **Spec-compliant.** Passes ~97.6% of the official yaml-test-suite — more than
   js-yaml or `yaml`.
 - **Drop-in (API-level).** Same exports and signatures as `yaml` and `js-yaml` —

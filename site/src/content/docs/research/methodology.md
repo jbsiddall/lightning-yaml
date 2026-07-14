@@ -57,11 +57,12 @@ Our harness instead spawns one isolated process per candidate and reads
 
 | candidate | **peak RSS** (our harness) | heap Δ (what mitata sees) |
 | --------- | --------------------------- | -------------------------- |
-| JSON      | 282 MB                      | 17.4 MB                    |
-| js-yaml   | 495 MB                      | 38 MB                      |
-| **yaml**  | **2.63 GB**                 | **39.8 MB**                |
+| JSON           | 284 MB                 | 17.4 MB                    |
+| js-yaml        | 975 MB                 | 27 MB                      |
+| **yaml**       | **2.68 GB**            | **39.8 MB**                |
+| lightning-yaml | 369 MB                 | 27.8 MB                    |
 
-mitata would report `yaml` at ~40 MB and **miss the 2.63 GB reality** — a 66×
+mitata would report `yaml` at ~40 MB and **miss the 2.68 GB reality** — a 67×
 blind spot of exactly the native/off-heap memory a YAML parser burns. So the two
 tools are complementary: mitata for speed + per-call heap churn, our harness for
 true peak RSS. (See [Peak memory](/benchmarks/#peak-memory) for the full
@@ -69,7 +70,7 @@ peak-RSS comparison across every workload.)
 
 Each candidate runs in its **own OS process** (the correct isolation for a clean
 peak), and workers run **one at a time**. We deliberately do *not* run them
-concurrently: co-running the heavy parses (that 2.63 GB `yaml` job) can push the
+concurrently: co-running the heavy parses (that 2.68 GB `yaml` job) can push the
 machine into swapping, which corrupts RSS in ways that are hard to account for.
 Sequential keeps every number trustworthy.
 
