@@ -18,8 +18,8 @@
  * markers (`---`/`...`), `%YAML`/`%TAG` directives, multi-document streams,
  * anchors/aliases (`&`/`*`, M5 — including self-referential/cyclic anchors and
  * structural sharing), tags (`!!binary` and friends), and `stringify` (M6) are
- * implemented. Merge keys (`<<`) are not here yet and throw a controlled parse
- * error (or are read as plain text) rather than mis-parsing.
+ * implemented. Merge keys (`<<`) are out of scope by design — removed from
+ * YAML 1.2 — and are read as a plain, literal string key rather than merged.
  *
  * Design invariants enforced throughout (V8 rules, see doc 12):
  *   - scan the flat JS string with `charCodeAt` (never `str[i]`) and hop long

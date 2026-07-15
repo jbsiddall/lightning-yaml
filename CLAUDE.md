@@ -12,8 +12,9 @@ comments, flow/block maps & sequences, implicit **and** explicit (`? `/`: `) key
 compact forms, block scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl.
 `!!binary`, `%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It
 passes **≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the
-`yaml` oracle). Only merge keys (`<<`, absent from the test corpus) are
-unimplemented. The repo around it is:
+`yaml` oracle). Merge keys (`<<`) are out of scope by design — removed from
+YAML 1.2 and absent from the test corpus — and are read as a plain, literal
+string key rather than merged. The repo around it is:
 
 - a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
   and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child
@@ -284,8 +285,12 @@ PATH. Not needed on ordinary commits. See [bench/bundlesize](bench/bundlesize/RE
   candidates whose op still throws `NotImplementedError`.
 - **Fixture categories** live in `bench/fixtures/datasets.ts`: `json`,
   `yaml-plain` (JSON-shaped data in block YAML, no tags/anchors), and
-  `yaml-rich` (`!!binary` + `&`/`*`). The generator emits rich fixtures with the
-  `yaml` library's 1.1 schema. Keep YAML fixtures ≤1 MB to bound the competition
+  `yaml-rich` (`!!binary` + `&`/`*`). The generator writes rich fixtures via the
+  `yaml` library's `schema: "yaml-1.1"` stringify option — the only way that
+  library exposes a `!!binary` tag writer for `Uint8Array`; it's a quirk of that
+  library's option naming, not an indication the fixture text uses YAML-1.1-only
+  syntax (the output stays fully 1.2-conformant, and lightning-yaml parses it like
+  any other fixture). Keep YAML fixtures ≤1 MB to bound the competition
   run; the 10 MB case stays JSON-only. Fixtures are gitignored, and `pnpm test`
   auto-generates only the **missing** ones — after editing the generator or
   dataset defs, run `pnpm gen:fixtures` to regenerate all, or tests run on stale
