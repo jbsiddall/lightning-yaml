@@ -104,12 +104,16 @@ classifier lowers that shared floor.
 How to apply, in `src/index.ts`:
 
 - Fold `isPlainScalarSafe` and `needsDoubleQuoting` into a single scan that returns an enum
-  `{ PLAIN, SINGLE, DOUBLE }`; have `writeStringScalar` (near line 4626) switch on that
+  `{ PLAIN, SINGLE, DOUBLE }`; have `writeStringScalar` switch on that
   enum. This removes one redundant full string scan for every quoted value.
 - The risk is that it must preserve the exact `looksLikeTypedScalar` / `tryNumberGeneric`
   semantics — the rules for when a string would be misread as a typed scalar and therefore
   needs quoting are subtle and easy to get slightly wrong. Gate the change on byte-identity
   across the fixtures and `pnpm test:stringify`.
+
+## Code references
+
+- `writeStringScalar` — `src/index.ts:4626` (approx.)
 
 ## Provenance & sources
 

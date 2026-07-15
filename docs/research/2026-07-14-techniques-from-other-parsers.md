@@ -340,7 +340,7 @@ lead from this survey.
 ## How to apply
 
 **A1 — Dumper "record template" cache (do this first; stringify).** *Target:* `src/index.ts`,
-`dumpScanRefs` (line 4399), `writeCollectionBody` (4732), `writeEntryValue` (4766). When
+`dumpScanRefs`, `writeCollectionBody`, `writeEntryValue`. When
 `dumpScanRefs` sees a run of same-shape objects — it already ref-counts every object — attach to
 that shape a cached array of **pre-rendered key prefixes**: the exact `\n<indent>key:` bytes,
 with the key already quoted and escaped as needed, keyed by the ordered key list plus indent
@@ -367,7 +367,7 @@ to sites that opt into `unsafe-eval`) — it does not apply to most of the libra
 a further reason to treat it as future work behind A1, which uses no code generation.
 
 **A3 — Object-literal decode codegen (secondary; parse).** *Target:* the block-map construction
-path — `storeKey` (line 1567) and `parseBlockNode` (2864) — behind the existing `FastKeyMatch`
+path — `storeKey` and `parseBlockNode` — behind the existing `FastKeyMatch`
 gate. When a sibling record matches the cached shape, build via a cached `{k0:…, k1:…}` builder
 instead of incremental assignment. *Estimated gain:* a speculative parse speed-up on large
 homogeneous arrays (msgpackr saw 3.3× for its format; ours would be far less, since we are
@@ -387,14 +387,24 @@ unknown.
   and its maintainers' "SQL-injection-like" caution, are the direct warning: keys come from the
   document. Any codegen MUST pass keys and prefixes as **scope data** — arrays, bracketed string
   literals — and never splice key text into the function source as identifiers. A `__proto__` or
-  `constructor` key must not alter generated control flow (we already guard `__proto__` at line
-  1567 — keep that).
+  `constructor` key must not alter generated control flow (we already guard `__proto__`
+  — keep that).
 - **Amortization tax.** Do not compile on small or heterogeneous inputs; gate on shape-repeat
   count. fast-json-stringify's large-array and dynamic-object regressions are the cautionary
   data.
 - **Output identity.** Everything must still emit plain `{}` and real arrays, and byte-identical
   YAML; add round-trip equivalence tests against the current dumper across all fixtures, before
   and after.
+
+---
+
+## Code references
+
+- `dumpScanRefs` — `src/index.ts:4399`
+- `writeCollectionBody` — `src/index.ts:4732`
+- `writeEntryValue` — `src/index.ts:4766`
+- `storeKey` — `src/index.ts:1567` (also where the `__proto__` guard lives)
+- `parseBlockNode` — `src/index.ts:2864`
 
 ---
 

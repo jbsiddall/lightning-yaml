@@ -41,12 +41,11 @@ forces a re-optimization.
 
 The functions we care about are the ones that are genuinely hot on the parser's and
 dumper's inner loops, per the architecture cheat-sheet in `src/index.ts`: on the parse
-side `parseBlockNode` (2864), `parseBlockMap` (3435), `parseBlockSeq` (3387),
-`resolvePlain` (2016), `storeKey` (1567), `tryNumber` (2254), `internKey` (1782),
-`fastMatchBlockKey` (1827); on the dump side `dumpScanRefs` (4399),
-`writeCollectionBody` (4732), `writeEntryValue` (4766), `writeScalar` (4661),
-`writeStringScalar` (4626), and `encodeDoubleQuoted` (4566). We only care about tiering
-for functions that are actually hot, so cold rare-feature code is out of scope.
+side `parseBlockNode`, `parseBlockMap`, `parseBlockSeq`, `resolvePlain`, `storeKey`,
+`tryNumber`, `internKey`, `fastMatchBlockKey`; on the dump side `dumpScanRefs`,
+`writeCollectionBody`, `writeEntryValue`, `writeScalar`, `writeStringScalar`, and
+`encodeDoubleQuoted`. We only care about tiering for functions that are actually hot,
+so cold rare-feature code is out of scope.
 
 The relevant comparison point is that the reference we benchmark against — built-in
 `JSON.parse` / `JSON.stringify` — is written in C++ inside V8. It does not tier and it
@@ -97,29 +96,29 @@ outcome. Every number below is against that ladder.
 Sparkplug. The table lists each hot function, the top tier it reached, its deopt
 inventory, and whether it converged (no eager deopt after its final optimization).
 
-| Function (src line) | Tier reached | Deopts (kind × reason) | Converged? |
+| Function | Tier reached | Deopts (kind × reason) | Converged? |
 |---|---|---|---|
-| `parse` (515) | TurboFan | 0 | yes |
-| `stringify` (581) | TurboFan | 0 | yes |
-| `parseNextDocument` (4209) | TurboFan | 0 | yes |
-| `parseBlockNode` (2864) | TurboFan | 6 (2 eager *insufficient feedback: call*; 4 lazy) | yes |
-| `parseBlockMap` (3435) | TurboFan | 6 (1 eager *insufficient feedback: named access*; 5 lazy) | yes |
-| `parseBlockSeq` (3387) | TurboFan | 0 | yes |
-| `resolvePlain` (2016) | TurboFan | 1 (eager *insufficient feedback: call*) | yes |
-| `storeKey` (1567) | TurboFan | 0 | yes |
-| `tryNumber` (2254) | TurboFan | 0 | yes |
-| `tryNumberGeneric` (1096) | TurboFan | 1 (eager *insufficient feedback: named access*) | yes |
-| `internKey` (1782) | TurboFan | 0 | yes |
-| `fastMatchBlockKey` (1827) | TurboFan | 0 | yes |
-| `publishRecordKeys` (1849) | TurboFan | 0 | yes |
-| `parseBlockScalar` (3900) | TurboFan | 0 | yes |
-| `dumpScanRefs` (4399) | TurboFan | 3 (1 eager *insufficient feedback: binary op*; 2 lazy) | yes |
-| `writeCollectionBody` (4732) | TurboFan | 2 (1 eager *insufficient feedback: named access*; 1 lazy) | yes |
-| `writeEntryValue` (4766) | TurboFan | 1 (eager *insufficient feedback: named access*) | yes |
-| `writeScalar` (4661) | TurboFan | 1 (eager *insufficient feedback: call*) | yes |
-| `writeStringScalar` (4626) | TurboFan | 1 (eager *insufficient feedback: call*) | yes |
-| `encodeDoubleQuoted` (4566) | TurboFan | 0 | yes |
-| `formatNumber` (4646) | TurboFan | 0 | yes |
+| `parse` | TurboFan | 0 | yes |
+| `stringify` | TurboFan | 0 | yes |
+| `parseNextDocument` | TurboFan | 0 | yes |
+| `parseBlockNode` | TurboFan | 6 (2 eager *insufficient feedback: call*; 4 lazy) | yes |
+| `parseBlockMap` | TurboFan | 6 (1 eager *insufficient feedback: named access*; 5 lazy) | yes |
+| `parseBlockSeq` | TurboFan | 0 | yes |
+| `resolvePlain` | TurboFan | 1 (eager *insufficient feedback: call*) | yes |
+| `storeKey` | TurboFan | 0 | yes |
+| `tryNumber` | TurboFan | 0 | yes |
+| `tryNumberGeneric` | TurboFan | 1 (eager *insufficient feedback: named access*) | yes |
+| `internKey` | TurboFan | 0 | yes |
+| `fastMatchBlockKey` | TurboFan | 0 | yes |
+| `publishRecordKeys` | TurboFan | 0 | yes |
+| `parseBlockScalar` | TurboFan | 0 | yes |
+| `dumpScanRefs` | TurboFan | 3 (1 eager *insufficient feedback: binary op*; 2 lazy) | yes |
+| `writeCollectionBody` | TurboFan | 2 (1 eager *insufficient feedback: named access*; 1 lazy) | yes |
+| `writeEntryValue` | TurboFan | 1 (eager *insufficient feedback: named access*) | yes |
+| `writeScalar` | TurboFan | 1 (eager *insufficient feedback: call*) | yes |
+| `writeStringScalar` | TurboFan | 1 (eager *insufficient feedback: call*) | yes |
+| `encodeDoubleQuoted` | TurboFan | 0 | yes |
+| `formatNumber` | TurboFan | 0 | yes |
 
 **Every deopt converges.** The mechanical convergence check found **zero** functions
 with an eager deopt occurring after their final optimization. For each function that
@@ -164,13 +163,13 @@ not five problems.
 
 **The only non-warm-up deopt is not ours.** A function named `get` took a single "wrong
 name" deopt and then optimized to TurboFan. This is a `Map#get` / loader helper (we
-define no function named `get`; our `.get(` sites at lines 753, 917–937, 1783, 4402,
-4777 are all `Map.prototype.get` on `anchorMap` / `tagHandles` / `keyCache` /
-`dumpRefCounts` / `dumpAnchors`), it deopted once, and it converged. Three further
-deopts in the raw log belong to `node:path`'s `normalizeString`, `tsx`/esbuild's
-`parseSource`, and the driver's own `burn` — all harness/loader, none in the parser.
+define no function named `get`; our `.get(` call sites are all `Map.prototype.get` on
+`anchorMap` / `tagHandles` / `keyCache` / `dumpRefCounts` / `dumpAnchors`), it deopted
+once, and it converged. Three further deopts in the raw log belong to `node:path`'s
+`normalizeString`, `tsx`/esbuild's `parseSource`, and the driver's own `burn` — all
+harness/loader, none in the parser.
 
-**Coverage caveat.** `scanFlowPlainLine` (1866) and `tryFlowNumber` (2140) never
+**Coverage caveat.** `scanFlowPlainLine` and `tryFlowNumber` never
 optimized in this run. That is because the corpus is block-style YAML and does not
 exercise the *flow* scalar path (`[...]` / `{...}` inline collections); these functions
 were cold-because-unused, not stuck in a low tier. The block-style number path
@@ -252,6 +251,33 @@ Note two portability gotchas found while building it: `--trace-maglev` is a V8-i
 flag that Node's CLI rejects ("bad option"), so use `--trace-opt`, which already tags
 each tier-up with its target tier; and under `tsx` the function names survive esbuild
 transpilation, so grepping the trace by source function name works directly.
+
+## Code references
+
+- `parseBlockNode` — `src/index.ts:2864`
+- `parseBlockMap` — `src/index.ts:3435`
+- `parseBlockSeq` — `src/index.ts:3387`
+- `resolvePlain` — `src/index.ts:2016`
+- `storeKey` — `src/index.ts:1567`
+- `tryNumber` — `src/index.ts:2254`
+- `internKey` — `src/index.ts:1782`
+- `fastMatchBlockKey` — `src/index.ts:1827`
+- `dumpScanRefs` — `src/index.ts:4399`
+- `writeCollectionBody` — `src/index.ts:4732`
+- `writeEntryValue` — `src/index.ts:4766`
+- `writeScalar` — `src/index.ts:4661`
+- `writeStringScalar` — `src/index.ts:4626`
+- `encodeDoubleQuoted` — `src/index.ts:4566`
+- `.get(` call sites (`Map.prototype.get` on `anchorMap`/`tagHandles`/`keyCache`/`dumpRefCounts`/`dumpAnchors`) — `src/index.ts:753, 917–937, 1783, 4402, 4777`
+- `scanFlowPlainLine` — `src/index.ts:1866`
+- `tryFlowNumber` — `src/index.ts:2140`
+- `parse` — `src/index.ts:515`
+- `stringify` — `src/index.ts:581`
+- `parseNextDocument` — `src/index.ts:4209`
+- `tryNumberGeneric` — `src/index.ts:1096`
+- `publishRecordKeys` — `src/index.ts:1849`
+- `parseBlockScalar` — `src/index.ts:3900`
+- `formatNumber` — `src/index.ts:4646`
 
 ## Provenance & sources
 

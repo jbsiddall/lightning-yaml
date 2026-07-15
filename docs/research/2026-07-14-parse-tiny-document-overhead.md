@@ -14,9 +14,9 @@ rate fit, plus one isolated allocation micro-benchmark).
 The committed head-to-head has small-records at 2.32× `JSON.parse` — the worst parse
 ratio in the table — and the working theory is that this is fixed per-call overhead:
 work that happens once per `parse()` regardless of document size, which a tiny document
-cannot amortize. The suspect is `resetForStream` (`src/index.ts:467`), called at the top
-of every `parse` (`src/index.ts:516`). It reassigns ~15 module-level state variables and,
-notably, allocates a fresh `keyCache = new Map()` (`src/index.ts:475`) on every call.
+cannot amortize. The suspect is `resetForStream`, called at the top
+of every `parse`. It reassigns ~15 module-level state variables and,
+notably, allocates a fresh `keyCache = new Map()` on every call.
 `JSON.parse`, by contrast, is a native call with essentially no JavaScript-side per-call
 setup. The hypothesis was that this fixed floor disproportionately taxes tiny documents
 and that trimming it — especially deferring the `Map` allocation — would close the
@@ -76,7 +76,7 @@ parses a flood of sub-hundred-byte documents — which is not what this library 
 benchmarked for. And there is no single lever to pull even if one wanted to: the obvious
 suspect, the per-call `new Map()`, is just ~6% of the floor. The remaining ~94% is spread
 thinly across the fifteen-odd state resets, the `parseNextDocument` entry, the leading
-document-marker and BOM checks, and the trailing single-document check (`src/index.ts:523`)
+document-marker and BOM checks, and the trailing single-document check
 — none individually large, and most of them load-bearing for correctness. Deferring the
 `Map` to first use would save ~0.03 µs per call and only for documents that intern no keys
 (larger documents populate and need it), which is not worth the added state-management
@@ -85,6 +85,12 @@ wins in the per-byte work instead, where the ~3.3× per-KB rate gap actually liv
 Confidence: **high** that fixed overhead is a dead end for the target workloads; the
 audience it could ever matter to is a caller parsing millions of trivially small
 documents in a tight loop.
+
+## Code references
+
+- `resetForStream` — `src/index.ts:467` (keyCache allocation ~475)
+- `parse` — `src/index.ts:516` (calls `resetForStream` here)
+- trailing single-document check — `src/index.ts:523`
 
 ## Provenance & sources
 

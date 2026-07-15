@@ -17,15 +17,14 @@ accumulation-pattern micro-benchmark).
 No committed fixture exercises `|` / `>` block scalars or embedded newlines, so the
 performance of multiline strings — which the owner names as the common real-world case
 (JSON-shaped YAML whose string fields are multi-line prose) — was entirely unmeasured.
-The relevant code is `parseBlockScalar` (`src/index.ts:3900`). Its body loop
-(`src/index.ts:3963-4051`) walks the scalar one line at a time: consume the mandatory
-content indent, find the line end with `src.indexOf("\n", p)` (`src/index.ts:4007`),
-take one `src.slice(p, textEnd)` per line (`src/index.ts:4011`), and push the pieces
+The relevant code is `parseBlockScalar`. Its body loop walks the scalar one line at a
+time: consume the mandatory content indent, find the line end with
+`src.indexOf("\n", p)`, take one `src.slice(p, textEnd)` per line, and push the pieces
 (text plus fold/break separators) into a `parts: string[]` array, which is finally
-collapsed with `parts.join("")` (`src/index.ts:4060`). The hypothesis going in was that
-this per-line `indexOf` + `slice` + array-push-then-join is heavier than the flat-record
-path, and that the array/join accumulation in particular might be replaceable with the
-cheaper `out += ...` ConsString pattern the dumper already uses (`src/index.ts:4380`).
+collapsed with `parts.join("")`. The hypothesis going in was that this per-line
+`indexOf` + `slice` + array-push-then-join is heavier than the flat-record path, and
+that the array/join accumulation in particular might be replaceable with the cheaper
+`out += ...` ConsString pattern the dumper already uses.
 
 ## Experiment
 
@@ -103,7 +102,7 @@ ConsString (a rope: O(1) per append, flattened lazily on first read) while
 `parts.push(...)` allocates and grows a backing array that `join` must then walk in full.
 The dumper already relies on exactly this pattern (`out += ...`, flushed once), so
 adopting it here is idiomatic for the codebase and low-risk. Independently, the per-line
-`"\n".repeat(1)` on the literal path (`src/index.ts:4028`) allocates a fresh one-character
+`"\n".repeat(1)` on the literal path allocates a fresh one-character
 string every line for the overwhelmingly common single-break case; replacing it with a
 hoisted `"\n"` constant is a ~12% win on the accumulation on its own and is trivially
 safe.
@@ -117,8 +116,8 @@ to pin it down is a deeper follow-up that actually swaps the accumulator inside 
 copy of the parser and re-times end-to-end (this round's budget did not allow the full
 in-parser A/B plus oracle-parity verification).
 
-How to apply, for that follow-up: in `parseBlockScalar` (`src/index.ts:3958-4064`)
-replace the `parts: string[]` array and its terminal `parts.join("")` with a single
+How to apply, for that follow-up: in `parseBlockScalar` replace the `parts: string[]`
+array and its terminal `parts.join("")` with a single
 `let core = ""` accumulated via `core += ...` at each existing `parts.push` site, and
 special-case the single-newline separator to a `"\n"` constant instead of
 `"\n".repeat(1)`. Risk is low: a deep ConsString on a very large single block scalar is
@@ -126,6 +125,13 @@ the only thing to watch, and the dumper already exercises that path at document 
 Verify against the oracle on block-scalar inputs (chomping and folding edge cases are the
 place a mechanical rewrite could slip). Audience: any YAML whose records carry multi-line
 string fields — the owner's stated common case.
+
+## Code references
+
+- `parseBlockScalar` — `src/index.ts:3900` (body loop `3963-4051`: line-end scan `4007`,
+  per-line slice `4011`, single-break repeat `4028`, join `4060`; full range cited for
+  the follow-up rewrite `3958-4064`)
+- dumper `out +=` accumulator — `src/index.ts:4380`
 
 ## Provenance & sources
 

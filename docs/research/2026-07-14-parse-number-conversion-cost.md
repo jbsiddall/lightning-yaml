@@ -13,15 +13,15 @@ micro-benchmark; directional, not a proof).
 
 The dossier flags value materialization — and number conversion specifically — as the
 dominant term in the residual ~2× gap between our `parse` and built-in `JSON.parse`,
-with raw character scanning only ~8%. The parser's number path lives in `tryNumber`
-(`src/index.ts:2254`), reached from `resolvePlain` (`src/index.ts:2016`) whenever a
+with raw character scanning only ~8%. The parser's number path lives in `tryNumber`,
+reached from `resolvePlain` whenever a
 plain scalar begins with a digit, sign, or dot. Two paths exist inside it:
 
 - **Integers up to 15 digits** accumulate as a V8 small-integer (Smi) with the loop
-  `v = v * 10 + d` and return `neg ? -v : v` (`src/index.ts:2322`). No substring is
+  `v = v * 10 + d` and return `neg ? -v : v`. No substring is
   allocated and no string→number coercion happens — this is already optimal.
 - **Floats, and integers longer than 15 digits**, fall through to
-  `+src.slice(start, end)` (`src/index.ts:2323`): allocate the substring, then coerce
+  `+src.slice(start, end)`: allocate the substring, then coerce
   it to a double with unary `+`.
 
 The hypothesis was that the float branch is expensive on two counts — the slice
@@ -113,6 +113,11 @@ fixture `resolveBlockPlain` alone climbs to ~15%. Confidence: **high** that the
 number-conversion lever is dead (the negative is large and consistent across both
 fixtures and all four conversion strategies); the audience for that conclusion is any
 numeric-heavy records YAML.
+
+## Code references
+
+- `tryNumber` — `src/index.ts:2254` (integer-path return ~2322; float/slice path ~2323)
+- `resolvePlain` — `src/index.ts:2016`
 
 ## Provenance & sources
 

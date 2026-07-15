@@ -15,13 +15,12 @@ heap-Δ measured in an isolated process). Not a byte-exact proof.
 
 ## Background
 
-lightning-yaml already interns mapping **keys**: `internKey` (`src/index.ts:1782`)
-routes every key through a per-stream `keyCache: Map<string,string>`
-(`src/index.ts:282`), so a thousand records that all spell `"status"` collapse to
-one heap string. Scalar **values**, by contrast, are never interned — every string
-value is a fresh `src.slice(...)`: the plain-scalar returns in `resolvePlain`
-(`src/index.ts:2023` and `:2085`), the double-quoted fast path (`:2443`), and the
-single-quoted fast path (`:2628`) each allocate a new string.
+lightning-yaml already interns mapping **keys**: `internKey` routes every key through
+a per-stream `keyCache: Map<string,string>`, so a thousand records that all spell
+`"status"` collapse to one heap string. Scalar **values**, by contrast, are never
+interned — every string value is a fresh `src.slice(...)`: the plain-scalar returns in
+`resolvePlain`, the double-quoted fast path, and the single-quoted fast path each
+allocate a new string.
 
 Record data repeats values heavily: `status`, `category`, `region`, ISO dates,
 boolean-ish tokens, and tag words are all drawn from small vocabularies. If the
@@ -125,15 +124,14 @@ So the recommendation is **Worth pursuing, but not as an always-on default**:
 1. **Opt-in `internValues: true` parse option** (confidence: high). Users parsing
    large, repetitive record arrays into long-lived memory (config blobs, seed data,
    in-memory caches) opt in and take the −28% heap; everyone else keeps today's
-   speed. Wiring: add `valueCache` next to `keyCache` (`src/index.ts:282`), reset it
-   in `resetForStream` (`:475`), and gate the `internValue` wrapper at the four
-   sites (`resolvePlain` `:2023`/`:2085`, `parseDoubleQuoted` `:2443`,
-   `parseSingleQuoted` `:2628`) on the option.
+   speed. Wiring: add `valueCache` next to `keyCache`, reset it in `resetForStream`,
+   and gate the `internValue` wrapper at the four sites (`resolvePlain`,
+   `parseDoubleQuoted`, `parseSingleQuoted`) on the option.
 2. **Cheaper probe, possibly default-able** (confidence: medium; needs a deeper
    follow-up). The 16% is dominated by hashing every value. A FastValueMatch analog
-   to the existing key path (`lastRecordKeys`, `src/index.ts:302`) — compare the
-   upcoming value bytes against the previous sibling row's value at the same field
-   before hashing — could skip the map for runs of identical values, and interning
+   to the existing key path (`lastRecordKeys`) — compare the upcoming value bytes
+   against the previous sibling row's value at the same field before hashing — could
+   skip the map for runs of identical values, and interning
    only *plain* scalars (skipping quoted free-text) would cut probe count on the
    fields least likely to dedup. If a follow-up gets the penalty into the low single
    digits, on-by-default becomes plausible.
@@ -144,6 +142,16 @@ the ≈−28% heap figure and the parity-safety, and **medium confidence** that 
 speed cost can be reduced enough to make it a default. Unique-value data (dense
 free-text, high-cardinality identifiers) sees little heap benefit and should not pay
 the CPU — another reason to keep it opt-in or heuristic rather than blanket.
+
+## Code references
+
+- `internKey` — `src/index.ts:1782`
+- `keyCache` — `src/index.ts:282`
+- `resolvePlain` — `src/index.ts:2023` (second return at `:2085`)
+- `parseDoubleQuoted` — `src/index.ts:2443`
+- `parseSingleQuoted` — `src/index.ts:2628`
+- `resetForStream` — `src/index.ts:475`
+- `lastRecordKeys` — `src/index.ts:302`
 
 ## Provenance & sources
 - Repo: lightning-yaml @ 0f6943e (branch claude/yaml-parser-perf-research-l73742), 2026-07-14.

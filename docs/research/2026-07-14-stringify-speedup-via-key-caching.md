@@ -19,8 +19,8 @@ two levers are independent and stack into the `combo` result reported there.*
 
 ## Background
 
-`stringify` renders a value tree to YAML through `dumpValue` (`src/index.ts:4838`).
-Collections are handled by `writeCollectionBody` (`src/index.ts:4732`), which iterates a
+`stringify` renders a value tree to YAML through `dumpValue`.
+Collections are handled by `writeCollectionBody`, which iterates a
 map's entries and, for each one, renders the key with `writeStringScalar(k)` and then
 appends the `key + ":"` prefix before the value. Rendering a key is not free: the dumper
 must decide whether the key can be written as a bare plain scalar or has to be quoted,
@@ -37,7 +37,7 @@ thousands of times, so nearly every key the dumper renders is one it has already
 rendered. None of that work changes from row to row; it is pure repetition.
 
 This is precisely the problem the parser already solved on its own side. The parse path
-ships a `FastKeyMatch` fast-lane via `publishRecordKeys` (`src/index.ts:1849`), which
+ships a `FastKeyMatch` fast-lane via `publishRecordKeys`, which
 recognises recurring record keys and avoids re-doing per-key work. The dump side simply
 never received the equivalent optimisation, which is why it was the sleeper lever going
 into this round.
@@ -118,10 +118,10 @@ arrays and nested trees benefit most and flat scalar data not at all.
 
 How to apply, in `src/index.ts`:
 
-- In `writeCollectionBody` (around lines 4742–4748, where the key prefix is built),
+- In `writeCollectionBody`, where the key prefix is built,
   memoize `writeStringScalar(k) + ":"` in a per-call `Map<string, string>`. Initialise
-  the map in `dumpValue` (near line 4839) and null it out when the call finishes (near
-  line 4865) so it does not outlive the dump. This is roughly eight added lines.
+  the map in `dumpValue` and null it out when the call finishes
+  so it does not outlive the dump. This is roughly eight added lines.
 - The risk is near zero: this is pure memoization of a pure function, and the output
   stays byte-identical. Gate the change on byte-identity across the fixtures and
   `pnpm test:stringify` regardless.
@@ -136,6 +136,12 @@ single-pass write pass in
 [`./2026-07-14-stringify-speedup-via-single-pass-dumping.md`](./2026-07-14-stringify-speedup-via-single-pass-dumping.md); landing
 both together is the recommended outcome and produces the `combo` numbers reported in
 that paper.
+
+## Code references
+
+- `dumpValue` — `src/index.ts:4838` (per-call cache init ~4839; nulled ~4865)
+- `writeCollectionBody` — `src/index.ts:4732` (key-prefix build ~4742–4748)
+- `publishRecordKeys` — `src/index.ts:1849`
 
 ## Provenance & sources
 

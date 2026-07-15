@@ -19,8 +19,7 @@ the whole set.*
 The dumper accumulates its output in a module-level `out` string via repeated
 `out += …`. On V8 this does not copy the growing string on every append: the engine
 builds a ConsString rope (a tree of string fragments) and flattens it once, when the
-final result is read. There is a design comment recording this deliberate choice at
-`src/index.ts:4366`.
+final result is read. There is a design comment recording this deliberate choice.
 
 The obvious alternative — and a common idiom in JavaScript string-building — is to push
 each fragment onto an array and call `Array.prototype.join("")` at the end. The
@@ -68,10 +67,14 @@ point rather than the most exciting one. V8's rope plus a single terminal flatte
 building and then walking a separate array of fragments, and it does not have to allocate
 that array at all; the measured result is consistent with that being genuinely cheaper.
 
-Recommendation: keep the rope. This confirms the existing design comment at
-`src/index.ts:4366`, and there is nothing to change. Converting to array + `join` is a
+Recommendation: keep the rope. This confirms the existing design comment,
+and there is nothing to change. Converting to array + `join` is a
 measured non-win and should not be attempted without new evidence that overturns these
 numbers.
+
+## Code references
+
+- ConsString rope design comment — `src/index.ts:4366`
 
 ## Provenance & sources
 

@@ -20,12 +20,11 @@ table here is the two landed together.*
 
 ## Background
 
-`stringify` (`dumpValue`, `src/index.ts:4838`) is a two-pass design. The first pass,
-`dumpScanRefs` (`src/index.ts:4399`), walks the **entire** value tree, ref-counting every
+`stringify` (`dumpValue`) is a two-pass design. The first pass,
+`dumpScanRefs`, walks the **entire** value tree, ref-counting every
 object into a `Map`. The second pass then writes, appending each line to a module-level
 `out` string through `out += …` (a V8 ConsString rope) that is flattened once at the end;
-the write helpers are `writeCollectionBody` (`src/index.ts:4732`) and `writeEntryValue`
-(`src/index.ts:4766`).
+the write helpers are `writeCollectionBody` and `writeEntryValue`.
 
 The only reason the pre-scan exists is to place `&anchor` / `*alias` markers for
 references that are shared between two or more parents, and to detect cycles. But the
@@ -168,14 +167,22 @@ How to apply, in `src/index.ts`:
   tracks visited objects in a `Set` and `throw`s a restart sentinel on the first repeat.
   Split `dumpValue` into a fast path, a `dumpValueTwoPass` fallback (the current
   `dumpScanRefs` + write), and a shared `dumpFinish`. Add the visited-check at the top of
-  the object branch in `writeEntryValue` (near line 4771) and `writeDocumentValue`
-  (near line 4810). This is roughly 25 lines.
+  the object branch in `writeEntryValue` and `writeDocumentValue`. This is roughly 25
+  lines.
 - Risks: (a) verify the sentinel `throw`/`catch` does not deoptimise the hot
   `writeEntryValue` — it measured fine here, and the key is to keep the sentinel a module
   constant rather than allocating one per call; (b) the visited `Set` is live during the
   output build, which is neutral on RSS in these measurements but should be re-checked
   with `pnpm bench:self`; (c) the small restart penalty on tiny shared inputs is
   acceptable and is offset by the key-quote cache.
+
+## Code references
+
+- `dumpValue` — `src/index.ts:4838`
+- `dumpScanRefs` — `src/index.ts:4399`
+- `writeCollectionBody` — `src/index.ts:4732`
+- `writeEntryValue` — `src/index.ts:4766` (visited-check added ~4771)
+- `writeDocumentValue` — `src/index.ts:~4810` (visited-check added here)
 
 ## Provenance & sources
 
