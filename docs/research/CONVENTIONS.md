@@ -68,6 +68,22 @@ Use one of these in the abstract; do not invent ad-hoc words, and do not use "ya
 - **Report honestly.** Per the repo's non-negotiable benchmark-integrity rule, never tune, cherry-pick,
   or phrase to flatter the library. A well-documented negative result is as valuable as a positive one.
 
+## Referencing source code
+
+Keep `file:line` locations out of the main prose — they clutter the read and go stale. In the body,
+refer to code by **function or concept name** ("the block-scalar parser", "the key-quote cache"),
+which stays readable without line numbers. Make the exact locations available separately so that
+reproducing the work or diving into the code stays easy:
+
+- If a **few lines of code are genuinely load-bearing** to the argument, quote them inline in the
+  report — the reader should not have to open the file to follow the point.
+- Otherwise, collect the exact locations in a short **"Code references" list near the bottom** (a
+  bibliography: concept or function name → `src/index.ts:3900`), and refer to them by name in the
+  body. A longer excerpt belongs in an **appendix** at the end, not in the middle of the argument.
+
+The main read should flow in plain language; the precise coordinates sit one glance away at the
+bottom for anyone who needs them.
+
 ## Provenance footer — include what the note relies on
 
 The repo commit and branch, the Node/V8 version, the machine, the fixtures or data, and whether numbers
