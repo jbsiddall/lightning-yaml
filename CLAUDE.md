@@ -5,16 +5,15 @@ Guidance for Claude Code (and humans) working in this repo.
 ## What this is
 
 `lightning-yaml` is a YAML parser that approaches `JSON.parse` / `JSON.stringify`
-speed and memory. **The parser is feature-complete for YAML 1.2 core** —
-[`src/index.ts`](src/index.ts) implements `parse`/`parseAll`/`stringify`: the JSON
-subset, flow + block syntax, plain scalars with 1.2 core typing, quoting + escapes,
-comments, flow/block maps & sequences, implicit **and** explicit (`? `/`: `) keys,
-compact forms, block scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl.
-`!!binary`, `%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It
-passes **≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the
-`yaml` oracle). Merge keys (`<<`) are out of scope by design — removed from
-YAML 1.2 and absent from the test corpus — and are read as a plain, literal
-string key rather than merged. The repo around it is:
+speed and memory, **targeting the YAML 1.2.2 spec exclusively — YAML 1.1
+compatibility is explicitly a non-goal.** [`src/index.ts`](src/index.ts)
+implements `parse`/`parseAll`/`stringify`: the JSON subset, flow + block syntax,
+plain scalars with 1.2 core typing, quoting + escapes, comments, flow/block maps
+& sequences, implicit **and** explicit (`? `/`: `) keys, compact forms, block
+scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl. `!!binary`,
+`%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It passes
+**≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the `yaml`
+oracle). The repo around it is:
 
 - a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
   and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child

@@ -1,5 +1,5 @@
 /**
- * lightning-yaml — a single-pass, allocation-minimal, pure-JS YAML parser
+ * lightning-yaml — a single-pass, allocation-minimal, pure-JS YAML 1.2.2 parser
  * engineered for V8 (see docs/research/2026-07-12-design-a-pure-js-parser.md).
  *
  * The public surface mirrors `JSON.parse`:
@@ -18,8 +18,7 @@
  * markers (`---`/`...`), `%YAML`/`%TAG` directives, multi-document streams,
  * anchors/aliases (`&`/`*`, M5 — including self-referential/cyclic anchors and
  * structural sharing), tags (`!!binary` and friends), and `stringify` (M6) are
- * implemented. Merge keys (`<<`) are out of scope by design — removed from
- * YAML 1.2 — and are read as a plain, literal string key rather than merged.
+ * implemented.
  *
  * Design invariants enforced throughout (V8 rules, see doc 12):
  *   - scan the flat JS string with `charCodeAt` (never `str[i]`) and hop long
