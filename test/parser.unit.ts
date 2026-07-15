@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
-import { parse, parseAll, YAMLParseError } from "../src/index.ts";
+import { parse, parseAll, stringify, YAMLParseError } from "../src/index.ts";
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
 import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
@@ -1501,4 +1501,68 @@ test("STRICTNESS: a scalar/collection cannot carry two anchors via a deferred pr
   throws(() => oracleParse("top1: &node1\n  &k1 key1: val1\ntop2: &node2\n  &v2 val2\n"));
   // The 7BMT shape — inner anchor on the KEY, outer on the MAP — stays valid.
   deepStrictEqual(parse("top: &node1\n  &k1 key1: v\n"), oracleParse("top: &node1\n  &k1 key1: v\n"));
+});
+
+// --------------------------------------------------------------------------
+// UTF-8 / emoji handling. The parser scans by UTF-16 code unit (`charCodeAt`)
+// and slices scalar spans out of the source, so the risk is a multi-byte or
+// astral character being split at a scalar boundary. A BMP char like `é`/`中`
+// is one code unit but 2–3 UTF-8 bytes; an emoji like `😀` is a surrogate PAIR
+// (two code units, 4 UTF-8 bytes) — the case most likely to break a naive
+// scanner. The official yaml-test-suite only exercises BMP text in a plain
+// scalar value (H3Z8) / comment (P2AD) and one astral emoji in an anchor name
+// (8XYN); it never puts an astral emoji in a scalar value/key, a block scalar
+// body, or a quoted string. These fill that gap, asserting exact values and
+// cross-checking the oracle.
+// --------------------------------------------------------------------------
+
+const utf8Cases: [string, string, unknown][] = [
+  // astral emoji in a plain (unquoted) scalar value and key — not in the suite
+  ["plain value", "greeting: héllo 🎉 wörld", { greeting: "héllo 🎉 wörld" }],
+  ["plain key", "café ☕ 🔑: yes", { "café ☕ 🔑": "yes" }],
+  ["emoji-only key and value", "🔑: 🎉", { "🔑": "🎉" }],
+  // literal (unescaped) multibyte + astral inside quoted scalars
+  ["single-quoted", "s: 'naïve 🎈 façade'", { s: "naïve 🎈 façade" }],
+  ["double-quoted", 's: "naïve 🎈 façade"', { s: "naïve 🎈 façade" }],
+  // block literal / folded scalar BODIES (suite only tests BMP in the header)
+  [
+    "block literal |",
+    "text: |\n  line one 🎉\n  héllo λ\n  日本語\n",
+    { text: "line one 🎉\nhéllo λ\n日本語\n" },
+  ],
+  ["block folded >", "text: >\n  wörld 🎈\n  café λ\n", { text: "wörld 🎈 café λ\n" }],
+  // flow collections
+  ["flow map", "{ café: ☕, 日本: 語 }", { café: "☕", 日本: "語" }],
+  ["flow seq", "[🍎, 🍊, λ, π]", ["🍎", "🍊", "λ", "π"]],
+  // astral pair immediately adjacent to a flow delimiter (boundary stress)
+  ["astral adjacent to delimiter", "[a🎉,b🎈]", ["a🎉", "b🎈"]],
+  // a long run mixing BMP and astral, no ASCII separators to lean on
+  ["mixed BMP + astral run", "s: αβγ😀😁😂中文", { s: "αβγ😀😁😂中文" }],
+  // ZWJ-joined and regional-indicator (flag) emoji stay byte-for-byte intact
+  ["ZWJ family emoji", "s: 👨‍👩‍👧‍👦 family", { s: "👨‍👩‍👧‍👦 family" }],
+  ["flag emoji", "s: 🇬🇧 🇯🇵", { s: "🇬🇧 🇯🇵" }],
+  // emoji surviving a trailing comment (comment is dropped, scalar is not)
+  ["emoji before comment", "a: café 🎉 # 日本 comment", { a: "café 🎉" }],
+];
+
+for (const [label, input, expected] of utf8Cases) {
+  test(`utf8/emoji · ${label}`, () => {
+    deepStrictEqual(parse(input), expected);
+    deepStrictEqual(parse(input), oracleParse(input));
+  });
+}
+
+test("utf8/emoji · astral emoji in an anchor name resolves through its alias", () => {
+  // yaml-test-suite 8XYN covers an astral anchor NAME; this adds the alias hop.
+  deepStrictEqual(parse("- &😁 first\n- *😁\n"), ["first", "first"]);
+  deepStrictEqual(parse("- &😁 first\n- *😁\n"), oracleParse("- &😁 first\n- *😁\n"));
+});
+
+test("utf8/emoji · stringify round-trips multibyte and astral text", () => {
+  const value = {
+    greeting: "héllo 🎉 wörld",
+    日本語: ["λ", "π", "😀😁"],
+    nested: { "☕": "café", "🔑": "🎈" },
+  };
+  deepStrictEqual(parse(stringify(value)), value);
 });
