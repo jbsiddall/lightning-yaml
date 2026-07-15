@@ -4816,7 +4816,13 @@ function writeBinaryScalar(bytes: Uint8Array): string {
 // ---------------------------------------------------------------------------
 
 function isEmptyContainer(obj: object, isArr: boolean): boolean {
-  return isArr ? (obj as unknown[]).length === 0 : Object.keys(obj as Record<string, unknown>).length === 0;
+  if (isArr) return (obj as unknown[]).length === 0;
+  const rec = obj as Record<string, unknown>;
+  const keys = Object.keys(rec);
+  for (let i = 0; i < keys.length; i++) {
+    if (rec[keys[i]] !== undefined) return false;
+  }
+  return true;
 }
 
 /**
@@ -4838,6 +4844,7 @@ function writeCollectionBody(obj: object, isArr: boolean, indent: number): void 
     const keys = Object.keys(rec);
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
+      if (rec[k] === undefined) continue; // omit undefined-valued keys (matches JSON.stringify)
       let keyColon = dumpKeyCache!.get(k);
       if (keyColon === undefined) {
         keyColon = writeStringScalar(k) + ":";
