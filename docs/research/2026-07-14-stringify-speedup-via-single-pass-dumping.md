@@ -64,8 +64,8 @@ Timing used the same harness as the rest of this round: `performance.now()` per 
 `JSON.stringify` of the identical value. A methodology note that matters at scale: without
 a GC between samples, `xlarge-records` (11.5 MB of output) reads as **25×**
 `JSON.stringify`, because collection of the previous iteration's rope and temporaries
-lands inside the timed region; with GC-between it reads **~8×**, matching the committed
-BENCHMARKS.md figure of 8.05×. Every number here is GC-between. Because the machine was
+lands inside the timed region; with GC-between it reads **~8×**, matching the then-committed
+benchmark figure of 8.05×. Every number here is GC-between. Because the machine was
 shared during the session, absolute milliseconds are indicative and the ratios / profile
 percentages / heap deltas are the robust signals. To measure the restart penalty on
 genuinely shared input we used the `yaml-rich` fixtures, whose shared config pool turns

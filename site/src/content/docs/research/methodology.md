@@ -180,27 +180,29 @@ pnpm test:suite         # yaml-test-suite conformance runner (364/373, 97.6%)
 pnpm bench:speed        # mitata parse + stringify throughput
 pnpm bench:memory       # peak RSS + retained heap per candidate (sequential)
 
-# report generators — refresh the BENCHMARKS.md results blocks
-pnpm bench:self         # our implementation + JSON baseline (fast) — run before every commit/PR
-pnpm bench:competition  # full head-to-head, all parsers (slow) — run on dep/dataset/milestone changes
+# report generators — emit results/benchmarks/*.yaml (gitignored)
+pnpm bench:self         # our implementation + JSON baseline (fast) — local dev refresh
+pnpm bench:competition  # full head-to-head, all parsers (slow) — what CI publishes
 pnpm bench              # gen:fixtures + competition + self
 
 pnpm typecheck
 ```
 
-The two report scripts refresh two different blocks in `BENCHMARKS.md` on two
-different cadences — see
+The two report scripts emit single-doc YAML to `results/benchmarks/{speed,memory}.yaml`
+— gitignored, local artifacts — on two different cadences — see
 [CLAUDE.md](https://github.com/jbsiddall/lightning-yaml/blob/main/CLAUDE.md):
 
 - **`bench:self`** benchmarks only this repo's parser (+ JSON baseline) and is
-  fast; run it before every commit to track our progress cheaply.
+  fast; run it before every commit for a cheap local read on our progress. Its
+  output is never published.
 - **`bench:competition`** benchmarks the full matrix — every parser including
-  lightning-yaml — and is slow (xlarge/yaml); re-run it when dependency
-  versions, datasets, or (for a fresh head-to-head snapshot) our parser change.
+  lightning-yaml — and is slow (xlarge/yaml). **CI** runs this same full matrix
+  on every push to `main` and appends the result as a new document onto the
+  orphan `benchmark-data` branch (only the full matrix is published; a partial
+  `bench:self` run can't produce valid cross-library ratios).
 
-The full result tables live on the [Benchmarks](/benchmarks/) page and in
-[`BENCHMARKS.md`](https://github.com/jbsiddall/lightning-yaml/blob/main/BENCHMARKS.md)
-in the repo.
+The full result tables live on the [Benchmarks](/benchmarks/) page, which reads
+that published history.
 
 ## Repository layout
 
@@ -210,12 +212,13 @@ src/
 bench/
   candidates.ts        # candidates + groups + kind; applies/supports/handles gating
   oracle.ts            # the spec oracle (yaml) used by the fixtures + tests
-  report.ts            # regenerate BENCHMARKS.md blocks: `report.ts self|competition`
+  report.ts            # emit results/benchmarks/{speed,memory}.yaml: `report.ts self|competition`
   conformance/         # yaml-test-suite runner (`test:suite`) + compat cross-checks
   fixtures/
     datasets.ts        # dataset matrix (category × size × shape) + loaders
     generate.ts        # seeded, reproducible JSON + YAML generator
   speed/
+    emit.ts            # mitata run → results/benchmarks/speed.yaml (isolated child process)
     parse.bench.ts     # mitata parse throughput (sequential)
     stringify.bench.ts # mitata stringify throughput (sequential)
   memory/

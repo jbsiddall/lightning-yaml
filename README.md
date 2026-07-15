@@ -37,8 +37,9 @@ Everything else is secondary to those two.
 
 Measured primarily against native `JSON.parse` — the bar this project holds
 itself to — with js-yaml and `yaml` for context. Representative figures on the
-maintainer's machine; the full tables (all datasets, every parser) live in
-[BENCHMARKS.md](BENCHMARKS.md).
+maintainer's machine; the full tables (all datasets, every parser, tracked over
+time) live at [lightning-yaml.dev](https://lightning-yaml.dev), reading published
+runs from the orphan `benchmark-data` branch.
 
 | Representative metric      | `JSON.parse` | **lightning-yaml** |  js-yaml |    yaml |
 | -------------------------- | -----------: | -----------------: | -------: | ------: |
@@ -50,7 +51,7 @@ That's roughly **2× `JSON.parse`'s parse time** and **~1.3× its peak memory** 
 large inputs — versus ~12× / ~3.4× for js-yaml and ~110× / ~9.6× for `yaml`.
 
 Full benchmarks (all datasets, every parser) →
-[lightning-yaml.dev](https://lightning-yaml.dev) · [BENCHMARKS.md](BENCHMARKS.md)
+[lightning-yaml.dev](https://lightning-yaml.dev)
 
 ## Install
 
@@ -211,10 +212,8 @@ the separate peak-memory harness, the consistency suite, and the parser
 internals — lives in the docs, so this README stays focused on *using* the
 library:
 
-- **[lightning-yaml.dev →](https://lightning-yaml.dev)** — guides, the full API
-  reference, and the design write-ups.
-- **[BENCHMARKS.md](BENCHMARKS.md)** — the complete, auto-generated benchmark
-  tables (every dataset, every parser).
+- **[lightning-yaml.dev →](https://lightning-yaml.dev)** — guides, benchmarks, the
+  full API reference, and the design write-ups.
 - **[Try it live →](https://lightning-yaml.dev/playground)** — paste in YAML or
   JSON and see what lightning-yaml produces, side by side with js-yaml and
   `yaml`.

@@ -1,0 +1,99 @@
+# Lightning YAML — BUNDLE-SIZE benchmark suite (browser, minified + compressed).
+#
+# Append-only, multi-document YAML (same model as speed.yaml): each '---'
+# document is one full RUN; CI appends, never rewrites. A run measures every
+# library x bundler pair; rows are keyed by bundler, each row's `values` by
+# library id (mirrors speed.yaml/memory.yaml's row/values convention).
+#
+# min/gzip/brotli are bytes of the production bundle after tree-shaking +
+# minification, importing only parse + stringify. rust marks bundlers written
+# in Rust (a property of the bundler, not the library). Lower is better.
+---
+suite: bundle-size
+scope: competition
+tool: vite, webpack, rolldown, bun
+units:
+  min: bytes
+  gzip: bytes
+  brotli: bytes
+lower_is_better: true
+generated: 2026-07-15
+source: d77ba23
+env:
+  bundlers:
+    vite: 8.1.4
+    webpack: 5.108.4
+    rolldown: 1.1.5
+    bun: 1.3.11
+libraries:
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    version: 0.1.0
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+  - id: js-yaml
+    label: js-yaml
+    version: 5.2.1
+results:
+  - bundler: vite
+    rust: false
+    values:
+      lightning-yaml:
+        min: 41117
+        gzip: 12291
+        brotli: 10773
+      yaml:
+        min: 98817
+        gzip: 30069
+        brotli: 27062
+      js-yaml:
+        min: 53382
+        gzip: 15887
+        brotli: 14332
+  - bundler: webpack
+    rust: false
+    values:
+      lightning-yaml:
+        min: 40904
+        gzip: 12216
+        brotli: 10706
+      yaml:
+        min: 98563
+        gzip: 30020
+        brotli: 27001
+      js-yaml:
+        min: 52993
+        gzip: 15906
+        brotli: 14300
+  - bundler: rolldown
+    rust: true
+    values:
+      lightning-yaml:
+        min: 40732
+        gzip: 11817
+        brotli: 10395
+      yaml:
+        min: 97380
+        gzip: 29842
+        brotli: 26828
+      js-yaml:
+        min: 52459
+        gzip: 15962
+        brotli: 14440
+  - bundler: bun
+    rust: false
+    values:
+      lightning-yaml:
+        min: 42317
+        gzip: 12348
+        brotli: 10687
+      yaml:
+        min: 99834
+        gzip: 30990
+        brotli: 27584
+      js-yaml:
+        min: 54246
+        gzip: 16429
+        brotli: 14723

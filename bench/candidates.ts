@@ -113,6 +113,38 @@ export function candidateByName(name: string): Candidate {
   return found;
 }
 
+/** Display label per candidate name — the single source every benchmark-YAML emitter shares. */
+const DISPLAY_LABEL: Record<string, string> = {
+  JSON: "JSON",
+  "js-yaml": "js-yaml",
+  yaml: "yaml (eemeli)",
+  "lightning-yaml": "Lightning YAML",
+};
+
+/** Display metadata for a candidate, as it appears in a benchmark YAML doc's `libraries` list. */
+export interface LibraryMeta {
+  id: string;
+  label: string;
+  baseline?: boolean;
+  self?: boolean;
+}
+
+export function libraryMeta(c: Candidate): LibraryMeta {
+  const m: LibraryMeta = { id: c.name, label: DISPLAY_LABEL[c.name] ?? c.name };
+  if (c.group === "baseline") m.baseline = true;
+  if (c.group === "ours") m.self = true;
+  return m;
+}
+
+/**
+ * The `scope` field written into a benchmark YAML doc. "all" (every
+ * candidate) IS the head-to-head competition run, so both fold to the same
+ * label — only "ours" (JSON + lightning-yaml, partial matrix) is distinct.
+ */
+export function scopeLabel(scope: Scope): "competition" | "ours" {
+  return scope === "ours" ? "ours" : "competition";
+}
+
 /**
  * Whether `candidate` should run for `op` on a fixture of `category`.
  *
