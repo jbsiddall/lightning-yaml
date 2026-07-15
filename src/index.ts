@@ -1,6 +1,6 @@
 /**
  * lightning-yaml — a single-pass, allocation-minimal, pure-JS YAML parser
- * engineered for V8 (see docs/research/07-design-a-pure-js.md).
+ * engineered for V8 (see docs/research/2026-07-12-design-a-pure-js-parser.md).
  *
  * The public surface mirrors `JSON.parse`:
  *   - `parse(text)`     text → JS value (a single document; throws if a second

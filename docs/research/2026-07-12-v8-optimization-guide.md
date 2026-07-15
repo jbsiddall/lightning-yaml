@@ -1,4 +1,4 @@
-> Part of the [research dossier](README.md). Origin: a user-supplied V8
+> Origin: a user-supplied V8
 > optimization guide, reviewed 2026-07-12 against the dossier and edited
 > where the dossier's *measured* results take precedence. **Editorial
 > changes made:** (1) §3's "decode the source into a typed array" bullet

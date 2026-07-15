@@ -3,7 +3,7 @@
  *
  * Distinct from `parser.unit.ts` (feature coverage) and the vitest consistency
  * suite (fixture-vs-oracle): this file is the differential + fuzz seedbank
- * distilled from `docs/research/13-adversarial-torture-tests.md`, which taxonomizes
+ * distilled from `docs/research/2026-07-12-adversarial-torture-tests.md`, which taxonomizes
  * the constructs known to break or split YAML parsers (parser-differential
  * research, the official yaml-test-suite corners, and real CVEs).
  *
