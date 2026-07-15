@@ -11,15 +11,17 @@
  *
  * ## Compatibility level TODAY
  *
- * **API-level, not behaviour-complete.** Every export and call signature the
- * real `js-yaml` exposes exists here, so code that imports `load`/`loadAll`/
- * `dump` compiles and runs unchanged. What is NOT yet honoured is almost every
- * **option argument**: `load(text, { schema, json, maxAliases, maxDepth })`
- * and `dump(obj, { sortKeys, indent, noRefs, ... })` are accepted so call
- * sites type-check, but are currently **ignored** — only `filename` (threaded
- * into a thrown error's mark) and `loadAll`'s iterator actually do anything.
- * The shim is genuinely useful for migrating today, but a call that relies on
- * an option will silently behave differently from real js-yaml.
+ * **API-level, with a growing set of honoured options.** Every export and call
+ * signature the real `js-yaml` exposes exists here, so code that imports
+ * `load`/`loadAll`/`dump` compiles and runs unchanged. On top of that, the
+ * options that matter most for migration are now wired through to the core
+ * (./index.ts): on `load`/`loadAll` — `filename`, `schema` (core vs. rich
+ * typing), `maxAliases`, `maxDepth`; on `dump` — `indent`, `quoteStyle`,
+ * `forceQuotes`, `noRefs`, `schema`. The remaining options (`json`,
+ * `sortKeys`, `lineWidth`, the flow-style knobs, `transform`, …) are still
+ * accepted-and-ignored, and `maxTotalMergeKeys` is a permanent non-goal (❌
+ * below) — a call that relies on one of those will still behave differently
+ * from real js-yaml.
  *
  * ## Goal
  *
@@ -33,42 +35,49 @@
  *
  * ## Option support matrix
  *
- * `path` — `done`: already honoured · `compat`: addable in THIS shim, no core
- * change and no core perf cost · `core`: gated core change, options-free fast
- * path stays byte-identical · `feature`: needs a parser/dumper capability that
- * does not exist yet.
+ * `status` — `done`: honoured · `ignored`: accepted so call sites type-check but
+ * has no effect (yet) · `feature`: needs a parser/dumper capability that does
+ * not exist yet · ❌: a deliberate, permanent non-goal that will NOT be
+ * implemented.
  *
  * ```text
  * load / loadAll (LoadOptions)
  *   filename           attach source path to error marks          done
- *   json               dup-key: last-wins (true) vs throw (false) core        [1]
- *   schema             FAILSAFE / JSON / CORE / YAML11 typing      core        [2]
- *   maxAliases         cap alias expansions (billion-laughs)      compat/core
- *   maxDepth           cap nesting depth                          compat/core  (core already tracks depth)
- *   maxTotalMergeKeys  cap `<<` merge expansion                   feature      (merge keys unimplemented)
+ *   schema             core (reject !!binary/!!set/…) vs rich      done         [2]
+ *   maxAliases         cap resolved aliases (billion-laughs)       done
+ *   maxDepth           cap nesting depth                           done
+ *   json               dup-key: last-wins (true) vs throw (false)  ignored      [1]
+ *   maxTotalMergeKeys  cap `<<` merge expansion                    ❌           (YAML-1.1 merge keys; non-goal)
  *
  * dump (DumpOptions)
- *   sortKeys           sort map keys on output                    compat       <- easy win (pre-sort the graph)
- *   skipInvalid        drop functions/undefined vs emit/throw     compat       <- easy win (pre-clean input)
- *   indent             block indent width (we hardcode 2)         core
- *   quoteStyle         prefer 'single' vs "double"                core
- *   forceQuotes        always quote strings                       core
- *   schema             output schema                              core
- *   noRefs             expand shared refs instead of &/*          feature      [3]
- *   lineWidth          fold long lines                            feature      (no line folding exists)
- *   flowLevel + seqNoIndent + seqInlineFirst + flowBracketPadding feature      (no flow-collection writer)
+ *   indent             block indent width (default 2)              done
+ *   quoteStyle         prefer 'single' vs "double" when quoting    done
+ *   forceQuotes        always quote string values                  done         [4]
+ *   noRefs             duplicate shared refs instead of &/*        done         [3]
+ *   schema             core (reject Uint8Array) vs rich !!binary   done
+ *   sortKeys           sort map keys on output                     ignored
+ *   skipInvalid        drop functions/undefined vs emit/throw      ignored
+ *   lineWidth          fold long lines                             feature      (no line folding exists)
+ *   flowLevel + seqNoIndent + seqInlineFirst + flowBracketPadding  feature      (no flow-collection writer)
  *     + flowSkipCommaSpace + flowSkipColonSpace + quoteFlowKeys
  *     + tagBeforeAnchor
- *   transform          mutate documents before dump              feature      (needs a Document/AST model)
+ *   transform          mutate documents before dump               feature       (needs a Document/AST model)
  * ```
  *
  * [1] Our default is already last-wins (= `json: true`). Worth knowing: the
  *     yaml-test-suite treats duplicate keys as VALID (case 2JQS), so
  *     throw-on-duplicate is a js-yaml-PARITY knob, NOT a spec-conformance win.
- * [2] js-yaml v5's own default schema is 1.2-core, same as ours — so default
- *     typing already agrees; only an explicitly non-default schema diverges.
+ * [2] The rich tags (`!!binary`/`!!set`/`!!omap`/`!!pairs`) resolve by DEFAULT
+ *     (matching lightning-yaml's own `parse()`), unlike real js-yaml v5 whose
+ *     `load` default is core and REJECTS them. Pass `schema: CORE_SCHEMA` (or
+ *     `JSON_SCHEMA`/`FAILSAFE_SCHEMA`) for the strict, js-yaml-default rejection;
+ *     `YAML11_SCHEMA` is the explicit rich request. Schema never changes scalar
+ *     typing (`yes`/`no`/`on`/`off` stay strings — we are 1.2-only).
  * [3] `noRefs` can't just skip anchoring: the shared-reference pre-scan is also
- *     the cycle guard, so it must first tell a shared DAG node from a cycle.
+ *     the cycle guard, so it first proves the graph acyclic (a genuine cycle
+ *     throws) and only then duplicates the shared DAG nodes.
+ * [4] Applies to string VALUES only — keys stay bare and non-string scalars are
+ *     left un-tagged (we don't reproduce js-yaml's `1` → `!!int '1'` quirk).
  *
  * The construct-level gaps below are the current intentional simplifications
  * (a `NotImplementedError` here means "can't read this yet", not "malformed"):
@@ -85,14 +94,16 @@
  *     re-throw our `NotImplementedError` unwrapped rather than mislabeling it a
  *     `YAMLException` — but that path is defensive: the current parser is
  *     complete and never throws it.
- *   - `dump` delegates to our `stringify` (implemented); options beyond the
- *     value itself are currently ignored.
- *   - Custom schemas/tags (`defineScalarTag`/`defineSequenceTag`/
- *     `defineMappingTag`, `Schema`, the `*_SCHEMA` constants, and the `schema`
- *     option) are cheap stubs: they exist so imports resolve and
- *     `{ schema: CORE_SCHEMA }`-style options don't crash the call, but our
- *     parser is hardwired to YAML 1.2 core (see ./index.ts) and never
- *     branches on them.
+ *   - `dump` delegates to our `stringify` and threads the honoured knobs
+ *     (`indent`/`quoteStyle`/`forceQuotes`/`noRefs`/`schema`); the rest are
+ *     accepted-and-ignored (see the matrix).
+ *   - Custom-tag definitions (`defineScalarTag`/`defineSequenceTag`/
+ *     `defineMappingTag`, `Schema.withTags`) are still cheap stubs — our parser
+ *     is hardwired to YAML 1.2 core (see ./index.ts) and cannot register a
+ *     user-defined tag. The `*_SCHEMA` constants and the `schema` option are NOT
+ *     stubs, however: they carry a core-vs-rich flag that the shim reads to
+ *     toggle whether `!!binary`/`!!set`/`!!omap`/`!!pairs` resolve (rich) or are
+ *     rejected as unknown tags (core) — see note [2] above.
  *
  * One thing that IS aligned rather than merely stubbed: js-yaml's `load`
  * throws on a second document in the stream (use `loadAll` instead), and our
@@ -111,6 +122,7 @@
  */
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./index.ts";
+import type { ParseOptions, StringifyOptions } from "./index.ts";
 
 // ---------------------------------------------------------------------------
 // YAMLException — shaped like js-yaml's (name/reason/message + a cheap mark).
@@ -218,8 +230,18 @@ export function defineMappingTag(tagName: string, _opts: Record<string, unknown>
   return { tagName, nodeKind: "mapping" };
 }
 
-/** Stub mirroring js-yaml v5's `Schema` (composition via `.withTags(...)`). A no-op. */
+/**
+ * Mirrors js-yaml v5's `Schema` shape (composition via `.withTags(...)`), plus
+ * one field the shim actually reads: {@link richTags}. Tag composition itself
+ * is still a no-op — our parser is hardwired to YAML 1.2 core — but the
+ * core-vs-rich distinction between the exported schema constants IS honoured
+ * (see the option matrix above): it toggles whether `!!binary`/`!!set`/… resolve
+ * or are rejected as unknown tags.
+ */
 export class Schema {
+  /** Whether this schema resolves the rich `!!binary`/`!!set`/`!!omap`/`!!pairs` tags. `true` only for {@link YAML11_SCHEMA}; user-built schemas default to `false` (core typing). */
+  richTags = false;
+
   constructor(_tags?: readonly TagDefinition[]) {}
 
   withTags(..._tags: unknown[]): Schema {
@@ -227,19 +249,27 @@ export class Schema {
   }
 }
 
-/** Stub so `import { FAILSAFE_SCHEMA }` still works. We always parse as YAML 1.2 core, so the schema you pass has no effect. */
-export const FAILSAFE_SCHEMA: Schema = new Schema();
-/** Stub — see {@link FAILSAFE_SCHEMA}. */
-export const JSON_SCHEMA: Schema = new Schema();
-/** Stub — see {@link FAILSAFE_SCHEMA}. */
-export const CORE_SCHEMA: Schema = new Schema();
-/** Stub. Does NOT turn on YAML 1.1 typing — `yes`/`no`/`on`/`off` and sexagesimals stay plain values, because we always parse as YAML 1.2 core. See {@link FAILSAFE_SCHEMA}. */
-export const YAML11_SCHEMA: Schema = new Schema();
+function makeSchema(richTags: boolean): Schema {
+  const s = new Schema();
+  s.richTags = richTags;
+  return s;
+}
+
+/** Only `!!str`/`!!seq`/`!!map` are recognised — same practical effect here as {@link CORE_SCHEMA}: the rich tags (`!!binary`/`!!set`/…) are rejected as unknown. */
+export const FAILSAFE_SCHEMA: Schema = makeSchema(false);
+/** JSON schema (no YAML-only tags). Like {@link CORE_SCHEMA} for our purposes: the rich `!!binary`/`!!set`/… tags are rejected. */
+export const JSON_SCHEMA: Schema = makeSchema(false);
+/** YAML 1.2 core schema — the strict mode. `!!binary`/`!!set`/`!!omap`/`!!pairs` are rejected as unknown tags (matching real js-yaml v5's default `load`). */
+export const CORE_SCHEMA: Schema = makeSchema(false);
+/** The rich bundle: `!!binary` → `Uint8Array`, `!!set` → `Set`, `!!omap` → insertion-ordered `Map`, `!!pairs` → array of one-key objects. This is lightning-yaml's own `parse()` behaviour, exposed under js-yaml v5's name for it. (It does NOT enable YAML-1.1 scalar typing — `yes`/`no`/`on`/`off` and sexagesimals stay plain strings; we are 1.2-only.) */
+export const YAML11_SCHEMA: Schema = makeSchema(true);
 
 // ---------------------------------------------------------------------------
-// Options — accepted, best-effort. `filename` is honored (threaded into a
-// thrown YAMLException's mark); the rest exist so option bags type-check and
-// are otherwise ignored (schema/style knobs have no effect — see above).
+// Options — the honoured knobs (LoadOptions: filename, schema, maxAliases,
+// maxDepth · DumpOptions: indent, quoteStyle, forceQuotes, noRefs, schema) are
+// wired through to ./index.ts; the rest are accepted-and-ignored so option bags
+// still type-check. See the option matrix at the top of this file for the
+// per-field status (and ❌ for the maxTotalMergeKeys non-goal).
 //
 // v5 REWRITE: these mirror v5's real `LoadOptions`/`DumpOptions` shapes, not
 // v4's. v5 dropped `onWarning`/`listener` (load) and `styles`/`replacer`/
@@ -249,25 +279,36 @@ export const YAML11_SCHEMA: Schema = new Schema();
 // ---------------------------------------------------------------------------
 
 export interface LoadOptions {
+  /** Source path attached to a thrown {@link YAMLException}'s `mark.name`. Honoured. */
   filename?: string;
+  /** {@link CORE_SCHEMA}/{@link JSON_SCHEMA}/{@link FAILSAFE_SCHEMA} (reject rich tags) vs. {@link YAML11_SCHEMA} (resolve them). Honoured; default is rich. */
   schema?: Schema;
+  /** Duplicate-key policy. Ignored — we are always last-wins (`json: true`); see note [1] above. */
   json?: boolean;
+  /** Cap on collection nesting depth. Honoured. */
   maxDepth?: number;
+  /** ❌ Permanent non-goal: `<<` merge keys are a YAML-1.1 construct this library does not implement, so there is nothing to cap. Accepted (type-checks) but has no effect and never will. */
   maxTotalMergeKeys?: number;
+  /** Cap on how many aliases may resolve before a `YAMLException` (billion-laughs guard). Honoured. */
   maxAliases?: number;
 }
 
 export interface DumpOptions {
+  /** Block indent width per level (default 2; values < 1 fall back to 2). Honoured. */
   indent?: number;
   seqNoIndent?: boolean;
   seqInlineFirst?: boolean;
   skipInvalid?: boolean;
   flowLevel?: number;
+  /** {@link YAML11_SCHEMA}/default emit `!!binary` for a `Uint8Array`; {@link CORE_SCHEMA}/{@link JSON_SCHEMA}/{@link FAILSAFE_SCHEMA} reject one. Honoured. */
   schema?: Schema;
   sortKeys?: boolean | ((a: unknown, b: unknown) => number);
   lineWidth?: number;
+  /** Duplicate shared references instead of `&`/`*` anchoring; a genuine cycle throws. Honoured. */
   noRefs?: boolean;
+  /** Preferred quote character when a scalar must be quoted. Honoured. */
   quoteStyle?: "single" | "double";
+  /** Quote every string value even when it is bare-safe (keys/non-strings unaffected). Honoured. */
   forceQuotes?: boolean;
   flowBracketPadding?: boolean;
   flowSkipCommaSpace?: boolean;
@@ -293,9 +334,32 @@ export interface DumpOptions {
  * new throw isn't worth it for a compat shim. Tracked as a known, low-impact
  * divergence (see bench/conformance/compat.ts).
  */
+/**
+ * Translate a {@link LoadOptions} bag into our core {@link ParseOptions}. Only
+ * the honoured knobs cross over: `schema` (core vs. rich typing), `maxAliases`,
+ * `maxDepth`. `filename` is handled separately (error marks), and `json` /
+ * `maxTotalMergeKeys` are intentionally ignored (see the option matrix above).
+ */
+function toParseOptions(opts: LoadOptions | undefined): ParseOptions | undefined {
+  if (opts === undefined) return undefined;
+  return {
+    // js-yaml counts the document root as depth 1 and throws when depth REACHES
+    // maxDepth; our core throws when it EXCEEDS the cap. Shift by 1 here so the
+    // compat boundary matches js-yaml for every nesting case, leaving the core's
+    // own `parse(text, { maxDepth })` semantics untouched. (A bare top-level
+    // scalar at maxDepth:1 — which js-yaml rejects — is the one residual gap: our
+    // core never counts a non-collection root, so it parses; negligible in practice.)
+    maxDepth: opts.maxDepth === undefined ? undefined : opts.maxDepth - 1,
+    maxAliases: opts.maxAliases,
+    // No schema ⇒ rich (lightning-yaml's own parse() default). CORE/JSON/
+    // FAILSAFE_SCHEMA opt into strict typing; YAML11_SCHEMA is explicit rich.
+    richTags: opts.schema === undefined ? true : opts.schema.richTags,
+  };
+}
+
 export function load(input: string, opts?: LoadOptions): unknown {
   try {
-    return ourParse(input);
+    return ourParse(input, toParseOptions(opts));
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
     throw toYAMLException(err, opts?.filename);
@@ -305,7 +369,7 @@ export function load(input: string, opts?: LoadOptions): unknown {
 export function loadAll(input: string, iterator?: ((doc: unknown) => void) | null, opts?: LoadOptions): unknown[] | undefined {
   let docs: unknown[];
   try {
-    docs = ourParseAll(input);
+    docs = ourParseAll(input, toParseOptions(opts));
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
     throw toYAMLException(err, opts?.filename);
@@ -317,9 +381,24 @@ export function loadAll(input: string, iterator?: ((doc: unknown) => void) | nul
   return docs;
 }
 
-/** Delegates to our `stringify`. */
-export function dump(obj: unknown, _opts?: DumpOptions): string {
-  return ourStringify(obj);
+/**
+ * Delegates to our `stringify`, threading the honoured dump knobs — `indent`,
+ * `quoteStyle`, `forceQuotes`, `noRefs`, and `schema` (rich `!!binary` output
+ * vs. core-schema rejection). The remaining DumpOptions (sortKeys, lineWidth,
+ * flow-style knobs, transform, …) are still ignored — see the option matrix.
+ */
+export function dump(obj: unknown, opts?: DumpOptions): string {
+  if (opts === undefined) return ourStringify(obj);
+  const stringifyOpts: StringifyOptions = {
+    indent: opts.indent,
+    quoteStyle: opts.quoteStyle,
+    forceQuotes: opts.forceQuotes,
+    noRefs: opts.noRefs,
+    // dump defaults to rich output (js-yaml's dump emits !!binary by default,
+    // even though its load default does not); CORE/JSON/FAILSAFE_SCHEMA reject it.
+    richTags: opts.schema === undefined ? true : opts.schema.richTags,
+  };
+  return ourStringify(obj, stringifyOpts);
 }
 
 const jsYamlCompat = {

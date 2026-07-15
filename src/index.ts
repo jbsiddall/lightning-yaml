@@ -170,6 +170,15 @@ let pos = 0;
 let len = 0;
 let depth = 0;
 
+// Parse-time compat knobs (src/js-yaml-compat.ts), set via `parse`/`parseAll`'s
+// optional options arg. Each DEFAULTS to the value that reproduces the
+// options-free behaviour exactly, and `resetForStream` restores those defaults,
+// so a bare `parse(text)` is unaffected — only an explicit option deviates.
+let activeMaxDepth = MAX_DEPTH; // LoadOptions.maxDepth — nesting cap
+let activeMaxAliases = Infinity; // LoadOptions.maxAliases — cap on resolved aliases (billion-laughs guard)
+let aliasCount = 0; // aliases resolved so far in this stream
+let richTags = true; // resolve !!binary/!!set/!!omap/!!pairs (rich schema) vs. reject them (core schema)
+
 /**
  * Byte offset of the current line's start. A block node's indentation column is
  * simply `pos - lineStart`, which is what makes compact forms (`- key: val`)
@@ -468,6 +477,10 @@ function resetForStream(text: string): void {
   len = text.length;
   pos = 0;
   depth = 0;
+  aliasCount = 0;
+  activeMaxDepth = MAX_DEPTH;
+  activeMaxAliases = Infinity;
+  richTags = true;
   nextBackslash = -1;
   nextNewline = -1;
   lineStart = 0;
@@ -487,6 +500,30 @@ function resetForStream(text: string): void {
     pos = 1;
     lineStart = 1; // so the first line's content column is measured from here
   }
+}
+
+/**
+ * Optional knobs for {@link parse}/{@link parseAll}. Every field defaults to
+ * the options-free behaviour, so passing `{}` (or nothing) parses exactly as a
+ * bare `parse(text)` does — these exist mainly to back the `js-yaml`/`yaml`
+ * compat shims (LoadOptions.maxDepth/maxAliases/schema), not to reshape the
+ * core API's defaults.
+ */
+export interface ParseOptions {
+  /** Cap on collection nesting depth before a parse error (default {@link MAX_DEPTH}). */
+  maxDepth?: number;
+  /** Cap on how many aliases (`*a`) may resolve in the whole stream before a parse error (default: unlimited). */
+  maxAliases?: number;
+  /** Resolve the rich `!!binary`/`!!set`/`!!omap`/`!!pairs` tags to `Uint8Array`/`Set`/… (default `true`); `false` rejects them as unknown tags, matching js-yaml's core schema. */
+  richTags?: boolean;
+}
+
+/** Apply {@link ParseOptions} over the just-reset defaults; a missing field leaves the default in place. Called right after `resetForStream`. */
+function applyParseOptions(opts: ParseOptions | undefined): void {
+  if (opts === undefined) return;
+  if (opts.maxDepth !== undefined) activeMaxDepth = opts.maxDepth;
+  if (opts.maxAliases !== undefined) activeMaxAliases = opts.maxAliases;
+  if (opts.richTags !== undefined) richTags = opts.richTags;
 }
 
 /**
@@ -511,8 +548,9 @@ function resetForStream(text: string): void {
  * // { dish: "pancakes", serves: 4 }
  * ```
  */
-export function parse(text: string): unknown {
+export function parse(text: string, opts?: ParseOptions): unknown {
   resetForStream(text);
+  applyParseOptions(opts);
   const value = parseNextDocument();
   if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
 
@@ -544,8 +582,9 @@ export function parse(text: string): unknown {
  * // [{ dish: "pancakes" }, { dish: "omelette" }]
  * ```
  */
-export function parseAll(text: string): unknown[] {
+export function parseAll(text: string, opts?: ParseOptions): unknown[] {
   resetForStream(text);
+  applyParseOptions(opts);
   const docs: unknown[] = [];
   for (;;) {
     const value = parseNextDocument();
@@ -577,8 +616,26 @@ export function parseAll(text: string): unknown[] {
 // Implementation design (scalar quoting, `Uint8Array` → `!!binary`,
 // anchors/aliases for shared references and cycles, block-style collections)
 // lives in the "Stringify (dump)" section near the end of this file.
-export function stringify(value: unknown): string {
-  return dumpValue(value);
+export function stringify(value: unknown, opts?: StringifyOptions): string {
+  return dumpValue(value, opts);
+}
+
+/**
+ * Optional knobs for {@link stringify}. Every field defaults to the options-free
+ * output, so `stringify(value, {})` (or nothing) emits exactly what a bare
+ * `stringify(value)` does — these back the `js-yaml` compat shim's DumpOptions.
+ */
+export interface StringifyOptions {
+  /** Block indent width per nesting level (default 2). Values below 1 fall back to the default (an indent of 0 would emit non-nesting, invalid YAML). */
+  indent?: number;
+  /** Preferred quote character when a scalar must be quoted (default: single, upgraded to double only when escapes are unavoidable). */
+  quoteStyle?: "single" | "double";
+  /** Quote every string value even when it would be safe bare (default `false`). Keys and non-string scalars are unaffected. */
+  forceQuotes?: boolean;
+  /** Duplicate shared references instead of emitting anchors/aliases (default `false`); a genuine cycle then throws rather than looping. */
+  noRefs?: boolean;
+  /** Emit `!!binary` for a `Uint8Array` (default `true`); `false` (core schema) throws on one instead. */
+  richTags?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -749,6 +806,7 @@ function parseAlias(): unknown {
   pos++; // past '*'
   const name = scanAnchorOrAliasName();
   if (anchorMap === null || !anchorMap.has(name)) fail(`unresolved alias '*${name}' (no matching anchor)`);
+  if (++aliasCount > activeMaxAliases) fail(`aliases exceeded maxAliases (${activeMaxAliases})`);
   return anchorMap.get(name);
 }
 
@@ -984,6 +1042,7 @@ function applyScalarTag(tag: string, raw: string): unknown {
     case TAG_NULL:
       return forceNull(raw);
     case TAG_BINARY:
+      if (!richTags) fail(`unknown scalar tag !<${tag}>`); // core schema: !!binary is not a core tag
       return decodeBinary(raw);
     case TAG_MAP:
     case TAG_SEQ:
@@ -1006,6 +1065,12 @@ function applyScalarTag(tag: string, raw: string): unknown {
  * array of one-key objects, respectively — NOT invented representations).
  */
 function applyCollectionTag(tag: string, value: unknown, kind: "map" | "seq"): unknown {
+  // Core schema (richTags off): !!set/!!omap/!!pairs (and a misplaced !!binary)
+  // are not core tags — reject them as unknown, the way js-yaml does, reporting
+  // the node kind that actually carried the tag.
+  if (!richTags && (tag === TAG_SET || tag === TAG_OMAP || tag === TAG_PAIRS || tag === TAG_BINARY)) {
+    fail(`unknown ${kind === "map" ? "mapping" : "sequence"} tag !<${tag}>`);
+  }
   switch (tag) {
     case TAG_MAP:
       if (kind !== "map") fail("the !!map tag requires a mapping node");
@@ -1408,7 +1473,7 @@ function parseFlowValue(): unknown {
 // ---------------------------------------------------------------------------
 
 function parseFlowSeq(): unknown[] {
-  if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
+  if (++depth > activeMaxDepth) fail("maximum nesting depth exceeded");
   pos++; // past '['
   const arr: unknown[] = []; // built with push → stays PACKED
   registerPendingAnchor(arr); // before children, so `&a [*a]` self-references correctly
@@ -1488,7 +1553,7 @@ function parseFlowExplicitEntry(): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 
 function parseFlowMap(): Record<string, unknown> {
-  if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
+  if (++depth > activeMaxDepth) fail("maximum nesting depth exceeded");
   pos++; // past '{'
   const obj: Record<string, unknown> = {};
   registerPendingAnchor(obj); // before children, so `&a {self: *a}` self-references correctly
@@ -3384,7 +3449,7 @@ function advanceCountingBreaks(): number {
 }
 
 function parseBlockSeq(col: number): unknown[] {
-  if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
+  if (++depth > activeMaxDepth) fail("maximum nesting depth exceeded");
   const arr: unknown[] = [];
   registerPendingAnchor(arr); // before children, so `&a\n- *a\n` self-references correctly
   for (;;) {
@@ -3432,7 +3497,7 @@ function parseBlockSeq(col: number): unknown[] {
  * an explicit ':' but not an implicit one, calibrated against both oracles).
  */
 function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firstIsExplicit = false): Record<string, unknown> {
-  if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
+  if (++depth > activeMaxDepth) fail("maximum nesting depth exceeded");
   const obj: Record<string, unknown> = {};
   registerPendingAnchor(obj); // before children (see parseFlowMap's identical call)
   let key = firstKey;
@@ -4175,6 +4240,7 @@ function parseTagDirectiveArgs(): void {
 function parseDirectives(): boolean {
   tagHandles = null;
   anchorMap = null; // per-document, not per-stream (see anchorMap's doc comment)
+  aliasCount = 0; // aliases are anchor-scoped, so cap them per-document too (matches js-yaml loadAll)
   let sawAny = false;
   let sawYaml = false;
   while (pos < len && pos === lineStart && src.charCodeAt(pos) === PERCENT) {
@@ -4341,6 +4407,18 @@ let dumpRefCounts: Map<object, number> | null = null;
 let dumpAnchors: Map<object, string> | null = null;
 let dumpAnchorSeq = 0;
 let dumpDepth = 0;
+
+// Dump-time compat knobs (src/js-yaml-compat.ts), set via `stringify`'s optional
+// options arg. Each defaults to the options-free behaviour and `dumpValue`
+// restores those defaults per call, so a bare `stringify(value)` is unaffected.
+const QUOTE_AUTO = 0; // minimal quoting (bare when safe, single otherwise, double only when escapes are needed)
+const QUOTE_SINGLE = 1; // prefer single quotes when quoting is needed
+const QUOTE_DOUBLE = 2; // prefer double quotes when quoting is needed
+let activeIndentStep = INDENT_STEP; // DumpOptions.indent — block indent width
+let activeQuoteStyle = QUOTE_AUTO; // DumpOptions.quoteStyle
+let activeForceQuotes = false; // DumpOptions.forceQuotes — always quote string values
+let activeNoRefs = false; // DumpOptions.noRefs — duplicate shared nodes instead of &/*; a true cycle then throws
+let dumpRichTags = true; // emit !!binary for Uint8Array (rich schema) vs. reject it (core schema)
 
 /**
  * Set by the pre-scan (`dumpScanRefs`) iff it reached SOME object more than once
@@ -4624,7 +4702,17 @@ function encodeDoubleQuoted(s: string): string {
  */
 function writeStringScalar(s: string): string {
   if (isPlainScalarSafe(s)) return s;
-  return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+  return chooseQuoted(s);
+}
+
+/**
+ * Quote `s` in the style {@link activeQuoteStyle} asks for: double whenever an
+ * escape is unavoidable (control chars) OR the caller preferred double, else
+ * single. The default (`QUOTE_AUTO`) is single-unless-forced-double, i.e. the
+ * original minimal-quoting behaviour.
+ */
+function chooseQuoted(s: string): string {
+  return needsDoubleQuoting(s) || activeQuoteStyle === QUOTE_DOUBLE ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
 }
 
 // ---------------------------------------------------------------------------
@@ -4661,7 +4749,10 @@ function writeScalar(value: unknown): string {
   if (value === null || value === undefined) return "null";
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return formatNumber(value);
-  if (typeof value === "string") return writeStringScalar(value);
+  // forceQuotes quotes string VALUES only (keys route through writeStringScalar
+  // directly, and non-string scalars stay bare — we don't mimic js-yaml's
+  // `!!int '1'` quirk of tagging forced-quote numbers).
+  if (typeof value === "string") return activeForceQuotes ? chooseQuoted(value) : writeStringScalar(value);
   return writeStringScalar(String(value)); // not in the tested data model (e.g. bigint/symbol) — best effort
 }
 
@@ -4780,6 +4871,7 @@ function writeEntryValue(value: unknown, indent: number): void {
     }
   }
   if (obj instanceof Uint8Array) {
+    if (!dumpRichTags) throw new YAMLParseError("stringify: cannot dump a Uint8Array under the core schema (use richTags/YAML11_SCHEMA)");
     const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
     out += " " + (name !== null ? "&" + name + " " : "") + writeBinaryScalar(obj) + "\n";
     return;
@@ -4792,7 +4884,7 @@ function writeEntryValue(value: unknown, indent: number): void {
   }
   if (name !== null) out += " &" + name + "\n";
   else out += "\n";
-  writeCollectionBody(obj, isArr, indent + INDENT_STEP);
+  writeCollectionBody(obj, isArr, indent + activeIndentStep);
 }
 
 /**
@@ -4811,6 +4903,7 @@ function writeDocumentValue(value: unknown): void {
   // the first occurrence of a shared node, so it needs the same `dumpHasShared`-
   // gated anchor check (skipped on the no-sharing fast path).
   if (obj instanceof Uint8Array) {
+    if (!dumpRichTags) throw new YAMLParseError("stringify: cannot dump a Uint8Array under the core schema (use richTags/YAML11_SCHEMA)");
     const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
     out += (name !== null ? "&" + name + " " : "") + writeBinaryScalar(obj) + "\n";
     return;
@@ -4834,11 +4927,64 @@ function writeDocumentValue(value: unknown): void {
  * `dumpRefCounts` is dropped even earlier, before the write pass (see
  * `dumpHasShared`), so it isn't held alongside the growing output.
  */
-function dumpValue(value: unknown): string {
+/** Reset the dump knobs to their defaults, then apply {@link StringifyOptions}; a missing field leaves the default. Called at the top of every `dumpValue`. */
+function applyDumpOptions(opts: StringifyOptions | undefined): void {
+  activeIndentStep = INDENT_STEP;
+  activeQuoteStyle = QUOTE_AUTO;
+  activeForceQuotes = false;
+  activeNoRefs = false;
+  dumpRichTags = true;
+  if (opts === undefined) return;
+  // Floor a fractional indent (js-yaml does the same, 3.9 → 3) so `indentSpaces`
+  // gets an integer — a non-integer would index INDENT_CACHE off the end (→ undefined,
+  // which then string-concatenates into the output). Sub-1 values fall back to the default.
+  if (opts.indent !== undefined && opts.indent >= 1) activeIndentStep = Math.floor(opts.indent);
+  if (opts.quoteStyle === "single") activeQuoteStyle = QUOTE_SINGLE;
+  else if (opts.quoteStyle === "double") activeQuoteStyle = QUOTE_DOUBLE;
+  if (opts.forceQuotes !== undefined) activeForceQuotes = opts.forceQuotes;
+  if (opts.noRefs !== undefined) activeNoRefs = opts.noRefs;
+  if (opts.richTags !== undefined) dumpRichTags = opts.richTags;
+}
+
+/**
+ * `noRefs` guard: walk `value` and throw on a genuine cycle (a node reachable
+ * from itself), so the anchor-free write pass — which duplicates rather than
+ * aliases — can't loop forever. `path` is the set of nodes on the current
+ * descent; `safe` memoizes nodes already proven fully acyclic, keeping this
+ * O(nodes+edges) even when the same acyclic subtree is shared many times.
+ */
+function dumpAssertAcyclic(value: unknown, path: Set<object>, safe: Set<object>): void {
+  if (value === null || typeof value !== "object") return;
+  const obj = value as object;
+  if (obj instanceof Uint8Array) return;
+  if (path.has(obj)) throw new YAMLParseError("stringify: cannot serialize a circular structure with noRefs");
+  if (safe.has(obj)) return;
+  path.add(obj);
+  if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) dumpAssertAcyclic(obj[i], path, safe);
+  } else {
+    const keys = Object.keys(obj as Record<string, unknown>);
+    for (let i = 0; i < keys.length; i++) dumpAssertAcyclic((obj as Record<string, unknown>)[keys[i]], path, safe);
+  }
+  path.delete(obj);
+  safe.add(obj);
+}
+
+function dumpValue(value: unknown, opts?: StringifyOptions): string {
+  applyDumpOptions(opts);
   dumpRefCounts = new Map();
   dumpDepth = 0;
   dumpHasShared = false;
   dumpScanRefs(value);
+  // noRefs: the pre-scan flagged sharing, but here we must DUPLICATE shared
+  // acyclic nodes (not anchor them) while still refusing a genuine cycle. Prove
+  // acyclic first (throws on a real cycle), then clear `dumpHasShared` so the
+  // write pass takes the anchor-free path and re-walks — and thus re-emits —
+  // each shared subtree. (See src/js-yaml-compat.ts's noRefs note.)
+  if (activeNoRefs && dumpHasShared) {
+    dumpAssertAcyclic(value, new Set(), new Set());
+    dumpHasShared = false;
+  }
   // No shared node or cycle anywhere ⇒ no anchor will ever be assigned, so the
   // ref-count map has done its whole job and the write pass will take the
   // anchor-free fast path. Release the map now (it can be sizable — one entry
