@@ -1,31 +1,42 @@
 // Bundle-size benchmark: how many KB does each YAML library add to a browser
 // bundle when an app imports ONLY parse + stringify and ships it minified?
 //
-//   node bench/bundlesize/run.mjs            # measure + rewrite the BENCHMARKS.md block
-//   node bench/bundlesize/run.mjs --no-readme  # measure + print only
-//   node bench/bundlesize/run.mjs --verify     # also prove tree-shaking is real
+//   node bench/bundlesize/run.mjs            # measure + write results/benchmarks/bundle-size.yaml
+//   node bench/bundlesize/run.mjs --verify   # also prove tree-shaking is real
 //
 // Design notes live in bench/bundlesize/README.md. This file is intentionally
 // plain ESM (.mjs), not TypeScript: it stays out of `pnpm typecheck` (which
-// globs **/*.ts) so the heavy bundler toolchain is never needed for the gate.
+// globs **/*.ts) so the heavy bundler toolchain is never needed for the gate,
+// and it's run directly with `node` (no tsx loader), so it can't import any
+// bench/*.ts module either — label/version logic below is self-contained.
 
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
+import { stringify as toYaml } from "yaml";
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // bench/bundlesize
 const ROOT = join(HERE, "..", ".."); // repo root
 const SRC_INDEX = join(ROOT, "src", "index.ts");
-const BENCHMARKS = join(ROOT, "BENCHMARKS.md");
+const OUT_YAML = join(ROOT, "results", "benchmarks", "bundle-size.yaml"); // gitignored (results/)
 const WORK = join(ROOT, "results", "bundlesize"); // gitignored (results/)
 const ENTRIES = join(WORK, "entries");
 const OUT = join(WORK, "out");
 
 const args = new Set(process.argv.slice(2));
-const WRITE_README = !args.has("--no-readme");
 const VERIFY = args.has("--verify");
+
+function gitShaOr(fallback) {
+  const r = spawnSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" });
+  const sha = r.status === 0 ? r.stdout.trim() : "";
+  return sha || fallback;
+}
+
+function readJson(path) {
+  return JSON.parse(readFileSync(path, "utf8"));
+}
 
 // ── The three libraries, each importing only its parse + stringify ──────────
 // A side-effecting global sink keeps exactly those two functions (and their
@@ -70,18 +81,6 @@ function brotli(buf) {
   return brotliCompressSync(buf, {
     params: { [constants.BROTLI_PARAM_QUALITY]: 11 },
   }).length;
-}
-
-/** report.ts's BENCHMARKS.md marker-replace, copied so this .mjs has no TS import. */
-function inject(doc, marker, content) {
-  const start = `<!-- BENCH:${marker}:START -->`;
-  const end = `<!-- BENCH:${marker}:END -->`;
-  const si = doc.indexOf(start);
-  const ei = doc.indexOf(end);
-  if (si === -1 || ei === -1) {
-    throw new Error(`BENCHMARKS.md is missing the ${start} … ${end} markers`);
-  }
-  return doc.slice(0, si + start.length) + "\n" + content + "\n" + doc.slice(ei);
 }
 
 /** Ensure the isolated bundler toolchain is installed (once). */
@@ -174,13 +173,58 @@ async function main() {
   const md = renderMarkdown(results, active, skipped, versions);
   console.log("\n" + md + "\n");
 
-  if (WRITE_README) {
-    const doc = readFileSync(BENCHMARKS, "utf8");
-    writeFileSync(BENCHMARKS, inject(doc, "BUNDLESIZE", md));
-    console.log(`Updated ${BENCHMARKS} (BENCH:BUNDLESIZE block).`);
-  } else {
-    console.log("(--no-readme: BENCHMARKS.md not modified)");
+  writeBundleSizeYaml(results, active, versions);
+}
+
+/** Display metadata per library — this file can't import bench/candidates.ts (see header). */
+function libraryDoc(lib) {
+  if (lib.name === "lightning-yaml") {
+    return { id: lib.name, label: "Lightning YAML", self: true, version: readJson(join(ROOT, "package.json")).version };
   }
+  if (lib.name === "js-yaml") {
+    return { id: lib.name, label: "js-yaml", version: readJson(join(ROOT, "node_modules", "js-yaml", "package.json")).version };
+  }
+  return { id: lib.name, label: "yaml (eemeli)", version: readJson(join(ROOT, "node_modules", "yaml", "package.json")).version };
+}
+
+/**
+ * Write results/benchmarks/bundle-size.yaml — a single doc (no leading `---`). Rows are keyed
+ * by bundler and each row's `values` is keyed by library id, matching the convention speed.yaml
+ * and memory.yaml use (rows keyed by workload, values keyed by library) so the site can reuse the
+ * same lookup shape across suites. `rust` is a property of the BUNDLER (which toolchain it's
+ * written in), not the library, so it's hoisted onto the row rather than repeated per value.
+ */
+function writeBundleSizeYaml(results, active, versions) {
+  const doc = {
+    suite: "bundle-size",
+    scope: "competition",
+    tool: active.map((b) => b.name).join(", "),
+    units: { min: "bytes", gzip: "bytes", brotli: "bytes" },
+    lower_is_better: true,
+    generated: new Date().toISOString().slice(0, 10),
+    source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
+    env: { bundlers: Object.fromEntries(active.map((b) => [b.name, versions[b.name] ?? "?"])) },
+    libraries: LIBRARIES.map(libraryDoc),
+    results: active.map((b) => ({
+      bundler: b.name,
+      rust: Boolean(b.rust),
+      values: Object.fromEntries(
+        LIBRARIES.map((lib) => {
+          const r = results.find((rr) => rr.lib === lib.name && rr.bundler === b.name);
+          const value = !r
+            ? { error: "not run" }
+            : r.error
+              ? { error: r.error }
+              : { min: r.min, gzip: r.gz, brotli: r.br };
+          return [lib.name, value];
+        }),
+      ),
+    })),
+  };
+
+  mkdirSync(dirname(OUT_YAML), { recursive: true });
+  writeFileSync(OUT_YAML, toYaml(doc));
+  console.log(`Wrote ${OUT_YAML}`);
 }
 
 // Prove tree-shaking is real: full-namespace import must be ≥ the parse+stringify

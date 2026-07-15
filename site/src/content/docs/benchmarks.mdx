@@ -7,6 +7,7 @@ template: doc
 import speedRaw from '../../data/benchmarks/speed.yaml?raw'
 import memoryRaw from '../../data/benchmarks/memory.yaml?raw'
 import conformanceRaw from '../../data/benchmarks/conformance.yaml?raw'
+import bundleSizeRaw from '../../data/benchmarks/bundle-size.yaml?raw'
 import ChartCard from '../../components/charts/ChartCard.astro'
 import {
   newestRun,
@@ -18,14 +19,19 @@ import {
   seriesFor,
   legendFor,
   conformanceItems,
+  bundleSizeItems,
   parseTimeTableHtml,
   conformanceTableHtml,
+  bundleSizeTableHtml,
+  niceDomainMax,
+  formatKB,
   LIBRARY_ORDER,
 } from '../../lib/benchmarks'
 
 export const speed = newestRun(speedRaw)
 export const memory = newestRun(memoryRaw)
 export const conformance = newestRun(conformanceRaw)
+export const bundleSize = newestRun(bundleSizeRaw)
 
 export const parseWorkloadNames = [
   'small-records',
@@ -42,20 +48,22 @@ export const memoryLegend = legendFor(memory.libraries, LIBRARY_ORDER)
 
 export const parseSvg = groupedBarSVG({
   id: 'chart-parse',
-  title: 'Parse time by workload (avg, ns per iteration)',
+  title: 'Parse time by workload (relative to fastest, per row)',
   series: speedSeries,
   groups: speedGroups(pickWorkloads(speed.operations.parse, parseWorkloadNames)),
   unit: 'ns',
   lowerIsBetter: true,
+  labelStyle: 'ratio-to-best',
 })
 
 export const stringifySvg = groupedBarSVG({
   id: 'chart-stringify',
-  title: 'Stringify time by workload (avg, ns per iteration)',
+  title: 'Stringify time by workload (relative to fastest, per row)',
   series: speedSeries,
   groups: speedGroups(pickWorkloads(speed.operations.stringify, parseWorkloadNames)),
   unit: 'ns',
   lowerIsBetter: true,
+  labelStyle: 'ratio-to-best',
 })
 
 export const memorySvg = groupedBarSVG({
@@ -74,10 +82,23 @@ export const conformanceSvg = barSVG({
   higherIsBetter: true,
 })
 
+export const bundleSizeChartItems = bundleSizeItems(bundleSize)
+export const bundleSizeBundlerCount = Object.keys(bundleSize.env.bundlers).length
+export const bundleSizeSvg = barSVG({
+  id: 'chart-bundle-size',
+  title: 'Bundle size (browser, minified + gzip, smallest across bundlers)',
+  items: bundleSizeChartItems,
+  higherIsBetter: false,
+  domainMax: niceDomainMax(Math.max(...bundleSizeChartItems.map((it) => it.value)), 5 * 1024),
+  formatValue: formatKB,
+  formatTick: formatKB,
+})
+
 export const provenanceLine = `Measured on ${speed.env.cpu} (${speed.env.clk}) · ${speed.env.runtime} · generated ${speed.generated} · source ${speed.source}`
 
 export const summaryTableHtml = parseTimeTableHtml(speed.operations.parse, speed.libraries, LIBRARY_ORDER)
 export const conformanceTable = conformanceTableHtml(conformance.results)
+export const bundleSizeTable = bundleSizeTableHtml(bundleSize)
 
 Speed, memory, and spec-conformance for **Lightning YAML** against the other parsers this
 repo benchmarks itself against: `js-yaml`, `yaml` (eemeli), and the `JSON` baseline where a
@@ -86,15 +107,15 @@ inline SVG rendered at build time, no client JavaScript.
 
 <p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.82em">{provenanceLine}</p>
 
-These numbers are a hand-captured, representative snapshot — not a live feed. Once the CI
-benchmark job is wired up to publish runs to the `benchmark-data` branch, this page will
-read that history automatically and the charts will track it without further changes.
+These numbers track real runs, not a hand-captured snapshot: CI publishes each run to the
+orphan `benchmark-data` branch, and the deploy workflow overlays that history onto this
+page at build time — the charts above render the newest published document per suite.
 
 ## Parse time
 
 <ChartCard
   heading="Parse time by workload"
-  note="Lower is better. Bars are proportional to time; each workload is scaled to its own slowest parser (rows span microseconds to seconds, so compare bars within a row, not across rows). Avg wall time per parse() call."
+  note="Lower is better. Bars are proportional to time; each workload is scaled to its own slowest parser (rows span microseconds to seconds, so compare bars within a row, not across rows). Bar labels show time relative to the fastest parser in that row (×) — exact avg ns per parse() call is in the summary table below."
   legend={speedLegend}
   svg={parseSvg}
 />
@@ -107,7 +128,7 @@ A curated size progression (`small` through `xlarge`) plus one `yaml-rich` workl
 
 <ChartCard
   heading="Stringify time by workload"
-  note="Lower is better. Bars are proportional to time; each workload is scaled to its own slowest parser (rows span microseconds to seconds, so compare bars within a row, not across rows). Avg wall time per stringify() call."
+  note="Lower is better. Bars are proportional to time; each workload is scaled to its own slowest parser (rows span microseconds to seconds, so compare bars within a row, not across rows). Bar labels show time relative to the fastest parser in that row (×) — exact avg ns per stringify() call is in the summary table below."
   legend={speedLegend}
   svg={stringifySvg}
 />
@@ -132,6 +153,21 @@ A curated size progression (`small` through `xlarge`) plus one `yaml-rich` workl
 `lightning-yaml` passes 97.6% of the suite — including all 91 negative (should-fail)
 cases — ahead of `yaml` at 97.1% and `js-yaml` at 94.9%. Merge keys (`<<`), absent from the
 test corpus, are the only unimplemented construct.
+
+## Bundle size
+
+<ChartCard
+  heading="Bundle size (browser)"
+  note={`Lower is better. Minified + gzipped, the smallest result across ${bundleSizeBundlerCount} bundlers (${bundleSize.tool}) for each library — parse + stringify only, tree-shaken.`}
+  svg={bundleSizeSvg}
+/>
+
+How many kilobytes each library adds to a browser bundle when an app imports only
+`parse` + `stringify` and ships it minified — measured with `js-yaml`, `yaml` (eemeli),
+and `lightning-yaml`, tree-shaken and compressed the same way a real app would ship them.
+The full per-bundler breakdown, gzip with the raw minified size alongside:
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={bundleSizeTable} />
 
 ## Summary
 

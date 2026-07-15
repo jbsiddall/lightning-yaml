@@ -32,8 +32,8 @@ sells better. Accuracy outranks looking good.
 
 ## What you audit — the two claim surfaces
 
-1. **`README.md`** (pitch, install, usage, drop-in story) and committed
-   **`BENCHMARKS.md`** (the numbers the README summarises).
+1. **`README.md`** (pitch, install, usage, drop-in story) and the orphan
+   **`benchmark-data`** branch (the numeric source of truth the README summarises).
 2. **The website**, an Astro/Starlight project in `site/`. Pages in
    `site/src/content/docs/**` (`.md`/`.mdx`), marketing copy in
    `site/src/components/**`, benchmark tables in `site/src/data/benchmarks/*.yaml`,
@@ -58,8 +58,9 @@ tables are overlaid with real numbers from the orphan `benchmark-data` branch,
 which you **won't** have locally — your local build falls back to the *committed
 sample* data in `site/src/data/benchmarks/*.yaml`. Do **not** file findings against
 the exact digits rendered locally. Treat a **fresh run** (`pnpm bench:self`,
-`pnpm test:suite`) plus committed **`BENCHMARKS.md`** as the numeric source of
-truth, and audit the *prose and hard-coded* claims wrapped around the tables.
+`pnpm test:suite` — which emit `results/benchmarks/*.yaml` locally) plus the
+published history on the orphan **`benchmark-data`** branch as the numeric source
+of truth, and audit the *prose and hard-coded* claims wrapped around the tables.
 
 ## Source of truth — verify by running, not reading
 
@@ -70,7 +71,7 @@ truth, and audit the *prose and hard-coded* claims wrapped around the tables.
 - **Every code example** in README/site: run it and confirm the documented output.
 - **Perf & conformance claims:** reproduce with `pnpm bench:self` and
   `pnpm test:suite` (the runner also scores js-yaml and `yaml`, so "more conformant
-  than X" is checkable); cross-check `BENCHMARKS.md` / `PROGRESS.md`.
+  than X" is checkable); cross-check the orphan `benchmark-data` branch / `PROGRESS.md`.
 - **Packaging:** `package.json` `exports`/subpaths (`.`, `./yaml`, `./js-yaml`),
   `engines`, version — match what the docs tell users to install and import.
 
@@ -113,8 +114,8 @@ to match the real exports counts as a docs fix and is in scope.
    → getting-started → guides → benchmarks → API reference). Note every concrete,
    checkable claim.
 3. **Verify each claim by running it** — examples via `tsx`, numbers via
-   `bench:self`/`test:suite` + `BENCHMARKS.md`, API shape vs `src/index.ts` and
-   `package.json`.
+   `bench:self`/`test:suite` + the orphan `benchmark-data` branch, API shape vs
+   `src/index.ts` and `package.json`.
 4. **Pick ONE** — the most trust-damaging discrepancy (a phantom API or false
    number beats a typo). You may instead batch several **trivial** text fixes
    (typos/links) into one coherent PR, but don't mix a substantive claim correction
@@ -127,9 +128,10 @@ to match the real exports counts as a docs fix and is in scope.
 ## Boundaries
 
 ✅ Verify every claim by running the real code/gate/bench before filing · keep
-fixes to **text** (README, `BENCHMARKS.md`, `site/src/content/**`,
-`site/src/components/**`, `site/src/data/**` labels, and the API-ref stub
-`site/src/lib/lightning-yaml.ts`) · re-build the site after edits · one coherent PR.
+fixes to **text** (README, `site/src/content/**`, `site/src/components/**`,
+`site/src/data/**` labels, and the API-ref stub `site/src/lib/lightning-yaml.ts`)
+— the orphan `benchmark-data` branch is data you audit against, never edit · re-build
+the site after edits · one coherent PR.
 ⚠️ Ask first (open the PR as a proposal + flag a human) when the honest fix could
 instead be "implement the feature", when rewriting a whole page or changing
 benchmark methodology, or when touching anything under `bench/` that computes
