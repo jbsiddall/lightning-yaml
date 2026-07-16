@@ -93,7 +93,7 @@ export function runMemoryMatrix(opts: MatrixOptions = {}): Result[] {
         // Skip candidates that don't apply to this fixture (e.g. JSON on block
         // YAML) or aren't implemented yet — no need to spawn a worker for them.
         if (!candidateAppliesTo(c, ds, op) || !candidateSupports(c, op)) continue;
-        if (probeText !== null && !candidateHandles(c, "parse", probeText)) continue;
+        if (probeText !== null && !candidateHandles(c, "parse", probeText, ds.category)) continue;
         const r = runWorker(c.name, ds.name, op);
         if (r) results.push(r);
       }

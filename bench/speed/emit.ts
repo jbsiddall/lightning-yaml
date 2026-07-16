@@ -58,13 +58,13 @@ for (const ds of datasets) {
     const input: string | unknown = op === "parse" ? loadFixtureText(ds) : loadFixtureValue(ds);
     // Skip a partial parser on input it can't yet handle instead of
     // benchmarking it into an error row (mitata can't benchmark a throw).
-    const cands = applicable.filter((c) => candidateHandles(c, op, input));
+    const cands = applicable.filter((c) => candidateHandles(c, op, input, ds.category));
     if (cands.length === 0) continue;
     group(`${op} · ${ds.name}`, () => {
       for (const c of cands) {
         used.add(c.name);
         if (op === "parse") {
-          bench(c.name, () => do_not_optimize(c.parse(input as string)));
+          bench(c.name, () => do_not_optimize(c.parse(input as string, ds.category)));
         } else {
           // candidateSupports(c, "stringify") above guarantees c.stringify here.
           const stringify = c.stringify!;
