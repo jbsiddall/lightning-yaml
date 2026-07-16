@@ -3368,6 +3368,7 @@ function resolveBlockPlain(start: number, end: number, parentCol: number): unkno
     // Single-line plain scalar (the overwhelming case): one span, typed once.
     return resolvePlain(start, end);
   }
+  if (parentCol >= 0) checkNoTabIndent(parentCol);
   // Multi-line plain scalar (cold): fold the segments (see `foldBlockPlainRemainder`).
   return foldBlockPlainRemainder(src.slice(start, end), breaks, parentCol);
 }
@@ -3385,6 +3386,7 @@ function resolveBlockPlainRaw(start: number, end: number, parentCol: number): st
   if (plainStoppedAtComment || pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) {
     return src.slice(start, end);
   }
+  if (parentCol >= 0) checkNoTabIndent(parentCol);
   return foldBlockPlainRemainder(src.slice(start, end), breaks, parentCol);
 }
 
@@ -3405,6 +3407,7 @@ function foldBlockPlainRemainder(first: string, breaks: number, parentCol: numbe
     if (plainStoppedAtColon) fail("mapping value not allowed in a multi-line plain scalar");
     breaks = advanceCountingBreaks();
     if (plainStoppedAtComment || pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) break;
+    if (parentCol >= 0) checkNoTabIndent(parentCol);
   }
   return result;
 }
