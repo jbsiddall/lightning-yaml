@@ -1,6 +1,7 @@
+---
+title: "V8's JSON.parse: source anatomy, techniques, and what a pure-JS YAML parser can borrow"
+---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
-
-# V8's JSON.parse: source anatomy, techniques, and what a pure-JS YAML parser can borrow
 
 Snapshots of `github.com/v8/v8` branch `main` fetched 2026-07-12 to `/tmp/claude-0/-home-user-lightning-yaml/5b5afb90-7c63-5a56-af0b-8798d3e9b488/scratchpad/v8json/` (`json-parser.h`, `json-parser.cc`, `builtins-json.cc`, `js-data-object-builder.h`, `js-data-object-builder-inl.h`). All `file:line` cites below refer to these snapshots.
 

@@ -1,8 +1,23 @@
-# Skipping the ref-scan with a single-pass, restart-on-share dumper
+---
+title: "Skipping the ref-scan with a single-pass, restart-on-share dumper"
+optimization:
+  name: "Single-pass optimistic dumper (stringify)"
+  conclusion: "An optimistic single write pass that skips the mandatory ref pre-scan and restarts only on a shared reference reproduces byte-identical output and gains +5-48% on tree-shaped data, but it was built and then removed: the dual-path restart machinery was not worth its cost given ~1.6-1.9x regressions on large graphs whose first shared reference appears late, so the two-pass pre-scan is retained."
+  verdict: not-worth-it
+---
+> **Outcome (2026-07-16): built, then removed.** This optimization was implemented and later
+> reverted; `stringify` retains the two-pass ref pre-scan (`dumpScanRefs`). The tree-shaped gains
+> below are real, but deeper evaluation found the optimistic pass regresses ~1.6–1.9× on large
+> graphs whose first shared reference appears late — a case this note under-weighted (see "the
+> first duplicate reference appears early" below) — and the dual-path + restart-sentinel machinery
+> was judged not worth its maintenance cost for a win concentrated on already-fast small/medium
+> dumps. The always-on key-quote cache it was to land beside *did* ship. Front-matter verdict:
+> `not-worth-it`.
 
-**Verdict: Worth pursuing** — the dumper's mandatory pre-scan of the whole value tree is
-pure overhead on the common no-sharing input, and an optimistic single write pass that
-falls back only when it actually meets a shared reference removes it byte-identically.
+**Original verdict: Worth pursuing** (superseded — see the Outcome note above) — the dumper's
+mandatory pre-scan of the whole value tree is pure overhead on the common no-sharing input, and an
+optimistic single write pass that falls back only when it actually meets a shared reference removes
+it byte-identically.
 
 **Estimated benefit:** +5% to +35% stringify **CPU**, largest on **deep/nested
 JSON-shaped data** (+35% on `large-nested`), a few percent on record arrays, and roughly
@@ -16,7 +31,7 @@ graphs, timed GC-between with medians of 40–400 samples.
 
 the whole set. It stacks with the key-quote cache in
 [`./2026-07-14-stringify-speedup-via-key-caching.md`](./2026-07-14-stringify-speedup-via-key-caching.md); the `combo`
-table here is the two landed together.*
+table here reflects the key-quote cache, which landed — the single-pass write itself did not.*
 
 ## Background
 

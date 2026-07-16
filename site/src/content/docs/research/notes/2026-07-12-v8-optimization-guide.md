@@ -1,3 +1,6 @@
+---
+title: "V8 Optimization Guide"
+---
 > Origin: a user-supplied V8
 > optimization guide, reviewed 2026-07-12 against the dossier and edited
 > where the dossier's *measured* results take precedence. **Editorial
@@ -9,8 +12,6 @@
 > measured ~2× `Map` build cost, doc 05 §4); (4) §7 was trimmed
 > (Vitest specifics made conditional; noted mitata's built-in DCE guard);
 > (5) the checklist was updated to match. Everything else is as received.
-
-# V8 Optimization Guide
 
 **Audience:** the Claude Code agent doing future work on this YAML parser.
 **Scope:** execution speed of turning a source string into a data structure in V8 (Chrome / Node). Not DOM, not bundle size, not lazy-loading.

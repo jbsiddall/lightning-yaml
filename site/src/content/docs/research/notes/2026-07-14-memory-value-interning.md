@@ -1,5 +1,10 @@
-# Interning repeated string *values* during parse
-
+---
+title: "Interning repeated string *values* during parse"
+optimization:
+  name: "String value interning (parse)"
+  conclusion: "Deduplicating repeated string values during parse is a real, parity-safe retained-heap reduction on repetitive record arrays, but it costs measurable parse speed, so it belongs behind an opt-in flag."
+  verdict: situational
+---
 **Verdict: Worth pursuing** — a real, parity-safe retained-heap reduction on
 repetitive record arrays, but it carries a measurable parse-speed cost, so it
 belongs behind an opt-in flag (or a cheaper probe) rather than on by default.

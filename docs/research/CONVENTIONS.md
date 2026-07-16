@@ -1,10 +1,15 @@
-# docs/research — conventions
+# research notes — conventions
 
-How research notes in this folder are written and named. Read this before creating or editing one.
+How the parser-strategy research notes are written and named. Read this before creating or editing one.
 It describes principles and a flexible structure, not a rigid template — different investigations need
 different shapes.
 
-## What this folder is
+**Where the notes live.** The notes are published pages in the docs site, under
+`site/src/content/docs/research/notes/` (browse them at <https://lightning-yaml.dev/research/notes/>).
+This `CONVENTIONS.md` stays in `docs/research/` as the authoring guide — it is not itself a published
+page.
+
+## What a note is
 
 A flat, blog-style collection of **dated, standalone research notes**. Each note covers one
 question, hypothesis, or investigation — a performance idea, a memory experiment, a correctness study,
@@ -13,14 +18,38 @@ understand it on its own.
 
 ## Filename and layout
 
-- **Flat.** Everything lives directly in `docs/research/` — no subfolders.
+- **Flat.** Every note lives directly in `site/src/content/docs/research/notes/` — no subfolders. The
+  filename (minus `.md`) becomes the page's URL slug, and the Starlight sidebar auto-lists the folder.
 - **Name:** `YYYY-MM-DD-<goal-describing-slug>.md`, where the date is when the work was done. Lead the
   slug with the domain so the topic is obvious from the filename alone — a reader should be able to
   tell whether a note is about performance, memory, correctness, or a comparison with other libraries
   without opening it. Examples: `2026-07-14-stringify-speedup-via-key-caching.md`,
   `2026-07-14-memory-value-interning.md`, `2026-07-12-wasm-route-evaluation.md`.
-- **Two non-dated files** are special: this `CONVENTIONS.md` (the guide) and `README.md` (the folder
-  index).
+- **Not notes:** `optimization-index.mdx` (the generated scorecard page) sits in the same folder; the
+  authoring guide (`docs/research/CONVENTIONS.md`) and a pointer (`docs/research/README.md`) stay in
+  `docs/research/`.
+
+## Front matter
+
+Every note is a Starlight page, so it opens with YAML front matter:
+
+- **`title`** (required) — plain-English and goal-describing. Starlight renders it as the page H1, so
+  the body should **not** repeat it as a `#` heading.
+- **`description`** (optional) — a one-line summary for search and social cards.
+- **`optimization`** (optional) — add this block **only** on a note that evaluates one specific
+  optimization; it feeds the generated
+  [Optimization index](https://lightning-yaml.dev/research/notes/optimization-index/):
+
+  ```yaml
+  optimization:
+    name: "Map-key render cache (stringify)"   # short label shown in the table
+    conclusion: "One sentence: the timeless finding."
+    verdict: promising                          # promising | situational | not-worth-it | inconclusive
+  ```
+
+  Leave it off surveys, designs, audits, and reference/ceiling notes — they stay browsable pages but
+  don't belong in the scorecard. The `verdict` is validated by the site build against the four-value
+  enum, so a typo or an ad-hoc word fails the build.
 
 ## What every note must deliver
 
@@ -34,7 +63,7 @@ scientific record, not marketing copy.
 
 A typical note, top to bottom. Drop or merge sections that don't fit the investigation.
 
-1. **Title** — plain-English and goal-describing.
+1. **Title** — in the front matter (see above), not as a body `#` heading.
 2. **Abstract** (2–4 lines) — the **Verdict**, the estimated benefit (which axis, which audience), and
    the rigor (fail-fast vs thorough).
 3. **Background** — the theory: why we expected this to help.
@@ -49,12 +78,21 @@ A typical note, top to bottom. Drop or merge sections that don't fit the investi
 
 ## Verdict vocabulary
 
-Use one of these in the abstract; do not invent ad-hoc words, and do not use "yay"/"nay":
+Use one of these in the abstract; do not invent ad-hoc words, and do not use "yay"/"nay". The prose
+verdict maps to the front-matter `optimization.verdict` enum as shown:
 
 - **Worth pursuing** — the evidence supports it; recommend implementing or a deeper follow-up.
-- **Not worth pursuing** — a measured non-win or dead end (still a valuable note).
+  → `promising` (or `situational` when the win carries a real tradeoff — e.g. it only pays off behind
+  an opt-in flag or in specific environments).
+- **Not worth pursuing** — a measured non-win or dead end (still a valuable note). → `not-worth-it`.
 - **Inconclusive** — a fail-fast probe that didn't settle it; say what a deeper test would need.
-- **Reference / ceiling** — an informational bound or fact, not a change to make now.
+  → `inconclusive`.
+- **Reference / ceiling** — an informational bound or fact, not a change to make now. → **no
+  `optimization` block** (it isn't an adopt/reject verdict, so it stays off the scorecard).
+
+If later work overturns a note's original verdict — built, measured, then reverted — keep the note but
+record the outcome near the top and set the front-matter `verdict` to the final call. The page must
+never contradict its own verdict.
 
 ## Tone and wording
 

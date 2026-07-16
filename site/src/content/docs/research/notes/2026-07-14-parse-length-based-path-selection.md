@@ -1,5 +1,10 @@
-# Using string length as a pre-parse heuristic
-
+---
+title: "Using string length as a pre-parse heuristic"
+optimization:
+  name: "Input-length pre-parse gate (parse)"
+  conclusion: "Reading `input.length` before parsing is free but the setup it could skip is already tiny, so as a standalone change it buys almost nothing — it earns its keep only as a size-gate for a heavier optimization."
+  verdict: not-worth-it
+---
 **Verdict: Not worth pursuing as a standalone optimization; useful only as a size-gate for future
 heavy work.** Reading `input.length` before parsing is essentially free, but the fixed per-call
 setup cost it could let us skip is already tiny, so gating it away buys almost nothing. The idea

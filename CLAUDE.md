@@ -65,8 +65,8 @@ correctness**, benchmarks own *numbers*, code owns *behavior*, README/research o
 
 **YAML 1.2.2 spec (via the yaml-test-suite = the spec operationalized) › CLAUDE.md
 (process/policy) › measured output (the `benchmark-data` orphan branch + suite pass
-rate) › `src/` (real behavior & API) › README / `docs/research/` (intent) › `site/`
-(downstream; its API reference is generated from `src/`, never ahead of it).**
+rate) › `src/` (real behavior & API) › README / the research notes (intent) › `site/`'s generated API reference
+(downstream; generated from `src/`, never ahead of it).**
 
 The reference implementations we test against — `yaml` (`bench/oracle.ts`) and
 js-yaml — are **differential aids, NOT the definition of correct.** A disagreement
@@ -78,7 +78,7 @@ that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof
 correctness, and "differs from the oracle" is never on its own a bug: check the spec.
 Trust an implementation only where it agrees with the spec. The one sanctioned
 deviation *from* the spec is explicit and documented — duplicate-key last-wins, for
-`JSON.parse` parity (see `docs/research/2026-07-12-adversarial-torture-tests.md`).
+`JSON.parse` parity (see `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`).
 
 Code can still carry bugs — behavior that contradicts the spec (or a stated design
 goal) is a bug to fix, not intent to enshrine.
@@ -160,7 +160,7 @@ to the orphan `benchmark-data` branch — nothing to commit locally).
 
 ## Research dossier — when to read it
 
-[docs/research/](docs/research/) holds the parser-strategy research
+[site/src/content/docs/research/notes/](site/src/content/docs/research/notes/) holds the parser-strategy research
 (2026-07). Do **not** re-derive or contradict it from scratch — read the
 relevant file first. Skip it entirely for harness tweaks, fixtures, docs,
 or dependency chores. Read it when the task touches parser design,
@@ -177,7 +177,7 @@ implementation, or performance — pick by task:
 - Adversarial / security / torture testing, or parser-differential work → `2026-07-12-adversarial-torture-tests.md` (its findings are locked by `test/adversarial.unit.ts`)
 - Chasing `JSON.parse` / `JSON.stringify` performance → the `2026-07-14-*` performance notes (e.g. `2026-07-14-stringify-speedup-via-key-caching.md`, `2026-07-14-parse-multiline-speedup-lever.md`, `2026-07-14-memory-value-interning.md`)
 
-When **creating or editing** a file under `docs/research/`, follow
+When **creating or editing** a file under `site/src/content/docs/research/notes/`, follow
 [`docs/research/CONVENTIONS.md`](docs/research/CONVENTIONS.md) — the flat-folder layout,
 `YYYY-MM-DD-<goal>.md` naming, tone, and required structure for research notes.
 

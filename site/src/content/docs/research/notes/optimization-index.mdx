@@ -1,0 +1,18 @@
+---
+title: Optimization index
+description: Every optimization we evaluated for lightning-yaml — its one-line conclusion and our verdict, generated from the research notes.
+sidebar:
+  order: 0
+---
+import OptimizationIndex from '../../../../components/OptimizationIndex.astro'
+
+A scorecard of the optimizations we investigated, generated from the `optimization` block in each
+research note below — so it can't drift from them. Each row links to the full note.
+
+Verdicts: **promising** — a real win, adopted or worth adopting; **situational** — a genuine win
+that carries a tradeoff, so it lives behind an opt-in; **inconclusive** — measured but no clear
+end-to-end signal; **not-worth-it** — evaluated and rejected (kept for the record so we don't
+re-litigate it). Pure reference/ceiling analyses (e.g. the codegen speed ceiling) are browsable
+notes but are not scored here.
+
+<OptimizationIndex />

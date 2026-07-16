@@ -1,5 +1,10 @@
-# Parsing multiline block scalars: first baseline, and a faster accumulator
-
+---
+title: "Parsing multiline block scalars: first baseline, and a faster accumulator"
+optimization:
+  name: "Block-scalar ConsString accumulator (parse)"
+  conclusion: "Accumulating block-scalar text with a ConsString (`res +=`) instead of `parts.push`/`join` targets the function owning ~47% of self-time on multiline records, for an estimated high-single-digit to ~15% parse-CPU cut on block-scalar-heavy YAML."
+  verdict: promising
+---
 **Verdict: Worth pursuing** (a deeper follow-up on the accumulator) — this paper's main
 job is to establish the never-before-measured baseline for the owner's stated common
 case, and in doing so it surfaces one concrete, low-risk lever.

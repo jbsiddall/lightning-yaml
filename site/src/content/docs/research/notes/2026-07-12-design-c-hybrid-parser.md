@@ -1,8 +1,9 @@
+---
+title: "Design C — Pragmatic hybrid: JSON.parse delegation + tiered fast-path routing inside a single-pass pure-JS YAML parser"
+---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
 
-# Design C — Pragmatic hybrid: JSON.parse delegation + tiered fast-path routing inside a single-pass pure-JS YAML parser
-
-# Design C — Pragmatic hybrid / fast-path routing
+## Design C — Pragmatic hybrid / fast-path routing
 
 ## 0. Thesis
 

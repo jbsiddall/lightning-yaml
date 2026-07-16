@@ -1575,7 +1575,7 @@ test("utf8/emoji · stringify round-trips multibyte and astral text", () => {
 // observable from JS: `===` on strings is VALUE equality, so it can't distinguish
 // shared from unshared. The heap saving is proven by the benchmark in the T7
 // research/result notes, not here.) OFF by default, so every options shape must
-// parse identically to no options. See docs/research/2026-07-14-memory-value-interning.md.
+// parse identically to no options. See site/src/content/docs/research/notes/2026-07-14-memory-value-interning.md.
 // --------------------------------------------------------------------------
 
 // Block-style record array whose string values are drawn from tiny pools, so the

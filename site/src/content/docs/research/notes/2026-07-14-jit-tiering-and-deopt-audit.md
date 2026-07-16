@@ -1,5 +1,6 @@
-# V8 JIT tier-residency and deopt audit of the hot parse + dump paths
-
+---
+title: "V8 JIT tier-residency and deopt audit of the hot parse + dump paths"
+---
 **Verdict: Not worth pursuing** — the audit is a clean bill of health. Every hot parse
 and stringify function reaches TurboFan (the top optimizing tier on this runtime), and
 every deopt observed is a one-time warm-up deopt that converges; there is no

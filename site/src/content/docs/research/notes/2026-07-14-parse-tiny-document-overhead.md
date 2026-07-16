@@ -1,5 +1,10 @@
-# The fixed per-call overhead of parsing a tiny document
-
+---
+title: "The fixed per-call overhead of parsing a tiny document"
+optimization:
+  name: "Tiny-document fixed overhead (parse)"
+  conclusion: "The fixed per-call parse cost is real but small, has no single dominant removable component, and only bites sub-microsecond documents outside the target workload."
+  verdict: not-worth-it
+---
 **Verdict: Not worth pursuing** — the fixed per-call cost is real and measurable but
 small in absolute terms, has no single dominant removable component, and only bites on
 sub-microsecond documents that are not the library's target workload.

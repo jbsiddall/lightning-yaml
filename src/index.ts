@@ -1,6 +1,6 @@
 /**
  * lightning-yaml — a single-pass, allocation-minimal, pure-JS YAML 1.2.2 parser
- * engineered for V8 (see docs/research/2026-07-12-design-a-pure-js-parser.md).
+ * engineered for V8 (see site/src/content/docs/research/notes/2026-07-12-design-a-pure-js-parser.md).
  *
  * The public surface mirrors `JSON.parse`:
  *   - `parse(text)`     text → JS value (a single document; throws if a second
@@ -290,7 +290,7 @@ let keyCache: Map<string, string> = new Map();
  * cache can't outlive the call. When on, equal string scalar values collapse to
  * one shared instance — a memory win on repetitive record data at a parse-CPU
  * cost, which is exactly why it is opt-in (see
- * `docs/research/2026-07-14-memory-value-interning.md`). Bounded by
+ * `site/src/content/docs/research/notes/2026-07-14-memory-value-interning.md`). Bounded by
  * `MAX_VALUE_CACHE` so an all-unique-values document can't grow it unbounded.
  */
 let valueCache: Map<string, string> | null = null;

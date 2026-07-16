@@ -1,6 +1,7 @@
+---
+title: "js-yaml loader deep-dive (installed: js-yaml@4.3.0, NOT 4.1.0)"
+---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
-
-# js-yaml loader deep-dive (installed: js-yaml@4.3.0, NOT 4.1.0)
 
 **Version note:** repo declares `"js-yaml": "^4.1.0"` (/home/user/lightning-yaml/package.json:23) but pnpm resolved **4.3.0** (/home/user/lightning-yaml/node_modules/js-yaml → node_modules/.pnpm/js-yaml@4.3.0/...; lib/package.json `"version": "4.3.0"`). 4.3.0 adds per-node state-snapshot allocations and DoS guards (maxDepth/maxTotalMergeKeys) not in 4.1.0 — this is what the benchmark actually measures. All paths below are under /home/user/lightning-yaml/node_modules/js-yaml/lib/.
 
