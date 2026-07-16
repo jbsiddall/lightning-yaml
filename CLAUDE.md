@@ -5,15 +5,15 @@ Guidance for Claude Code (and humans) working in this repo.
 ## What this is
 
 `lightning-yaml` is a YAML parser that approaches `JSON.parse` / `JSON.stringify`
-speed and memory, **targeting the YAML 1.2.2 spec exclusively — YAML 1.1
-compatibility is explicitly a non-goal.** [`src/index.ts`](src/index.ts)
-implements `parse`/`parseAll`/`stringify`: the JSON subset, flow + block syntax,
-plain scalars with 1.2 core typing, quoting + escapes, comments, flow/block maps
-& sequences, implicit **and** explicit (`? `/`: `) keys, compact forms, block
-scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl. `!!binary`,
-`%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It passes
-**≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the `yaml`
-oracle). The repo around it is:
+speed and memory. **The parser is feature-complete for YAML 1.2 core** —
+[`src/index.ts`](src/index.ts) implements `parse`/`parseAll`/`stringify`: the JSON
+subset, flow + block syntax, plain scalars with 1.2 core typing, quoting + escapes,
+comments, flow/block maps & sequences, implicit **and** explicit (`? `/`: `) keys,
+compact forms, block scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl.
+`!!binary`, `%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It
+passes **≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the
+`yaml` oracle). Only merge keys (`<<`, absent from the test corpus) are
+unimplemented. The repo around it is:
 
 - a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
   and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child
@@ -28,10 +28,9 @@ oracle). The repo around it is:
 
 [README.md](README.md) is the **adopter-facing** doc — the pitch, install, usage,
 and drop-in story for developers picking up the library, plus the design/rationale
-of the harness lower down. The **full auto-generated benchmark tables live on the
-docs site, <https://lightning-yaml.dev>**, which reads published runs from the
-orphan `benchmark-data` branch — not in the README, which carries only a compact
-snapshot.
+of the harness lower down. The **full auto-generated benchmark tables live in
+[BENCHMARKS.md](BENCHMARKS.md)** (and on the docs site, <https://lightning-yaml.dev>),
+not in the README, which carries only a compact snapshot.
 
 ## Integrity of benchmarks and claims — non-negotiable
 
@@ -41,12 +40,6 @@ honest result — never tune, cherry-pick, or phrase anything to flatter
 lightning-yaml, and never bend the methodology in its favour. Hold every parser we
 compare against to the same rules. If honest measurement makes our speed or
 conformance claims worse, change the claims: accuracy outranks looking good.
-
-**Provenance markers.** Tag every hardcoded number or competitor claim in a
-`.md`/`.mdx` with an invisible HTML comment of what it depends on —
-`<!-- bench:<data sha> js-yaml:<ver> ly:<repo sha> -->` (only the pins that apply)
-— so `grep -rnE 'bench:|js-yaml:|yaml:|ly:'` catches drift; prefer deriving from
-the data over hardcoding. Full scheme + rollout: issue #30.
 
 ## Comments — explain *why*, not *what*
 
@@ -64,9 +57,9 @@ correctness**, benchmarks own *numbers*, code owns *behavior*, README/research o
 *why*:
 
 **YAML 1.2.2 spec (via the yaml-test-suite = the spec operationalized) › CLAUDE.md
-(process/policy) › measured output (the `benchmark-data` orphan branch + suite pass
-rate) › `src/` (real behavior & API) › README / the research notes (intent) › `site/`'s generated API reference
-(downstream; generated from `src/`, never ahead of it).**
+(process/policy) › measured output (`BENCHMARKS.md` + suite pass rate) › `src/` (real
+behavior & API) › README / `docs/research/` (intent) › `site/`
+(downstream; its API reference is generated from `src/`, never ahead of it).**
 
 The reference implementations we test against — `yaml` (`bench/oracle.ts`) and
 js-yaml — are **differential aids, NOT the definition of correct.** A disagreement
@@ -78,7 +71,7 @@ that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof
 correctness, and "differs from the oracle" is never on its own a bug: check the spec.
 Trust an implementation only where it agrees with the spec. The one sanctioned
 deviation *from* the spec is explicit and documented — duplicate-key last-wins, for
-`JSON.parse` parity (see `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`).
+`JSON.parse` parity (see `docs/research/13-adversarial-torture-tests.md`).
 
 Code can still carry bugs — behavior that contradicts the spec (or a stated design
 goal) is a bug to fix, not intent to enshrine.
@@ -154,32 +147,25 @@ overlap freely. (For true parallel writers, isolate with a git worktree.)
 A chunk is **not done** until, as applicable: `pnpm typecheck` clean · `pnpm test`
 (vitest, all green) · `pnpm test:unit` · `pnpm test:stringify` · `pnpm test:suite`
 (yaml-test-suite pass rate must **not** drop) · `pnpm bench:self` shows **no** perf
-regression. Never claim progress or commit on a red gate; emit fresh
-`results/benchmarks/*.yaml` per the Benchmarking rules below (CI publishes real runs
-to the orphan `benchmark-data` branch — nothing to commit locally).
+regression. Never claim progress or commit on a red gate; refresh the BENCHMARKS.md
+bench blocks per the Benchmarking rules below.
 
 ## Research dossier — when to read it
 
-[site/src/content/docs/research/notes/](site/src/content/docs/research/notes/) holds the parser-strategy research
+[docs/research/](docs/research/) holds the parser-strategy research
 (2026-07). Do **not** re-derive or contradict it from scratch — read the
 relevant file first. Skip it entirely for harness tweaks, fixtures, docs,
 or dependency chores. Read it when the task touches parser design,
 implementation, or performance — pick by task:
 
-- Deciding *what* to optimize for — the real-world YAML shape / target-workload profile, graded `[MEASURED]`/`[REASONED]`/`[INFERRED]` → `2026-07-16-real-world-yaml-optimization-profile.md` (the canonical target; supersedes the older scattered "medium-and-up / JSON-shaped" asides)
-- Implementing/designing parser code → `2026-07-12-design-a-pure-js-parser.md` (the recommended pure-JS design)
-- Debugging slow code / optimizing a hot path → `2026-07-12-pure-js-speed-ceiling.md` + `2026-07-12-local-microbenchmarks.md` (V8 tricks: `2026-07-12-v8-json-parse-anatomy.md`)
-- Writing or reviewing perf-sensitive JS (JIT tiers, monomorphism, deopt checks) → `2026-07-12-v8-optimization-guide.md`
-- Comparing against js-yaml / yaml behavior or speed → `2026-07-12-js-yaml-internals.md` / `2026-07-12-eemeli-yaml-internals.md`
-- Anything WASM or native → `2026-07-12-wasm-route-evaluation.md` + `2026-07-12-design-b-wasm-parser.md` (route was rejected — read before reopening)
-- Before relying on a perf claim from the dossier → `2026-07-12-adversarial-verdicts.md` (three claims were refuted)
-- Planning benchmarks, fixtures, stringify, or conformance work → `2026-07-12-completeness-critique.md`
-- Adversarial / security / torture testing, or parser-differential work → `2026-07-12-adversarial-torture-tests.md` (its findings are locked by `test/adversarial.unit.ts`)
-- Chasing `JSON.parse` / `JSON.stringify` performance → the `2026-07-14-*` performance notes (e.g. `2026-07-14-stringify-speedup-via-key-caching.md`, `2026-07-14-parse-multiline-speedup-lever.md`, `2026-07-14-memory-value-interning.md`)
-
-When **creating or editing** a file under `site/src/content/docs/research/notes/`, follow
-[`docs/research/CONVENTIONS.md`](docs/research/CONVENTIONS.md) — the flat-folder layout,
-`YYYY-MM-DD-<goal>.md` naming, tone, and required structure for research notes.
+- Implementing/designing parser code → `README.md` (verdict) then `07-design-a-pure-js.md`
+- Debugging slow code / optimizing a hot path → `05-pure-js-ceiling.md` + `06-local-microbenchmarks.md` (V8 tricks: `03-v8-json-parse.md`)
+- Writing or reviewing perf-sensitive JS (JIT tiers, monomorphism, deopt checks) → `12-v8-optimization-guide.md`
+- Comparing against js-yaml / yaml behavior or speed → `01-js-yaml-internals.md` / `02-eemeli-yaml-internals.md`
+- Anything WASM or native → `04-wasm-route.md` + `08-design-b-wasm.md` (route was rejected — read before reopening)
+- Before relying on a perf claim from the dossier → `10-adversarial-verdicts.md` (three claims were refuted)
+- Planning benchmarks, fixtures, stringify, or conformance work → `11-completeness-critique.md`
+- Adversarial / security / torture testing, or parser-differential work → `13-adversarial-torture-tests.md` (its findings are locked by `test/adversarial.unit.ts`)
 
 ## Key commands
 
@@ -192,31 +178,19 @@ pnpm bench:self         # benchmark OUR implementation only (fast)
 pnpm bench:competition  # benchmark the competition, full matrix (slow)
 ```
 
-Fixtures and `results/` are gitignored; benchmark data lives on the orphan
-`benchmark-data` branch (append-only), not committed to `main`.
+Fixtures and `results/` are gitignored; the BENCHMARKS.md benchmark tables are
+committed.
 
 ## Benchmarking rules — read before committing
 
-Benchmark data no longer lives in a committed file. Each emitter writes one
-single-doc YAML (no leading `---`) to `results/benchmarks/<suite>.yaml` —
-`speed.yaml`, `memory.yaml`, `conformance.yaml`, `bundle-size.yaml` — which is
-**gitignored**: these are local, disposable artifacts, not something you commit.
-The numeric source of truth is the orphan `benchmark-data` branch: on every push
-to `main`, CI runs the full competition matrix and **appends** a new `---`-separated
-document to the matching file on that branch. The docs site
-(<https://lightning-yaml.dev>) reads the newest document per suite from
-`benchmark-data`, overlaid at build time by the deploy workflow. There is nothing
-to commit to `main` as part of an ordinary chunk — just make sure the emitters
-still run cleanly. (The README carries only a small hand-written snapshot —
-refresh it too if the representative numbers move materially; see the caveat
-there about not inventing numbers.)
+Benchmark results live in [BENCHMARKS.md](BENCHMARKS.md) in three
+auto-generated blocks (head-to-head, our implementation, bundle size) with
+different refresh cadences. Keep them current so we can always see how our
+parser stands against the competition. (The README carries only a small
+hand-written snapshot — refresh it too if the representative numbers move
+materially.)
 
-**Only the full competition matrix produces appendable data** — cross-library
-ratios need every library measured in the same run, so `bench:self` (partial,
-`ours`-only) output is never appended to `benchmark-data`; it's a fast local dev
-signal only.
-
-### 1. Before every commit or PR: refresh OUR results locally
+### 1. Before every commit or PR: refresh OUR results
 
 Run:
 
@@ -224,16 +198,16 @@ Run:
 pnpm bench:self
 ```
 
+and commit the updated `BENCHMARKS.md` "Our implementation" block along with your
+change.
+
 `bench:self` benchmarks only this repo's own parser (group `ours` in
-`bench/candidates.ts`) plus the JSON baseline — fast, so run it every commit. It
-emits `results/benchmarks/speed.yaml` + `memory.yaml` (scope `ours`) as a
-gitignored local artifact — read it to check for regressions, but there is
-nothing to commit. The per-fixture capability probe (`candidateHandles`) still
-drops any candidate from a fixture it can't parse (so no bogus "error" rows
-appear), but lightning-yaml now reads every committed category — JSON, block
-`yaml-plain`, and rich `yaml-rich` (`!!binary` + `&`/`*` anchors) — so nothing is
-skipped for it today. Do **not** run the (slow) full-matrix benchmark on ordinary
-commits.
+`bench/candidates.ts`) plus the JSON baseline — fast, so run it every commit. The
+per-fixture capability probe (`candidateHandles`) still drops any candidate from a
+fixture it can't parse (so no bogus "error" rows appear), but lightning-yaml now
+reads every committed category — JSON, block `yaml-plain`, and rich `yaml-rich`
+(`!!binary` + `&`/`*` anchors) — so nothing is skipped for it today. Do **not** run
+the (slow) full-matrix benchmark on ordinary commits.
 
 Also run `pnpm test` (vitest consistency vs the oracle) and `pnpm test:unit`
 (the parser's own node:test suite) before committing parser changes — together
@@ -241,8 +215,9 @@ they are the correctness gate. All consistency categories — JSON, block
 `yaml-plain`, and rich `yaml-rich` (`!!binary` + anchors) — currently pass; keep
 them green.
 
-Note: timings drift run-to-run — that's normal; peak-RSS / heap-Δ are the stable
-figures. Run on an otherwise-quiet machine.
+Note: timings drift run-to-run — that's normal. Update to the latest
+representative run; peak-RSS / heap-Δ are the stable figures. Run on an
+otherwise-quiet machine.
 
 ### 2. Re-run the head-to-head benchmark on deps, data, or a milestone
 
@@ -252,21 +227,19 @@ Run:
 pnpm bench:competition
 ```
 
-This benchmarks the **full matrix — every parser including lightning-yaml**
-(scope `all`) and emits `results/benchmarks/speed.yaml` + `memory.yaml` (scope
-`competition`) locally. **CI runs this same command on every push to `main`** and
-appends the result onto `benchmark-data` — that's how the site's history grows;
-you don't need to do anything extra locally beyond confirming it runs cleanly.
-Re-run it locally (to sanity-check before pushing) when:
+This now benchmarks the **full matrix — every parser including lightning-yaml**
+(scope `all`) and refreshes the "All parsers — head-to-head" block. Re-run and
+commit it when:
 
 - **dependency versions change** — `js-yaml`, `yaml`, or `mitata` are bumped;
 - **the datasets change** — fixtures added/grown or `bench/fixtures/datasets.ts`
   edited; or
-- **our parser reaches a milestone** worth a fresh head-to-head sanity check (fast
-  per-commit tracking of our parser alone stays local via `bench:self`).
+- **our parser reaches a milestone** worth a fresh head-to-head snapshot (fast
+  per-commit tracking of our parser alone stays in the "Our implementation"
+  block via `bench:self`).
 
 This is the slow one (the xlarge/`yaml` cases take several minutes) — not needed
-on ordinary commits (CI covers it on push to `main`).
+on ordinary commits.
 
 ### 3. Refresh bundle size on dependency or notable `src`-size changes
 
@@ -277,11 +250,9 @@ pnpm bench:bundlesize
 ```
 
 This bundles each library's `parse` + `stringify` with five bundlers (Vite, Webpack,
-Bun, Deno, Rolldown) — tree-shaking + minification, browser platform — and emits
-`results/benchmarks/bundle-size.yaml` (gitignored local artifact; CI appends the
-published copy to `benchmark-data` on push to `main`). Sizes are **deterministic**
-(unlike timings), but there's still nothing to commit locally — re-run it as a
-sanity check when:
+Bun, Deno, Rolldown) — tree-shaking + minification, browser platform — and rewrites the
+"Bundle size" block. Sizes are **deterministic** (unlike timings), so commit the
+refreshed block when:
 
 - **dependency versions change** — `yaml`, `js-yaml`, or a bundler is bumped; or
 - **`src/index.ts` grows/shrinks materially** — our own bundle size moved.
@@ -302,12 +273,8 @@ PATH. Not needed on ordinary commits. See [bench/bundlesize](bench/bundlesize/RE
   candidates whose op still throws `NotImplementedError`.
 - **Fixture categories** live in `bench/fixtures/datasets.ts`: `json`,
   `yaml-plain` (JSON-shaped data in block YAML, no tags/anchors), and
-  `yaml-rich` (`!!binary` + `&`/`*`). The generator writes rich fixtures via the
-  `yaml` library's `schema: "yaml-1.1"` stringify option — the only way that
-  library exposes a `!!binary` tag writer for `Uint8Array`; it's a quirk of that
-  library's option naming, not an indication the fixture text uses YAML-1.1-only
-  syntax (the output stays fully 1.2-conformant, and lightning-yaml parses it like
-  any other fixture). Keep YAML fixtures ≤1 MB to bound the competition
+  `yaml-rich` (`!!binary` + `&`/`*`). The generator emits rich fixtures with the
+  `yaml` library's 1.1 schema. Keep YAML fixtures ≤1 MB to bound the competition
   run; the 10 MB case stays JSON-only. Fixtures are gitignored, and `pnpm test`
   auto-generates only the **missing** ones — after editing the generator or
   dataset defs, run `pnpm gen:fixtures` to regenerate all, or tests run on stale

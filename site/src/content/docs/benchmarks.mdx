@@ -7,7 +7,6 @@ template: doc
 import speedRaw from '../../data/benchmarks/speed.yaml?raw'
 import memoryRaw from '../../data/benchmarks/memory.yaml?raw'
 import conformanceRaw from '../../data/benchmarks/conformance.yaml?raw'
-import bundleSizeRaw from '../../data/benchmarks/bundle-size.yaml?raw'
 import ChartCard from '../../components/charts/ChartCard.astro'
 import {
   newestRun,
@@ -19,20 +18,14 @@ import {
   seriesFor,
   legendFor,
   conformanceItems,
-  bundleSizeItems,
-  speedTableHtml,
+  parseTimeTableHtml,
   conformanceTableHtml,
-  bundleSizeTableHtml,
-  niceDomainMax,
-  formatKB,
   LIBRARY_ORDER,
-  presentIn,
 } from '../../lib/benchmarks'
 
 export const speed = newestRun(speedRaw)
 export const memory = newestRun(memoryRaw)
 export const conformance = newestRun(conformanceRaw)
-export const bundleSize = newestRun(bundleSizeRaw)
 
 export const parseWorkloadNames = [
   'small-records',
@@ -43,43 +36,38 @@ export const parseWorkloadNames = [
 ]
 export const memoryWorkloadNames = ['small-records', 'large-records', 'xlarge-records']
 
-export const parseChartWorkloads = pickWorkloads(speed.operations.parse, parseWorkloadNames)
-export const stringifyChartWorkloads = pickWorkloads(speed.operations.stringify, parseWorkloadNames)
-export const memoryChartWorkloads = pickWorkloads(memory.operations.parse, memoryWorkloadNames)
-export const parseSeries = seriesFor(speed.libraries, presentIn(LIBRARY_ORDER, parseChartWorkloads))
-export const parseLegend = legendFor(speed.libraries, presentIn(LIBRARY_ORDER, parseChartWorkloads))
-export const stringifySeries = seriesFor(speed.libraries, presentIn(LIBRARY_ORDER, stringifyChartWorkloads))
-export const stringifyLegend = legendFor(speed.libraries, presentIn(LIBRARY_ORDER, stringifyChartWorkloads))
-export const memorySeries = seriesFor(memory.libraries, presentIn(LIBRARY_ORDER, memoryChartWorkloads))
-export const memoryLegend = legendFor(memory.libraries, presentIn(LIBRARY_ORDER, memoryChartWorkloads))
+export const speedSeries = seriesFor(speed.libraries, LIBRARY_ORDER)
+export const speedLegend = legendFor(speed.libraries, LIBRARY_ORDER)
+export const memoryLegend = legendFor(memory.libraries, LIBRARY_ORDER)
 
 export const parseSvg = groupedBarSVG({
   id: 'chart-parse',
-  title: 'Parse time by workload (relative to fastest, per row)',
-  series: parseSeries,
-  groups: speedGroups(parseChartWorkloads),
+  title: 'Parse time by workload (avg, ns per iteration)',
+  series: speedSeries,
+  groups: speedGroups(pickWorkloads(speed.operations.parse, parseWorkloadNames)),
   unit: 'ns',
   lowerIsBetter: true,
-  labelStyle: 'ratio-to-best',
+  logScale: true,
 })
 
 export const stringifySvg = groupedBarSVG({
   id: 'chart-stringify',
-  title: 'Stringify time by workload (relative to fastest, per row)',
-  series: stringifySeries,
-  groups: speedGroups(stringifyChartWorkloads),
+  title: 'Stringify time by workload (avg, ns per iteration)',
+  series: speedSeries,
+  groups: speedGroups(pickWorkloads(speed.operations.stringify, parseWorkloadNames)),
   unit: 'ns',
   lowerIsBetter: true,
-  labelStyle: 'ratio-to-best',
+  logScale: true,
 })
 
 export const memorySvg = groupedBarSVG({
   id: 'chart-memory',
   title: 'Peak memory by workload (parse, resident set size)',
-  series: memorySeries,
-  groups: memoryGroups(memoryChartWorkloads),
+  series: seriesFor(memory.libraries, LIBRARY_ORDER),
+  groups: memoryGroups(pickWorkloads(memory.operations.parse, memoryWorkloadNames)),
   unit: 'MB',
   lowerIsBetter: true,
+  logScale: true,
 })
 
 export const conformanceSvg = barSVG({
@@ -89,24 +77,10 @@ export const conformanceSvg = barSVG({
   higherIsBetter: true,
 })
 
-export const bundleSizeChartItems = bundleSizeItems(bundleSize)
-export const bundleSizeBundlerCount = Object.keys(bundleSize.env.bundlers).length
-export const bundleSizeSvg = barSVG({
-  id: 'chart-bundle-size',
-  title: 'Bundle size (browser, minified + gzip, smallest across bundlers)',
-  items: bundleSizeChartItems,
-  higherIsBetter: false,
-  domainMax: niceDomainMax(Math.max(...bundleSizeChartItems.map((it) => it.value)), 5 * 1024),
-  formatValue: formatKB,
-  formatTick: formatKB,
-})
-
 export const provenanceLine = `Measured on ${speed.env.cpu} (${speed.env.clk}) · ${speed.env.runtime} · generated ${speed.generated} · source ${speed.source}`
 
-export const summaryTableHtml = speedTableHtml(speed.operations.parse, speed.libraries, presentIn(LIBRARY_ORDER, speed.operations.parse))
-export const stringifyTableHtml = speedTableHtml(speed.operations.stringify, speed.libraries, presentIn(LIBRARY_ORDER, speed.operations.stringify))
+export const summaryTableHtml = parseTimeTableHtml(speed.operations.parse, speed.libraries, LIBRARY_ORDER)
 export const conformanceTable = conformanceTableHtml(conformance.results)
-export const bundleSizeTable = bundleSizeTableHtml(bundleSize)
 
 Speed, memory, and spec-conformance for **Lightning YAML** against the other parsers this
 repo benchmarks itself against: `js-yaml`, `yaml` (eemeli), and the `JSON` baseline where a
@@ -115,44 +89,37 @@ inline SVG rendered at build time, no client JavaScript.
 
 <p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.82em">{provenanceLine}</p>
 
-These numbers track real runs, not a hand-captured snapshot: CI publishes each run to the
-orphan `benchmark-data` branch, and the deploy workflow overlays that history onto this
-page at build time — the charts above render the newest published document per suite.
+These numbers are a hand-captured, representative snapshot — not a live feed. Once the CI
+benchmark job is wired up to publish runs to the `benchmark-data` branch, this page will
+read that history automatically and the charts will track it without further changes.
 
 ## Parse time
 
 <ChartCard
   heading="Parse time by workload"
-  note="Lower is better. Bars are proportional to time; each workload is scaled to its own slowest parser (rows span microseconds to seconds, so compare bars within a row, not across rows). Bar labels show time relative to the fastest parser in that row (×) — exact avg ns per parse() call is in the summary table below."
-  legend={parseLegend}
+  note="Lower is better. Log scale (values span microseconds to seconds). Avg wall time per parse() call."
+  legend={speedLegend}
   svg={parseSvg}
 />
 
 A curated size progression (`small` through `xlarge`) plus one `yaml-rich` workload
-(anchors and `!!binary`) — the full 13-workload breakdown is in the
-[summary table](#summary) below.
+(anchors and `!!binary`, where only `yaml` and `lightning-yaml` can run at all) — the full
+13-workload breakdown is in the [summary table](#summary) below.
 
 ## Stringify time
 
 <ChartCard
   heading="Stringify time by workload"
-  note="Lower is better. Bars are proportional to time; each workload is scaled to its own slowest parser (rows span microseconds to seconds, so compare bars within a row, not across rows). Bar labels show time relative to the fastest parser in that row (×) — exact avg ns per stringify() call is in the summary table below."
-  legend={stringifyLegend}
+  note="Lower is better. Log scale (values span microseconds to seconds). Avg wall time per stringify() call."
+  legend={speedLegend}
   svg={stringifySvg}
 />
-
-The **js-yaml (tuned)** series is the same library dumping with the lean `CORE` schema
-instead of its heavyweight default (YAML 1.1 plus timestamp/binary/omap/set). On
-JSON-shaped data that runs ~1.3–1.5× faster and round-trips identically — so it, not the
-default, is the fair yardstick for how fast js-yaml *can* stringify this data. It's shown
-on the stringify chart only: the rich workloads genuinely need the full schema, where the
-"tuned" config would be identical to the default.
 
 ## Peak memory
 
 <ChartCard
   heading="Peak memory by workload (parse)"
-  note="Lower is better. Bars are proportional to peak RSS; each workload is scaled to its own slowest parser, so compare bars within a row, not across rows. Peak resident set size, fixed at 25 iterations."
+  note="Lower is better. Log scale. Peak resident set size, fixed at 25 iterations."
   legend={memoryLegend}
   svg={memorySvg}
 />
@@ -169,33 +136,12 @@ on the stringify chart only: the rich workloads genuinely need the full schema, 
 cases — ahead of `yaml` at 97.1% and `js-yaml` at 94.9%. Merge keys (`<<`), absent from the
 test corpus, are the only unimplemented construct.
 
-## Bundle size
-
-<ChartCard
-  heading="Bundle size (browser)"
-  note={`Lower is better. Minified + gzipped, the smallest result across ${bundleSizeBundlerCount} bundlers (${bundleSize.tool}) for each library — parse + stringify only, tree-shaken.`}
-  svg={bundleSizeSvg}
-/>
-
-How many kilobytes each library adds to a browser bundle when an app imports only
-`parse` + `stringify` and ships it minified — measured with `js-yaml`, `yaml` (eemeli),
-and `lightning-yaml`, tree-shaken and compressed the same way a real app would ship them.
-The full per-bundler breakdown, gzip with the raw minified size alongside:
-
-<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={bundleSizeTable} />
-
 ## Summary
 
-Every parse-time workload, every library that can read it, `avg` ns per iteration (`—`
-where a library can't read that workload):
+Every parse-time workload, all four libraries, `avg` ns per iteration (`—` where a library
+can't read that workload):
 
 <div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={summaryTableHtml} />
-
-Every stringify workload, `avg` ns per iteration — including the `js-yaml (tuned)` column
-(the lean-schema dump). `—` marks a workload a library can't represent (JSON can't emit
-`!!binary`/shared refs; the tuned js-yaml config is JSON-shaped-data only):
-
-<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={stringifyTableHtml} />
 
 Conformance, {conformance.suite_total} cases from the yaml-test-suite:
 

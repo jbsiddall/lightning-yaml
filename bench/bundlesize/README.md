@@ -2,12 +2,12 @@
 
 Measures how many kilobytes each YAML library adds to a **browser** bundle when an app
 imports only `parse` + `stringify` and ships it minified — the third axis alongside the
-speed and memory harnesses. Results are written to `results/benchmarks/bundle-size.yaml`
-(gitignored; see the header comment of the sibling `speed.yaml`/`memory.yaml` emitters
-for the append-only doc model this follows).
+speed and memory harnesses. Results land in the **Bundle size** block of the root
+[`README.md`](../../README.md).
 
 ```bash
-pnpm bench:bundlesize                       # measure + write results/benchmarks/bundle-size.yaml
+pnpm bench:bundlesize              # measure + rewrite the README block
+node bench/bundlesize/run.mjs --no-readme   # measure + print only
 node bench/bundlesize/run.mjs --verify      # also prove tree-shaking is real
 ```
 

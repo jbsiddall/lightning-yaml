@@ -13,7 +13,6 @@
   --ly-charge: #7c5cff; /* electric violet accent */
   --ly-spark: #35e0d8; /* cyan */
   --ly-amber: #ffb020; /* amber */
-  --ly-amber-soft: #f6d38a; /* pale amber — js-yaml (tuned) chart series */
 
   /* Derived tints used by the hero instrument. */
   --ly-charge-glow: rgba(124, 92, 255, 0.55);

@@ -20,27 +20,16 @@
  * harness: an external, spec-authored ground truth.
  */
 
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
-import { createRequire } from "node:module";
-import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { load as jsYamlLoadSingle, loadAll as jsYamlLoadAll } from "js-yaml";
-import { parseAllDocuments, stringify as toYaml } from "yaml";
+import { parseAllDocuments } from "yaml";
 import { parse as ourParse, parseAll as ourParseAll } from "../../src/index.ts";
-import { candidateByName, libraryMeta } from "../candidates.ts";
 import { deepEqualSequences } from "./deepEqual.ts";
 import { classifyFailure, BUCKET_PRIORITY, type Bucket } from "./classify.ts";
 import { loadSuite, type TestCase } from "./suite.ts";
 
 const DATA_DIR = fileURLToPath(new URL("../yaml-test-suite/data", import.meta.url));
-const OUT_YAML = fileURLToPath(new URL("../../results/benchmarks/conformance.yaml", import.meta.url));
-
-function gitShaOr(fallback: string): string {
-  const r = spawnSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" });
-  const sha = r.status === 0 ? r.stdout.trim() : "";
-  return sha || fallback;
-}
 
 // ---------------------------------------------------------------------------
 // Candidates
@@ -258,54 +247,6 @@ function main(): void {
     }
   } else {
     console.log("(pass --dump-failures to print the full list of OUR failing case IDs)");
-  }
-
-  // ---------------------------------------------------------------------------
-  // Emit results/benchmarks/conformance.yaml — best-effort: a write failure
-  // here (e.g. read-only FS) must never turn a passing conformance run red.
-  // ---------------------------------------------------------------------------
-
-  try {
-    const require = createRequire(import.meta.url);
-
-    const results = CANDIDATES.map((candidate) => {
-      const t = tallies.get(candidate.name)!;
-      const passed = t.positivePassed + t.negativePassed;
-      const total = t.positiveTotal + t.negativeTotal;
-      const score = total === 0 ? 0 : +((100 * passed) / total).toFixed(1);
-      const meta = libraryMeta(candidateByName(candidate.name));
-      return {
-        id: meta.id,
-        label: meta.label,
-        ...(meta.self ? { self: true } : {}),
-        ...(candidate.name === "js-yaml"
-          ? { version: (require("js-yaml/package.json") as { version: string }).version }
-          : {}),
-        passed,
-        total,
-        score,
-        ...(candidate.name === "lightning-yaml"
-          ? { negative_passed: t.negativePassed, negative_total: t.negativeTotal }
-          : {}),
-      };
-    }).sort((a, b) => b.score - a.score);
-
-    const doc = {
-      suite: "conformance" as const,
-      scope: "competition" as const,
-      suite_total: scored.length,
-      unit: "%",
-      higher_is_better: true,
-      generated: new Date().toISOString().slice(0, 10),
-      source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
-      results,
-    };
-
-    mkdirSync(dirname(OUT_YAML), { recursive: true });
-    writeFileSync(OUT_YAML, toYaml(doc));
-    console.log(`Wrote ${OUT_YAML}`);
-  } catch (err) {
-    console.error(`(non-fatal) failed to write ${OUT_YAML}: ${(err as Error).message ?? err}`);
   }
 }
 

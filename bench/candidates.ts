@@ -17,7 +17,7 @@
  * candidates run for parse vs. stringify.
  */
 
-import { load as jsYamlLoad, dump as jsYamlDump, CORE_SCHEMA, YAML11_SCHEMA } from "js-yaml";
+import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
 import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import { parse as ourParse, stringify as ourStringify, NotImplementedError } from "../src/index.ts";
 import type { Category, DatasetDef } from "./fixtures/datasets.ts";
@@ -36,14 +36,8 @@ export interface Candidate {
   name: string;
   group: Group;
   kind: Kind;
-  /**
-   * Parse a text document into a JS value. Receives the fixture's `category` so
-   * a candidate can select a category-appropriate config without sniffing the
-   * text: js-yaml needs the YAML 1.1 schema to read `!!binary` in the rich
-   * fixtures, but keeps its leaner 1.2-core default for JSON-shaped input. Most
-   * candidates ignore the argument.
-   */
-  parse: (text: string, category?: Category) => unknown;
+  /** Parse a text document into a JS value. */
+  parse: (text: string) => unknown;
   /**
    * Serialize a JS value back to text. Optional: a candidate may implement only
    * `parse` (lightning-yaml ships parse first; its dumper is a later milestone).
@@ -53,34 +47,7 @@ export interface Candidate {
    * library's numbers under this candidate's name.
    */
   stringify?: (value: unknown) => string;
-  /**
-   * Ops this candidate runs (default: both). The `js-yaml (tuned)` row is
-   * stringify-only — it exists to show js-yaml's dump speed under a leaner
-   * schema, not to duplicate its parse row (where schema barely moves the
-   * needle, ~a few % within noise).
-   */
-  ops?: readonly Op[];
-  /**
-   * Fixture categories this candidate runs on (default: everything its `kind`
-   * allows). The tuned row is limited to JSON-shaped data (`json`,
-   * `yaml-plain`) — the only place a smaller-than-default dump schema is both
-   * valid and faster; `yaml-rich` needs the full schema, where "tuned" would
-   * just equal the default row.
-   */
-  categories?: readonly Category[];
 }
-
-/**
- * js-yaml v5's default LOAD schema is CORE (YAML 1.2 core), which — correctly
- * for 1.2 — does not define `!!binary` (a 1.1 tag). Our rich fixtures use
- * `!!binary`, so js-yaml needs the YAML 1.1 schema to read them; JSON-shaped
- * input keeps the leaner default. Without this, js-yaml threw on every rich
- * fixture and `candidateHandles` silently dropped it from the rich parse rows —
- * even though it parses them fine when asked with the right schema. (The `yaml`
- * oracle and lightning-yaml both read `!!binary` out of the box.)
- */
-const jsYamlParse = (text: string, category?: Category): unknown =>
-  jsYamlLoad(text, category === "yaml-rich" ? { schema: YAML11_SCHEMA } : undefined);
 
 export const candidates: Candidate[] = [
   {
@@ -94,23 +61,8 @@ export const candidates: Candidate[] = [
     name: "js-yaml",
     group: "competition",
     kind: "yaml",
-    parse: jsYamlParse,
+    parse: (text) => jsYamlLoad(text),
     stringify: (value) => jsYamlDump(value),
-  },
-  {
-    // A second js-yaml row: same library, dumped with the lean CORE schema
-    // instead of js-yaml's heavyweight default (YAML 1.1 + timestamp/binary/
-    // omap/set). On JSON-shaped data that is ~1.3–1.5× faster and round-trips
-    // identically — what a speed-aware js-yaml user would configure. It is
-    // stringify-only and JSON-shaped-only: on rich data the full schema is
-    // required, where "tuned" would just equal the default row.
-    name: "js-yaml-tuned",
-    group: "competition",
-    kind: "yaml",
-    parse: jsYamlParse,
-    stringify: (value) => jsYamlDump(value, { schema: CORE_SCHEMA }),
-    ops: ["stringify"],
-    categories: ["json", "yaml-plain"],
   },
   {
     name: "yaml",
@@ -161,45 +113,10 @@ export function candidateByName(name: string): Candidate {
   return found;
 }
 
-/** Display label per candidate name — the single source every benchmark-YAML emitter shares. */
-const DISPLAY_LABEL: Record<string, string> = {
-  JSON: "JSON",
-  "js-yaml": "js-yaml",
-  "js-yaml-tuned": "js-yaml (tuned)",
-  yaml: "yaml (eemeli)",
-  "lightning-yaml": "Lightning YAML",
-};
-
-/** Display metadata for a candidate, as it appears in a benchmark YAML doc's `libraries` list. */
-export interface LibraryMeta {
-  id: string;
-  label: string;
-  baseline?: boolean;
-  self?: boolean;
-}
-
-export function libraryMeta(c: Candidate): LibraryMeta {
-  const m: LibraryMeta = { id: c.name, label: DISPLAY_LABEL[c.name] ?? c.name };
-  if (c.group === "baseline") m.baseline = true;
-  if (c.group === "ours") m.self = true;
-  return m;
-}
-
-/**
- * The `scope` field written into a benchmark YAML doc. "all" (every
- * candidate) IS the head-to-head competition run, so both fold to the same
- * label — only "ours" (JSON + lightning-yaml, partial matrix) is distinct.
- */
-export function scopeLabel(scope: Scope): "competition" | "ours" {
-  return scope === "ours" ? "ours" : "competition";
-}
-
 /**
  * Whether `candidate` should run for `op` on a fixture of `category`.
  *
- * A candidate may narrow itself with `ops`/`categories` (the tuned js-yaml row
- * does both) — those gates apply first. Otherwise: YAML candidates handle
- * everything; a JSON candidate:
+ * YAML candidates handle everything. A JSON candidate:
  *  - "json"       → yes (pure JSON text, JSON-compatible value);
  *  - "yaml-plain" → stringify only (the value is JSON-compatible, so JSON is a
  *    valid stringify baseline — but JSON.parse can't read block YAML);
@@ -207,8 +124,6 @@ export function scopeLabel(scope: Scope): "competition" | "ours" {
  *    `!!binary`/shared-ref value).
  */
 export function candidateApplies(candidate: Candidate, category: Category, op: Op): boolean {
-  if (candidate.ops && !candidate.ops.includes(op)) return false;
-  if (candidate.categories && !candidate.categories.includes(category)) return false;
   if (candidate.kind === "yaml") return true;
   if (category === "json") return true;
   if (category === "yaml-plain") return op === "stringify";
@@ -250,14 +165,9 @@ export function candidateSupports(candidate: Candidate, op: Op): boolean {
  * workers that fail); correctness is still enforced — loudly, no swallowing — by
  * the vitest consistency suite.
  */
-export function candidateHandles(
-  candidate: Candidate,
-  op: Op,
-  input: string | unknown,
-  category?: Category,
-): boolean {
+export function candidateHandles(candidate: Candidate, op: Op, input: string | unknown): boolean {
   try {
-    if (op === "parse") candidate.parse(input as string, category);
+    if (op === "parse") candidate.parse(input as string);
     else if (candidate.stringify) candidate.stringify(input);
     else return false;
     return true;

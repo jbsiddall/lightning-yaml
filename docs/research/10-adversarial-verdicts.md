@@ -1,7 +1,7 @@
----
-title: "Adversarial verification verdicts"
----
+> Part of the [2026-07-12 implementation-strategy research dossier](README.md).
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
+
+# Adversarial verification verdicts
 
 Each design listed up to 5 load-bearing assumptions; 12 (of 15, capped) were handed to independent adversarial verifier agents instructed to REFUTE them — by reading the installed sources, fetching primary sources, and running real Node/wasm experiments on this machine. Result: **9 CONFIRMED, 3 REFUTED, 0 UNCERTAIN**. The three refutations (V8 scan-substrate conjunction, the "JSON-class RSS via allocation elimination" model, and rapidyaml's 150 MB/s premise) are incorporated into the dossier summary.
 

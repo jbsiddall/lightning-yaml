@@ -12,7 +12,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Lightning YAML',
-      tagline: 'Spec-compliant YAML parsing, out to give JSON.parse a run for its money.',
+      tagline: 'A YAML parser at JSON speed.',
       customCss: [
         // Self-hosted fonts (Inter = body, IBM Plex Mono = display/data/code).
         // Loaded BEFORE theme.css so --sl-font / --sl-font-mono resolve to them.
@@ -47,7 +47,6 @@ export default defineConfig({
         // Starlight >=0.39 removed top-level `autogenerate` on a sidebar group;
         // it must be nested inside `items`.
         { label: 'Guides', items: [{ autogenerate: { directory: 'guides' } }] },
-        { label: 'Playground', link: '/playground/' },
         { label: 'Benchmarks', link: '/benchmarks/' },
         { label: 'Research', items: [{ autogenerate: { directory: 'research' } }] },
         typeDocSidebarGroup,

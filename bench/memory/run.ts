@@ -20,25 +20,18 @@
  *   BENCH_SCOPE  all | competition | ours  (which candidates to run).
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { stringify as toYaml } from "yaml";
 import {
   selectCandidates,
   scopeFromEnv,
   candidateAppliesTo,
   candidateSupports,
   candidateHandles,
-  libraryMeta,
-  scopeLabel,
   type Scope,
 } from "../candidates.ts";
 import { datasets, loadFixtureText } from "../fixtures/datasets.ts";
 import { formatBytes, ratio, padEnd, padStart } from "../util/format.ts";
-
-const OUT_YAML = fileURLToPath(new URL("../../results/benchmarks/memory.yaml", import.meta.url));
 
 export const ITERS = Number(process.env.BENCH_ITERS) || 25;
 const OPS = ["parse", "stringify"] as const;
@@ -93,7 +86,7 @@ export function runMemoryMatrix(opts: MatrixOptions = {}): Result[] {
         // Skip candidates that don't apply to this fixture (e.g. JSON on block
         // YAML) or aren't implemented yet — no need to spawn a worker for them.
         if (!candidateAppliesTo(c, ds, op) || !candidateSupports(c, op)) continue;
-        if (probeText !== null && !candidateHandles(c, "parse", probeText, ds.category)) continue;
+        if (probeText !== null && !candidateHandles(c, "parse", probeText)) continue;
         const r = runWorker(c.name, ds.name, op);
         if (r) results.push(r);
       }
@@ -171,69 +164,6 @@ export function formatMarkdown(results: Result[]): string {
   return lines.join("\n");
 }
 
-function gitShaOr(fallback: string): string {
-  const r = spawnSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" });
-  const sha = r.status === 0 ? r.stdout.trim() : "";
-  return sha || fallback;
-}
-
-interface MemoryStat {
-  peak_rss: number;
-  heap_delta: number;
-}
-interface WorkloadRow {
-  workload: string;
-  values: Record<string, MemoryStat>;
-}
-
-/** Group flat memory Results into one operations.<op> section, dataset-ordered. */
-function rowsFor(results: Result[], op: Op): WorkloadRow[] {
-  const rows: WorkloadRow[] = [];
-  for (const ds of datasets) {
-    const inDs = results.filter((r) => r.dataset === ds.name && r.op === op);
-    if (inDs.length === 0) continue;
-    const rowValues: Record<string, MemoryStat> = {};
-    for (const r of inDs) {
-      rowValues[r.candidate] = {
-        peak_rss: +(r.peakRssBytes / 1048576).toFixed(2),
-        heap_delta: +(r.heapDeltaBytes / 1024).toFixed(2),
-      };
-    }
-    rows.push({ workload: ds.name, values: rowValues });
-  }
-  return rows;
-}
-
-/**
- * Write results/benchmarks/memory.yaml — a single YAML doc (no leading `---`)
- * that `bench/report.ts` (or CI) appends to the append-only `benchmark-data`
- * orphan branch the docs site reads. Pass `results` to reuse an
- * already-computed matrix (e.g. from `main()`'s console run); otherwise runs
- * one itself.
- */
-export function emitMemoryYaml(scope: Scope, results: Result[] = runMemoryMatrix({ scope })): void {
-  const usedNames = new Set(results.map((r) => r.candidate));
-  const libraries = selectCandidates(scope)
-    .filter((c) => usedNames.has(c.name))
-    .map(libraryMeta);
-
-  const doc = {
-    suite: "memory" as const,
-    scope: scopeLabel(scope),
-    units: { peak_rss: "MB", heap_delta: "KB" },
-    lower_is_better: true,
-    iterations: ITERS,
-    generated: new Date().toISOString().slice(0, 10),
-    source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
-    libraries,
-    operations: { parse: rowsFor(results, "parse"), stringify: rowsFor(results, "stringify") },
-  };
-
-  mkdirSync(dirname(OUT_YAML), { recursive: true });
-  writeFileSync(OUT_YAML, toYaml(doc));
-  console.log(`Wrote ${OUT_YAML}`);
-}
-
 function main(): void {
   const scope = scopeFromEnv();
   console.log(
@@ -246,7 +176,6 @@ function main(): void {
     "\nNotes: peak RSS is the whole-process peak (fixed Node baseline + fixture + parser)," +
       "\nso ratios are conservative; heap Δ isolates the retained result size.",
   );
-  emitMemoryYaml(scope, results);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

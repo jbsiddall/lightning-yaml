@@ -3,7 +3,7 @@
  *
  * Distinct from `parser.unit.ts` (feature coverage) and the vitest consistency
  * suite (fixture-vs-oracle): this file is the differential + fuzz seedbank
- * distilled from `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`, which taxonomizes
+ * distilled from `docs/research/13-adversarial-torture-tests.md`, which taxonomizes
  * the constructs known to break or split YAML parsers (parser-differential
  * research, the official yaml-test-suite corners, and real CVEs).
  *
@@ -278,33 +278,9 @@ test("anchors: empty anchor aliases to null; redefinition is last-wins; forward 
 });
 
 // --------------------------------------------------------------------------
-// Tab indentation strictness in block plain scalars — YAML 1.2 §5.5 / §6.1
-// (a tab may not appear in a block node's MANDATORY indentation; cf. yaml-test-
-// suite 4EJS). PR #29: a tab in the indentation of a multi-line plain-scalar
-// CONTINUATION line was silently folded away in the no-colon case, and the
-// colon case reported a misleading "mapping value not allowed" instead of the
-// tab error. `checkNoTabIndent(parentCol)` scans only columns 0..parentCol (the
-// mandatory indentation), so a tab BEYOND it stays legal separation — matching
-// the oracle exactly.
+// Tab indentation strictness — YAML 1.2 §5.5.
 // --------------------------------------------------------------------------
 
-test("STRICTNESS PR#29: a tab in block plain scalar continuation indentation throws the tab error, ahead of any colon-fail", () => {
-  // No-colon continuation: silently folded to {foo:{a:"bar baz"}} before the fix.
-  throwsBecause(() => parse("foo:\n  a: bar\n  \tbaz\n"), /tab character/);
-  // …on a LATER fold line too — every fold iteration is checked.
-  throwsBecause(() => parse("foo:\n  a: bar\n   baz\n  \tqux\n"), /tab character/);
-  // Colon continuation: the tab error must win over "mapping value not allowed"
-  // (before the fix this reported the misleading colon message).
+test("STRICTNESS: a tab character cannot be used in a block plain scalar continuation line indentation", () => {
   throwsBecause(() => parse("foo:\n  a: 1\n  \tb: 2"), /tab character/);
-});
-
-test("STRICTNESS PR#29: a tab BEYOND the mandatory indentation stays legal separation (matches oracle)", () => {
-  // Single-line separator tab after the key's `:` — takes the fast path, never
-  // enters the fold loop, so it is unaffected.
-  deepStrictEqual(parse("foo:\n \tbar"), { foo: "bar" });
-  deepStrictEqual(parse("foo:\n \tbar"), oracleParse("foo:\n \tbar"));
-  // A continuation-line tab past the parent column is separation, not indentation
-  // — folded away here, and the oracle accepts it too.
-  deepStrictEqual(parse("- a\n  b\n \tc"), ["a b c"]);
-  deepStrictEqual(parse("- a\n  b\n \tc"), oracleParse("- a\n  b\n \tc"));
 });

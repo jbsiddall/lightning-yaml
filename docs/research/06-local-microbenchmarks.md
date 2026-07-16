@@ -1,7 +1,7 @@
----
-title: "Empirical calibration: lightning-yaml target machine"
----
+> Part of the [2026-07-12 implementation-strategy research dossier](README.md).
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
+
+# Empirical calibration: lightning-yaml target machine
 
 ## Machine / runtime context
 
@@ -102,17 +102,3 @@ Surprise: regex dispatch is only ~7 ns/scalar worse — V8's Irregexp is fast, a
 - Substring materialization: s.slice 8-char 11.1 ns (copied), 20-char 7.1 ns (SlicedString, >=13-char threshold); String.fromCharCode.apply(8) 49.3 ns; TextDecoder.decode of 8-byte subarray 124.4 ns/call (scratchpad/e-substr.mjs output)
 - Fixtures are all-ASCII JSON: small 952B, medium 106,002B, large 1,197,623B, xlarge 10,728,911B, large-nested 1,251,846B (bench/fixtures/datasets.ts:26-33; gen:fixtures output)
 - js-yaml resolves ints with a char loop, floats with a regex (node_modules/js-yaml/lib/type/int.js:20, lib/type/float.js:6,27) — its 6-7x deficit is architectural, not regex cost
-## Corrections & cross-note reconciliation
-
-- **js-yaml version.** This note labels the installed js-yaml as 4.1.0, but the actually-installed
-  version is **4.3.0** (pnpm resolved `^4.1.0` → 4.3.0). All "js-yaml" numbers here were measured
-  against 4.3.0 — independently verified in the [js-yaml internals](2026-07-12-js-yaml-internals.md),
-  [adversarial verdicts](2026-07-12-adversarial-verdicts.md), and
-  [completeness critique](2026-07-12-completeness-critique.md) notes.
-- **Uint8Array vs `charCodeAt` scanning.** The
-  [pure-JS speed ceiling](2026-07-12-pure-js-speed-ceiling.md) note measured Uint8Array scanning
-  ~1.5× faster than `charCodeAt`; this note measured parity; the
-  [adversarial verdicts](2026-07-12-adversarial-verdicts.md) pass reproduced a 2.6–4.4× typed-array
-  advantage in TurboFan-verified loops. The discrepancy is unreconciled (loop structure and
-  optimization-status differences), and the decision to parse from a JS string rather than from bytes
-  does not rest on it (see the [pure-JS parser design](2026-07-12-design-a-pure-js-parser.md), §1).

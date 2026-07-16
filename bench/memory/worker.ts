@@ -43,7 +43,7 @@ const heapBefore = process.memoryUsage().heapUsed;
 
 let sink: unknown;
 for (let i = 0; i < iters; i++) {
-  sink = op === "parse" ? candidate.parse(input as string, ds.category) : candidate.stringify!(input);
+  sink = op === "parse" ? candidate.parse(input as string) : candidate.stringify!(input);
 }
 
 gc();

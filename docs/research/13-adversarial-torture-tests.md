@@ -1,6 +1,5 @@
----
-title: "Adversarial torture tests — parser differentials, breakage & spec corners (2026-07-13)"
----
+# Adversarial torture tests — parser differentials, breakage & spec corners (2026-07-13)
+
 A later addition to this dossier. Docs 01–12 are the *implementation-strategy*
 research (how to build a fast parser); this one is about **correctness under
 hostile input**: the constructs known to break or split YAML parsers, whether
@@ -12,7 +11,7 @@ part that matters — records the **measured verdict for lightning-yaml on every
 category**, produced by running each construct through a differential harness
 (ours vs. the `yaml` oracle) and a "no unexpected exception" fuzz sweep. The
 regression tests that lock these verdicts live in
-[`test/adversarial.unit.ts`](https://github.com/jbsiddall/lightning-yaml/blob/main/test/adversarial.unit.ts).
+[`test/adversarial.unit.ts`](../../test/adversarial.unit.ts).
 
 Two properties are tracked separately (never conflated):
 
@@ -148,7 +147,7 @@ security** references behind the taxonomy above, kept for future torture work:
     for our documented last-wins policy.
 - **Fuzzing corpora / firehoses** — `google/oss-fuzz` → `projects/libyaml`,
   `k8s.io/kubernetes/test/fuzz/yaml` (roundtrip oracle: unmarshal→marshal→assert),
-  `brandonprry/yaml-fuzz`. Oracles to borrow: differential, roundtrip, and
+  `brandonprry/yaml-fuzz`. Oracles to steal: differential, roundtrip, and
   "no unexpected exception" (Atheris) — the last is what `test/adversarial.unit.ts`
   encodes directly.
 - **Implicit-typing footguns** — StrictYAML's "Norway Problem" writeup; the

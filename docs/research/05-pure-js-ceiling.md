@@ -1,7 +1,7 @@
----
-title: "How fast can pure JS go on V8 — evidence for lightning-yaml's design"
----
+> Part of the [2026-07-12 implementation-strategy research dossier](README.md).
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
+
+# How fast can pure JS go on V8 — evidence for lightning-yaml's design
 
 Environment for all local experiments: Node v22.22.2 / V8 12.4.254.21-node.39 (bench5 output), this container. Benchmark scripts: `/tmp/claude-0/-home-user-lightning-yaml/5b5afb90-7c63-5a56-af0b-8798d3e9b488/scratchpad/bench{1,2,3,4,5}.mjs`. Absolute MB/s are machine-specific; ratios are the durable signal.
 
