@@ -166,6 +166,7 @@ relevant file first. Skip it entirely for harness tweaks, fixtures, docs,
 or dependency chores. Read it when the task touches parser design,
 implementation, or performance — pick by task:
 
+- Deciding *what* to optimize for — the real-world YAML shape / target-workload profile, graded `[MEASURED]`/`[REASONED]`/`[INFERRED]` → `2026-07-16-real-world-yaml-optimization-profile.md` (the canonical target; supersedes the older scattered "medium-and-up / JSON-shaped" asides)
 - Implementing/designing parser code → `2026-07-12-design-a-pure-js-parser.md` (the recommended pure-JS design)
 - Debugging slow code / optimizing a hot path → `2026-07-12-pure-js-speed-ceiling.md` + `2026-07-12-local-microbenchmarks.md` (V8 tricks: `2026-07-12-v8-json-parse-anatomy.md`)
 - Writing or reviewing perf-sensitive JS (JIT tiers, monomorphism, deopt checks) → `2026-07-12-v8-optimization-guide.md`
