@@ -1,6 +1,7 @@
+---
+title: "WASM route for lightning-yaml: wrap a native YAML parser as a WASM npm package"
+---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
-
-# WASM route for lightning-yaml: wrap a native YAML parser as a WASM npm package
 
 All local measurements below were run in this repo's environment: Node v22.22.2, fixtures generated via `pnpm gen:fixtures` (952 B – 10.73 MB, `/home/user/lightning-yaml/bench/fixtures/data/`), scripts kept in `/tmp/claude-0/-home-user-lightning-yaml/5b5afb90-7c63-5a56-af0b-8798d3e9b488/scratchpad/` (`boundary-bench.mjs`, `callcost.mjs`, `nodecount.mjs`, `synccompile.mjs`). Locally installed competition: js-yaml@4.3.0, yaml@2.9.0 (`/home/user/lightning-yaml/node_modules/.pnpm/`). NOTE: npm now has js-yaml@5.2.1 (2026-07-02), a full TypeScript rewrite (v5.0.0, 2026-06-20) with reworked schemas — the "beat js-yaml" target has moved since this repo pinned ^4.1.0 (https://raw.githubusercontent.com/nodeca/js-yaml/master/CHANGELOG.md, package.json:26).
 

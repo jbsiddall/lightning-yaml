@@ -1,5 +1,10 @@
-# A one-scan PLAIN/SINGLE/DOUBLE scalar classifier for `stringify`
-
+---
+title: "A one-scan PLAIN/SINGLE/DOUBLE scalar classifier for stringify"
+optimization:
+  name: "One-scan scalar-style classifier (stringify)"
+  conclusion: "Folding the dumper's up-to-three separate scans of each quoted string into one PLAIN/SINGLE/DOUBLE classifier is ~1.8x faster in isolation, but the end-to-end payoff on string-heavy data was not conclusively measured."
+  verdict: inconclusive
+---
 **Verdict: Inconclusive**, leaning toward worth pursuing for string-heavy data — the
 dumper scans every quoted string up to three separate times, and folding those into a
 single pass is ~1.8× faster in isolation; but the end-to-end payoff was measured only

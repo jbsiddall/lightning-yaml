@@ -1,5 +1,10 @@
-# Replacing the ConsString rope with an array-of-chunks + `join`
-
+---
+title: "Replacing the ConsString rope with an array-of-chunks + join"
+optimization:
+  name: "Array-join vs ConsString rope (stringify)"
+  conclusion: "Replacing the `out += ...` ConsString rope with an array-of-chunks + `join` is 4-11% slower on four of five fixtures, so the current rope is kept."
+  verdict: not-worth-it
+---
 **Verdict: Not worth pursuing** — the current `out += …` ConsString rope is 4–11% faster
 than accumulating chunks in an array and calling `join` on four of five fixtures; the one
 apparent win is garbage-collection variance, not a real effect.

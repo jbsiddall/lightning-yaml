@@ -1,5 +1,6 @@
-# Runtime shape-codegen and record-structure techniques from binary and schema serializers
-
+---
+title: "Runtime shape-codegen and record-structure techniques from binary and schema serializers"
+---
 
 ## Abstract
 

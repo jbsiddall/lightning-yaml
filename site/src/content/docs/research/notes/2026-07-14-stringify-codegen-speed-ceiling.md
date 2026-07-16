@@ -1,5 +1,6 @@
-# Shape-specialized codegen: the ceiling for a compiled `stringify`
-
+---
+title: "Shape-specialized codegen: the ceiling for a compiled stringify"
+---
 **Verdict: Reference / ceiling** — an informational upper bound, not a change to make now.
 A dumper compiled to a specific record shape (the `fast-json-stringify` approach) reaches
 about 2.2–2.4× `JSON.stringify` while staying byte-identical, roughly half the current

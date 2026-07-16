@@ -1,5 +1,6 @@
-# The shape of real-world YAML: what to optimize the hot path for
-
+---
+title: "The shape of real-world YAML: what to optimize the hot path for"
+---
 **Verdict: Reference / ceiling.** This note records a *target-workload profile* — the
 statistical shape of the YAML lightning-yaml is actually asked to parse in the wild — so
 that future optimization decisions can be weighed against a written, honestly-graded

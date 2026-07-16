@@ -1,5 +1,10 @@
-# `Object.freeze` on parsed output
-
+---
+title: "Object.freeze on parsed output"
+optimization:
+  name: "Object.freeze on parsed output (memory)"
+  conclusion: "Freezing the parsed tree saves no memory, costs ~28% more to build and ~3.9x slower reads, and breaks the mutable-output contract — at most an opt-in for immutability, never a memory optimization."
+  verdict: not-worth-it
+---
 **Verdict: Not worth pursuing** — freezing the parsed tree saves no memory, costs
 ~28% more to build, makes reads several times slower in current V8, and breaks the
 mutable-output contract. At most an opt-in for callers who want immutability for

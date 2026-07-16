@@ -1,5 +1,10 @@
-# Columnar (struct-of-arrays) storage behind a proxy facade
-
+---
+title: "Columnar (struct-of-arrays) storage behind a proxy facade"
+optimization:
+  name: "Columnar store + proxy facade (memory)"
+  conclusion: "A struct-of-arrays columnar store is genuinely compact, but the per-row proxy facade needed to keep the plain-object API costs more memory than the objects it replaces and slows reads."
+  verdict: not-worth-it
+---
 **Verdict: Not worth pursuing** — the compact columnar store is real, but the
 per-row facade needed to keep the plain-object API costs *more* memory than the
 plain objects it replaces, and slows reads.

@@ -1,8 +1,9 @@
+---
+title: "lightning-yaml Design Brief B: WASM-wrapped rapidyaml with in-WASM YAML→JSON transcode + native JSON.parse"
+---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
 
-# lightning-yaml Design Brief B: WASM-wrapped rapidyaml with in-WASM YAML→JSON transcode + native JSON.parse
-
-# Design Brief B — WASM-wrapped native YAML parser
+## Design Brief B — WASM-wrapped native YAML parser
 
 **Verdict up front (honest):** the strongest WASM design is *rapidyaml compiled with Emscripten, transcoding YAML→JSON entirely inside linear memory, then materializing JS values with one `TextDecoder.decode` + one native `JSON.parse`*. Dossier math says it beats js-yaml@4.3 by ~1.4–2.1× across 1 KB–10 MB and lands at ~2.8–4.5× slower than `JSON.parse` — it structurally **cannot approach JSON.parse**, because `JSON.parse` is a mandatory component of its own fast path (WASM ROUTE §5). It can beat js-yaml on peak RSS, but only with deliberate instance-lifecycle management, and not "clearly" (est. 330–430 MB vs 495 MB vs JSON's 282 MB on the 25×10 MB harness). This is the honest ceiling of the WASM route; the dossier's strategic read (pure JS reaches the same ~1.5–2× win without the packaging/memory/conformance taxes) stands, and this document does not hide it.
 

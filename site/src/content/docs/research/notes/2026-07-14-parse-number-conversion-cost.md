@@ -1,5 +1,10 @@
-# Hand-rolling number conversion in the parse path
-
+---
+title: "Hand-rolling number conversion in the parse path"
+optimization:
+  name: "Hand-rolled number parsing (parse)"
+  conclusion: "Number conversion is ~18% of parse self-time but already sits on V8's native floor; a hand-written JS float parser is slower and loses precision."
+  verdict: not-worth-it
+---
 **Verdict: Not worth pursuing** — number conversion is a large, real slice of parse
 CPU (~18% of self-time), but it is already sitting on V8's native floor; a
 hand-written JavaScript float parser is *slower* and loses precision.

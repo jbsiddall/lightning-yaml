@@ -1,5 +1,10 @@
-# Caching rendered map keys in `stringify`
-
+---
+title: "Caching rendered map keys in stringify"
+optimization:
+  name: "Map-key render cache (stringify)"
+  conclusion: "Memoizing each map key's rendered \"key:\" string removes a repeated quote-classification and per-row concatenation, and is the single largest lever found on the dump side."
+  verdict: promising
+---
 **Verdict: Worth pursuing** — memoizing each map key's rendered `"key:"` string
 removes both a repeated quote-classification and a per-row string concatenation, and it
 is the single largest lever we found anywhere on the dump side.
