@@ -31,11 +31,11 @@ for (const ds of datasets) {
   const text = loadFixtureText(ds);
   // Skip candidates that can't yet read this specific fixture (a partial parser
   // on input it doesn't handle yet) so we never emit an "error" row.
-  const cands = applicable.filter((c) => candidateHandles(c, "parse", text, ds.category));
+  const cands = applicable.filter((c) => candidateHandles(c, "parse", text));
   if (cands.length === 0) continue;
   group(`parse · ${ds.name}`, () => {
     for (const c of cands) {
-      bench(c.name, () => do_not_optimize(c.parse(text, ds.category)));
+      bench(c.name, () => do_not_optimize(c.parse(text)));
     }
   });
 }

@@ -3,7 +3,7 @@
  *
  * Distinct from `parser.unit.ts` (feature coverage) and the vitest consistency
  * suite (fixture-vs-oracle): this file is the differential + fuzz seedbank
- * distilled from `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`, which taxonomizes
+ * distilled from `docs/research/13-adversarial-torture-tests.md`, which taxonomizes
  * the constructs known to break or split YAML parsers (parser-differential
  * research, the official yaml-test-suite corners, and real CVEs).
  *
@@ -275,4 +275,12 @@ test("anchors: empty anchor aliases to null; redefinition is last-wins; forward 
   deepStrictEqual(parse("x: &e\ny: *e"), { x: null, y: null }, "alias to empty node ⇒ null");
   deepStrictEqual(parse("p: &a 1\nq: &a 2\nr: *a"), { p: 1, q: 2, r: 2 }, "redefinition last-wins");
   throwsBecause(() => parse("x: *later\nlater: &later 1"), /unresolved alias/); // forward reference is illegal
+});
+
+// --------------------------------------------------------------------------
+// Tab indentation strictness — YAML 1.2 §5.5.
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: a tab character cannot be used in a block plain scalar continuation line indentation", () => {
+  throwsBecause(() => parse("foo:\n  a: 1\n  \tb: 2"), /tab character/);
 });

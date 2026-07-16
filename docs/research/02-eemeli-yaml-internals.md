@@ -1,7 +1,7 @@
----
-title: "Deep-dive: yaml (eemeli/yaml) v2.9.0 — pipeline anatomy, allocation profile, and why it loses to js-yaml"
----
+> Part of the [2026-07-12 implementation-strategy research dossier](README.md).
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
+
+# Deep-dive: `yaml` (eemeli/yaml) v2.9.0 — pipeline anatomy, allocation profile, and why it loses to js-yaml
 
 Package inspected: `/home/user/lightning-yaml/node_modules/yaml` → `/home/user/lightning-yaml/node_modules/.pnpm/yaml@2.9.0/node_modules/yaml` (v2.9.0, `dist/` compiled JS). All line refs are into that `dist/`. All measurements: Node v22.22.2, this machine, fresh 10.0MB JSON fixture (60,315 records, flow-style — same class of input as the repo's fixtures).
 

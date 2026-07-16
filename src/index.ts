@@ -1,6 +1,6 @@
 /**
- * lightning-yaml — a single-pass, allocation-minimal, pure-JS YAML 1.2.2 parser
- * engineered for V8 (see site/src/content/docs/research/notes/2026-07-12-design-a-pure-js-parser.md).
+ * lightning-yaml — a single-pass, allocation-minimal, pure-JS YAML parser
+ * engineered for V8 (see docs/research/07-design-a-pure-js.md).
  *
  * The public surface mirrors `JSON.parse`:
  *   - `parse(text)`     text → JS value (a single document; throws if a second
@@ -18,7 +18,8 @@
  * markers (`---`/`...`), `%YAML`/`%TAG` directives, multi-document streams,
  * anchors/aliases (`&`/`*`, M5 — including self-referential/cyclic anchors and
  * structural sharing), tags (`!!binary` and friends), and `stringify` (M6) are
- * implemented.
+ * implemented. Merge keys (`<<`) are not here yet and throw a controlled parse
+ * error (or are read as plain text) rather than mis-parsing.
  *
  * Design invariants enforced throughout (V8 rules, see doc 12):
  *   - scan the flat JS string with `charCodeAt` (never `str[i]`) and hop long
@@ -281,32 +282,6 @@ let nextNewline = -1;
 let keyCache: Map<string, string> = new Map();
 
 /**
- * Per-parse VALUE-intern cache — the value-side analogue of `keyCache`. `null`
- * means the feature is OFF (the default), so `internValue` is a single null
- * check with no probe and no allocation and the parse path stays byte-for-byte
- * today's. It is allocated only when a caller opts in via
- * `parse(text, { optimizations: { internStrings: true } })` (see `ParseOptions`),
- * and released (nulled) at the end of every `parse`/`parseAll` call so a large
- * cache can't outlive the call. When on, equal string scalar values collapse to
- * one shared instance — a memory win on repetitive record data at a parse-CPU
- * cost, which is exactly why it is opt-in (see
- * `site/src/content/docs/research/notes/2026-07-14-memory-value-interning.md`). Bounded by
- * `MAX_VALUE_CACHE` so an all-unique-values document can't grow it unbounded.
- */
-let valueCache: Map<string, string> | null = null;
-
-/**
- * Entry cap for `valueCache`. Past this many distinct interned values we stop
- * inserting and return the fresh (uncached) string — still correct, just not
- * deduplicated (mirrors the dumper's `MAX_DUMP_KEY_CACHE`). Set far above the
- * dumper's key cap because scalar *values* are far more numerous and diverse
- * than the handful of distinct map keys, so real repetitive record data must
- * fit comfortably under it while a pathological all-unique document still can't
- * grow the map without bound.
- */
-const MAX_VALUE_CACHE = 1_000_000;
-
-/**
  * FastKeyMatch feedback slot (M7, doc 07 §5 L107–108). Holds the canonical,
  * encounter-ordered key list of the most-recently-completed mapping. When the
  * NEXT mapping opens (the common case: the next homogeneous record in a
@@ -516,32 +491,6 @@ function resetForStream(text: string): void {
 }
 
 /**
- * Opt-in parse-time performance tradeoffs.
- *
- * IMPORTANT DESIGN RULE: only optimizations that carry a real COST as well as a
- * benefit belong under `optimizations`. They are OFF by default so the caller
- * consciously opts in and accepts the tradeoff. Optimizations that are ~free
- * wins are ALWAYS enabled and never appear here (e.g. the existing key cache and
- * block-scalar accumulation).
- */
-export interface ParseOptimizations {
-  /**
-   * Intern repeated string scalar VALUES so equal values share one heap string
-   * (map keys are always interned regardless). Trades ~+16% parse CPU for up to
-   * ~-28% retained heap on data with many repeated string values; ~no benefit on
-   * unique-value data. Correctness-invisible either way (interned strings are
-   * `===`-equal and immutable). Default: `false`.
-   */
-  internStrings?: boolean;
-}
-
-/** Options for {@link parse} / {@link parseAll}. Every field is optional; an omitted or `undefined` value leaves the parse behaviour byte-for-byte the default. */
-export interface ParseOptions {
-  /** Opt-in performance tradeoffs — see {@link ParseOptimizations}. */
-  optimizations?: ParseOptimizations;
-}
-
-/**
  * Parse a single YAML document into a JavaScript value.
  *
  * Reads exactly one document — like `JSON.parse` and js-yaml's `load`. If
@@ -552,8 +501,6 @@ export interface ParseOptions {
  * `null`/`~`/empty a `null`); an empty document is `null`.
  *
  * @param text - The YAML source text.
- * @param options - Optional {@link ParseOptions}; omitting it (the default)
- * leaves parsing byte-for-byte unchanged.
  * @returns The document's value: an object, array, string, number, boolean,
  * or `null`.
  * @throws {@link YAMLParseError} if `text` is not well-formed YAML, or contains
@@ -565,23 +512,18 @@ export interface ParseOptions {
  * // { dish: "pancakes", serves: 4 }
  * ```
  */
-export function parse(text: string, options?: ParseOptions): unknown {
+export function parse(text: string): unknown {
   resetForStream(text);
-  valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  try {
-    const value = parseNextDocument();
-    if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
+  const value = parseNextDocument();
+  if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
 
-    // Single-document contract (like js-yaml's `load`): a second document —
-    // another marker, more directives, or any other trailing content — is an
-    // error here; use `parseAll` for multi-document streams.
-    if (pos < len) {
-      fail("expected a single document in the stream, but found more (use parseAll for multi-document streams)");
-    }
-    return value;
-  } finally {
-    valueCache = null; // don't let the intern cache outlive the call
+  // Single-document contract (like js-yaml's `load`): a second document —
+  // another marker, more directives, or any other trailing content — is an
+  // error here; use `parseAll` for multi-document streams.
+  if (pos < len) {
+    fail("expected a single document in the stream, but found more (use parseAll for multi-document streams)");
   }
+  return value;
 }
 
 /**
@@ -593,8 +535,6 @@ export function parse(text: string, options?: ParseOptions): unknown {
  * {@link parse}. A source with no documents returns an empty array.
  *
  * @param text - The YAML source text, potentially containing multiple documents.
- * @param options - Optional {@link ParseOptions}; omitting it (the default)
- * leaves parsing byte-for-byte unchanged.
  * @returns One value per document, in document order.
  * @throws {@link YAMLParseError} if any document in the stream is not
  * well-formed YAML.
@@ -605,20 +545,15 @@ export function parse(text: string, options?: ParseOptions): unknown {
  * // [{ dish: "pancakes" }, { dish: "omelette" }]
  * ```
  */
-export function parseAll(text: string, options?: ParseOptions): unknown[] {
+export function parseAll(text: string): unknown[] {
   resetForStream(text);
-  valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  try {
-    const docs: unknown[] = [];
-    for (;;) {
-      const value = parseNextDocument();
-      if (value === NO_DOCUMENT) break;
-      docs.push(value);
-    }
-    return docs;
-  } finally {
-    valueCache = null; // don't let the intern cache outlive the call
+  const docs: unknown[] = [];
+  for (;;) {
+    const value = parseNextDocument();
+    if (value === NO_DOCUMENT) break;
+    docs.push(value);
   }
+  return docs;
 }
 
 /**
@@ -1852,20 +1787,6 @@ function internKey(s: string): string {
 }
 
 /**
- * Value-intern hook at the string-scalar materialisation sites (see `valueCache`
- * for the off=`null` / on=dedup design and `MAX_VALUE_CACHE` for the cap). Past
- * the cap it stops inserting and returns `s` uncached — still correct.
- */
-function internValue(s: string): string {
-  const vc = valueCache;
-  if (vc === null) return s;
-  const hit = vc.get(s);
-  if (hit !== undefined) return hit;
-  if (vc.size < MAX_VALUE_CACHE) vc.set(s, s);
-  return s;
-}
-
-/**
  * FastKeyMatch (M7) — flow context. Try to recognise the upcoming flow mapping
  * key as the previous sibling's canonical key `ek` WITHOUT slicing/hashing.
  * Only the hot shape is fast-pathed: a double-quoted JSON key `"…"`. `c` is the
@@ -2099,7 +2020,7 @@ function resolvePlain(start: number, end: number): unknown {
   if ((c0 >= ZERO && c0 <= NINE) || c0 === MINUS || c0 === PLUS || c0 === DOT) {
     const num = tryNumber(start, end);
     if (num !== NOT_NUMERIC) return num;
-    return internValue(src.slice(start, end));
+    return src.slice(start, end);
   }
   const L = end - start;
   switch (c0) {
@@ -2161,7 +2082,7 @@ function resolvePlain(start: number, end: number): unknown {
       break;
     }
   }
-  return internValue(src.slice(start, end));
+  return src.slice(start, end);
 }
 
 // ---------------------------------------------------------------------------
@@ -2519,7 +2440,7 @@ function parseDoubleQuoted(): string {
     }
     if (nextNewline > e) {
       pos = e + 1;
-      return internValue(src.slice(start, e));
+      return src.slice(start, e);
     }
   }
   return parseDoubleQuotedSlow(start);
@@ -2704,7 +2625,7 @@ function parseSingleQuoted(): string {
   }
   if (nextNewline < e) return parseSingleQuotedSlow(start);
   pos = e + 1;
-  return internValue(src.slice(start, e));
+  return src.slice(start, e);
 }
 
 function parseSingleQuotedSlow(start: number): string {
@@ -3368,6 +3289,7 @@ function resolveBlockPlain(start: number, end: number, parentCol: number): unkno
     // Single-line plain scalar (the overwhelming case): one span, typed once.
     return resolvePlain(start, end);
   }
+  if (parentCol >= 0) checkNoTabIndent(parentCol);
   // Multi-line plain scalar (cold): fold the segments (see `foldBlockPlainRemainder`).
   return foldBlockPlainRemainder(src.slice(start, end), breaks, parentCol);
 }
@@ -3385,6 +3307,7 @@ function resolveBlockPlainRaw(start: number, end: number, parentCol: number): st
   if (plainStoppedAtComment || pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) {
     return src.slice(start, end);
   }
+  if (parentCol >= 0) checkNoTabIndent(parentCol);
   return foldBlockPlainRemainder(src.slice(start, end), breaks, parentCol);
 }
 
@@ -3405,6 +3328,7 @@ function foldBlockPlainRemainder(first: string, breaks: number, parentCol: numbe
     if (plainStoppedAtColon) fail("mapping value not allowed in a multi-line plain scalar");
     breaks = advanceCountingBreaks();
     if (plainStoppedAtComment || pos >= len || pos - lineStart <= parentCol || isDocMarkerAt(pos)) break;
+    if (parentCol >= 0) checkNoTabIndent(parentCol);
   }
   return result;
 }
@@ -3886,9 +3810,8 @@ function parseBlockValue(parentCol: number, mapValue: boolean): unknown {
 // a non-consuming lookahead that finds the content indentation from the first
 // non-blank line; the main loop in `parseBlockScalar` then walks the body for
 // real, `indexOf('\n')` per line, a charCode loop for the (short) indentation
-// prefix, exactly one `src.slice` per content line, accumulated into `res` via
-// `+=` (an append-only ConsString rope, flattened once on return — see the
-// dumper's `out` doc comment below for why that's O(n) here, not O(n²)).
+// prefix, exactly one `src.slice` per content line into a `parts` array, and a
+// final `parts.join("")` — no `+=` rope-building, ever.
 // ===========================================================================
 
 /**
@@ -3967,13 +3890,6 @@ function detectBlockScalarIndent(effParentCol: number): number {
 }
 
 /**
- * Hoisted so `parseBlockScalar`'s body loop can reuse one string for the
- * single-break case instead of allocating a fresh `"\n".repeat(1)` on every
- * adjacent-line append — by far the most common line boundary in real content.
- */
-const NL = "\n";
-
-/**
  * Parse a literal (`|`) or folded (`>`) block scalar starting at `pos` (the
  * indicator character) and return its string value. `parentCol` is the same
  * "enclosing construct's column" every other block-node caller already threads
@@ -4041,13 +3957,11 @@ function parseBlockScalar(parentCol: number): string {
   const effParentCol = parentCol === ROOT_AFTER_INLINE_MARKER ? -1 : parentCol;
   const contentIndent = indentIndicator > 0 ? effParentCol + indentIndicator : detectBlockScalarIndent(effParentCol);
 
-  // --- body: accumulate content-line text into `res`, a ConsString built via
-  // `+=` (O(1) per append, flattened lazily on first read) rather than an
-  // array pushed then joined ---
-  let res = "";
+  // --- body: accumulate content-line text into `parts`, join once at the end ---
+  const parts: string[] = [];
   let sawContent = false;
   let prevMoreIndented = false;
-  let pendingBreaks = 0; // blank lines since the last appended content line (0 = adjacent)
+  let pendingBreaks = 0; // blank lines since the last pushed content line (0 = adjacent)
 
   for (;;) {
     if (pos >= len) break;
@@ -4109,30 +4023,26 @@ function parseBlockScalar(parentCol: number): string {
       if (!sawContent) {
         // No "previous line" to fold/break against — leading blanks (if any)
         // become that many literal newlines, never a space.
-        if (pendingBreaks > 0) res += pendingBreaks === 1 ? NL : NL.repeat(pendingBreaks);
-        res += text;
+        if (pendingBreaks > 0) parts.push("\n".repeat(pendingBreaks));
+        parts.push(text);
       } else if (!folded) {
         // Literal never folds: exactly one newline per line boundary, plus one
         // more per intervening blank line.
-        res += pendingBreaks === 0 ? NL : NL.repeat(pendingBreaks + 1);
-        res += text;
+        parts.push("\n".repeat(pendingBreaks + 1), text);
       } else {
         const moreInvolved = prevMoreIndented || moreIndented;
         if (pendingBreaks === 0 && !moreInvolved) {
-          res += " ";
-          res += text; // the one case that folds to a space
+          parts.push(" ", text); // the one case that folds to a space
         } else if (moreInvolved) {
           // A more-indented line on either side of the break: never folds, and
           // the break "connecting" the two lines counts as one of its own — on
           // top of each intervening blank line (doc 07 §3.5's classic gotcha).
-          res += pendingBreaks === 0 ? NL : NL.repeat(pendingBreaks + 1);
-          res += text;
+          parts.push("\n".repeat(pendingBreaks + 1), text);
         } else {
           // Plain content on both sides, separated by 1+ blank lines: each
           // blank line becomes exactly one newline (no extra "connecting" one —
           // it's absorbed into the blank run, unlike the more-indented case).
-          res += pendingBreaks === 1 ? NL : NL.repeat(pendingBreaks);
-          res += text;
+          parts.push("\n".repeat(pendingBreaks), text);
         }
       }
       sawContent = true;
@@ -4150,10 +4060,11 @@ function parseBlockScalar(parentCol: number): string {
   // are non-blank, non-`#`, so `skipBlankLines` stops on them immediately).
   skipBlankLines();
 
+  const core = parts.join("");
   if (!sawContent) return chomp === 1 ? "\n".repeat(pendingBreaks) : "";
-  if (chomp === -1) return res; // strip: no trailing break at all
-  if (chomp === 1) return res + "\n".repeat(pendingBreaks + 1); // keep: every trailing break
-  return res + "\n"; // clip (default): exactly one
+  if (chomp === -1) return core; // strip: no trailing break at all
+  if (chomp === 1) return core + "\n".repeat(pendingBreaks + 1); // keep: every trailing break
+  return core + "\n"; // clip (default): exactly one
 }
 
 // ===========================================================================
@@ -4434,9 +4345,6 @@ let dumpRefCounts: Map<object, number> | null = null;
 let dumpAnchors: Map<object, string> | null = null;
 let dumpAnchorSeq = 0;
 let dumpDepth = 0;
-/** Per-call cache of a rendered `writeStringScalar(key) + ":"` prefix, keyed by the raw key string — real records repeat the same keys across every row (see `writeCollectionBody`), so a repeat collapses to one Map lookup instead of re-classifying and re-concatenating. Capped defensively (unlike the parser's own per-parse `keyCache`, which has no such cap) so a document of millions of distinct keys can't grow it unbounded; past the cap we just stop memoizing new keys and recompute them, still correct, just uncached. */
-let dumpKeyCache: Map<string, string> | null = null;
-const MAX_DUMP_KEY_CACHE = 10_000;
 
 /**
  * Set by the pre-scan (`dumpScanRefs`) iff it reached SOME object more than once
@@ -4838,12 +4746,7 @@ function writeCollectionBody(obj: object, isArr: boolean, indent: number): void 
     const keys = Object.keys(rec);
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
-      let keyColon = dumpKeyCache!.get(k);
-      if (keyColon === undefined) {
-        keyColon = writeStringScalar(k) + ":";
-        if (dumpKeyCache!.size < MAX_DUMP_KEY_CACHE) dumpKeyCache!.set(k, keyColon);
-      }
-      out += ind + keyColon;
+      out += ind + writeStringScalar(k) + ":";
       writeEntryValue(rec[k], indent);
     }
   }
@@ -4927,51 +4830,42 @@ function writeDocumentValue(value: unknown): void {
 }
 
 /**
- * Terminal flatten + per-call cleanup for `dumpValue`. Reads `out` once and
- * forces V8's single O(n) `String::Flatten` eagerly (see `out`'s doc comment
- * for the full rationale: the returned value must be an ordinary flat string,
- * not a rope pinning ~O(lines) cons nodes live until a later consumer first
- * touches it), then releases all per-call dump state so a large dumped graph
- * isn't kept alive past this call.
- */
-function dumpFinish(): string {
-  const result = out;
-  out = ""; // drop the module-level reference so the rope isn't pinned past this call
-  // `charCodeAt` triggers the flatten; the module-level sink defeats dead-code
-  // elimination of the otherwise-unused read (`|=` both reads and writes it, so
-  // neither V8 nor tsc can treat it as dead) — the same O(n) flatten a consumer
-  // would pay on first access, made eager so stringify's own cost is honest.
-  if (result.length !== 0) dumpFlattenSink |= result.charCodeAt(0);
-  dumpRefCounts = null;
-  dumpAnchors = null;
-  dumpKeyCache = null;
-  return result;
-}
-
-/**
- * Serialize `value` into a YAML document (the implementation behind the public
- * `stringify` above): ref-count every node (`dumpScanRefs`, which sets
- * `dumpHasShared`), then write it out, emitting `&anchor`/`*alias` at the nodes
- * the scan reached more than once (a shared reference or a cycle). When the scan
- * finds no sharing — the overwhelmingly common tree case — no anchor is ever
- * assigned and the write takes the anchor-free fast path (`dumpHasShared` false).
+ * Serialize `value` into a YAML document (the implementation behind the
+ * public `stringify` above): reset per-call dump state, pre-scan for shared/
+ * cyclic references, then write. `dumpRefCounts`/`dumpAnchors` are released
+ * (set back to `null`) before returning so a large dumped graph doesn't keep
+ * those maps alive past this call — and in the common no-sharing case
+ * `dumpRefCounts` is dropped even earlier, before the write pass (see
+ * `dumpHasShared`), so it isn't held alongside the growing output.
  */
 function dumpValue(value: unknown): string {
-  dumpKeyCache = new Map();
   dumpRefCounts = new Map();
   dumpDepth = 0;
   dumpHasShared = false;
   dumpScanRefs(value);
   // No shared node or cycle anywhere ⇒ no anchor will ever be assigned, so the
-  // ref-count map has done its whole job and the write pass takes the anchor-free
-  // fast path. Release it now (one entry per object — sizable) rather than pinning
-  // it live through the heavy output build; this early release keeps peak RSS at
-  // the classic dumper's level when the value turns out alias-free.
+  // ref-count map has done its whole job and the write pass will take the
+  // anchor-free fast path. Release the map now (it can be sizable — one entry
+  // per object) rather than pinning it live through the heavy output build.
   if (!dumpHasShared) dumpRefCounts = null;
   dumpAnchors = new Map();
   dumpAnchorSeq = 0;
   out = "";
   dumpDepth = 0;
   writeDocumentValue(value);
-  return dumpFinish();
+  const result = out;
+  out = ""; // drop the module-level reference so the rope isn't pinned past this call
+  // Force the single terminal flatten HERE (see `out`'s doc comment): collapse
+  // the left-leaning ConsString rope to one flat SeqString now — a single O(n)
+  // pass — so the returned value is an ordinary string with normal retained
+  // size, not a rope pinning ~O(lines) cons nodes live until a later consumer
+  // first reads it. `charCodeAt` triggers V8's String::Flatten; the module-level
+  // sink defeats dead-code elimination of the otherwise-unused read (`|=` both
+  // reads and writes it, so neither V8 nor tsc can treat it as dead). This is
+  // the same O(n) flatten a consumer would pay on first access, made eager and
+  // explicit so stringify's own cost (and memory) is honest.
+  if (result.length !== 0) dumpFlattenSink |= result.charCodeAt(0);
+  dumpRefCounts = null;
+  dumpAnchors = null;
+  return result;
 }

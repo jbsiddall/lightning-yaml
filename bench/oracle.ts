@@ -8,7 +8,7 @@
  * and lightning-yaml deliberately matches the spec against it (e.g. rejecting an
  * implicit flow collection key `{[1,2]: v}`, a spec error per yaml-test-suite
  * SBG9/X38W that `yaml` wrongly accepts; see CLAUDE.md's source-of-truth precedence
- * and `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`).
+ * and `docs/research/13-adversarial-torture-tests.md`).
  *
  * We do NOT cross-check every competitor against every other (js-yaml and yaml
  * legitimately disagree — e.g. on timestamps, and generally because js-yaml

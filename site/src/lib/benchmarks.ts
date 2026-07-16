@@ -13,7 +13,7 @@ import { parseAllDocuments } from 'yaml';
 // Schema types (mirror the header comments in src/data/benchmarks/*.yaml)
 // ---------------------------------------------------------------------------
 
-export type LibraryId = 'JSON' | 'js-yaml' | 'js-yaml-tuned' | 'yaml' | 'lightning-yaml';
+export type LibraryId = 'JSON' | 'js-yaml' | 'yaml' | 'lightning-yaml';
 
 export interface LibraryMeta {
   id: LibraryId;
@@ -89,32 +89,6 @@ export interface ConformanceDoc {
   generated: string;
   source: string;
   results: ConformanceResult[];
-}
-
-export interface BundleSizeValue {
-  min?: number;
-  gzip?: number;
-  brotli?: number;
-  error?: string;
-}
-
-export interface BundleSizeResult {
-  bundler: string;
-  rust: boolean;
-  values: Partial<Record<LibraryId, BundleSizeValue>>;
-}
-
-export interface BundleSizeDoc {
-  suite: 'bundle-size';
-  scope: string;
-  tool: string;
-  units: { min: string; gzip: string; brotli: string };
-  lower_is_better: boolean;
-  generated: string;
-  source: string;
-  env: { bundlers: Record<string, string> };
-  libraries: LibraryMeta[];
-  results: BundleSizeResult[];
 }
 
 // ---------------------------------------------------------------------------
@@ -206,37 +180,6 @@ export function conformanceItems(results: ConformanceResult[]): BarItem[] {
     }));
 }
 
-/**
- * BundleSizeDoc -> BarItem[], one item per library, sorted best-first
- * (lower_is_better). `value` is the MINIMUM gzip size across every bundler
- * that measured that library — the best achievable result, since bundler
- * choice is a build-tool decision, not something the library controls.
- * Errored (bundler, library) pairs are simply excluded from that minimum.
- */
-export function bundleSizeItems(doc: BundleSizeDoc): BarItem[] {
-  const ids = LIBRARY_ORDER.filter((id) => doc.libraries.some((l) => l.id === id));
-  return ids
-    .map((id) => {
-      const gzips = doc.results
-        .map((r) => r.values[id])
-        .filter((v): v is BundleSizeValue => Boolean(v) && typeof v!.gzip === 'number');
-      const value = gzips.length ? Math.min(...gzips.map((v) => v.gzip as number)) : 0;
-      return {
-        id,
-        label: libraryLabel(doc.libraries, id),
-        value,
-        color: LIBRARY_COLOR[id],
-        self: id === 'lightning-yaml',
-      };
-    })
-    .sort((a, b) => a.value - b.value);
-}
-
-/** Round a positive value up to a clean gridline step — used for a byte-valued chart's axis ceiling. */
-export function niceDomainMax(maxValue: number, step: number): number {
-  return Math.ceil(Math.max(maxValue, step) / step) * step;
-}
-
 // Every rule inline: this HTML is injected into an .mdx page via `set:html`,
 // and MDX parses literal `{`/`}` in its JSX children as expression syntax —
 // a real <style> block full of CSS braces is a build-error risk there, and
@@ -260,15 +203,14 @@ const TH_COL_FIRST_STYLE = TH_COL_STYLE.replace('text-align:right', 'text-align:
 const TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:0.85rem';
 
 /**
- * The "table view" twin for a speed chart (parse OR stringify — every workload,
- * every library) — the dataviz skill requires every chart have one, and it's
- * also where cross-workload comparison lives: the charts scale each row
- * independently, so this table is the one place to read raw values across
- * rows. Returns a ready `<table>` string for `set:html`; built here (not as inline MDX
+ * The "table view" twin for the parse-time charts (every workload, every
+ * library) — the dataviz skill requires every chart have one, and it's also
+ * just the fuller precision readers want next to a log-scale chart. Returns
+ * a ready `<table>` string for `set:html`; built here (not as inline MDX
  * JSX with nested `.map()`s) to keep escaping in one place and avoid MDX's
  * blank-line/indentation gotchas around nested JSX loops.
  */
-export function speedTableHtml(workloads: SpeedWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
+export function parseTimeTableHtml(workloads: SpeedWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
   const head = order
     .map((id) => `<th scope="col" style="${TH_COL_STYLE}">${escapeXml(libraryLabel(libraries, id))}</th>`)
     .join('');
@@ -310,32 +252,6 @@ export function conformanceTableHtml(results: ConformanceResult[]): string {
   );
 }
 
-/** The "table view" twin for the bundle-size chart — every bundler, every library, gzip (min alongside). */
-export function bundleSizeTableHtml(doc: BundleSizeDoc): string {
-  const order = LIBRARY_ORDER.filter((id) => doc.libraries.some((l) => l.id === id));
-  const head = order
-    .map((id) => `<th scope="col" style="${TH_COL_STYLE}">${escapeXml(libraryLabel(doc.libraries, id))}</th>`)
-    .join('');
-  const rows = doc.results
-    .map((r) => {
-      const cells = order
-        .map((id) => {
-          const v = r.values[id];
-          if (!v || v.error || typeof v.gzip !== 'number') return `<td style="${TD_STYLE}">—</td>`;
-          const sub = typeof v.min === 'number' ? ` <span style="color:var(--sl-color-gray-3)">(${formatKB(v.min)} min)</span>` : '';
-          return `<td style="${TD_STYLE}">${formatKB(v.gzip)}${sub}</td>`;
-        })
-        .join('');
-      const bundlerLabel = r.rust ? `${r.bundler} (rust)` : r.bundler;
-      return `<tr><th scope="row" style="${TH_ROW_STYLE}">${escapeXml(bundlerLabel)}</th>${cells}</tr>`;
-    })
-    .join('');
-  return (
-    `<table style="${TABLE_STYLE}"><thead><tr><th scope="col" style="${TH_COL_FIRST_STYLE}">Bundler</th>${head}</tr></thead>` +
-    `<tbody>${rows}</tbody></table>`
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Brand palette — one color per library, reused identically across every
 // chart on the page so identity ("violet = lightning-yaml") only has to be
@@ -346,38 +262,11 @@ export const LIBRARY_COLOR: Record<LibraryId, string> = {
   'lightning-yaml': 'var(--ly-charge)', // self / hero
   yaml: 'var(--ly-spark)',
   'js-yaml': 'var(--ly-amber)',
-  // A js-yaml variant (dump with the lean CORE schema), so a soft amber marks
-  // it as the same family as js-yaml, distinguishable beside it. Stringify only.
-  'js-yaml-tuned': 'var(--ly-amber-soft)',
   JSON: 'var(--ly-muted)', // baseline, when present
 };
 
-/**
- * Canonical series order, used consistently across every chart on the page.
- * A chart shows only the subset actually present in its workloads (see
- * `presentIn`) — so `js-yaml-tuned`, which has stringify data only, never
- * appears as an empty series on the parse or memory charts.
- */
-export const LIBRARY_ORDER: readonly LibraryId[] = [
-  'JSON',
-  'js-yaml',
-  'js-yaml-tuned',
-  'yaml',
-  'lightning-yaml',
-];
-
-/**
- * The subset of `order` with at least one value across `workloads`. Keeps a
- * chart/legend from listing a library that has no bar in it — e.g. the tuned
- * js-yaml row (stringify only) must not show up on the parse or memory charts,
- * and JSON must not show up where a workload is YAML-only.
- */
-export function presentIn(
-  order: readonly LibraryId[],
-  workloads: ReadonlyArray<{ values: Partial<Record<LibraryId, unknown>> }>,
-): LibraryId[] {
-  return order.filter((id) => workloads.some((w) => w.values[id] != null));
-}
+/** Canonical series order, used consistently across every chart on the page. */
+export const LIBRARY_ORDER: readonly LibraryId[] = ['JSON', 'js-yaml', 'yaml', 'lightning-yaml'];
 
 // ---------------------------------------------------------------------------
 // Number formatting
@@ -396,24 +285,27 @@ export function formatNs(ns: number): string {
   return `${Math.round(ns)} ns`;
 }
 
+/** ns -> human units for an AXIS TICK (ticks are already "nice" round numbers). */
+function formatNsTick(ns: number): string {
+  const clean = (v: number) => Math.round(v * 100) / 100;
+  if (ns >= 1e9) return `${clean(ns / 1e9)} s`;
+  if (ns >= 1e6) return `${clean(ns / 1e6)} ms`;
+  if (ns >= 1e3) return `${clean(ns / 1e3)} µs`;
+  return `${Math.round(ns)} ns`;
+}
+
 /** MB -> data label, e.g. `91.2 MB`, `2744 MB`. */
 export function formatMB(mb: number): string {
   return `${fixedByMagnitude(mb)} MB`;
 }
 
+function formatMBTick(mb: number): string {
+  return `${Math.round(mb * 100) / 100} MB`;
+}
+
 /** Percent -> data label, e.g. `97.6%`. */
 export function formatPercent(v: number): string {
   return `${v.toFixed(1)}%`;
-}
-
-/** bytes -> KB data label, e.g. `12.0 KB`. */
-export function formatKB(bytes: number): string {
-  return `${(bytes / 1024).toFixed(1)} KB`;
-}
-
-/** Ratio -> data label, normalized to the fastest/best in a row, e.g. `1.0×`, `9.8×`, `101×`. */
-export function formatRatio(r: number): string {
-  return `${r < 10 ? r.toFixed(1) : Math.round(r)}×`;
 }
 
 /** Labels are untrusted-shaped data (come from YAML, not literals) — escape for XML. */
@@ -431,7 +323,7 @@ function fx(n: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Scale
+// Scales + ticks
 // ---------------------------------------------------------------------------
 
 type Scale = (v: number) => number;
@@ -441,6 +333,35 @@ function linearScale(domain: [number, number], range: [number, number]): Scale {
   const [r0, r1] = range;
   const span = d1 - d0 || 1;
   return (v) => r0 + ((v - d0) / span) * (r1 - r0);
+}
+
+function logScaleFn(domain: [number, number], range: [number, number]): Scale {
+  const d0 = Math.log10(domain[0]);
+  const d1 = Math.log10(domain[1]);
+  const [r0, r1] = range;
+  const span = d1 - d0 || 1;
+  return (v) => r0 + ((Math.log10(v) - d0) / span) * (r1 - r0);
+}
+
+/**
+ * Log-scale ticks at 1/2/5 x 10^k, "nice" numbers per the mark spec. Falls
+ * back to decade-only ticks (1 x 10^k) once the domain spans more than ~3
+ * decades so labels stay legible instead of colliding (our time data ranges
+ * from microseconds to seconds — 6+ decades in the widest chart).
+ */
+function logTicks(min: number, max: number): number[] {
+  const startExp = Math.floor(Math.log10(min));
+  const endExp = Math.ceil(Math.log10(max));
+  const wide = endExp - startExp > 3;
+  const mults = wide ? [1] : [1, 2, 5];
+  const ticks: number[] = [];
+  for (let e = startExp; e <= endExp; e++) {
+    for (const m of mults) {
+      const v = m * 10 ** e;
+      if (v >= min * 0.999 && v <= max * 1.001) ticks.push(v);
+    }
+  }
+  return Array.from(new Set(ticks.map((v) => Number(v.toPrecision(6))))).sort((a, b) => a - b);
 }
 
 // ---------------------------------------------------------------------------
@@ -501,16 +422,10 @@ function svgOpen(id: string, w: number, h: number, title: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// groupedBarSVG — N workloads x M libraries. Each workload is scaled to its
-// OWN slowest parser (linear), so within a row bar length is proportional to
-// the value — lightning-yaml being ~50x faster reads as a ~50x shorter bar.
-// Why per-row and not one shared axis: the data spans ~6 orders of magnitude
-// across workloads (µs to s), so a shared linear axis crushes the small
-// workloads to sub-pixel, and a log axis compresses the very ratios the chart
-// exists to show. The cost is that rows aren't comparable to each other — so
-// every bar carries its exact value label and the card note states the
-// per-workload scaling. Legend + note render as real HTML around the <svg>
-// (ChartCard.astro) so text reflows and never clips.
+// groupedBarSVG — N groups (workloads) x M series (libraries). The legend
+// and descriptive note are NOT drawn here: they render as real HTML around
+// the <svg> (see ChartCard.astro) so that text reflows and never clips —
+// only the plot itself (axes, bars, direct value labels) is SVG.
 // ---------------------------------------------------------------------------
 
 export interface GroupedSeries {
@@ -531,26 +446,19 @@ export interface GroupedBarOptions {
   groups: GroupedGroup[];
   unit: 'ns' | 'MB';
   lowerIsBetter: boolean;
-  /**
-   * 'value' (default) labels each bar with its formatted value (e.g. `196 ms`).
-   * 'ratio-to-best' labels each bar with its value relative to the fastest
-   * series in that row (e.g. `1.0×`, `9.8×`) — bar geometry is unchanged
-   * either way, this only changes the text drawn beside the bar.
-   */
-  labelStyle?: 'value' | 'ratio-to-best';
+  logScale?: boolean;
 }
 
 export function groupedBarSVG(opts: GroupedBarOptions): string {
-  const { id, title, series, groups, unit, lowerIsBetter, labelStyle = 'value' } = opts;
+  const { id, title, series, groups, unit, lowerIsBetter, logScale = false } = opts;
   const formatValue = unit === 'ns' ? formatNs : formatMB;
+  const formatTick = unit === 'ns' ? formatNsTick : formatMBTick;
 
   const W = 620;
   const marginTop = 14;
-  const marginBottom = 10;
+  const marginBottom = 26;
   const marginLeft = 190;
-  // Holds the value label of the slowest (full-width) bar in each row; its tip
-  // sits at the plot's right edge, so this IS the worst-case label budget.
-  const marginRight = 72;
+  const marginRight = 64;
   const barH = 15;
   const barGap = 2;
   const rowH = barH + barGap;
@@ -562,23 +470,33 @@ export function groupedBarSVG(opts: GroupedBarOptions): string {
   const plotX = marginLeft;
   const plotY = marginTop;
 
+  const allValues = groups.flatMap((g) =>
+    series.map((s) => g.values[s.id]).filter((v): v is number => typeof v === 'number' && v > 0),
+  );
+  const maxV = Math.max(...allValues);
+  const minV = Math.min(...allValues);
+
+  const domain: [number, number] = logScale ? [minV / 1.6, maxV * 1.15] : [0, maxV * 1.08];
+  const scale = logScale ? logScaleFn(domain, [0, plotW]) : linearScale(domain, [0, plotW]);
+  const ticks = logScale
+    ? logTicks(domain[0], domain[1])
+    : [0, maxV * 0.25, maxV * 0.5, maxV * 0.75, maxV];
+
+  const gridSvg = ticks
+    .map((t) => {
+      const x = plotX + scale(t);
+      return (
+        `<line x1="${fx(x)}" y1="${fx(plotY)}" x2="${fx(x)}" y2="${fx(plotY + plotH)}" stroke="var(--ly-line)" stroke-width="1"/>` +
+        `<text x="${fx(x)}" y="${fx(plotY + plotH + 16)}" class="ly-axis" text-anchor="middle">${escapeXml(formatTick(t))}</text>`
+      );
+    })
+    .join('');
+
+  const x0 = plotX + (logScale ? 0 : scale(0));
+
   const groupsSvg = groups
     .map((g, gi) => {
       const gy = plotY + gi * groupH;
-      // Per-workload linear scale: 0 .. this row's slowest parser. The `1`
-      // floor only guards the empty-row case (Math.max() -> -Infinity); real
-      // ns/MB values are far larger, so it never clamps a genuine bar.
-      const groupMax = Math.max(
-        ...series.map((s) => g.values[s.id]).filter((v): v is number => typeof v === 'number' && v > 0),
-        1,
-      );
-      // Fastest-in-row, for 'ratio-to-best' labels. Only consulted when at
-      // least one positive value exists in the row (guaranteed for any `v`
-      // the label loop below actually renders), so it's never Infinity there.
-      const rowMin = Math.min(
-        ...series.map((s) => g.values[s.id]).filter((v): v is number => typeof v === 'number' && v > 0),
-      );
-      const scale = linearScale([0, groupMax], [0, plotW]);
       const rows = series
         .map((s, si) => {
           const v = g.values[s.id];
@@ -586,14 +504,13 @@ export function groupedBarSVG(opts: GroupedBarOptions): string {
           const y0 = gy + si * rowH;
           const y1 = y0 + barH;
           const x1 = plotX + scale(v);
-          const path = hBarPath(plotX, x1, y0, y1, 4);
+          const path = hBarPath(x0, x1, y0, y1, 4);
           const isSelf = s.id === 'lightning-yaml';
           const glow = isSelf ? ` filter="url(#${id}-glow)"` : '';
           const valClass = isSelf ? 'ly-val ly-val--self' : 'ly-val';
-          const labelText = labelStyle === 'ratio-to-best' ? formatRatio(v / rowMin) : formatValue(v);
           return (
             `<path d="${path}" fill="${s.color}"${glow}/>` +
-            `<text x="${fx(x1 + 6)}" y="${fx((y0 + y1) / 2)}" class="${valClass}" dominant-baseline="middle">${escapeXml(labelText)}</text>`
+            `<text x="${fx(x1 + 6)}" y="${fx((y0 + y1) / 2)}" class="${valClass}" dominant-baseline="middle">${escapeXml(formatValue(v))}</text>`
           );
         })
         .join('');
@@ -605,18 +522,9 @@ export function groupedBarSVG(opts: GroupedBarOptions): string {
     })
     .join('');
 
-  // Single origin rule at x=0 to ground every row's bars. There is no numeric
-  // x-axis: each row has its own scale, so a shared axis would be wrong — the
-  // exact value label beside each bar is the scale.
-  const baseline = `<line x1="${fx(plotX)}" y1="${fx(plotY)}" x2="${fx(plotX)}" y2="${fx(plotY + plotH)}" stroke="var(--ly-line)" stroke-width="1"/>`;
-
   const dir = lowerIsBetter ? 'lower is better' : 'higher is better';
-  const measure = unit === 'ns' ? 'time' : 'memory';
-  const labelDesc =
-    labelStyle === 'ratio-to-best'
-      ? `every bar is labelled with its ${measure} relative to the fastest parser in that row (×)`
-      : 'every bar is labelled with its exact value';
-  const descText = `${title} — ${dir}. Each workload is scaled to its own slowest parser, so bar length is proportional to ${measure} within a row; rows are not comparable to each other, and ${labelDesc}. Series: ${series.map((s) => s.label).join(', ')}. ${groups.length} workloads: ${groups.map((g) => g.label).join(', ')}.`;
+  const scaleNote = logScale ? ', log scale' : '';
+  const descText = `${title} — ${dir}${scaleNote}. Series: ${series.map((s) => s.label).join(', ')}. ${groups.length} workloads: ${groups.map((g) => g.label).join(', ')}.`;
 
   return (
     svgOpen(id, W, H, title) +
@@ -624,7 +532,7 @@ export function groupedBarSVG(opts: GroupedBarOptions): string {
     `<desc id="${id}-d">${escapeXml(descText)}</desc>` +
     `<defs>${glowFilter(id)}</defs>` +
     `<style>${chartStyle()}</style>` +
-    baseline +
+    gridSvg +
     groupsSvg +
     `</svg>`
   );
@@ -653,23 +561,10 @@ export interface BarOptions {
   higherIsBetter: boolean;
   domainMax?: number;
   unitSuffix?: string;
-  /** Per-bar value label. Defaults to `formatPercent` (conformance's pass-rate chart). */
-  formatValue?: (v: number) => string;
-  /** Axis tick label. Defaults to the rounded tick value + `unitSuffix`. */
-  formatTick?: (v: number) => string;
 }
 
 export function barSVG(opts: BarOptions): string {
-  const {
-    id,
-    title,
-    items,
-    higherIsBetter,
-    domainMax = 100,
-    unitSuffix = '%',
-    formatValue = formatPercent,
-    formatTick = (t: number) => `${Math.round(t)}${unitSuffix}`,
-  } = opts;
+  const { id, title, items, higherIsBetter, domainMax = 100, unitSuffix = '%' } = opts;
   const W = 620;
   const marginTop = 8;
   const marginBottom = 24;
@@ -696,7 +591,7 @@ export function barSVG(opts: BarOptions): string {
       const x = marginLeft + scale(t);
       return (
         `<line x1="${fx(x)}" y1="${fx(plotY)}" x2="${fx(x)}" y2="${fx(plotY + plotH)}" stroke="var(--ly-line)" stroke-width="1"/>` +
-        `<text x="${fx(x)}" y="${fx(plotY + plotH + 16)}" class="ly-axis" text-anchor="middle">${escapeXml(formatTick(t))}</text>`
+        `<text x="${fx(x)}" y="${fx(plotY + plotH + 16)}" class="ly-axis" text-anchor="middle">${Math.round(t)}${unitSuffix}</text>`
       );
     })
     .join('');
@@ -713,13 +608,13 @@ export function barSVG(opts: BarOptions): string {
       return (
         `<text x="${fx(marginLeft - 10)}" y="${fx((y0 + y1) / 2)}" class="ly-cat" text-anchor="end" dominant-baseline="middle">${escapeXml(it.label)}</text>` +
         `<path d="${path}" fill="${it.color}"${glow}/>` +
-        `<text x="${fx(x1 + 8)}" y="${fx((y0 + y1) / 2)}" class="${valClass}" dominant-baseline="middle">${escapeXml(formatValue(it.value))}${sub}</text>`
+        `<text x="${fx(x1 + 8)}" y="${fx((y0 + y1) / 2)}" class="${valClass}" dominant-baseline="middle">${escapeXml(formatPercent(it.value))}${sub}</text>`
       );
     })
     .join('');
 
   const dir = higherIsBetter ? 'higher is better' : 'lower is better';
-  const descText = `${title} — ${dir}. ${items.map((it) => `${it.label} ${formatValue(it.value)}`).join(', ')}.`;
+  const descText = `${title} — ${dir}. ${items.map((it) => `${it.label} ${formatPercent(it.value)}`).join(', ')}.`;
 
   return (
     svgOpen(id, W, H, title) +

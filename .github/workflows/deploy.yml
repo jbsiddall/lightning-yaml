@@ -2,8 +2,7 @@ name: Deploy docs
 
 # Visible, auditable deploys via the Vercel CLI (NOT Vercel's git auto-deploy —
 # disable that in the Vercel project so production only ships through this workflow).
-# Production runs after the Benchmarks workflow (chained via `workflow_run` below, so
-# prod builds off freshly-appended benchmark data); preview deploys on pull requests.
+# Production on `main`; preview deploys on pull requests.
 #
 # The docs site is the nested, self-contained pnpm project in `site/`. The Vercel
 # project's "Root Directory" must be set to `site` so `vercel build`/`deploy` operate
@@ -17,15 +16,9 @@ name: Deploy docs
 # `secrets.` — the two contexts are separate and don't fall through to each other.)
 
 on:
-  pull_request:
-  # Chained after Benchmarks: it appends fresh data to `benchmark-data` on push to
-  # `main`, then this fires on its completion so production always builds off the
-  # newest data. `types: [completed]` (not gated on conclusion) means a flaky
-  # benchmark still deploys the code off the last-good data.
-  workflow_run:
-    workflows: [Benchmarks]
-    types: [completed]
+  push:
     branches: [main]
+  pull_request:
 
 env:
   VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
@@ -91,11 +84,11 @@ jobs:
       - name: Install Vercel CLI
         run: pnpm add -g vercel@latest
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=${{ github.event_name == 'workflow_run' && 'production' || 'preview' }} --token=$VERCEL_TOKEN
+        run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=$VERCEL_TOKEN
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_API_KEY }}
       - name: Build with Vercel (uses project Root Directory = site)
-        run: vercel build ${{ github.event_name == 'workflow_run' && '--prod' || '' }} --token=$VERCEL_TOKEN
+        run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_API_KEY }}
       - name: Deploy prebuilt output
@@ -103,7 +96,7 @@ jobs:
         # vercel deploy prints the deployment URL to stdout (progress goes to stderr);
         # capture the last line as the URL and expose it as a step output.
         run: |
-          url="$(vercel deploy --prebuilt ${{ github.event_name == 'workflow_run' && '--prod' || '' }} --token=$VERCEL_TOKEN | tail -n1)"
+          url="$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN | tail -n1)"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Deployed to: $url"
           echo "### ⚡ Deployed to $url" >> "$GITHUB_STEP_SUMMARY"

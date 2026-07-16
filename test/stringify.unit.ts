@@ -63,7 +63,7 @@
  */
 
 import { test } from "node:test";
-import { ok, strictEqual, deepStrictEqual, throws } from "node:assert";
+import { ok, strictEqual, deepStrictEqual } from "node:assert";
 import { parse, stringify } from "../src/index.ts";
 import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
@@ -393,24 +393,6 @@ test("collection: deeply nested array chain (depth 300, under the 1000 recursion
   let value: unknown = ["leaf"];
   for (let i = 0; i < DEPTH; i++) value = [value];
   assertRoundTrips(value, `nested array chain depth ${DEPTH}`);
-});
-
-test("collection: empty container at the MAX_DEPTH boundary throws in stringify", () => {
-  // Regression guard. A chain of MAX_DEPTH nested maps/seqs ending in an empty
-  // container sits one level too deep: `dumpScanRefs` depth-counts every container
-  // (empty ones included) and throws before the write, exactly as our own parser
-  // rejects the same document. One level shallower must still emit.
-  const MAX_DEPTH = 1000; // mirrors src/index.ts's recursion guard
-  let objChain: unknown = {};
-  for (let i = 0; i < MAX_DEPTH; i++) objChain = { c: objChain };
-  throws(() => stringify(objChain), /maximum nesting depth exceeded/, "empty {} terminal at MAX_DEPTH");
-  let arrChain: unknown = [];
-  for (let i = 0; i < MAX_DEPTH; i++) arrChain = [arrChain];
-  throws(() => stringify(arrChain), /maximum nesting depth exceeded/, "empty [] terminal at MAX_DEPTH");
-  // No over-correction: one level shallower stays emittable.
-  let under: unknown = {};
-  for (let i = 0; i < MAX_DEPTH - 1; i++) under = { c: under };
-  ok(typeof stringify(under) === "string");
 });
 
 // ---------------------------------------------------------------------------
