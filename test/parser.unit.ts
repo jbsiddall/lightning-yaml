@@ -1566,3 +1566,61 @@ test("utf8/emoji · stringify round-trips multibyte and astral text", () => {
   };
   deepStrictEqual(parse(stringify(value)), value);
 });
+
+// --------------------------------------------------------------------------
+// T7 — opt-in value interning: parse(text, { optimizations: { internStrings } }).
+// Interning collapses equal string VALUES to one shared heap instance; because JS
+// strings are immutable it is CORRECTNESS-INVISIBLE — the flag never changes the
+// parsed value, only its retained heap. (Instance sharing itself is not
+// observable from JS: `===` on strings is VALUE equality, so it can't distinguish
+// shared from unshared. The heap saving is proven by the benchmark in the T7
+// research/result notes, not here.) OFF by default, so every options shape must
+// parse identically to no options. See docs/research/2026-07-14-memory-value-interning.md.
+// --------------------------------------------------------------------------
+
+// Block-style record array whose string values are drawn from tiny pools, so the
+// same value text recurs across rows. Single-line block plain values route
+// through resolvePlain — one of the interned materialisation sites.
+const internDoc = (() => {
+  const status = ["active", "pending", "closed"];
+  const region = ["north", "south", "east", "west"];
+  let out = "";
+  for (let i = 0; i < 40; i++) {
+    out += `- status: ${status[i % status.length]}\n  region: ${region[i % region.length]}\n  seq: ${i}\n`;
+  }
+  return out;
+})();
+
+test("value interning: every options shape parses identically to no options (default OFF)", () => {
+  const base = parse(internDoc);
+  deepStrictEqual(parse(internDoc, {}), base);
+  deepStrictEqual(parse(internDoc, { optimizations: {} }), base);
+  deepStrictEqual(parse(internDoc, { optimizations: { internStrings: false } }), base);
+  deepStrictEqual(parse(internDoc, { optimizations: { internStrings: true } }), base);
+});
+
+test("value interning: flag ON is byte-shape identical to flag OFF, with correct values", () => {
+  const off = parse(internDoc) as Array<Record<string, unknown>>;
+  const on = parse(internDoc, { optimizations: { internStrings: true } }) as Array<Record<string, unknown>>;
+  deepStrictEqual(on, off); // correctness-invisible: identical data both ways
+  // Repeated pool values still carry the right text under interning.
+  strictEqual(on[0].status, "active");
+  strictEqual(on[3].status, "active");
+  strictEqual(on[0].region, "north");
+  strictEqual(on[4].region, "north");
+});
+
+test("value interning: parseAll accepts options and stays correctness-invisible across documents", () => {
+  const stream = "---\ns: shared\n---\ns: shared\n";
+  const off = parseAll(stream);
+  const on = parseAll(stream, { optimizations: { internStrings: true } });
+  deepStrictEqual(on, off);
+  deepStrictEqual(on, [{ s: "shared" }, { s: "shared" }]);
+});
+
+for (const ds of datasets.filter((d) => d.category === "yaml-plain")) {
+  test(`value interning: fixture round-trips identically with the flag on · ${ds.name}`, () => {
+    const text = loadFixtureText(ds);
+    deepStrictEqual(parse(text, { optimizations: { internStrings: true } }), parse(text));
+  });
+}
