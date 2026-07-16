@@ -30,7 +30,7 @@ for (const ds of datasets) {
   if (applicable.length === 0) continue;
   const value = loadFixtureValue(ds);
   // Skip candidates that can't serialize this specific value without throwing.
-  const cands = applicable.filter((c) => candidateHandles(c, "stringify", value));
+  const cands = applicable.filter((c) => candidateHandles(c, "stringify", value, ds.category));
   if (cands.length === 0) continue;
   group(`stringify · ${ds.name}`, () => {
     for (const c of cands) {

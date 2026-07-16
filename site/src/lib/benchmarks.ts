@@ -13,7 +13,7 @@ import { parseAllDocuments } from 'yaml';
 // Schema types (mirror the header comments in src/data/benchmarks/*.yaml)
 // ---------------------------------------------------------------------------
 
-export type LibraryId = 'JSON' | 'js-yaml' | 'yaml' | 'lightning-yaml';
+export type LibraryId = 'JSON' | 'js-yaml' | 'js-yaml-tuned' | 'yaml' | 'lightning-yaml';
 
 export interface LibraryMeta {
   id: LibraryId;
@@ -260,15 +260,15 @@ const TH_COL_FIRST_STYLE = TH_COL_STYLE.replace('text-align:right', 'text-align:
 const TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:0.85rem';
 
 /**
- * The "table view" twin for the parse-time charts (every workload, every
- * library) — the dataviz skill requires every chart have one, and it's also
- * where cross-workload comparison lives: the charts scale each row
+ * The "table view" twin for a speed chart (parse OR stringify — every workload,
+ * every library) — the dataviz skill requires every chart have one, and it's
+ * also where cross-workload comparison lives: the charts scale each row
  * independently, so this table is the one place to read raw values across
  * rows. Returns a ready `<table>` string for `set:html`; built here (not as inline MDX
  * JSX with nested `.map()`s) to keep escaping in one place and avoid MDX's
  * blank-line/indentation gotchas around nested JSX loops.
  */
-export function parseTimeTableHtml(workloads: SpeedWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
+export function speedTableHtml(workloads: SpeedWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
   const head = order
     .map((id) => `<th scope="col" style="${TH_COL_STYLE}">${escapeXml(libraryLabel(libraries, id))}</th>`)
     .join('');
@@ -346,11 +346,38 @@ export const LIBRARY_COLOR: Record<LibraryId, string> = {
   'lightning-yaml': 'var(--ly-charge)', // self / hero
   yaml: 'var(--ly-spark)',
   'js-yaml': 'var(--ly-amber)',
+  // A js-yaml variant (dump with the lean CORE schema), so a soft amber marks
+  // it as the same family as js-yaml, distinguishable beside it. Stringify only.
+  'js-yaml-tuned': 'var(--ly-amber-soft)',
   JSON: 'var(--ly-muted)', // baseline, when present
 };
 
-/** Canonical series order, used consistently across every chart on the page. */
-export const LIBRARY_ORDER: readonly LibraryId[] = ['JSON', 'js-yaml', 'yaml', 'lightning-yaml'];
+/**
+ * Canonical series order, used consistently across every chart on the page.
+ * A chart shows only the subset actually present in its workloads (see
+ * `presentIn`) — so `js-yaml-tuned`, which has stringify data only, never
+ * appears as an empty series on the parse or memory charts.
+ */
+export const LIBRARY_ORDER: readonly LibraryId[] = [
+  'JSON',
+  'js-yaml',
+  'js-yaml-tuned',
+  'yaml',
+  'lightning-yaml',
+];
+
+/**
+ * The subset of `order` with at least one value across `workloads`. Keeps a
+ * chart/legend from listing a library that has no bar in it — e.g. the tuned
+ * js-yaml row (stringify only) must not show up on the parse or memory charts,
+ * and JSON must not show up where a workload is YAML-only.
+ */
+export function presentIn(
+  order: readonly LibraryId[],
+  workloads: ReadonlyArray<{ values: Partial<Record<LibraryId, unknown>> }>,
+): LibraryId[] {
+  return order.filter((id) => workloads.some((w) => w.values[id] != null));
+}
 
 // ---------------------------------------------------------------------------
 // Number formatting
