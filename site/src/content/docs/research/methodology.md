@@ -62,6 +62,8 @@ Our harness instead spawns one isolated process per candidate and reads
 | **yaml**       | **2.68 GB**            | **39.8 MB**                |
 | lightning-yaml | 369 MB                 | 27.8 MB                    |
 
+<!-- js-yaml:5.2.1 yaml:2.9.0 ly:83b1dd0 -->
+
 mitata would report `yaml` at ~40 MB and **miss the 2.68 GB reality** — a 67×
 blind spot of exactly the native/off-heap memory a YAML parser burns. So the two
 tools are complementary: mitata for speed + per-call heap churn, our harness for

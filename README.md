@@ -50,6 +50,8 @@ runs from the orphan `benchmark-data` branch.
 That's roughly **2× `JSON.parse`'s parse time** and **~1.3× its peak memory** on
 large inputs — versus ~12× / ~3.4× for js-yaml and ~110× / ~9.6× for `yaml`.
 
+<!-- js-yaml:5.2.1 yaml:2.9.0 ly:83b1dd0 -->
+
 Full benchmarks (all datasets, every parser) →
 [lightning-yaml.dev](https://lightning-yaml.dev)
 

@@ -91,7 +91,8 @@
     "test:watch": "vitest",
     "test:suite": "pnpm gen:suite && node --import tsx bench/conformance/run.ts",
     "test:compat": "node --import tsx bench/conformance/compat.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:claims": "node bench/check-claim-freshness.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
