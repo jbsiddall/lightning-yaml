@@ -9,9 +9,9 @@
 [![npm](https://img.shields.io/npm/v/lightning-yaml.svg)](https://www.npmjs.com/package/lightning-yaml)
 
 lightning-yaml is a pure-JS YAML 1.2 parser and stringifier that parses and
-writes at speeds approaching native `JSON.parse`/`JSON.stringify` — while passing
-~97.6% of the official [yaml-test-suite](https://github.com/yaml/yaml-test-suite),
-ahead of js-yaml and the `yaml` library. It's an API-level drop-in for either —
+writes at speeds approaching native `JSON.parse`/`JSON.stringify` — while faithfully
+implementing YAML 1.2, passing ~97.6% (364/373) of the official
+[yaml-test-suite](https://github.com/yaml/yaml-test-suite). It's an API-level drop-in for either —
 same exports and call signatures, ESM + CJS + full TypeScript types, and **zero
 runtime dependencies**. No more trading YAML's readability for JSON's performance.
 
@@ -22,8 +22,8 @@ Everything else is secondary to those two.
 - **Fast.** Parses and stringifies at speeds approaching native
   `JSON.parse`/`JSON.stringify` — **3–5× faster than js-yaml** on parse, across
   our benchmark workloads.
-- **Spec-compliant.** Passes ~97.6% of the official yaml-test-suite — more than
-  js-yaml or `yaml`.
+- **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~97.6% (364/373) of
+  the official yaml-test-suite.
 - **Drop-in (API-level).** Same exports and signatures as `yaml` and `js-yaml` —
   swap the import and your code runs. Option arguments (`schema`, `sortKeys`,
   `indent`, …) are accepted-but-ignored today; see
@@ -185,8 +185,8 @@ YAML 1.2 core, feature-complete but for one deliberate gap — **merge keys
 merged (it's neither expanded nor rejected); everything else in the 1.2 core is
 implemented.
 
-lightning-yaml passes **~97.6% of the official yaml-test-suite** (364/373) —
-ahead of both js-yaml and the `yaml` library. The handful of remaining failures
+lightning-yaml passes **~97.6% of the official yaml-test-suite** (364/373) — a
+faithful implementation of YAML 1.2 core. The handful of remaining failures
 are unrelated spec edge cases, not merge keys (the suite doesn't exercise `<<`).
 
 ## Built with Claude Code
