@@ -583,3 +583,76 @@ results:
         min: 52459
         gzip: 15962
         brotli: 14440
+---
+suite: bundle-size
+scope: competition
+tool: vite, webpack, rolldown
+units:
+  min: bytes
+  gzip: bytes
+  brotli: bytes
+lower_is_better: true
+generated: 2026-07-18
+source: 006d27945106eeedfecd4c24b2a098c7ae2ff49e
+env:
+  bundlers:
+    vite: 8.1.4
+    webpack: 5.108.4
+    rolldown: 1.1.5
+libraries:
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    version: 0.1.0
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+  - id: js-yaml
+    label: js-yaml
+    version: 5.2.1
+results:
+  - bundler: vite
+    rust: false
+    values:
+      lightning-yaml:
+        min: 41504
+        gzip: 12447
+        brotli: 10956
+      yaml:
+        min: 98817
+        gzip: 30069
+        brotli: 27062
+      js-yaml:
+        min: 53382
+        gzip: 15887
+        brotli: 14332
+  - bundler: webpack
+    rust: false
+    values:
+      lightning-yaml:
+        min: 41262
+        gzip: 12394
+        brotli: 10860
+      yaml:
+        min: 98563
+        gzip: 30020
+        brotli: 27001
+      js-yaml:
+        min: 52993
+        gzip: 15906
+        brotli: 14300
+  - bundler: rolldown
+    rust: true
+    values:
+      lightning-yaml:
+        min: 41074
+        gzip: 11949
+        brotli: 10513
+      yaml:
+        min: 97380
+        gzip: 29842
+        brotli: 26828
+      js-yaml:
+        min: 52459
+        gzip: 15962
+        brotli: 14440
