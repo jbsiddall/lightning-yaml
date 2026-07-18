@@ -1290,7 +1290,8 @@ function decodeBinary(raw: string): Uint8Array {
     if (clean.charCodeAt(n - 2) === 0x3d) padding = 2;
   }
   for (let i = 0; i < n - padding; i++) {
-    if (BASE64_INV[clean.charCodeAt(i)] === -1) fail("malformed !!binary content: invalid base64 character");
+    const code = clean.charCodeAt(i);
+    if (code >= 256 || BASE64_INV[code] === -1) fail("malformed !!binary content: invalid base64 character");
   }
   const outLen = (n / 4) * 3 - padding;
   const out = new Uint8Array(outLen);
