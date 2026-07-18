@@ -158,6 +158,32 @@ regression. Never claim progress or commit on a red gate; emit fresh
 `results/benchmarks/*.yaml` per the Benchmarking rules below (CI publishes real runs
 to the orphan `benchmark-data` branch — nothing to commit locally).
 
+## Versioning & releases — Changesets
+
+Version and changelog are automated via [Changesets](https://github.com/changesets/changesets);
+**never hand-edit `version` in `package.json`.** The flow: PRs leave changeset
+files on `main` → `release.yml` opens/updates a **"Release: version packages"**
+PR that bumps the version + writes `CHANGELOG.md` → merging *that* PR pushes the
+new version, which `publish.yml` publishes to npm (idempotently — it skips a
+version already on npm).
+
+**Every PR that changes `src/` must include a changeset** — add one as part of
+the work with `pnpm changeset` (writes a file under `.changeset/`; commit it).
+CI's `changeset-check` job fails a `src/` PR that lacks one. Pick the level
+deliberately (we're pre-1.0, so `^0.x` consumers treat **minor** as the
+breaking boundary):
+
+- **patch** — bug fixes, perf, internal-only changes (no API change);
+- **minor** — new features, **and** any breaking change while at 0.x;
+- **major** — reserved for the 1.0.0 release (maintainer's call, not automatic).
+
+The changeset summary is the adopter-facing changelog line — write it for
+someone reading release notes, and keep it consistent with the (squash-merged)
+PR title/description. A `src/` change that genuinely ships nothing to users opts
+out explicitly with `pnpm changeset add --empty`. PRs that don't touch `src/`
+(docs, benchmarks, harness, tests) need no changeset. Contributor-facing details
+live in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Research dossier — when to read it
 
 [site/src/content/docs/research/notes/](site/src/content/docs/research/notes/) holds the parser-strategy research

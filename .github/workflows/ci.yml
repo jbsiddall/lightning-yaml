@@ -104,3 +104,29 @@ jobs:
           node ./.smoke-test.cjs
 
           rm -f ./.smoke-test.mjs ./.smoke-test.cjs
+
+  # A PR that changes published source must declare its version bump. The
+  # escape hatch for a src/ change that genuinely ships nothing is an explicit
+  # empty changeset, so "I forgot" and "no release needed" stay distinguishable.
+  changeset-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a changeset when src/ changes
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          set -eu
+          git fetch origin "$BASE"
+          changed=$(git diff --name-only "origin/$BASE...HEAD")
+          src_changed=$(echo "$changed" | grep -E '^src/' || true)
+          changeset_added=$(echo "$changed" | grep -E '^\.changeset/.+\.md$' | grep -vE '^\.changeset/README\.md$' || true)
+          if [ -n "$src_changed" ] && [ -z "$changeset_added" ]; then
+            echo "::error::This PR changes src/ but adds no changeset. Run 'pnpm changeset' to declare the bump (patch/minor/major), or 'pnpm changeset add --empty' if it genuinely needs no release."
+            exit 1
+          fi
+          echo "Changeset check passed."

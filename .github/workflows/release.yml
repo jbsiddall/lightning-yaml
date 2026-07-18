@@ -1,0 +1,40 @@
+name: Release
+
+# Maintains the "Version Packages" PR from pending changesets. Merging that PR
+# bumps package.json + CHANGELOG.md on main; the resulting push is what
+# publish.yml acts on to publish to npm. Publishing is intentionally NOT done
+# here — it stays in publish.yml (single, idempotent publish path).
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: changesets/action@v1
+        with:
+          version: pnpm run version-packages
+          title: 'Release: version packages'
+          commit: 'Release: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
