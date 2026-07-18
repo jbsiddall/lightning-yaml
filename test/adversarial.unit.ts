@@ -276,3 +276,8 @@ test("anchors: empty anchor aliases to null; redefinition is last-wins; forward 
   deepStrictEqual(parse("p: &a 1\nq: &a 2\nr: *a"), { p: 1, q: 2, r: 2 }, "redefinition last-wins");
   throwsBecause(() => parse("x: *later\nlater: &later 1"), /unresolved alias/); // forward reference is illegal
 });
+
+test("binary: invalid base64 characters (e.g. wide unicode or non-base64 characters) strictly throw YAMLParseError", () => {
+  throwsBecause(() => parse("!!binary \"\u0100\u0100\u0100\u0100\""), /invalid base64 character/);
+  throwsBecause(() => parse("!!binary \"AAAA-A==\""), /invalid base64 character/);
+});
