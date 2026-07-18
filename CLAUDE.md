@@ -160,37 +160,20 @@ to the orphan `benchmark-data` branch — nothing to commit locally).
 
 ## Versioning & releases — Changesets
 
-Version and changelog are automated via [Changesets](https://github.com/changesets/changesets);
-**never hand-edit `version` in `package.json`.** The flow: PRs leave changeset
-files on `main` → `release.yml` opens/updates a **"Release: version packages"**
-PR that bumps the version + writes `CHANGELOG.md` → merging *that* PR pushes the
-new version, which `publish.yml` publishes to npm (idempotently — it skips a
-version already on npm).
+Standard [Changesets](https://github.com/changesets/changesets) flow; **never
+hand-edit `version`.** Every PR touching `src/` needs a changeset (`pnpm
+changeset`) — CI's `changeset-check` enforces it; a `src/` change that ships
+nothing to users uses `pnpm changeset add --empty`, and non-`src/` PRs need
+none. Publishing is decoupled: merging the auto **"Release: version packages"**
+PR lands the bump on `main`, then `publish.yml` publishes it idempotently —
+don't add a `changeset publish` step.
 
-**Every PR that changes `src/` must include a changeset** — add one as part of
-the work with `pnpm changeset` (writes a file under `.changeset/`; commit it).
-CI's `changeset-check` job fails a `src/` PR that lacks one. Pick the level
-deliberately (we're pre-1.0, so `^0.x` consumers treat **minor** as the
-breaking boundary):
-
-- **patch** — bug fixes, perf, internal-only changes (no API change);
-- **minor** — new features, **and** any breaking change while at 0.x;
-- **major** — a breaking change **once the library is ≥1.0** (see below).
-
-**The 1.0 boundary.** The **first `1.0.0` release is the maintainer's call** —
-never pick a `major` changeset to cross `0.x → 1.0.0` autonomously; while
-pre-1.0, a breaking change is a **minor**. **After** `1.0.0`, Claude *may*
-choose a `major` changeset for a genuinely breaking change on its own judgment
-— but the bar is **certainty**: only when you're sure the change breaks a
-documented API or observable behavior. When unsure whether a change is
-breaking, treat it as **minor** (or ask) — never reach for `major` on a maybe.
-
-The changeset summary is the adopter-facing changelog line — write it for
-someone reading release notes, and keep it consistent with the (squash-merged)
-PR title/description. A `src/` change that genuinely ships nothing to users opts
-out explicitly with `pnpm changeset add --empty`. PRs that don't touch `src/`
-(docs, benchmarks, harness, tests) need no changeset. Contributor-facing details
-live in [CONTRIBUTING.md](CONTRIBUTING.md).
+Ordinary semver, plus two repo rules: **while pre-1.0 a breaking change is a
+`minor`** (protecting `^0.x` consumers), and **`major` is gated on the 1.0
+boundary** — the first `1.0.0` is the maintainer's call (never crossed
+autonomously), and only *after* 1.0 may Claude pick `major`, only when certain a
+documented API/behavior actually breaks (else `minor`, or ask). Contributor
+details: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Research dossier — when to read it
 
