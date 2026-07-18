@@ -43,7 +43,7 @@ potentially breaking — lean on that):
 | --------- | -------------------------------------------------------------- |
 | **patch** | bug fixes, performance, internal changes — no API change       |
 | **minor** | new features, **and** any breaking change while we're at 0.x   |
-| **major** | reserved for the 1.0.0 release — leave this to the maintainer  |
+| **major** | breaking changes once we're ≥1.0 — if you think your change breaks something, say so in the PR and the maintainer sets the level (the 1.0.0 release itself is the maintainer's call) |
 
 A PR touching `src/` that genuinely ships nothing to users (say, a comment-only
 edit) can opt out explicitly:

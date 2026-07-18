@@ -175,7 +175,15 @@ breaking boundary):
 
 - **patch** — bug fixes, perf, internal-only changes (no API change);
 - **minor** — new features, **and** any breaking change while at 0.x;
-- **major** — reserved for the 1.0.0 release (maintainer's call, not automatic).
+- **major** — a breaking change **once the library is ≥1.0** (see below).
+
+**The 1.0 boundary.** The **first `1.0.0` release is the maintainer's call** —
+never pick a `major` changeset to cross `0.x → 1.0.0` autonomously; while
+pre-1.0, a breaking change is a **minor**. **After** `1.0.0`, Claude *may*
+choose a `major` changeset for a genuinely breaking change on its own judgment
+— but the bar is **certainty**: only when you're sure the change breaks a
+documented API or observable behavior. When unsure whether a change is
+breaking, treat it as **minor** (or ask) — never reach for `major` on a maybe.
 
 The changeset summary is the adopter-facing changelog line — write it for
 someone reading release notes, and keep it consistent with the (squash-merged)
