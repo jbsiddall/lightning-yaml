@@ -1,0 +1,795 @@
+---
+// Playground.astro — the single, shared interactive comparison + benchmark
+// widget. Rendered BOTH on the standalone /playground page and inlined on the
+// homepage (Landing.astro), so the behaviour and look are identical in both
+// places (DRY — one source of truth).
+//
+// On Run it loads the three real, published parsers (lightning-yaml, yaml,
+// js-yaml) from jsDelivr and, on WHATEVER YAML/JSON is in the editor:
+//   1. parses with all three — reporting errors and structural disagreement,
+//      then times each parse; and
+//   2. dumps the parsed value back with all three plus JSON.stringify, timing
+//      each and checking it round-trips.
+//
+// Timing is a fair, best-effort in-browser microbenchmark: identical warmup,
+// calibration and round count for every candidate, median reported. It is a
+// single-machine, single-run indicator — NOT the rigorous CI benchmark on
+// /benchmarks — and the panel says so. Nothing is tuned to flatter
+// lightning-yaml; a competitor winning a row is shown exactly as measured.
+//
+// Self-contained styling: the component defines its own --pg-* tokens, deferring
+// to the site's --ly-* brand tokens where they exist (Starlight pages) and
+// falling back to the same hex on the raw /playground page — so it renders the
+// same dark "instrument" either way. The client work is one `is:inline
+// type="module"` script so Astro/Vite leaves the native CDN imports alone.
+interface Props {
+  /** When to first auto-run: on scroll-into-view (homepage) or immediately (dedicated page). */
+  autorun?: 'view' | 'immediate' | 'none';
+}
+const { autorun = 'view' }: Props = Astro.props;
+---
+
+<section class="pg" data-autorun={autorun} aria-labelledby="pg-title">
+  <header class="pg__intro">
+    <span class="pg__eyebrow">Live playground</span>
+    <h2 class="pg__title" id="pg-title">Think you can break it?</h2>
+    <p class="pg__lede">
+      Paste any YAML or JSON and hit <b>Run</b>. All three parsers race on your input
+      in your browser — then dump it back and race again. Spot a disagreement, or a
+      case where <b>lightning-yaml</b> is the slow one, and the numbers are one click
+      from a GitHub issue.
+    </p>
+  </header>
+
+  <div class="pg__grid">
+    <section class="pg__pane">
+      <div class="pg__bar">
+        <span class="pg__bar-title">Your YAML / JSON</span>
+        <div class="pg__examples" id="pg-examples">
+          <button type="button" data-ex="config">Config</button>
+          <button type="button" data-ex="anchors">Anchors + binary</button>
+          <button type="button" data-ex="merge">Merge keys</button>
+          <button type="button" data-ex="json">JSON</button>
+        </div>
+      </div>
+      <textarea id="pg-input" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="YAML or JSON input"></textarea>
+      <div class="pg__actions">
+        <button type="button" class="pg__run" id="pg-run">Run benchmark ▶</button>
+        <span class="pg__runhint" id="pg-runhint"></span>
+      </div>
+    </section>
+
+    <section class="pg__pane">
+      <div class="pg__bar">
+        <span class="pg__bar-title">Scoreboard</span>
+        <span class="pg__bar-note" id="pg-status">Press Run to measure.</span>
+      </div>
+      <div class="pg__out" id="pg-out"></div>
+    </section>
+  </div>
+</section>
+
+<script is:inline type="module">
+  const REPO = 'https://github.com/jbsiddall/lightning-yaml'
+  const CDN = {
+    'lightning-yaml': 'https://cdn.jsdelivr.net/npm/lightning-yaml/+esm',
+    yaml: 'https://cdn.jsdelivr.net/npm/yaml/+esm',
+    'js-yaml': 'https://cdn.jsdelivr.net/npm/js-yaml/+esm',
+  }
+
+  const EXAMPLES = {
+    config:
+      '# A typical config — all three parsers should agree\n' +
+      'name: billing-service\n' +
+      'replicas: 3\n' +
+      'ports: [8080, 8443]\n' +
+      'env:\n' +
+      '  - name: LOG_LEVEL\n' +
+      '    value: info\n' +
+      'healthcheck:\n' +
+      '  path: /healthz\n' +
+      '  timeoutSeconds: 2\n' +
+      'enabled: true\n' +
+      'notes: null\n',
+    anchors:
+      '# Anchors & aliases (&/*) plus a !!binary blob\n' +
+      'defaults: &defaults\n' +
+      '  retries: 3\n' +
+      '  timeout: 30\n' +
+      'service_a:\n' +
+      '  settings: *defaults\n' +
+      '  name: a\n' +
+      'logo: !!binary |\n' +
+      '  R0lGODlhAQABAAAAACw=\n',
+    merge:
+      '# Merge keys (<<): js-yaml applies the old merge convention and MERGES this.\n' +
+      '# lightning-yaml and the `yaml` library keep "<<" as a literal key by default\n' +
+      '# (merge keys are not in YAML 1.2 core) — so here js-yaml is the outlier.\n' +
+      'base: &base\n' +
+      '  a: 1\n' +
+      '  b: 2\n' +
+      'derived:\n' +
+      '  <<: *base\n' +
+      '  b: 3\n',
+    json: '{ "name": "lightning-yaml", "version": "0.1.0", "features": ["fast", "spec-compliant"], "deps": null }\n',
+  }
+
+  // One Playground per page, so a document-level lookup is safe (module scripts
+  // don't set document.currentScript, so we can't scope from the script node).
+  const root = document.querySelector('.pg')
+  const inputEl = root.querySelector('#pg-input')
+  const outEl = root.querySelector('#pg-out')
+  const statusEl = root.querySelector('#pg-status')
+  const runBtn = root.querySelector('#pg-run')
+  const runHint = root.querySelector('#pg-runhint')
+
+  // --- value classification & structural diff --------------------------------
+  function isBytes(v) {
+    return (
+      v instanceof Uint8Array ||
+      v instanceof ArrayBuffer ||
+      (typeof Buffer !== 'undefined' && Buffer.isBuffer && Buffer.isBuffer(v))
+    )
+  }
+  function toBytes(v) {
+    return v instanceof ArrayBuffer ? new Uint8Array(v) : v
+  }
+  function kind(v) {
+    if (v === undefined) return 'undefined'
+    if (v === null) return 'null'
+    if (Array.isArray(v)) return 'array'
+    if (isBytes(v)) return 'bytes'
+    if (v instanceof Map) return 'map'
+    return typeof v
+  }
+  function asObj(v) {
+    if (v instanceof Map) {
+      const o = {}
+      for (const [k, val] of v) o[String(k)] = val
+      return o
+    }
+    return v
+  }
+  function diff(a, b, path) {
+    path = path || '(root)'
+    const ka = kind(a)
+    const kb = kind(b)
+    if (ka !== kb) return { path, a, b, reason: 'type ' + ka + ' vs ' + kb }
+    switch (ka) {
+      case 'bytes': {
+        const A = toBytes(a)
+        const B = toBytes(b)
+        if (A.length !== B.length) return { path, a, b, reason: 'byte length ' + A.length + ' vs ' + B.length }
+        for (let i = 0; i < A.length; i++)
+          if (A[i] !== B[i]) return { path: path + '[byte ' + i + ']', a: A[i], b: B[i], reason: 'byte value' }
+        return null
+      }
+      case 'array': {
+        if (a.length !== b.length) return { path, a, b, reason: 'length ' + a.length + ' vs ' + b.length }
+        for (let i = 0; i < a.length; i++) {
+          const d = diff(a[i], b[i], path + '[' + i + ']')
+          if (d) return d
+        }
+        return null
+      }
+      case 'map':
+      case 'object': {
+        const ao = asObj(a)
+        const bo = asObj(b)
+        const ak = Object.keys(ao)
+        const bk = Object.keys(bo)
+        for (const k of ak) if (!(k in bo)) return { path: path + '.' + k, a: ao[k], b: undefined, reason: 'key only in left' }
+        for (const k of bk) if (!(k in ao)) return { path: path + '.' + k, a: undefined, b: bo[k], reason: 'key only in right' }
+        for (const k of ak) {
+          const d = diff(ao[k], bo[k], path + '.' + k)
+          if (d) return d
+        }
+        return null
+      }
+      case 'number':
+        if (Number.isNaN(a) && Number.isNaN(b)) return null
+        return a === b ? null : { path, a, b, reason: 'number value' }
+      default:
+        return a === b ? null : { path, a, b, reason: ka + ' value' }
+    }
+  }
+  function preview(v) {
+    const k = kind(v)
+    if (k === 'bytes') return 'bytes(' + toBytes(v).length + ')'
+    if (k === 'array') return 'Array(' + v.length + ')'
+    if (k === 'map') return 'Map(' + v.size + ')'
+    if (k === 'object') {
+      const ks = Object.keys(v)
+      return '{ ' + ks.slice(0, 3).join(', ') + (ks.length > 3 ? ', …' : '') + ' }'
+    }
+    if (k === 'undefined') return '∅ (missing)'
+    if (k === 'string') return JSON.stringify(v.length > 24 ? v.slice(0, 24) + '…' : v)
+    return String(v)
+  }
+  function displayClone(v, seen) {
+    seen = seen || new Set()
+    const k = kind(v)
+    if (k === 'bytes') {
+      const b = toBytes(v)
+      return 'Uint8Array(' + b.length + ') [' + Array.from(b).join(', ') + ']'
+    }
+    if (k === 'undefined') return '(undefined)'
+    if (k === 'number' && !Number.isFinite(v)) return String(v)
+    if (typeof v === 'bigint') return v.toString() + 'n'
+    if (v === null || typeof v !== 'object') return v
+    if (seen.has(v)) return '[Circular]'
+    seen.add(v)
+    let out
+    if (Array.isArray(v)) out = v.map((x) => displayClone(x, seen))
+    else {
+      const src = asObj(v)
+      out = {}
+      for (const key of Object.keys(src)) out[key] = displayClone(src[key], seen)
+    }
+    seen.delete(v)
+    return out
+  }
+  function safeStringify(v) {
+    if (v === undefined) return '(undefined — empty document)'
+    try {
+      return JSON.stringify(displayClone(v), null, 2)
+    } catch (e) {
+      return String(v)
+    }
+  }
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+
+  // --- number formatting -----------------------------------------------------
+  function fmtNs(ns) {
+    if (!isFinite(ns)) return '—'
+    if (ns >= 1e9) return (ns / 1e9).toFixed(2) + ' s'
+    if (ns >= 1e6) return (ns / 1e6).toFixed(ns / 1e6 < 10 ? 2 : 1) + ' ms'
+    if (ns >= 1e3) return (ns / 1e3).toFixed(ns / 1e3 < 10 ? 2 : 1) + ' µs'
+    return Math.round(ns) + ' ns'
+  }
+  function fmtRatio(r) {
+    if (!isFinite(r)) return ''
+    return (r < 10 ? r.toFixed(1) : Math.round(r)) + '×'
+  }
+
+  // --- fair in-browser microbenchmark ----------------------------------------
+  // Identical procedure for every candidate: warm the JIT, calibrate a batch
+  // size that clears the timer's resolution, then take the MEDIAN of a fixed
+  // number of batches (robust to GC pauses). Total wall-time per candidate is
+  // capped so a giant input can't freeze the tab for long — when the cap trims
+  // the round count, `reduced` is set and the panel flags lower confidence.
+  const WARMUP_MS = 15
+  const TARGET_BATCH_MS = 8
+  const ROUNDS = 12
+  const MAX_TOTAL_MS = 450
+
+  function runN(fn, n) {
+    const t0 = performance.now()
+    for (let i = 0; i < n; i++) fn()
+    return performance.now() - t0
+  }
+  async function measure(fn) {
+    const warmStart = performance.now()
+    do {
+      fn()
+    } while (performance.now() - warmStart < WARMUP_MS)
+
+    let iters = 1
+    for (;;) {
+      const dt = runN(fn, iters)
+      if (dt >= TARGET_BATCH_MS || iters >= 5e6) break
+      const factor = dt > 0 ? Math.max(2, Math.ceil(TARGET_BATCH_MS / dt)) : 8
+      iters = Math.min(iters * factor, 5e6)
+    }
+
+    const samples = []
+    const startAll = performance.now()
+    let reduced = false
+    for (let r = 0; r < ROUNDS; r++) {
+      const dt = runN(fn, iters)
+      samples.push((dt * 1e6) / iters)
+      if (performance.now() - startAll > MAX_TOTAL_MS) {
+        reduced = r < ROUNDS - 1
+        break
+      }
+    }
+    samples.sort((a, b) => a - b)
+    return { median: samples[Math.floor(samples.length / 2)], rounds: samples.length, reduced }
+  }
+
+  // --- parsers (lazy, from the CDN) ------------------------------------------
+  let ops = null
+  let booting = null
+  function boot() {
+    if (booting) return booting
+    booting = (async () => {
+      const ids = Object.keys(CDN)
+      const settled = await Promise.allSettled(ids.map((id) => import(CDN[id])))
+      const mods = {}
+      const loadErr = {}
+      settled.forEach((res, i) => {
+        if (res.status === 'fulfilled') mods[ids[i]] = res.value
+        else loadErr[ids[i]] = (res.reason && res.reason.message) || 'failed to load from CDN'
+      })
+      const jsy = mods['js-yaml']
+      const jsyLoad = jsy && (jsy.load || (jsy.default && jsy.default.load))
+      const jsyDump = jsy && (jsy.dump || (jsy.default && jsy.default.dump))
+      const ly = mods['lightning-yaml']
+      const ym = mods['yaml']
+
+      ops = {
+        parse: [
+          { id: 'lightning-yaml', self: true, fn: ly ? (t) => ly.parse(t) : null, loadError: loadErr['lightning-yaml'] },
+          { id: 'yaml', fn: ym ? (t) => ym.parse(t, { maxAliasCount: -1 }) : null, loadError: loadErr['yaml'] },
+          { id: 'js-yaml', fn: jsyLoad ? (t) => jsyLoad(t) : null, loadError: loadErr['js-yaml'] },
+        ],
+        dump: [
+          { id: 'lightning-yaml', self: true, fn: ly ? (v) => ly.stringify(v) : null, reparse: ly ? (t) => ly.parse(t) : null, loadError: loadErr['lightning-yaml'] },
+          { id: 'yaml', fn: ym ? (v) => ym.stringify(v) : null, reparse: ym ? (t) => ym.parse(t, { maxAliasCount: -1 }) : null, loadError: loadErr['yaml'] },
+          { id: 'js-yaml', fn: jsyDump ? (v) => jsyDump(v) : null, reparse: jsyLoad ? (t) => jsyLoad(t) : null, loadError: loadErr['js-yaml'] },
+          { id: 'JSON', baseline: true, fn: (v) => JSON.stringify(v), reparse: (t) => JSON.parse(t) },
+        ],
+      }
+    })()
+    return booting
+  }
+  const yieldToUI = () => new Promise((r) => setTimeout(r, 0))
+  function firstLine(e) {
+    return (e && e.message ? e.message : String(e)).split('\n')[0]
+  }
+
+  // --- the run ---------------------------------------------------------------
+  let lastReport = null
+  async function run() {
+    runBtn.disabled = true
+    runBtn.textContent = 'Loading…'
+    setStale(false)
+    statusEl.textContent = 'Loading parsers…'
+    await boot()
+
+    const text = inputEl.value
+    runBtn.textContent = 'Running…'
+    statusEl.textContent = 'Measuring…'
+    await yieldToUI()
+
+    const parseRows = []
+    for (const p of ops.parse) {
+      if (!p.fn) {
+        parseRows.push({ id: p.id, self: p.self, state: 'loaderror', error: p.loadError })
+        continue
+      }
+      let value, err
+      try {
+        value = p.fn(text)
+      } catch (e) {
+        err = firstLine(e)
+      }
+      if (err !== undefined) {
+        parseRows.push({ id: p.id, self: p.self, state: 'error', error: err })
+        continue
+      }
+      const t = await measure(() => p.fn(text))
+      parseRows.push({ id: p.id, self: p.self, state: 'ok', value, median: t.median, reduced: t.reduced })
+      await yieldToUI()
+    }
+
+    const okParse = parseRows.filter((r) => r.state === 'ok')
+    const clusters = []
+    for (const r of okParse) {
+      const c = clusters.find((cl) => diff(cl[0].value, r.value) === null)
+      if (c) c.push(r)
+      else clusters.push([r])
+    }
+    clusters.sort((a, b) => b.length - a.length)
+    const majority = clusters[0] || []
+    const allAgree = okParse.length >= 2 && clusters.length === 1
+    for (const r of parseRows) {
+      if (r.state !== 'ok') { r.agree = null; continue }
+      if (okParse.length < 2) r.agree = 'solo'
+      else r.agree = majority.indexOf(r) !== -1 ? (allAgree ? 'agree' : 'majority') : 'differs'
+    }
+
+    const diffs = []
+    const lyOk = parseRows.find((r) => r.id === 'lightning-yaml' && r.state === 'ok')
+    if (lyOk) {
+      for (const r of okParse) {
+        if (r === lyOk) continue
+        const d = diff(lyOk.value, r.value)
+        if (d) diffs.push({ a: 'lightning-yaml', b: r.id, d })
+      }
+    } else if (okParse.length === 2) {
+      const d = diff(okParse[0].value, okParse[1].value)
+      if (d) diffs.push({ a: okParse[0].id, b: okParse[1].id, d })
+    }
+
+    const source = lyOk ? lyOk.value : okParse[0] ? okParse[0].value : undefined
+    const dumpRows = []
+    if (source !== undefined) {
+      for (const d of ops.dump) {
+        if (!d.fn) {
+          dumpRows.push({ id: d.id, self: d.self, baseline: d.baseline, state: 'loaderror', error: d.loadError })
+          continue
+        }
+        let output, err
+        try {
+          output = d.fn(source)
+        } catch (e) {
+          err = firstLine(e)
+        }
+        if (err !== undefined) {
+          dumpRows.push({ id: d.id, self: d.self, baseline: d.baseline, state: 'error', error: err })
+          continue
+        }
+        let roundtrip = 'unknown'
+        if (d.reparse) {
+          try {
+            roundtrip = diff(source, d.reparse(output)) === null ? 'ok' : 'diverges'
+          } catch (e) {
+            roundtrip = 'threw'
+          }
+        }
+        const t = await measure(() => d.fn(source))
+        dumpRows.push({ id: d.id, self: d.self, baseline: d.baseline, state: 'ok', median: t.median, reduced: t.reduced, roundtrip })
+        await yieldToUI()
+      }
+    }
+
+    lastReport = { text, parseRows, dumpRows, diffs, allAgree, okParseCount: okParse.length, source }
+    render(lastReport)
+    runBtn.disabled = false
+    runBtn.textContent = 'Run benchmark ▶'
+  }
+
+  // --- rendering -------------------------------------------------------------
+  const nm = (id, self) => (self ? '<b>' + esc(id) + '</b>' : esc(id))
+  function fastest(rows) {
+    let min = Infinity
+    for (const r of rows) if (r.state === 'ok' && r.median < min) min = r.median
+    return min
+  }
+  function timeCell(r, min) {
+    if (r.state === 'loaderror') return '<span class="pg-x">CDN load failed</span>'
+    if (r.state === 'error') return '<span class="pg-x">parse error</span>'
+    const ratio = r.median > 0 && isFinite(min) ? r.median / min : Infinity
+    const isBest = r.median <= min * 1.0001
+    const rat = isBest ? '<span class="pg-best">1.0×</span>' : '<span class="pg-rat">' + esc(fmtRatio(ratio)) + '</span>'
+    const flag = r.reduced ? '<span class="pg-approx" title="fewer samples — large input">≈</span>' : ''
+    return '<span class="pg-ns">' + esc(fmtNs(r.median)) + '</span> ' + rat + flag
+  }
+  function dot(cls, label) {
+    return '<span class="pg-dot pg-dot--' + cls + '"></span>' + label
+  }
+  function agreeCell(r) {
+    if (r.state === 'loaderror') return dot('x', 'load failed')
+    if (r.state === 'error') return dot('x', esc(r.error))
+    if (r.agree === 'agree') return dot('ok', 'agrees')
+    if (r.agree === 'majority') return dot('ok', 'agrees (majority)')
+    if (r.agree === 'differs') return dot('warn', 'differs')
+    return dot('ok', 'parsed')
+  }
+  function rtCell(r) {
+    if (r.state === 'loaderror') return dot('x', 'load failed')
+    if (r.state === 'error') return dot('x', esc(r.error))
+    if (r.roundtrip === 'ok') return dot('ok', 'round-trips')
+    if (r.roundtrip === 'diverges') return dot('warn', 'diverges')
+    if (r.roundtrip === 'threw') return dot('x', 'reparse threw')
+    return dot('muted', '—')
+  }
+
+  function render(rep) {
+    const pMin = fastest(rep.parseRows)
+    const dMin = fastest(rep.dumpRows)
+
+    const pBody = rep.parseRows
+      .map(
+        (r) =>
+          '<tr' + (r.self ? ' class="pg-self"' : '') + '><td class="pg-lib">' + nm(r.id, r.self) + '</td>' +
+          '<td class="pg-num">' + timeCell(r, pMin) + '</td>' +
+          '<td class="pg-stat">' + agreeCell(r) + '</td></tr>',
+      )
+      .join('')
+
+    const dBody = rep.dumpRows
+      .map(
+        (r) =>
+          '<tr' + (r.self ? ' class="pg-self"' : '') + '><td class="pg-lib">' + nm(r.id, r.self) + (r.baseline ? '<span class="pg-base">baseline</span>' : '') + '</td>' +
+          '<td class="pg-num">' + timeCell(r, dMin) + '</td>' +
+          '<td class="pg-stat">' + rtCell(r) + '</td></tr>',
+      )
+      .join('')
+
+    const diffHtml = rep.diffs.length
+      ? '<div class="pg-diffs">' +
+        rep.diffs
+          .map(
+            (x) =>
+              '<div class="pg-diff">' + nm(x.a, x.a === 'lightning-yaml') + ' ⟷ ' + nm(x.b, x.b === 'lightning-yaml') +
+              ' at <span class="pg-path">' + esc(x.d.path) + '</span>: ' + esc(preview(x.d.a)) + ' vs ' + esc(preview(x.d.b)) +
+              ' <span class="pg-reason">(' + esc(x.d.reason) + ')</span></div>',
+          )
+          .join('') +
+        '</div>'
+      : ''
+
+    const dumpSection = rep.dumpRows.length
+      ? '<div class="pg-tabhead">Stringify — dump the parsed value back <span class="pg-th-sub">median ns/op · round-trip</span></div>' +
+        '<table class="pg-table"><tbody>' + dBody + '</tbody></table>'
+      : '<p class="pg-empty">No parser produced a value to dump.</p>'
+
+    const valueSection =
+      rep.source !== undefined
+        ? '<details class="pg-details"><summary>parsed value (lightning-yaml)</summary><pre class="pg-pre">' +
+          esc(safeStringify(rep.source)) + '</pre></details>'
+        : ''
+
+    outEl.innerHTML =
+      '<div class="pg-tabhead">Parse <span class="pg-th-sub">median ns/op · agreement</span></div>' +
+      '<table class="pg-table"><tbody>' + pBody + '</tbody></table>' +
+      diffHtml +
+      dumpSection +
+      valueSection +
+      '<a class="pg-issue" id="pg-issue" target="_blank" rel="noopener">Open a GitHub issue with these results&nbsp;→</a>' +
+      '<p class="pg-note">Measured live in <em>your</em> browser: identical warmup + median-of-' + ROUNDS +
+      ' for every library — indicative only, not the CI benchmark on the ' +
+      '<a href="/benchmarks/">Benchmarks page</a>. Values compared structurally; <code>!!binary</code> ' +
+      'normalizes to bytes, <code>yaml</code> runs with <code>maxAliasCount:-1</code>. A disagreement is ' +
+      'not automatically a bug — the YAML&nbsp;1.2 spec adjudicates.</p>'
+
+    root.querySelector('#pg-issue').href = issueUrl(rep)
+
+    let msg
+    if (rep.okParseCount < 2) msg = 'Only one parser produced a value.'
+    else if (rep.allAgree) msg = '✓ All parsers agree.'
+    else msg = '⚠ Parsers disagree — see below.'
+    statusEl.textContent = msg
+  }
+
+  // --- prefilled GitHub issue ------------------------------------------------
+  function issueUrl(rep) {
+    const slower = (rows) => {
+      const ly = rows.find((r) => r.id === 'lightning-yaml' && r.state === 'ok')
+      if (!ly) return false
+      return rows.some((r) => r.state === 'ok' && !r.self && r.median < ly.median)
+    }
+    const hasDivergence = rep.diffs.length > 0 || rep.dumpRows.some((r) => r.roundtrip === 'diverges')
+    const lySlower = slower(rep.parseRows) || slower(rep.dumpRows)
+    let title
+    if (hasDivergence) title = 'Playground: parser divergence on this input'
+    else if (lySlower) title = 'Playground: lightning-yaml is slower on this input'
+    else title = 'Playground: benchmark result'
+
+    const mdTime = (r) => (r.state === 'ok' ? fmtNs(r.median) : r.state === 'error' ? 'error' : 'load failed')
+    const pTable =
+      '| library | parse ns/op | agreement |\n|---|---|---|\n' +
+      rep.parseRows.map((r) => '| ' + r.id + ' | ' + mdTime(r) + ' | ' + (r.state === 'ok' ? r.agree || 'parsed' : r.state) + ' |').join('\n')
+    const dTable =
+      '| library | stringify ns/op | round-trip |\n|---|---|---|\n' +
+      rep.dumpRows.map((r) => '| ' + r.id + ' | ' + mdTime(r) + ' | ' + (r.state === 'ok' ? r.roundtrip : r.state) + ' |').join('\n')
+
+    const header = 'Reported from the lightning-yaml homepage playground (in-browser, indicative timing).\n\n'
+    const tables = '**Parse**\n\n' + pTable + '\n\n**Stringify**\n\n' + dTable + '\n\n'
+    const foot = '\n_Browser-measured, single run — please confirm against the CI benchmark before treating the timings as authoritative._\n'
+
+    const budget = 5500
+    const fixed = header + tables + foot + '<details><summary>Input</summary>\n\n```yaml\n\n```\n</details>\n'
+    let yaml = rep.text
+    const room = budget - fixed.length
+    let trimmed = ''
+    if (yaml.length > room) {
+      yaml = yaml.slice(0, Math.max(0, room - 40))
+      trimmed = '\n# … truncated for the issue link …'
+    }
+    const body = header + tables + '<details><summary>Input</summary>\n\n```yaml\n' + yaml + trimmed + '\n```\n</details>\n' + foot
+    return REPO + '/issues/new?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body)
+  }
+
+  // --- staleness + wiring ----------------------------------------------------
+  function setStale(on) {
+    if (on) {
+      outEl.classList.add('pg-stale')
+      runHint.textContent = 'input changed — Run again'
+    } else {
+      outEl.classList.remove('pg-stale')
+      runHint.textContent = ''
+    }
+  }
+  inputEl.addEventListener('input', () => {
+    if (lastReport) setStale(true)
+  })
+  runBtn.addEventListener('click', () => run())
+  root.querySelector('#pg-examples').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-ex]')
+    if (!btn) return
+    inputEl.value = EXAMPLES[btn.dataset.ex] || ''
+    run()
+  })
+
+  inputEl.value = EXAMPLES.config
+
+  let started = false
+  const kick = () => {
+    if (started) return
+    started = true
+    run()
+  }
+  const mode = root.dataset.autorun
+  if (mode === 'immediate') {
+    kick()
+  } else if (mode === 'view' && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const en of entries) {
+          if (en.isIntersecting) {
+            io.disconnect()
+            kick()
+          }
+        }
+      },
+      { rootMargin: '120px' },
+    )
+    io.observe(outEl)
+  } else if (mode !== 'none') {
+    kick()
+  }
+</script>
+
+<style>
+  .pg {
+    /* Self-contained tokens: prefer the site's brand tokens where they exist
+       (Starlight pages), fall back to the same hex on the raw playground page. */
+    --pg-void: var(--ly-void, #0b0d14);
+    --pg-panel: var(--ly-panel, #141824);
+    --pg-panel2: var(--ly-panel-2, #10131d);
+    --pg-line: var(--ly-line, #232a3b);
+    --pg-ink: var(--ly-ink, #e8ecf6);
+    --pg-muted: var(--ly-muted, #9aa4bc);
+    --pg-charge: var(--ly-charge, #7c5cff);
+    --pg-spark: var(--ly-spark, #35e0d8);
+    --pg-amber: var(--ly-amber, #ffb020);
+    --pg-ok: #3ad07f;
+    --pg-err: #ff5c6c;
+    --pg-mono: var(--sl-font-mono, 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+    --pg-sans: var(--sl-font, Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+
+    width: 100%;
+    border: 1px solid var(--pg-line);
+    border-radius: 18px;
+    background: linear-gradient(180deg, #0e111b, #0b0d14 72%);
+    box-shadow: 0 30px 70px -50px rgba(0, 0, 0, 0.95);
+    overflow: hidden;
+    font-family: var(--pg-sans);
+  }
+
+  .pg__intro { padding: clamp(1.25rem, 3vw, 1.9rem) clamp(1.1rem, 3vw, 1.9rem) 0.4rem; }
+  .pg__eyebrow {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: var(--pg-mono); font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--pg-spark);
+  }
+  .pg__title {
+    margin: 0.5rem 0 0;
+    font-family: var(--pg-sans);
+    font-weight: 600;
+    font-size: clamp(1.3rem, 3vw, 1.75rem);
+    letter-spacing: -0.02em;
+    color: var(--pg-ink);
+  }
+  .pg__lede {
+    margin: 0.5rem 0 0; max-width: 72ch;
+    color: var(--pg-muted); font-size: clamp(0.9rem, 1.5vw, 1rem); line-height: 1.55;
+  }
+  .pg__lede b { color: var(--pg-ink); font-weight: 600; }
+
+  .pg__grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+    margin-top: 1.1rem; background: var(--pg-line); border-top: 1px solid var(--pg-line);
+  }
+  @media (max-width: 880px) { .pg__grid { grid-template-columns: 1fr; } }
+
+  .pg__pane { background: var(--pg-void); display: flex; flex-direction: column; min-width: 0; }
+  .pg__bar {
+    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--pg-line); background: var(--pg-panel2);
+    font-family: var(--pg-mono); font-size: 0.72rem; min-height: 2.4rem;
+  }
+  .pg__bar-title { color: var(--pg-ink); }
+  .pg__bar-note { margin-inline-start: auto; color: var(--pg-muted); }
+  .pg__examples { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-inline-start: auto; }
+  .pg__examples button {
+    font-family: var(--pg-mono); font-size: 0.68rem; color: var(--pg-muted);
+    background: var(--pg-panel); border: 1px solid var(--pg-line); border-radius: 999px; padding: 0.18rem 0.55rem; cursor: pointer;
+  }
+  .pg__examples button:hover { color: var(--pg-ink); border-color: var(--pg-charge); }
+
+  #pg-input {
+    flex: 1; resize: vertical; border: 0; outline: none; background: transparent; color: var(--pg-ink);
+    font-family: var(--pg-mono); font-size: 0.84rem; line-height: 1.7; padding: 0.9rem 1rem; tab-size: 2; min-height: 300px;
+  }
+  .pg__actions {
+    display: flex; align-items: center; gap: 0.8rem;
+    padding: 0.7rem 0.9rem; border-top: 1px solid var(--pg-line); background: var(--pg-panel2);
+  }
+  .pg__run {
+    font-family: var(--pg-mono); font-size: 0.82rem; font-weight: 600; color: #fff;
+    background: linear-gradient(135deg, #6d4cff, #5b3ff0); border: 1px solid rgba(124, 92, 255, 0.6);
+    border-radius: 9px; padding: 0.5rem 1.05rem; cursor: pointer; box-shadow: 0 10px 26px -14px rgba(124, 92, 255, 0.85);
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  .pg__run:hover:not(:disabled) { filter: brightness(1.09); }
+  .pg__run:active:not(:disabled) { transform: translateY(1px); }
+  .pg__run:disabled { opacity: 0.65; cursor: default; }
+  .pg__runhint { font-family: var(--pg-mono); font-size: 0.7rem; color: var(--pg-amber); }
+
+  .pg__out {
+    padding: 0.9rem 1rem 1.1rem; overflow-x: auto; min-height: 300px; transition: opacity 0.2s ease; color: var(--pg-ink);
+  }
+  .pg__out.pg-stale { opacity: 0.4; }
+
+  .pg__out :global(.pg-tabhead) {
+    display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; margin: 0.3rem 0 0.4rem;
+    font-family: var(--pg-sans); font-weight: 600; font-size: 0.9rem; color: var(--pg-ink);
+  }
+  .pg__out :global(.pg-tabhead:not(:first-child)) { margin-top: 1.1rem; }
+  .pg__out :global(.pg-th-sub) { font-family: var(--pg-mono); font-weight: 400; font-size: 0.68rem; color: var(--pg-muted); }
+  .pg__out :global(.pg-table) { width: 100%; border-collapse: collapse; font-family: var(--pg-mono); font-size: 0.78rem; }
+  .pg__out :global(.pg-table td) { padding: 0.38rem 0.5rem; border-bottom: 1px solid var(--pg-line); vertical-align: middle; }
+  .pg__out :global(.pg-lib) { color: var(--pg-muted); white-space: nowrap; }
+  .pg__out :global(.pg-lib b) { color: var(--pg-charge); font-weight: 600; }
+  .pg__out :global(.pg-self) { background: rgba(124, 92, 255, 0.06); }
+  .pg__out :global(.pg-base) { margin-inline-start: 0.4rem; font-size: 0.62rem; color: var(--pg-muted); opacity: 0.75; }
+  .pg__out :global(.pg-num) { color: var(--pg-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pg__out :global(.pg-rat) { color: var(--pg-muted); }
+  .pg__out :global(.pg-best) { color: var(--pg-spark); font-weight: 600; }
+  .pg__out :global(.pg-approx) { color: var(--pg-amber); margin-inline-start: 0.15rem; }
+  .pg__out :global(.pg-x) { color: var(--pg-muted); }
+  .pg__out :global(.pg-stat) { color: var(--pg-muted); text-align: right; white-space: nowrap; }
+
+  .pg__out :global(.pg-dot) {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-inline-end: 0.4rem;
+    background: var(--pg-muted); vertical-align: baseline;
+  }
+  .pg__out :global(.pg-dot--ok) { background: var(--pg-ok); box-shadow: 0 0 7px rgba(58, 208, 127, 0.6); }
+  .pg__out :global(.pg-dot--warn) { background: var(--pg-amber); box-shadow: 0 0 7px rgba(255, 176, 32, 0.55); }
+  .pg__out :global(.pg-dot--x) { background: var(--pg-err); box-shadow: 0 0 7px rgba(255, 92, 108, 0.55); }
+  .pg__out :global(.pg-dot--muted) { background: var(--pg-muted); }
+
+  .pg__out :global(.pg-diffs) { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.6rem 0 0.2rem; }
+  .pg__out :global(.pg-diff) {
+    font-family: var(--pg-mono); font-size: 0.72rem; line-height: 1.5; padding: 0.45rem 0.6rem;
+    border: 1px solid var(--pg-line); border-left: 3px solid var(--pg-amber); border-radius: 6px;
+    background: var(--pg-panel); color: var(--pg-muted); overflow-x: auto;
+  }
+  .pg__out :global(.pg-diff b) { color: var(--pg-charge); font-weight: 600; }
+  .pg__out :global(.pg-path) { color: var(--pg-spark); }
+  .pg__out :global(.pg-reason) { opacity: 0.8; }
+
+  .pg__out :global(.pg-details) { margin-top: 0.9rem; }
+  .pg__out :global(.pg-details summary) {
+    cursor: pointer; font-family: var(--pg-mono); font-size: 0.74rem; color: var(--pg-muted);
+  }
+  .pg__out :global(.pg-details summary:hover) { color: var(--pg-ink); }
+  .pg__out :global(.pg-pre) {
+    margin: 0.5rem 0 0; padding: 0.7rem 0.8rem; border: 1px solid var(--pg-line); border-radius: 8px;
+    background: var(--pg-panel2); font-family: var(--pg-mono); font-size: 0.74rem; line-height: 1.6;
+    color: var(--pg-ink); white-space: pre; overflow-x: auto; max-height: 320px;
+  }
+
+  .pg__out :global(.pg-issue) {
+    display: inline-block; margin-top: 1rem; font-family: var(--pg-mono); font-size: 0.78rem; font-weight: 600;
+    color: var(--pg-spark); text-decoration: none;
+  }
+  .pg__out :global(.pg-issue:hover) { text-decoration: underline; }
+  .pg__out :global(.pg-note) {
+    margin: 0.9rem 0 0; padding-top: 0.7rem; border-top: 1px dashed var(--pg-line);
+    color: var(--pg-muted); font-size: 0.72rem; line-height: 1.55;
+  }
+  .pg__out :global(.pg-note code) { font-family: var(--pg-mono); color: var(--pg-ink); font-size: 0.92em; }
+  .pg__out :global(.pg-note a) { color: var(--pg-spark); }
+  .pg__out :global(.pg-empty) { color: var(--pg-muted); font-size: 0.8rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pg__run, .pg__out { transition: none; }
+  }
+</style>

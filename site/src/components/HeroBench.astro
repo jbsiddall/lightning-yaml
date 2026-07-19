@@ -1,0 +1,246 @@
+---
+// HeroBench.astro — the hero's right-hand instrument: a four-tab benchmark
+// panel (Parse / Dump / Memory / Bundle), Bun-homepage style. CSS-only tab
+// switching via sibling radio inputs — zero client JS. Every chart is inline
+// SVG rendered at BUILD TIME from the newest published run in
+// src/data/benchmarks/*.yaml (overlaid from the benchmark-data branch at
+// deploy), so the numbers are the same measured data the /benchmarks page shows
+// — never a hand-typed figure. See CLAUDE.md "Integrity of benchmarks and claims".
+import speedRaw from '../data/benchmarks/speed.yaml?raw';
+import memoryRaw from '../data/benchmarks/memory.yaml?raw';
+import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
+import {
+  newestRun,
+  groupedBarSVG,
+  barSVG,
+  pickWorkloads,
+  speedGroups,
+  memoryGroups,
+  seriesFor,
+  legendFor,
+  presentIn,
+  bundleSizeItems,
+  niceDomainMax,
+  formatKB,
+  LIBRARY_ORDER,
+} from '../lib/benchmarks';
+import type { SpeedDoc, MemoryDoc, BundleSizeDoc } from '../lib/benchmarks';
+
+const speed = newestRun<SpeedDoc>(speedRaw);
+const memory = newestRun<MemoryDoc>(memoryRaw);
+const bundle = newestRun<BundleSizeDoc>(bundleSizeRaw);
+
+const speedNames = ['small-records', 'medium-records', 'large-records'] as const;
+const memoryNames = ['small-records', 'large-records', 'xlarge-records'] as const;
+
+const parseWorkloads = pickWorkloads(speed.operations.parse, speedNames);
+const dumpWorkloads = pickWorkloads(speed.operations.stringify, speedNames);
+const memoryWorkloads = pickWorkloads(memory.operations.parse, memoryNames);
+const bundleItems = bundleSizeItems(bundle);
+
+const tabs = [
+  {
+    id: 'parse',
+    label: 'Parse speed',
+    caption: 'Time per parse() · labelled ×-vs-fastest · each row scaled to its own slowest parser.',
+    legend: legendFor(speed.libraries, presentIn(LIBRARY_ORDER, parseWorkloads)),
+    svg: groupedBarSVG({
+      id: 'hb-parse',
+      title: 'Parse time by workload',
+      series: seriesFor(speed.libraries, presentIn(LIBRARY_ORDER, parseWorkloads)),
+      groups: speedGroups(parseWorkloads),
+      unit: 'ns',
+      lowerIsBetter: true,
+      labelStyle: 'ratio-to-best',
+    }),
+  },
+  {
+    id: 'dump',
+    label: 'Dump speed',
+    caption: 'Time per stringify() · labelled ×-vs-fastest · each row scaled to its own slowest.',
+    legend: legendFor(speed.libraries, presentIn(LIBRARY_ORDER, dumpWorkloads)),
+    svg: groupedBarSVG({
+      id: 'hb-dump',
+      title: 'Stringify time by workload',
+      series: seriesFor(speed.libraries, presentIn(LIBRARY_ORDER, dumpWorkloads)),
+      groups: speedGroups(dumpWorkloads),
+      unit: 'ns',
+      lowerIsBetter: true,
+      labelStyle: 'ratio-to-best',
+    }),
+  },
+  {
+    id: 'memory',
+    label: 'Parse memory',
+    caption: 'Peak resident set size while parsing (25 iterations) · lower is better.',
+    legend: legendFor(memory.libraries, presentIn(LIBRARY_ORDER, memoryWorkloads)),
+    svg: groupedBarSVG({
+      id: 'hb-memory',
+      title: 'Peak memory by workload',
+      series: seriesFor(memory.libraries, presentIn(LIBRARY_ORDER, memoryWorkloads)),
+      groups: memoryGroups(memoryWorkloads),
+      unit: 'MB',
+      lowerIsBetter: true,
+    }),
+  },
+  {
+    id: 'bundle',
+    label: 'Bundle size',
+    caption: 'Browser bundle (parse + stringify), min + gzip, smallest across every bundler measured.',
+    legend: null,
+    svg: barSVG({
+      id: 'hb-bundle',
+      title: 'Bundle size (browser, min + gzip)',
+      items: bundleItems,
+      higherIsBetter: false,
+      domainMax: niceDomainMax(Math.max(...bundleItems.map((it) => it.value)), 5 * 1024),
+      formatValue: formatKB,
+      formatTick: formatKB,
+    }),
+  },
+];
+
+const envLine = `${speed.env.runtime} · benchmark-data branch`;
+---
+
+<figure class="hb" aria-label="Benchmarks: Lightning YAML versus js-yaml, yaml, and JSON">
+  <figcaption class="hb__head">
+    <span class="hb__title">How fast?</span>
+    <span class="hb__env">{envLine}</span>
+  </figcaption>
+
+  {tabs.map((t, i) => (
+    <input class="hb__radio" type="radio" name="hb-tab" id={`hb-tab-${t.id}`} checked={i === 0} />
+  ))}
+
+  <div class="hb__tabs" role="tablist">
+    {tabs.map((t) => (
+      <label class="hb__tab" for={`hb-tab-${t.id}`}>{t.label}</label>
+    ))}
+  </div>
+
+  {tabs.map((t) => (
+    <section class="hb__panel" data-tab={t.id} aria-label={t.label}>
+      {t.legend && (
+        <ul class="hb__legend">
+          {t.legend.map((l) => (
+            <li class:list={['hb__leg', { 'hb__leg--self': l.self }]}>
+              <span class="hb__swatch" style={`background:${l.color}`} aria-hidden="true"></span>
+              {l.label}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div class="hb__plot" set:html={t.svg} />
+      <p class="hb__cap">{t.caption}</p>
+    </section>
+  ))}
+
+  <a class="hb__more" href="/benchmarks/">See the full benchmarks&nbsp;→</a>
+</figure>
+
+<style>
+  .hb {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--ly-line);
+    border-radius: 16px;
+    background:
+      radial-gradient(80% 60% at 100% 0%, rgba(53, 224, 216, 0.07), transparent 60%),
+      linear-gradient(180deg, #0f1320, #0b0d14 70%);
+    box-shadow: 0 30px 70px -46px rgba(0, 0, 0, 0.95);
+    overflow: hidden;
+  }
+
+  .hb__head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.85rem 1.1rem 0.6rem;
+    flex-wrap: wrap;
+  }
+  .hb__title { font-family: var(--sl-font); font-weight: 600; font-size: 1rem; color: var(--ly-ink); }
+  .hb__env {
+    margin-inline-start: auto;
+    font-family: var(--sl-font-mono);
+    font-size: 0.66rem;
+    color: var(--ly-muted);
+    opacity: 0.8;
+  }
+
+  .hb__radio { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+  .hb__tabs {
+    display: flex;
+    gap: 0.15rem;
+    padding: 0 1.1rem;
+    border-bottom: 1px solid var(--ly-line);
+    overflow-x: auto;
+  }
+  .hb__tab {
+    flex: none;
+    padding: 0.5rem 0.7rem;
+    margin-bottom: -1px;
+    font-family: var(--sl-font-mono);
+    font-size: 0.78rem;
+    color: var(--ly-muted);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .hb__tab:hover { color: var(--ly-ink); }
+
+  .hb__panel { display: none; padding: 0.9rem 1.1rem 0.4rem; }
+  .hb__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.9rem;
+    margin: 0 0 0.7rem;
+    padding: 0;
+    list-style: none;
+  }
+  .hb__leg { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--sl-font-mono); font-size: 0.72rem; color: var(--ly-ink); }
+  .hb__leg--self { font-weight: 600; }
+  .hb__swatch { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+  .hb__plot { width: 100%; }
+  .hb__plot :global(svg) { width: 100%; height: auto; display: block; }
+  .hb__cap { margin: 0.55rem 0 0; font-family: var(--sl-font-mono); font-size: 0.68rem; line-height: 1.5; color: var(--ly-muted); }
+
+  .hb__more {
+    padding: 0.7rem 1.1rem 0.95rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--ly-spark);
+    text-decoration: none;
+    border-top: 1px solid var(--ly-line);
+    margin-top: 0.4rem;
+  }
+  .hb__more:hover { color: var(--ly-ink); }
+
+  /* CSS-only tab switching: radios are earlier siblings of the tabs + panels. */
+  #hb-tab-parse:checked ~ .hb__panel[data-tab='parse'],
+  #hb-tab-dump:checked ~ .hb__panel[data-tab='dump'],
+  #hb-tab-memory:checked ~ .hb__panel[data-tab='memory'],
+  #hb-tab-bundle:checked ~ .hb__panel[data-tab='bundle'] {
+    display: block;
+  }
+  #hb-tab-parse:checked ~ .hb__tabs label[for='hb-tab-parse'],
+  #hb-tab-dump:checked ~ .hb__tabs label[for='hb-tab-dump'],
+  #hb-tab-memory:checked ~ .hb__tabs label[for='hb-tab-memory'],
+  #hb-tab-bundle:checked ~ .hb__tabs label[for='hb-tab-bundle'] {
+    color: var(--ly-ink);
+    border-bottom-color: var(--ly-charge);
+  }
+  #hb-tab-parse:focus-visible ~ .hb__tabs label[for='hb-tab-parse'],
+  #hb-tab-dump:focus-visible ~ .hb__tabs label[for='hb-tab-dump'],
+  #hb-tab-memory:focus-visible ~ .hb__tabs label[for='hb-tab-memory'],
+  #hb-tab-bundle:focus-visible ~ .hb__tabs label[for='hb-tab-bundle'] {
+    outline: 2px solid var(--ly-spark);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+</style>
