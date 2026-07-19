@@ -324,6 +324,10 @@ const { autorun = 'view' }: Props = Astro.props;
           { id: 'lightning-yaml', self: true, fn: ly ? (t) => ly.parse(t) : null, loadError: loadErr['lightning-yaml'] },
           { id: 'yaml', fn: ym ? (t) => ym.parse(t, { maxAliasCount: -1 }) : null, loadError: loadErr['yaml'] },
           { id: 'js-yaml', fn: jsyLoad ? (t) => jsyLoad(t) : null, loadError: loadErr['js-yaml'] },
+          // JSON.parse only joins the parse race when the input actually IS JSON
+          // (a JSON test case). `optional` means: if it throws, drop it silently
+          // rather than showing a bogus error row on ordinary YAML.
+          { id: 'JSON', baseline: true, optional: true, fn: (t) => JSON.parse(t) },
         ],
         dump: [
           { id: 'lightning-yaml', self: true, fn: ly ? (v) => ly.stringify(v) : null, reparse: ly ? (t) => ly.parse(t) : null, loadError: loadErr['lightning-yaml'] },
@@ -367,11 +371,12 @@ const { autorun = 'view' }: Props = Astro.props;
         err = firstLine(e)
       }
       if (err !== undefined) {
+        if (p.optional) continue // JSON.parse on non-JSON input — drop, don't flag.
         parseRows.push({ id: p.id, self: p.self, state: 'error', error: err })
         continue
       }
       const t = await measure(() => p.fn(text))
-      parseRows.push({ id: p.id, self: p.self, state: 'ok', value, median: t.median, reduced: t.reduced })
+      parseRows.push({ id: p.id, self: p.self, baseline: p.baseline, state: 'ok', value, median: t.median, reduced: t.reduced })
       await yieldToUI()
     }
 
@@ -485,7 +490,7 @@ const { autorun = 'view' }: Props = Astro.props;
     const pBody = rep.parseRows
       .map(
         (r) =>
-          '<tr' + (r.self ? ' class="pg-self"' : '') + '><td class="pg-lib">' + nm(r.id, r.self) + '</td>' +
+          '<tr' + (r.self ? ' class="pg-self"' : '') + '><td class="pg-lib">' + nm(r.id, r.self) + (r.baseline ? '<span class="pg-base">baseline</span>' : '') + '</td>' +
           '<td class="pg-num">' + timeCell(r, pMin) + '</td>' +
           '<td class="pg-stat">' + agreeCell(r) + '</td></tr>',
       )

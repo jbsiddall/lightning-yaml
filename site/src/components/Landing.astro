@@ -51,9 +51,11 @@ const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
           <button class="pm__tab" role="tab" aria-selected="false" data-pm="npm">npm</button>
           <button class="pm__tab" role="tab" aria-selected="false" data-pm="yarn">yarn</button>
           <button class="pm__tab" role="tab" aria-selected="false" data-pm="bun">bun</button>
+          <button class="pm__tab" role="tab" aria-selected="false" data-pm="deno">deno</button>
+          <button class="pm__tab" role="tab" aria-selected="false" data-pm="cdn">cdn</button>
         </div>
         <div class="cmd">
-          <span class="cmd__prompt" aria-hidden="true">$</span>
+          <span class="cmd__prompt" id="ly-prompt" aria-hidden="true">$</span>
           <code class="cmd__text" id="ly-cmd">pnpm add lightning-yaml</code>
           <button class="cmd__copy" id="ly-copy" type="button">Copy</button>
         </div>
@@ -75,19 +77,26 @@ const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
 </div>
 
 <script>
-  const CMDS: Record<string, string> = {
-    pnpm: 'pnpm add lightning-yaml',
-    npm: 'npm install lightning-yaml',
-    yarn: 'yarn add lightning-yaml',
-    bun: 'bun add lightning-yaml',
+  // 'sh' entries are shell installs (shown with a $ prompt); 'js' entries are
+  // import snippets (Deno URL import + browser ESM CDN) — no prompt.
+  const CMDS: Record<string, { kind: 'sh' | 'js'; text: string }> = {
+    pnpm: { kind: 'sh', text: 'pnpm add lightning-yaml' },
+    npm: { kind: 'sh', text: 'npm install lightning-yaml' },
+    yarn: { kind: 'sh', text: 'yarn add lightning-yaml' },
+    bun: { kind: 'sh', text: 'bun add lightning-yaml' },
+    deno: { kind: 'js', text: 'import { parse } from "https://esm.sh/lightning-yaml"' },
+    cdn: { kind: 'js', text: 'import { parse } from "https://cdn.jsdelivr.net/npm/lightning-yaml/+esm"' },
   };
   const pm = document.getElementById('ly-pm');
   const cmd = document.getElementById('ly-cmd');
+  const prompt = document.getElementById('ly-prompt');
   pm?.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.pm__tab');
     if (!btn || !cmd) return;
     pm.querySelectorAll('.pm__tab').forEach((x) => x.setAttribute('aria-selected', String(x === btn)));
-    cmd.textContent = CMDS[btn.dataset.pm ?? 'pnpm'];
+    const entry = CMDS[btn.dataset.pm ?? 'pnpm'];
+    cmd.textContent = entry.text;
+    if (prompt) prompt.style.display = entry.kind === 'sh' ? '' : 'none';
   });
   const copy = document.getElementById('ly-copy');
   copy?.addEventListener('click', async () => {
@@ -189,7 +198,7 @@ const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
     color: var(--ly-muted);
     margin-bottom: 0.5rem;
   }
-  .pm { display: flex; gap: 0.3rem; margin-bottom: 0.5rem; }
+  .pm { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem; }
   .pm__tab {
     font-family: var(--sl-font-mono);
     font-size: 0.76rem;
