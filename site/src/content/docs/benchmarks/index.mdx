@@ -1,0 +1,32 @@
+---
+title: Benchmarks
+description: Speed, memory, and YAML-test-suite conformance for Lightning YAML vs js-yaml, yaml, and JSON.
+template: doc
+---
+
+import speedRaw from '../../../data/benchmarks/speed.yaml?raw'
+import { newestRun } from '../../../lib/benchmarks'
+
+export const speed = newestRun(speedRaw)
+export const provenanceLine = `Measured on ${speed.env.cpu} (${speed.env.clk}) · ${speed.env.runtime} · generated ${speed.generated} · source ${speed.source}`
+
+Speed, memory, and spec-conformance for **Lightning YAML** against the other parsers this
+repo benchmarks itself against: `js-yaml`, `yaml` (eemeli), and the `JSON` baseline where a
+workload is JSON-shaped enough for it to compete. Each metric has its own page — every chart
+is a static image (inline SVG rendered at build time, no client JavaScript), and each page
+also carries a **trend chart** tracking that metric across every published run.
+
+<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.82em">{provenanceLine}</p>
+
+- **[Parse time](/benchmarks/parse/)** — parse throughput by workload, and how our ratio to the fastest parser holds up run over run.
+- **[Stringify time](/benchmarks/stringify/)** — dump throughput, including the lean-schema `js-yaml (tuned)` yardstick.
+- **[Peak memory](/benchmarks/memory/)** — resident-set peak while parsing, by workload.
+- **[Conformance](/benchmarks/conformance/)** — pass rate across the official yaml-test-suite.
+- **[Bundle size](/benchmarks/bundle-size/)** — kilobytes each library adds to a browser bundle.
+
+These numbers track real runs, not a hand-captured snapshot: CI publishes each run to the
+orphan [`benchmark-data`](https://github.com/jbsiddall/lightning-yaml/tree/benchmark-data)
+branch, and the deploy workflow overlays that history onto these pages at build time — the bar
+charts render the newest published document per suite, and the trend charts render the full
+history. To reproduce them yourself, see
+[running the benchmarks & tests](/research/methodology/#running-the-benchmarks--tests).

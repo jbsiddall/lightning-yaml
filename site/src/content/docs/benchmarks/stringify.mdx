@@ -1,0 +1,108 @@
+---
+title: Stringify time
+description: Lightning YAML stringify throughput by workload versus js-yaml, yaml, and JSON — plus the trend across every published run.
+template: doc
+---
+
+import speedRaw from '../../../data/benchmarks/speed.yaml?raw'
+import ChartCard from '../../../components/charts/ChartCard.astro'
+import {
+  newestRun,
+  parseRuns,
+  pickWorkloads,
+  speedGroups,
+  seriesFor,
+  legendFor,
+  groupedBarSVG,
+  speedTableHtml,
+  speedTrend,
+  trendLegend,
+  lineChartSVG,
+  runDates,
+  xTicks,
+  formatRatio,
+  LIBRARY_ORDER,
+  presentIn,
+} from '../../../lib/benchmarks'
+
+export const speed = newestRun(speedRaw)
+export const speedRuns = parseRuns(speedRaw)
+
+export const chartWorkloadNames = [
+  'small-records',
+  'medium-records',
+  'large-records',
+  'xlarge-records',
+  'yaml-rich-medium',
+]
+export const stringifyChartWorkloads = pickWorkloads(speed.operations.stringify, chartWorkloadNames)
+export const stringifySeries = seriesFor(speed.libraries, presentIn(LIBRARY_ORDER, stringifyChartWorkloads))
+export const stringifyLegend = legendFor(speed.libraries, presentIn(LIBRARY_ORDER, stringifyChartWorkloads))
+export const stringifySvg = groupedBarSVG({
+  id: 'chart-stringify',
+  title: 'Stringify time by workload (relative to fastest, per row)',
+  series: stringifySeries,
+  groups: speedGroups(stringifyChartWorkloads),
+  unit: 'ns',
+  lowerIsBetter: true,
+  labelStyle: 'ratio-to-best',
+})
+
+export const trendWorkload = 'large-records'
+export const trendOrder = presentIn(LIBRARY_ORDER, pickWorkloads(speed.operations.stringify, [trendWorkload]))
+export const stringifyTrendSeries = speedTrend(speedRuns, 'stringify', trendWorkload, trendOrder)
+export const stringifyTrendLegend = trendLegend(stringifyTrendSeries)
+export const stringifyTrendSvg = lineChartSVG({
+  id: 'trend-stringify',
+  title: `Stringify time vs fastest over time — ${trendWorkload}`,
+  series: stringifyTrendSeries,
+  ticks: xTicks(runDates(speedRuns)),
+  n: speedRuns.length,
+  yFormat: formatRatio,
+  higherIsBetter: false,
+  yScaleType: 'log',
+})
+
+export const summaryTableHtml = speedTableHtml(speed.operations.stringify, speed.libraries, presentIn(LIBRARY_ORDER, speed.operations.stringify))
+export const provenanceLine = `Measured on ${speed.env.cpu} (${speed.env.clk}) · ${speed.env.runtime} · generated ${speed.generated} · source ${speed.source}`
+
+How fast **Lightning YAML** serializes JavaScript values back to text, against `js-yaml`,
+`yaml` (eemeli), and the `JSON` baseline where the data is JSON-shaped. Every chart is a
+static image — inline SVG rendered at build time, no client JavaScript.
+
+<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.82em">{provenanceLine}</p>
+
+<ChartCard
+  heading="Stringify time by workload"
+  note="Lower is better. Bars are proportional to time; each workload is scaled to its own slowest parser (rows span microseconds to seconds, so compare bars within a row, not across rows). Bar labels show time relative to the fastest parser in that row (×) — exact avg ns per stringify() call is in the summary table below."
+  legend={stringifyLegend}
+  svg={stringifySvg}
+/>
+
+The **js-yaml (tuned)** series is the same library dumping with the lean `CORE` schema
+instead of its heavyweight default (YAML 1.1 plus timestamp/binary/omap/set). On
+JSON-shaped data that runs ~1.3–1.5× faster and round-trips identically — so it, not the
+default, is the fair yardstick for how fast js-yaml *can* stringify this data. It's shown
+on the stringify chart only: the rich workloads genuinely need the full schema, where the
+"tuned" config would be identical to the default.
+
+## Over time
+
+<ChartCard
+  heading={`Stringify time vs fastest, run over run — ${trendWorkload}`}
+  note="Lower is better, log scale. Absolute nanoseconds drift with CI-runner noise, so this tracks each dumper's time as a multiple of the fastest in the same run (×) — a machine-invariant figure. The y-axis is logarithmic because the dumpers span ~1× to ~65×; the fastest sits at 1× by construction, and a rising Lightning YAML line would mean a regression. One document per published run, oldest to newest."
+  legend={stringifyTrendLegend}
+  svg={stringifyTrendSvg}
+/>
+
+Locally (with only the committed sample run) this renders a single point; the deployed site
+overlays the full [`benchmark-data`](https://github.com/jbsiddall/lightning-yaml/tree/benchmark-data)
+history, so it renders as lines.
+
+## Summary
+
+Every stringify workload, `avg` ns per iteration — including the `js-yaml (tuned)` column
+(the lean-schema dump). `—` marks a workload a library can't represent (JSON can't emit
+`!!binary`/shared refs; the tuned js-yaml config is JSON-shaped-data only):
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={summaryTableHtml} />

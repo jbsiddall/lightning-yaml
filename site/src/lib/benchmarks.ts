@@ -237,6 +237,15 @@ export function niceDomainMax(maxValue: number, step: number): number {
   return Math.ceil(Math.max(maxValue, step) / step) * step;
 }
 
+/** Round up to the nearest 1/2/5 × 10^n — a clean axis ceiling when there's no natural step. */
+export function niceCeil(v: number): number {
+  if (!(v > 0)) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(v)));
+  const norm = v / mag;
+  const nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  return nice * mag;
+}
+
 // Every rule inline: this HTML is injected into an .mdx page via `set:html`,
 // and MDX parses literal `{`/`}` in its JSX children as expression syntax —
 // a real <style> block full of CSS braces is a build-error risk there, and
@@ -729,6 +738,269 @@ export function barSVG(opts: BarOptions): string {
     `<style>${chartStyle()}</style>` +
     gridSvg +
     rowsSvg +
+    `</svg>`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Time-series ("trend") — one line per library across the append-only run
+// history (every '---' document in a *.yaml stream, oldest → newest). Built at
+// build time as a static inline SVG, same as the bar charts. Locally the
+// committed seed holds a single run, so a trend renders one dot; in production
+// the `benchmark-data` overlay supplies the full history and it renders as
+// lines. See the lib header + CLAUDE.md "Benchmarking rules".
+//
+// x is RUN INDEX, evenly spaced — not a literal date axis. Runs are unevenly
+// timed and several land on the same day, so a date-proportional axis would
+// clump them illegibly; a handful of ticks carry the dates instead. y differs
+// per suite (see the trend adapters below): speed is machine-noisy, so its
+// trend is a RATIO to the fastest parser that run (the same machine-invariant
+// figure the bar charts use); memory/conformance/bundle-size are stable, so
+// they trend as absolute values.
+// ---------------------------------------------------------------------------
+
+export interface TrendPoint {
+  /** Run index, 0-based, chronological. */
+  i: number;
+  y: number;
+}
+
+export interface TrendSeries {
+  id: string;
+  label: string;
+  color: string;
+  self?: boolean;
+  points: TrendPoint[];
+}
+
+export interface XTick {
+  i: number;
+  label: string;
+}
+
+/** Each run's `generated` date string, in chronological (append) order. */
+export function runDates(runs: ReadonlyArray<{ generated?: unknown }>): string[] {
+  return runs.map((r) => String(r.generated ?? ''));
+}
+
+/** ~4 evenly spaced x-axis tick positions with date labels (all of them when there are few runs). */
+export function xTicks(dates: readonly string[]): XTick[] {
+  const n = dates.length;
+  if (n === 0) return [];
+  if (n <= 5) return dates.map((label, i) => ({ i, label }));
+  const positions = [0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1];
+  return [...new Set(positions)].map((i) => ({ i, label: dates[i] }));
+}
+
+/** Legend entries (real-HTML legend in ChartCard) matching a trend chart's series. */
+export function trendLegend(series: TrendSeries[]): LegendEntry[] {
+  return series.map((s) => ({ label: s.label, color: s.color, self: Boolean(s.self) }));
+}
+
+function trendMeta(id: LibraryId, label: string): Pick<TrendSeries, 'id' | 'label' | 'color' | 'self'> {
+  return { id, label, color: LIBRARY_COLOR[id], self: id === 'lightning-yaml' };
+}
+
+/**
+ * Speed trend for one workload: y = a library's `avg` divided by the FASTEST
+ * `avg` in that same workload+run (ratio-to-best, ≥ 1). Absolute ns drift with
+ * CI-runner noise, so only this ratio is machine-invariant — the fastest parser
+ * sits at 1× by construction (the reference), matching the bar chart's labels.
+ */
+export function speedTrend(
+  runs: SpeedDoc[],
+  op: 'parse' | 'stringify',
+  workload: string,
+  order: readonly LibraryId[],
+): TrendSeries[] {
+  const labels = runs.at(-1)?.libraries ?? [];
+  return order
+    .map((id) => {
+      const points: TrendPoint[] = [];
+      runs.forEach((run, i) => {
+        const w = run.operations?.[op]?.find((x) => x.workload === workload);
+        if (!w) return;
+        const avgs = order
+          .map((lid) => w.values[lid]?.avg)
+          .filter((v): v is number => typeof v === 'number' && v > 0);
+        const stat = w.values[id];
+        if (!avgs.length || !stat || typeof stat.avg !== 'number' || stat.avg <= 0) return;
+        points.push({ i, y: stat.avg / Math.min(...avgs) });
+      });
+      return { ...trendMeta(id, libraryLabel(labels, id)), points };
+    })
+    .filter((s) => s.points.length > 0);
+}
+
+/** Memory trend for one workload: y = absolute peak RSS (MB) — the repo's stable memory figure. */
+export function memoryTrend(runs: MemoryDoc[], workload: string, order: readonly LibraryId[]): TrendSeries[] {
+  const labels = runs.at(-1)?.libraries ?? [];
+  return order
+    .map((id) => {
+      const points: TrendPoint[] = [];
+      runs.forEach((run, i) => {
+        const stat = run.operations?.parse?.find((x) => x.workload === workload)?.values[id];
+        if (stat && typeof stat.peak_rss === 'number') points.push({ i, y: stat.peak_rss });
+      });
+      return { ...trendMeta(id, libraryLabel(labels, id)), points };
+    })
+    .filter((s) => s.points.length > 0);
+}
+
+/** Conformance trend: y = pass rate (%). Deterministic, so plotted absolute. */
+export function conformanceTrend(runs: ConformanceDoc[], order: readonly LibraryId[]): TrendSeries[] {
+  const labels = new Map((runs.at(-1)?.results ?? []).map((r) => [r.id, r.label] as const));
+  return order
+    .map((id) => {
+      const points: TrendPoint[] = [];
+      runs.forEach((run, i) => {
+        const r = run.results?.find((x) => x.id === id);
+        if (r && typeof r.score === 'number') points.push({ i, y: r.score });
+      });
+      return { ...trendMeta(id, labels.get(id) ?? id), points };
+    })
+    .filter((s) => s.points.length > 0);
+}
+
+/** Bundle-size trend: y = smallest gzip across bundlers that run, in BYTES (format with formatKB). */
+export function bundleSizeTrend(runs: BundleSizeDoc[], order: readonly LibraryId[]): TrendSeries[] {
+  const labels = runs.at(-1)?.libraries ?? [];
+  return order
+    .map((id) => {
+      const points: TrendPoint[] = [];
+      runs.forEach((run, i) => {
+        const gzips = (run.results ?? [])
+          .map((r) => r.values[id])
+          .filter((v): v is BundleSizeValue => Boolean(v) && typeof v!.gzip === 'number')
+          .map((v) => v.gzip as number);
+        if (gzips.length) points.push({ i, y: Math.min(...gzips) });
+      });
+      return { ...trendMeta(id, libraryLabel(labels, id)), points };
+    })
+    .filter((s) => s.points.length > 0);
+}
+
+// ---------------------------------------------------------------------------
+// lineChartSVG — the trend renderer. Shared y-axis (all series comparable, one
+// metric), evenly spaced run-index x-axis with a few date ticks. The self
+// series (lightning-yaml) is drawn thicker + glowed for the same 1:1 identity
+// the bar charts use. n == 1 (the committed seed) degrades to a single dot.
+// ---------------------------------------------------------------------------
+
+export interface LineChartOptions {
+  id: string;
+  title: string;
+  series: TrendSeries[];
+  ticks: XTick[];
+  /** Total run count; the x-domain is [0, n-1] regardless of any per-series gaps. */
+  n: number;
+  yFormat: (v: number) => string;
+  higherIsBetter: boolean;
+  domainMin?: number;
+  domainMax?: number;
+  /**
+   * 'log' (base 10) for wide-dynamic-range data — the speed trends compare a
+   * ratio-to-fastest that spans ~1× to ~130× across libraries, where a linear
+   * axis crushes the fast parsers into an unreadable sliver at the baseline and
+   * hides exactly the run-to-run movement the chart exists to show. Only valid
+   * for strictly-positive series (ratios are ≥ 1). Defaults to 'linear'.
+   */
+  yScaleType?: 'linear' | 'log';
+}
+
+export function lineChartSVG(opts: LineChartOptions): string {
+  const { id, title, series, ticks, n, yFormat, higherIsBetter } = opts;
+
+  const W = 620;
+  const marginTop = 14;
+  const marginBottom = 30;
+  const marginLeft = 64;
+  const marginRight = 20;
+  const plotW = W - marginLeft - marginRight;
+  const plotHeight = 176;
+  const H = marginTop + plotHeight + marginBottom;
+  const plotX = marginLeft;
+  const plotY = marginTop;
+
+  const allY = series.flatMap((s) => s.points.map((p) => p.y));
+  const dataMax = allY.length ? Math.max(...allY) : 1;
+  const isLog = opts.yScaleType === 'log';
+
+  const xScale = (i: number) => (n <= 1 ? plotX + plotW / 2 : plotX + (i / (n - 1)) * plotW);
+
+  let yScale: Scale;
+  let yTickValues: number[];
+  if (isLog) {
+    const domainMin = 1;
+    const domainMax = Math.max(dataMax * 1.12, 10);
+    const lo = Math.log10(domainMin);
+    const hi = Math.log10(domainMax);
+    yScale = (v) => plotY + plotHeight - ((Math.log10(Math.max(v, domainMin)) - lo) / (hi - lo)) * plotHeight;
+    // "Nice" decade ticks (1×, 3×, 10×, 30×, 100× …) up to the ceiling.
+    yTickValues = [];
+    for (let base = 1; base <= domainMax; base *= 10) {
+      yTickValues.push(base);
+      if (base * 3 <= domainMax) yTickValues.push(base * 3);
+    }
+  } else {
+    const domainMin = opts.domainMin ?? 0;
+    const domainMax = opts.domainMax ?? Math.max(niceCeil(dataMax), domainMin + 1);
+    yScale = linearScale([domainMin, domainMax], [plotY + plotHeight, plotY]);
+    const yTickCount = 4;
+    yTickValues = Array.from({ length: yTickCount + 1 }, (_, k) => domainMin + ((domainMax - domainMin) / yTickCount) * k);
+  }
+  const gridSvg = yTickValues
+    .map((t) => {
+      const y = yScale(t);
+      return (
+        `<line x1="${fx(plotX)}" y1="${fx(y)}" x2="${fx(plotX + plotW)}" y2="${fx(y)}" stroke="var(--ly-line)" stroke-width="1"/>` +
+        `<text x="${fx(plotX - 8)}" y="${fx(y)}" class="ly-axis" text-anchor="end" dominant-baseline="middle">${escapeXml(yFormat(t))}</text>`
+      );
+    })
+    .join('');
+
+  const xTickSvg = ticks
+    .map((t) => `<text x="${fx(xScale(t.i))}" y="${fx(plotY + plotHeight + 16)}" class="ly-axis" text-anchor="middle">${escapeXml(t.label)}</text>`)
+    .join('');
+
+  const linesSvg = series
+    .map((s) => {
+      const pts = s.points;
+      if (!pts.length) return '';
+      const isSelf = Boolean(s.self);
+      const glow = isSelf ? ` filter="url(#${id}-glow)"` : '';
+      if (pts.length === 1) {
+        return `<circle cx="${fx(xScale(pts[0].i))}" cy="${fx(yScale(pts[0].y))}" r="3.5" fill="${s.color}"${glow}/>`;
+      }
+      const d = pts.map((p, k) => `${k === 0 ? 'M' : 'L'}${fx(xScale(p.i))},${fx(yScale(p.y))}`).join(' ');
+      const dots = pts
+        .map((p) => `<circle cx="${fx(xScale(p.i))}" cy="${fx(yScale(p.y))}" r="${isSelf ? 2.6 : 2}" fill="${s.color}"/>`)
+        .join('');
+      return (
+        `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${isSelf ? 2.5 : 1.5}" ` +
+        `stroke-linejoin="round" stroke-linecap="round"${glow}/>${dots}`
+      );
+    })
+    .join('');
+
+  const axis = `<line x1="${fx(plotX)}" y1="${fx(plotY)}" x2="${fx(plotX)}" y2="${fx(plotY + plotHeight)}" stroke="var(--ly-line)" stroke-width="1"/>`;
+
+  const dir = higherIsBetter ? 'higher is better' : 'lower is better';
+  const trail = series
+    .map((s) => (s.points.length ? `${s.label} ${yFormat(s.points.at(-1)!.y)}` : s.label))
+    .join(', ');
+  const descText = `${title} — ${dir}. Trend across ${n} benchmark run${n === 1 ? '' : 's'}, oldest to newest; latest values: ${trail}.`;
+
+  return (
+    svgOpen(id, W, H, title) +
+    `<title id="${id}-t">${escapeXml(title)}</title>` +
+    `<desc id="${id}-d">${escapeXml(descText)}</desc>` +
+    `<defs>${glowFilter(id)}</defs>` +
+    `<style>${chartStyle()}</style>` +
+    gridSvg +
+    axis +
+    xTickSvg +
+    linesSvg +
     `</svg>`
   );
 }

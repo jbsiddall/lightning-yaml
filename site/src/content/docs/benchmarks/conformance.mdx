@@ -1,0 +1,88 @@
+---
+title: Conformance
+description: Lightning YAML pass rate across the official yaml-test-suite versus yaml and js-yaml — plus the trend across every published run.
+template: doc
+---
+
+import conformanceRaw from '../../../data/benchmarks/conformance.yaml?raw'
+import ChartCard from '../../../components/charts/ChartCard.astro'
+import {
+  newestRun,
+  parseRuns,
+  barSVG,
+  conformanceItems,
+  conformanceTableHtml,
+  conformanceTrend,
+  trendLegend,
+  lineChartSVG,
+  runDates,
+  xTicks,
+  formatPercent,
+  LIBRARY_ORDER,
+} from '../../../lib/benchmarks'
+
+export const conformance = newestRun(conformanceRaw)
+export const conformanceRuns = parseRuns(conformanceRaw)
+export const selfConf = conformance.results.find((r) => r.self)
+
+export const conformanceSvg = barSVG({
+  id: 'chart-conformance',
+  title: 'YAML test-suite conformance (pass rate)',
+  items: conformanceItems(conformance.results),
+  higherIsBetter: true,
+})
+
+export const confOrder = LIBRARY_ORDER.filter((id) => conformance.results.some((r) => r.id === id))
+export const confTrendSeries = conformanceTrend(conformanceRuns, confOrder)
+export const confTrendLegend = trendLegend(confTrendSeries)
+export const confScores = confTrendSeries.flatMap((s) => s.points.map((p) => p.y))
+export const confDomainMin = confScores.length ? Math.max(0, Math.floor((Math.min(...confScores) - 2) / 5) * 5) : 90
+export const confTrendSvg = lineChartSVG({
+  id: 'trend-conformance',
+  title: 'Conformance pass rate over time',
+  series: confTrendSeries,
+  ticks: xTicks(runDates(conformanceRuns)),
+  n: conformanceRuns.length,
+  yFormat: formatPercent,
+  higherIsBetter: true,
+  domainMin: confDomainMin,
+  domainMax: 100,
+})
+
+export const conformanceTable = conformanceTableHtml(conformance.results)
+export const provenanceLine = `${conformance.suite_total} cases · generated ${conformance.generated} · source ${conformance.source}`
+
+Pass rate across the official [yaml-test-suite](https://github.com/yaml/yaml-test-suite) —
+the YAML 1.2 spec operationalized as executable cases — for **Lightning YAML**, the `yaml`
+oracle, and `js-yaml`. Higher is better.
+
+<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.82em">{provenanceLine}</p>
+
+<ChartCard
+  heading="YAML test-suite conformance"
+  note={`Higher is better. Pass rate across ${conformance.suite_total} cases from the official yaml-test-suite.`}
+  svg={conformanceSvg}
+/>
+
+Lightning YAML passes **{selfConf.score}%** of the suite — including all {selfConf.negative_passed}
+negative (should-fail) cases; the per-library standing is in the chart above and the table below.
+Merge keys (`<<`), absent from the test corpus, are the only unimplemented construct.
+
+## Over time
+
+<ChartCard
+  heading="Conformance pass rate, run over run"
+  note="Higher is better. Pass rate (%) per library, one document per published run, oldest to newest. The y-axis is zoomed to the range where the parsers actually sit (ticks are labelled) so run-to-run movement is visible."
+  legend={confTrendLegend}
+  svg={confTrendSvg}
+/>
+
+Locally (with only the committed sample run) this renders a single point; the deployed site
+overlays the full [`benchmark-data`](https://github.com/jbsiddall/lightning-yaml/tree/benchmark-data)
+history, so it renders as lines.
+
+## Summary
+
+Conformance, {conformance.suite_total} cases from the official [yaml-test-suite](https://github.com/yaml/yaml-test-suite):
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={conformanceTable} />

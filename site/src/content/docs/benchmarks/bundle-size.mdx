@@ -1,0 +1,86 @@
+---
+title: Bundle size
+description: Kilobytes Lightning YAML, yaml, and js-yaml each add to a browser bundle (parse + stringify, tree-shaken) — plus the trend across every published run.
+template: doc
+---
+
+import bundleSizeRaw from '../../../data/benchmarks/bundle-size.yaml?raw'
+import ChartCard from '../../../components/charts/ChartCard.astro'
+import {
+  newestRun,
+  parseRuns,
+  bundleSizeItems,
+  barSVG,
+  niceDomainMax,
+  formatKB,
+  bundleSizeTableHtml,
+  bundleSizeTrend,
+  trendLegend,
+  lineChartSVG,
+  runDates,
+  xTicks,
+  LIBRARY_ORDER,
+} from '../../../lib/benchmarks'
+
+export const bundleSize = newestRun(bundleSizeRaw)
+export const bundleSizeRuns = parseRuns(bundleSizeRaw)
+export const bundleSizeBundlerCount = Object.keys(bundleSize.env.bundlers).length
+
+export const bundleSizeChartItems = bundleSizeItems(bundleSize)
+export const bundleSizeSvg = barSVG({
+  id: 'chart-bundle-size',
+  title: 'Bundle size (browser, minified + gzip, smallest across bundlers)',
+  items: bundleSizeChartItems,
+  higherIsBetter: false,
+  domainMax: niceDomainMax(Math.max(...bundleSizeChartItems.map((it) => it.value)), 5 * 1024),
+  formatValue: formatKB,
+  formatTick: formatKB,
+})
+
+export const bundleOrder = LIBRARY_ORDER.filter((id) => bundleSize.libraries.some((l) => l.id === id))
+export const bundleTrendSeries = bundleSizeTrend(bundleSizeRuns, bundleOrder)
+export const bundleTrendLegend = trendLegend(bundleTrendSeries)
+export const bundleTrendMax = Math.max(...bundleTrendSeries.flatMap((s) => s.points.map((p) => p.y)), 1)
+export const bundleTrendSvg = lineChartSVG({
+  id: 'trend-bundle-size',
+  title: 'Bundle size over time (smallest gzip across bundlers)',
+  series: bundleTrendSeries,
+  ticks: xTicks(runDates(bundleSizeRuns)),
+  n: bundleSizeRuns.length,
+  yFormat: formatKB,
+  higherIsBetter: false,
+  domainMax: niceDomainMax(bundleTrendMax, 5 * 1024),
+})
+
+export const bundleSizeTable = bundleSizeTableHtml(bundleSize)
+export const provenanceLine = `${bundleSizeBundlerCount} bundlers (${bundleSize.tool}) · generated ${bundleSize.generated} · source ${bundleSize.source}`
+
+How many kilobytes each library adds to a browser bundle when an app imports only
+`parse` + `stringify` and ships it minified — measured with `js-yaml`, `yaml` (eemeli),
+and `lightning-yaml`, tree-shaken and compressed the same way a real app would ship them.
+Sizes are deterministic (not machine-dependent). Lower is better.
+
+<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.82em">{provenanceLine}</p>
+
+<ChartCard
+  heading="Bundle size (browser)"
+  note={`Lower is better. Minified + gzipped, the smallest result across ${bundleSizeBundlerCount} bundlers (${bundleSize.tool}) for each library — parse + stringify only, tree-shaken.`}
+  svg={bundleSizeSvg}
+/>
+
+The full per-bundler breakdown, gzip with the raw minified size alongside:
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={bundleSizeTable} />
+
+## Over time
+
+<ChartCard
+  heading="Bundle size, run over run"
+  note="Lower is better. Smallest gzip across bundlers (KB) per library, one document per published run, oldest to newest."
+  legend={bundleTrendLegend}
+  svg={bundleTrendSvg}
+/>
+
+Locally (with only the committed sample run) this renders a single point; the deployed site
+overlays the full [`benchmark-data`](https://github.com/jbsiddall/lightning-yaml/tree/benchmark-data)
+history, so it renders as lines.
