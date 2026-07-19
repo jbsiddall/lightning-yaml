@@ -178,6 +178,10 @@ and tell me what happens** — I'm hugely grateful to anyone who gives it a run.
 I care a lot about making this the best YAML parser it can be, and I'll move
 quickly on whatever you find.
 
+**Sending a pull request?** See [CONTRIBUTING.md](CONTRIBUTING.md) — in short,
+if you change anything under `src/`, run `pnpm changeset` to declare the version
+bump; CI checks for it.
+
 ## Status & scope
 
 YAML 1.2 core, feature-complete but for one deliberate gap — **merge keys

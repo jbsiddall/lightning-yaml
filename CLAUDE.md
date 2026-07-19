@@ -158,6 +158,23 @@ regression. Never claim progress or commit on a red gate; emit fresh
 `results/benchmarks/*.yaml` per the Benchmarking rules below (CI publishes real runs
 to the orphan `benchmark-data` branch — nothing to commit locally).
 
+## Versioning & releases — Changesets
+
+Standard [Changesets](https://github.com/changesets/changesets) flow; **never
+hand-edit `version`.** Every PR touching `src/` needs a changeset (`pnpm
+changeset`) — CI's `changeset-check` enforces it; a `src/` change that ships
+nothing to users uses `pnpm changeset add --empty`, and non-`src/` PRs need
+none. Publishing is decoupled: merging the auto **"Release: version packages"**
+PR lands the bump on `main`, then `publish.yml` publishes it idempotently —
+don't add a `changeset publish` step.
+
+Ordinary semver, plus two repo rules: **while pre-1.0 a breaking change is a
+`minor`** (protecting `^0.x` consumers), and **`major` is gated on the 1.0
+boundary** — the first `1.0.0` is the maintainer's call (never crossed
+autonomously), and only *after* 1.0 may Claude pick `major`, only when certain a
+documented API/behavior actually breaks (else `minor`, or ask). Contributor
+details: [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Research dossier — when to read it
 
 [site/src/content/docs/research/notes/](site/src/content/docs/research/notes/) holds the parser-strategy research
