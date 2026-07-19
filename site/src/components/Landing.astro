@@ -85,7 +85,7 @@ const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
     yarn: { kind: 'sh', text: 'yarn add lightning-yaml' },
     bun: { kind: 'sh', text: 'bun add lightning-yaml' },
     deno: { kind: 'js', text: 'import { parse } from "https://esm.sh/lightning-yaml"' },
-    cdn: { kind: 'js', text: 'import { parse } from "https://cdn.jsdelivr.net/npm/lightning-yaml/+esm"' },
+    cdn: { kind: 'js', text: '<script type="module">import { parse } from "https://cdn.jsdelivr.net/npm/lightning-yaml/+esm"<\/script>' },
   };
   const pm = document.getElementById('ly-pm');
   const cmd = document.getElementById('ly-cmd');
