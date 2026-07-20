@@ -146,9 +146,15 @@ export function newestRun<T>(raw: string): T {
 // the typed logic (and the only place object shapes are assumed) lives here.
 // ---------------------------------------------------------------------------
 
-/** Look up a library's display label by id, falling back to the id itself. */
+/** Append a version to a display label when the benchmark data recorded one (e.g. `js-yaml 5.2.1`). */
+export function withVersion(label: string, version?: string): string {
+  return version ? `${label} ${version}` : label;
+}
+
+/** Look up a library's display label by id (with version when available), falling back to the id itself. */
 export function libraryLabel(libraries: LibraryMeta[], id: LibraryId): string {
-  return libraries.find((l) => l.id === id)?.label ?? id;
+  const lib = libraries.find((l) => l.id === id);
+  return withVersion(lib?.label ?? id, lib?.version);
 }
 
 /** Build a chart's `series` list (id + label + brand color) from a fixed id order. */
@@ -201,7 +207,7 @@ export function conformanceItems(results: ConformanceResult[]): BarItem[] {
     .sort((a, b) => b.score - a.score)
     .map((r) => ({
       id: r.id,
-      label: r.label,
+      label: withVersion(r.label, r.version),
       value: r.score,
       color: LIBRARY_COLOR[r.id],
       self: Boolean(r.self),
@@ -312,7 +318,7 @@ export function conformanceTableHtml(results: ConformanceResult[]): string {
     .sort((a, b) => b.score - a.score)
     .map(
       (r) =>
-        `<tr><th scope="row" style="${TH_ROW_STYLE}">${escapeXml(r.label)}</th>` +
+        `<tr><th scope="row" style="${TH_ROW_STYLE}">${escapeXml(withVersion(r.label, r.version))}</th>` +
         `<td style="${TD_STYLE}">${r.passed}</td>` +
         `<td style="${TD_STYLE}">${r.total}</td>` +
         `<td style="${TD_STYLE}">${formatPercent(r.score)}</td></tr>`,
@@ -942,7 +948,7 @@ export function memoryTrend(
 
 /** Conformance trend: y = pass rate (%). Deterministic, so plotted absolute. */
 export function conformanceTrend(runs: ConformanceDoc[], order: readonly LibraryId[]): TrendSeries[] {
-  const labels = new Map((runs.at(-1)?.results ?? []).map((r) => [r.id, r.label] as const));
+  const labels = new Map((runs.at(-1)?.results ?? []).map((r) => [r.id, withVersion(r.label, r.version)] as const));
   return order
     .map((id) => {
       const points: TrendPoint[] = [];
