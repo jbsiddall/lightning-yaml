@@ -13,25 +13,16 @@ targets high conformance to the official
 yaml-test-suite; the live pass rate comes from `pnpm test:suite` and is
 deliberately not pinned here — a hardcoded figure drifts (and comparative
 standings are version-bound), so read it from the run, per the provenance
-policy below. The repo around it is:
+policy below. Around the parser the repo carries two things, each detailed in
+its own section below: a **benchmark harness** (speed + peak memory, every
+parser, across JSON / plain-block-YAML / rich-YAML data) and a **consistency +
+conformance suite** that checks `parse`/`stringify` against the `yaml` oracle
+(`bench/oracle.ts`).
 
-- a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
-  and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child
-  processes reading `process.resourceUsage().maxRSS`), across three data
-  categories: JSON, plain block-YAML, and rich YAML (`!!binary` tags + `&`/`*`
-  anchors); and
-- a **vitest consistency suite** (`pnpm test`) plus the parser's own node:test
-  suite (`pnpm test:unit`) that check our `parse` against a single spec oracle
-  (the `yaml` library — see `bench/oracle.ts`). All three categories (JSON, block
-  `yaml-plain`, and rich `yaml-rich` with `!!binary` + anchors) now pass; the dumper
-  is covered by `pnpm test:stringify` (round-trip vs the oracle).
-
-[README.md](README.md) is the **adopter-facing** doc — the pitch, install, usage,
-and drop-in story for developers picking up the library, plus the design/rationale
-of the harness lower down. The **full auto-generated benchmark tables live on the
-docs site, <https://lightning-yaml.dev>**, which reads published runs from the
-orphan `benchmark-data` branch — not in the README, which carries only a compact
-snapshot.
+[README.md](README.md) is the **adopter-facing** doc (pitch, install, usage,
+drop-in story); the full benchmark tables live on the docs site
+<https://lightning-yaml.dev> (published from the orphan `benchmark-data`
+branch), not in this file or the README.
 
 ## Integrity of benchmarks and claims — non-negotiable
 
