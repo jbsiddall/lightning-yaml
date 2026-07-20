@@ -60,9 +60,9 @@ The reference implementations we test against — `yaml` (`bench/oracle.ts`) and
 js-yaml — are **differential aids, NOT the definition of correct.** A disagreement
 between our output and an implementation flags a *candidate* to investigate; the
 **spec adjudicates**. Where an implementation diverges from the spec, the spec wins,
-and lightning-yaml deliberately matches the spec against it — e.g. we reject an
-implicit flow collection key (`{[1,2]: v}`), a spec error (yaml-test-suite SBG9/X38W)
-that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof of
+and lightning-yaml deliberately matches the spec against it — e.g. we reject `!!bool
+yes` (`yes` is not a YAML-1.2 core-schema boolean; only `true`/`false` are), where
+`yaml` leniently returns the string `"yes"`. So "matches the oracle" is never on its own a proof of
 correctness, and "differs from the oracle" is never on its own a bug: check the spec.
 Trust an implementation only where it agrees with the spec. The one sanctioned
 deviation *from* the spec is explicit and documented — duplicate-key last-wins, for

@@ -1739,7 +1739,7 @@ function plainKey(start: number, end: number): string {
   return internKey(keyToString(registerPendingAnchor(resolvePlain(start, end))));
 }
 
-/** A flow mapping key: an anchor/alias, tag, double-quoted, single-quoted, or a plain scalar. */
+/** A flow mapping key: an anchor/alias, tag, flow collection, double-quoted, single-quoted, plain scalar, or empty. */
 function parseFlowKey(): string {
   const c = src.charCodeAt(pos);
   if (c === AMP) return parseFlowKeyAnchored();
@@ -1747,10 +1747,20 @@ function parseFlowKey(): string {
   if (c === STAR) return internKey(keyToString(parseAlias()));
   if (c === DQUOTE) return internKey(parseDoubleQuoted());
   if (c === SQUOTE) return internKey(parseSingleQuoted());
+  // A flow collection as an implicit key (`{[a]: b}`, `{a: [b,c], [d,e]: f}`) is
+  // spec-valid — yaml-test-suite SBG9/X38W are positive cases — and is rendered
+  // to a JS key string exactly as an explicit `? [a]` key is (via keyToString).
+  if (c === LBRACKET || c === LBRACE) return internKey(keyToString(parseFlowValue()));
   const start = pos;
   const end = scanFlowPlainEnd();
   if (flowFolded !== null) return internKey(flowFolded);
-  if (end === start) fail("expected a mapping key");
+  if (end === start) {
+    // An empty span parked on the `:` value indicator is a spec-valid empty key
+    // (`{ : v }` → {"": "v"}, yaml-test-suite FRK4/NKF9); any other empty span is
+    // a genuine missing-key error.
+    if (src.charCodeAt(pos) === COLON) return "";
+    fail("expected a mapping key");
+  }
   return plainKey(start, end);
 }
 
@@ -1789,6 +1799,9 @@ function parseFlowKeyAnchored(): string {
     key = internKey(keyToString(raw));
   } else if (c === DQUOTE) key = internKey(keyToString(registerPendingAnchor(parseDoubleQuoted())));
   else if (c === SQUOTE) key = internKey(keyToString(registerPendingAnchor(parseSingleQuoted())));
+  // `&a [x]: y` — an anchored flow collection as a key (yaml-test-suite X38W);
+  // the collection self-registers the anchor, so registerPendingAnchor is a no-op.
+  else if (c === LBRACKET || c === LBRACE) key = internKey(keyToString(registerPendingAnchor(parseFlowValue())));
   else {
     const start = pos;
     const end = scanFlowPlainEnd();
