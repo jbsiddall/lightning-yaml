@@ -35,16 +35,16 @@ jobs:
     env:
       BENCH_SOURCE: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # fetch-depth: 0 so the append commit can rebase onto concurrent updates.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: benchmark-data
           path: .benchmark-data
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: pnpm
