@@ -80,9 +80,14 @@ for (const input of torture) {
   });
 }
 
-test("duplicate keys are last-wins (JSON.parse semantics)", () => {
-  deepStrictEqual(parse('{"k": 1, "k": 2}'), JSON.parse('{"k": 1, "k": 2}'));
-  deepStrictEqual(parse('{"k": 1, "k": 2}'), { k: 2 });
+test("duplicate keys are rejected — deliberately diverging from JSON.parse last-wins (issue #21)", () => {
+  throws(
+    () => parse('{"k": 1, "k": 2}'),
+    (err: unknown) => err instanceof YAMLParseError && /duplicate mapping key/.test((err as Error).message),
+  );
+  // JSON.parse is silent last-wins here; we reject per YAML 1.2 §3.2.1.3. This is
+  // the one place we knowingly break exact JSON.parse parity, in favour of spec.
+  deepStrictEqual(JSON.parse('{"k": 1, "k": 2}'), { k: 2 });
 });
 
 test("negative zero is preserved", () => {
