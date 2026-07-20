@@ -4,14 +4,12 @@ Guidance for Claude Code (and humans) working in this repo.
 
 ## What this is
 
-`lightning-yaml` is a YAML parser that approaches `JSON.parse` / `JSON.stringify`
-speed and memory, **targeting the YAML 1.2.2 spec exclusively — YAML 1.1
-compatibility is explicitly a non-goal.** [`src/index.ts`](src/index.ts)
-implements `parse`/`parseAll`/`stringify`: the JSON subset, flow + block syntax,
-plain scalars with 1.2 core typing, quoting + escapes, comments, flow/block maps
-& sequences, implicit **and** explicit (`? `/`: `) keys, compact forms, block
-scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl. `!!binary`,
-`%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It targets high conformance to the official
+`lightning-yaml` is a **YAML 1.2.2-compliant parser and serializer**
+([`src/index.ts`](src/index.ts) implements `parse`/`parseAll`/`stringify`). The
+project goal: performance approaching the browser's native
+`JSON.parse`/`JSON.stringify` in both browser and server environments, while
+maintaining full 1.2.2 compliance (YAML 1.1 is explicitly a non-goal). It
+targets high conformance to the official
 yaml-test-suite; the live pass rate comes from `pnpm test:suite` and is
 deliberately not pinned here — a hardcoded figure drifts (and comparative
 standings are version-bound), so read it from the run, per the provenance
