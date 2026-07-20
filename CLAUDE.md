@@ -9,11 +9,8 @@ Guidance for Claude Code (and humans) working in this repo.
 project goal: performance approaching the browser's native
 `JSON.parse`/`JSON.stringify` in both browser and server environments, while
 maintaining full 1.2.2 compliance (YAML 1.1 is explicitly a non-goal). It
-targets high conformance to the official
-yaml-test-suite; the live pass rate comes from `pnpm test:suite` and is
-deliberately not pinned here — a hardcoded figure drifts (and comparative
-standings are version-bound), so read it from the run, per the provenance
-policy below. Around the parser the repo carries two things, each detailed in
+targets high conformance to the official yaml-test-suite; the live pass rate
+comes from `pnpm test:suite`, not pinned here. Around the parser the repo carries two things, each detailed in
 its own section below: a **benchmark harness** (speed + peak memory, every
 parser, across JSON / plain-block-YAML / rich-YAML data) and a **consistency +
 conformance suite** that checks `parse`/`stringify` against the `yaml` oracle
