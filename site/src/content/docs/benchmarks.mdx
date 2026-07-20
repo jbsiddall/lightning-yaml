@@ -227,7 +227,8 @@ How to read these:
 - **Trend charts (over time)** render one document per published run, oldest to newest.
   Absolute nanoseconds drift with CI-runner noise, so the **speed** trends plot a
   machine-invariant ratio-to-fastest on a **log axis**; memory, conformance, and bundle size
-  are stable, so they trend as absolute values.
+  are stable, so they trend as absolute values. Hover any point for its date, value, and —
+  where the run recorded one — the library version; a ringed point marks a version change.
 - Every chart is a static image — inline SVG rendered at build time, no client JavaScript.
 
 These numbers track real runs, not a hand-captured snapshot: CI publishes each run to the

@@ -441,10 +441,10 @@ export const LIBRARY_COLOR: Record<LibraryId, string> = {
  */
 export const LIBRARY_ORDER: readonly LibraryId[] = [
   'JSON',
+  'lightning-yaml',
   'js-yaml',
   'js-yaml-tuned',
   'yaml',
-  'lightning-yaml',
 ];
 
 /**
@@ -857,6 +857,10 @@ export interface TrendPoint {
   /** Run index, 0-based, chronological. */
   i: number;
   y: number;
+  /** The run's `generated` date, for the point's hover tooltip. */
+  date?: string;
+  /** The library's version in this run, where the suite recorded one — drives the hover tooltip and version-change marker. */
+  version?: string;
 }
 
 export interface TrendSeries {
@@ -919,7 +923,7 @@ export function speedTrend(
           .filter((v): v is number => typeof v === 'number' && v > 0);
         const stat = w.values[id];
         if (!avgs.length || !stat || typeof stat.avg !== 'number' || stat.avg <= 0) return;
-        points.push({ i, y: stat.avg / Math.min(...avgs) });
+        points.push({ i, y: stat.avg / Math.min(...avgs), date: String(run.generated ?? ''), version: run.libraries?.find((l) => l.id === id)?.version });
       });
       return { ...trendMeta(id, libraryLabel(labels, id)), points };
     })
@@ -939,7 +943,7 @@ export function memoryTrend(
       const points: TrendPoint[] = [];
       runs.forEach((run, i) => {
         const stat = run.operations?.[op]?.find((x) => x.workload === workload)?.values[id];
-        if (stat && typeof stat.peak_rss === 'number') points.push({ i, y: stat.peak_rss });
+        if (stat && typeof stat.peak_rss === 'number') points.push({ i, y: stat.peak_rss, date: String(run.generated ?? ''), version: run.libraries?.find((l) => l.id === id)?.version });
       });
       return { ...trendMeta(id, libraryLabel(labels, id)), points };
     })
@@ -954,7 +958,7 @@ export function conformanceTrend(runs: ConformanceDoc[], order: readonly Library
       const points: TrendPoint[] = [];
       runs.forEach((run, i) => {
         const r = run.results?.find((x) => x.id === id);
-        if (r && typeof r.score === 'number') points.push({ i, y: r.score });
+        if (r && typeof r.score === 'number') points.push({ i, y: r.score, date: String(run.generated ?? ''), version: r.version });
       });
       return { ...trendMeta(id, labels.get(id) ?? id), points };
     })
@@ -972,7 +976,7 @@ export function bundleSizeTrend(runs: BundleSizeDoc[], order: readonly LibraryId
           .map((r) => r.values[id])
           .filter((v): v is BundleSizeValue => Boolean(v) && typeof v!.gzip === 'number')
           .map((v) => v.gzip as number);
-        if (gzips.length) points.push({ i, y: Math.min(...gzips) });
+        if (gzips.length) points.push({ i, y: Math.min(...gzips), date: String(run.generated ?? ''), version: run.libraries?.find((l) => l.id === id)?.version });
       });
       return { ...trendMeta(id, libraryLabel(labels, id)), points };
     })
@@ -1068,6 +1072,24 @@ export function lineChartSVG(opts: LineChartOptions): string {
     })
     .join('');
 
+  // Native SVG <title> = a no-JS hover tooltip: the run's date, the value, and
+  // (where the suite recorded one) the library version. A version differing from
+  // the prior run reads as "old → new".
+  const pointTitle = (p: TrendPoint, prevVersion?: string): string => {
+    const base = `${p.date ? p.date + ' · ' : ''}${yFormat(p.y)}`;
+    if (!p.version) return base;
+    return prevVersion && prevVersion !== p.version ? `${base} · ${prevVersion} → ${p.version}` : `${base} · v${p.version}`;
+  };
+  const dotSvg = (p: TrendPoint, k: number, pts: TrendPoint[], color: string, r: number): string => {
+    const cx = fx(xScale(p.i));
+    const cy = fx(yScale(p.y));
+    const prevV = k > 0 ? pts[k - 1].version : undefined;
+    const dot = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"><title>${escapeXml(pointTitle(p, prevV))}</title></circle>`;
+    // A version change also gets a hollow ring so it's visible without hovering.
+    const changed = Boolean(p.version && prevV && p.version !== prevV);
+    return changed ? `${dot}<circle cx="${cx}" cy="${cy}" r="${fx(r + 2.6)}" fill="none" stroke="${color}" stroke-width="1.3"/>` : dot;
+  };
+
   const linesSvg = series
     .map((s) => {
       const pts = s.points;
@@ -1075,12 +1097,11 @@ export function lineChartSVG(opts: LineChartOptions): string {
       const isSelf = Boolean(s.self);
       const glow = isSelf ? ` filter="url(#${id}-glow)"` : '';
       if (pts.length === 1) {
-        return `<circle cx="${fx(xScale(pts[0].i))}" cy="${fx(yScale(pts[0].y))}" r="3.5" fill="${s.color}"${glow}/>`;
+        const p = pts[0];
+        return `<circle cx="${fx(xScale(p.i))}" cy="${fx(yScale(p.y))}" r="3.5" fill="${s.color}"${glow}><title>${escapeXml(pointTitle(p))}</title></circle>`;
       }
       const d = pts.map((p, k) => `${k === 0 ? 'M' : 'L'}${fx(xScale(p.i))},${fx(yScale(p.y))}`).join(' ');
-      const dots = pts
-        .map((p) => `<circle cx="${fx(xScale(p.i))}" cy="${fx(yScale(p.y))}" r="${isSelf ? 2.6 : 2}" fill="${s.color}"/>`)
-        .join('');
+      const dots = pts.map((p, k) => dotSvg(p, k, pts, s.color, isSelf ? 2.6 : 2)).join('');
       return (
         `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${isSelf ? 2.5 : 1.5}" ` +
         `stroke-linejoin="round" stroke-linecap="round"${glow}/>${dots}`
