@@ -36,7 +36,7 @@ export const LibraryMetaSchema = z.object({
 /** Provenance/scalar fields identical across all four suites. */
 const ProvenanceBase = z.object({
   scope: z.string(),
-  schema_version: z.number().optional(),
+  schema_version: z.number().int().positive().optional(),
   generated: z.coerce.string(),
   generated_at: z.string().optional(),
   source: z.coerce.string(),
@@ -63,12 +63,17 @@ const MemoryStatSchema = z.object({
   heap_delta: z.number(), // per-run heap delta; legitimately negative when a run frees more than it keeps.
 });
 
-const BundleSizeValueSchema = z.object({
-  min: z.number().nonnegative().optional(),
-  gzip: z.number().nonnegative().optional(),
-  brotli: z.number().nonnegative().optional(),
-  error: z.string().optional(), // reserved for a bundler failure; never observed in real data yet.
-});
+const BundleSizeValueSchema = z
+  .object({
+    min: z.number().nonnegative().optional(),
+    gzip: z.number().nonnegative().optional(),
+    brotli: z.number().nonnegative().optional(),
+    error: z.string().optional(), // reserved for a bundler failure; never observed in real data yet.
+  })
+  // A cell must carry at least one size or an error — an empty `{}` measures nothing.
+  .refine((v) => v.min != null || v.gzip != null || v.brotli != null || v.error != null, {
+    message: "value must carry a size (min/gzip/brotli) or an error",
+  });
 
 export const SpeedDocSchema = ProvenanceBase.extend({
   suite: z.literal("speed"),
@@ -104,10 +109,15 @@ export const MemoryDocSchema = ProvenanceBase.extend({
 export const ConformanceResultSchema = LibraryMetaSchema.extend({
   passed: z.number().nonnegative(),
   total: z.number().nonnegative(),
-  score: z.number().nonnegative(),
+  score: z.number().min(0).max(100), // a pass-rate percent
   negative_passed: z.number().nonnegative().optional(),
   negative_total: z.number().nonnegative().optional(),
-});
+})
+  .refine((r) => r.passed <= r.total, { message: "passed must not exceed total", path: ["passed"] })
+  .refine((r) => r.negative_passed == null || r.negative_total == null || r.negative_passed <= r.negative_total, {
+    message: "negative_passed must not exceed negative_total",
+    path: ["negative_passed"],
+  });
 
 export const ConformanceDocSchema = ProvenanceBase.extend({
   suite: z.literal("conformance"),
