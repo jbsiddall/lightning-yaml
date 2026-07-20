@@ -17,6 +17,7 @@
  * candidates run for parse vs. stringify.
  */
 
+import { createRequire } from "node:module";
 import { load as jsYamlLoad, dump as jsYamlDump, CORE_SCHEMA, YAML11_SCHEMA } from "js-yaml";
 import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import { parse as ourParse, stringify as ourStringify, NotImplementedError } from "../src/index.ts";
@@ -170,18 +171,46 @@ const DISPLAY_LABEL: Record<string, string> = {
   "lightning-yaml": "Lightning YAML",
 };
 
+const require = createRequire(import.meta.url);
+
+/** A package's installed version, or undefined if it can't be resolved (so a lookup never throws). */
+function pkgVersion(specifier: string): string | undefined {
+  try {
+    return (require(specifier) as { version: string }).version;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The package.json each candidate's `version` comes from. js-yaml-tuned is the
+ * same js-yaml package under a leaner dump schema, so it reports js-yaml's
+ * version; lightning-yaml is bundled from src/, not an installed dep, so its
+ * version is the repo-root package.json (resolved relative to this file). JSON is
+ * built into the runtime — no package, so it never carries a version.
+ */
+const VERSION: Record<string, string | undefined> = {
+  "js-yaml": pkgVersion("js-yaml/package.json"),
+  "js-yaml-tuned": pkgVersion("js-yaml/package.json"),
+  yaml: pkgVersion("yaml/package.json"),
+  "lightning-yaml": pkgVersion("../package.json"),
+};
+
 /** Display metadata for a candidate, as it appears in a benchmark YAML doc's `libraries` list. */
 export interface LibraryMeta {
   id: string;
   label: string;
   baseline?: boolean;
   self?: boolean;
+  version?: string;
 }
 
 export function libraryMeta(c: Candidate): LibraryMeta {
   const m: LibraryMeta = { id: c.name, label: DISPLAY_LABEL[c.name] ?? c.name };
   if (c.group === "baseline") m.baseline = true;
   if (c.group === "ours") m.self = true;
+  const v = VERSION[c.name];
+  if (v) m.version = v;
   return m;
 }
 
