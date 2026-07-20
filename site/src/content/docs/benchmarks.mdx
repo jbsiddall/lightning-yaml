@@ -222,8 +222,8 @@ time**, and a **full breakdown** by workload.
 How to read these:
 
 - **Bar charts (latest run)** scale each workload row to its own slowest parser, so compare
-  bars *within* a row, not across rows; the label is that library's value relative to the
-  fastest in the row (`×`).
+  bars *within* a row, not across rows. Speed bars are labelled with time relative to the
+  fastest parser in that row (`×`); memory bars are labelled with the absolute peak RSS.
 - **Trend charts (over time)** render one document per published run, oldest to newest.
   Absolute nanoseconds drift with CI-runner noise, so the **speed** trends plot a
   machine-invariant ratio-to-fastest on a **log axis**; memory, conformance, and bundle size
