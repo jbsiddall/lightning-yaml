@@ -1495,6 +1495,50 @@ test("STRICTNESS: a tab cannot indent a flow continuation line (yaml-test-suite 
 });
 
 // --------------------------------------------------------------------------
+// Space-then-tab positioning a block collection (issue #18 — a deeper 4EJS
+// manifestation). `" \t"` is byte-identical whether it precedes a block
+// map/seq (illegal indentation, must throw) or a folding plain scalar / flow
+// collection / alias (legal separation), so the rejection is gated on the
+// produced node being a BLOCK collection — a purely lexical scan cannot tell
+// the two apart. Root-level input and continuation entries are covered too, as
+// neither flows through the ordinary deferred-node tab guard.
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: a space-then-tab cannot indent a deferred or root block collection (issue #18, yaml-test-suite 4EJS)", () => {
+  for (const s of [
+    "a:\n \tb: 1\n", // deferred block MAP
+    "a:\n \t- 1\n", // deferred block SEQ
+    " \ta: 1\n", // ROOT block MAP
+    "\t- 1\n", // ROOT block SEQ
+    "a:\n \t- b: 1\n", // deferred compact seq-of-map
+  ]) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+  // The identical `" \t"` bytes stay legal before content that is NOT a block
+  // collection — a folding plain scalar, a flow collection VALUE, a quoted
+  // scalar, or an alias (even one resolving to a collection): tab as separation.
+  for (const y of ["foo:\n \tbar\n", "a:\n \t[1, 2]\n", "a:\n \t{b: 1}\n", 'a:\n \t"x"\n', "x: &a [1]\nb:\n \t*a\n"]) {
+    deepStrictEqual(parse(y), oracleParse(y));
+  }
+});
+
+test("STRICTNESS: a space-then-tab cannot indent a block-collection continuation entry (issue #18)", () => {
+  for (const s of [
+    "foo:\n  a: 1\n \tb: 2\n", // block-map continuation KEY
+    "m:\n  k1: v1\n \tk2: v2\n  k3: v3\n", // block-map middle key
+    "top:\n  x: 1\n  y:\n    m: 1\n \tn: 2\n", // continuation after a nested dedent
+    "a:\n  - 1\n \t- 2\n", // block-seq continuation entry
+  ]) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+  // Space-only continuations are unaffected.
+  deepStrictEqual(parse("foo:\n  a: 1\n  b: 2\n"), oracleParse("foo:\n  a: 1\n  b: 2\n"));
+  deepStrictEqual(parse("a:\n  - 1\n  - 2\n"), oracleParse("a:\n  - 1\n  - 2\n"));
+});
+
+// --------------------------------------------------------------------------
 // A node can have at most one anchor (yaml-test-suite 4JVG): a deferred anchor
 // whose node begins with its OWN anchor and resolves to a scalar/non-mapping
 // collection is a two-anchor conflict — but an inner anchor on a mapping KEY is
