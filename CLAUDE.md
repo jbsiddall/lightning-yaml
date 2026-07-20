@@ -123,7 +123,8 @@ PRs land on `main` as a **single squash commit** whose message is the PR **title
 description** (internal commits are collapsed) — so those must describe the *whole*
 change, not any one commit. When a PR is opened (by you or the user), write the
 title/description to match the work; if later turns add commits to the branch, go back
-and update them so they stay accurate.
+and update them so they stay accurate. Don't mention Claude in the PR title or
+description — it just adds noise; write them as the change's own record.
 
 ### Token discipline — temp files + tiny prompts (mandatory)
 

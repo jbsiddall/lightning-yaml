@@ -1,237 +1,283 @@
 ---
-// Landing.astro — fully custom splash landing for Lightning YAML.
-// Composes the parse-trace hero, the stat band, and the feature strip.
-// Static HTML + CSS + inline SVG only; no framework islands, no client JS.
-import ParseTrace from './ParseTrace.astro';
+// Landing.astro — the Lightning YAML splash landing. A Bun-style split hero
+// (pitch + package-manager install on the left, a four-tab benchmark instrument
+// on the right), the shared interactive Playground, then the stat / priority /
+// feature bands. Headline numbers are DERIVED from the benchmark data at build
+// time (never hand-typed) — see CLAUDE.md "Integrity of benchmarks and claims".
+import HeroBench from './HeroBench.astro';
+import Playground from './Playground.astro';
 import Stats from './Stats.astro';
 import Features from './Features.astro';
 import Priorities from './Priorities.astro';
+import speedRaw from '../data/benchmarks/speed.yaml?raw';
+import conformanceRaw from '../data/benchmarks/conformance.yaml?raw';
+import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
+import { newestRun, bundleSizeItems, formatKB } from '../lib/benchmarks';
+import type { SpeedDoc, ConformanceDoc, BundleSizeDoc } from '../lib/benchmarks';
+
+const speed = newestRun<SpeedDoc>(speedRaw);
+const conformance = newestRun<ConformanceDoc>(conformanceRaw);
+const bundle = newestRun<BundleSizeDoc>(bundleSizeRaw);
+
+const confPct = (conformance.results.find((r) => r.self)?.score ?? 97.6).toFixed(1);
+
+// Representative parse ratios (medium-records), derived so they never drift.
+const med = speed.operations.parse.find((w) => w.workload === 'medium-records')?.values;
+const ratio = (a: 'JSON' | 'js-yaml' | 'yaml' | 'lightning-yaml', b: typeof a) =>
+  med && med[a] && med[b] ? med[a]!.avg / med[b]!.avg : null;
+const fmtX = (n: number | null) => (n == null ? '—' : n < 10 ? `${n.toFixed(1)}×` : `${Math.round(n)}×`);
+const vsJson = fmtX(ratio('lightning-yaml', 'JSON'));
+const vsJsYaml = fmtX(ratio('js-yaml', 'lightning-yaml'));
+const vsYaml = fmtX(ratio('yaml', 'lightning-yaml'));
+const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
 ---
 
 <div class="landing">
   <section class="hero" aria-labelledby="hero-title">
-    <div class="console">
-      <p class="kicker">YAML&nbsp;·&nbsp;1.2&nbsp;CORE</p>
+    <div class="pitch">
+      <a class="badge" href="/benchmarks/">Passes <b>{confPct}%</b> of the YAML&nbsp;1.2 test suite&nbsp;→</a>
 
-      <h1 class="title" id="hero-title">
-        Parse YAML at <span class="grad">JSON speed</span>.<br />
-        Faithful to the YAML&nbsp;1.2 spec.
-      </h1>
+      <h1 class="title" id="hero-title">Spec-compliant YAML,<br /><span class="grad">approaching JSON speed.</span></h1>
 
-      <p class="sub">
-        Dramatically faster than <code>js-yaml</code> and <code>yaml</code>, faithful
-        to YAML 1.2 — <b>97.6%</b> of the YAML Test Suite — with peak
-        memory close to <code>JSON.parse</code>.
+      <p class="lead">
+        A pure-JS YAML&nbsp;1.2 parser and stringifier that's out to give native <code>JSON.parse</code> a run
+        for its money — spec compliance first, then speed and memory within reach of it. On medium records:
+        about <b>{vsJson} JSON.parse</b>'s parse time, <b>{vsJsYaml} faster than js-yaml</b> and <b>{vsYaml} faster than yaml</b>. Zero dependencies, <b>{bundleKB}</b> min+gzip.
       </p>
+
+      <div class="install">
+        <div class="install__label">Install</div>
+        <div class="pm" id="ly-pm" role="tablist" aria-label="Package manager">
+          <button class="pm__tab" role="tab" aria-selected="true" data-pm="pnpm">pnpm</button>
+          <button class="pm__tab" role="tab" aria-selected="false" data-pm="npm">npm</button>
+          <button class="pm__tab" role="tab" aria-selected="false" data-pm="yarn">yarn</button>
+          <button class="pm__tab" role="tab" aria-selected="false" data-pm="bun">bun</button>
+          <button class="pm__tab" role="tab" aria-selected="false" data-pm="deno">deno</button>
+          <button class="pm__tab" role="tab" aria-selected="false" data-pm="cdn">cdn</button>
+        </div>
+        <div class="cmd">
+          <span class="cmd__prompt" id="ly-prompt" aria-hidden="true">$</span>
+          <code class="cmd__text" id="ly-cmd">pnpm add lightning-yaml</code>
+          <button class="cmd__copy" id="ly-copy" type="button">Copy</button>
+        </div>
+      </div>
 
       <div class="cta">
         <a class="btn" href="/guides/getting-started/">Get started</a>
-        <code class="install"><span class="install__prompt" aria-hidden="true">$ </span>pnpm add lightning-yaml</code>
-        <a class="seebench" href="/benchmarks/">See the benchmarks&nbsp;→</a>
-      </div>
-
-      <div class="console__trace">
-        <ParseTrace />
+        <a class="link-arrow" href="/benchmarks/">See the benchmarks&nbsp;→</a>
       </div>
     </div>
+
+    <HeroBench />
   </section>
 
+  <Playground autorun="view" />
   <Stats />
-  <Features />
   <Priorities />
+  <Features />
 </div>
+
+<script>
+  // 'sh' entries are shell installs (shown with a $ prompt); 'js' entries are
+  // import snippets (Deno URL import + browser ESM CDN) — no prompt.
+  const CMDS: Record<string, { kind: 'sh' | 'js'; text: string }> = {
+    pnpm: { kind: 'sh', text: 'pnpm add lightning-yaml' },
+    npm: { kind: 'sh', text: 'npm install lightning-yaml' },
+    yarn: { kind: 'sh', text: 'yarn add lightning-yaml' },
+    bun: { kind: 'sh', text: 'bun add lightning-yaml' },
+    deno: { kind: 'js', text: 'import { parse } from "https://esm.sh/lightning-yaml"' },
+    cdn: { kind: 'js', text: '<script type="module">import { parse } from "https://cdn.jsdelivr.net/npm/lightning-yaml/+esm"<\/script>' },
+  };
+  const pm = document.getElementById('ly-pm');
+  const cmd = document.getElementById('ly-cmd');
+  const prompt = document.getElementById('ly-prompt');
+  pm?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.pm__tab');
+    if (!btn || !cmd) return;
+    pm.querySelectorAll('.pm__tab').forEach((x) => x.setAttribute('aria-selected', String(x === btn)));
+    const entry = CMDS[btn.dataset.pm ?? 'pnpm'];
+    cmd.textContent = entry.text;
+    if (prompt) prompt.style.display = entry.kind === 'sh' ? '' : 'none';
+  });
+  const copy = document.getElementById('ly-copy');
+  copy?.addEventListener('click', async () => {
+    if (!cmd) return;
+    try {
+      await navigator.clipboard.writeText(cmd.textContent ?? '');
+      copy.textContent = 'Copied';
+      setTimeout(() => (copy.textContent = 'Copy'), 1200);
+    } catch {
+      copy.textContent = '⌘C';
+    }
+  });
+</script>
 
 <style>
   .landing {
-    max-width: 1100px;
+    max-width: 1140px;
     margin-inline: auto;
     display: flex;
     flex-direction: column;
-    gap: clamp(1.25rem, 3.5vw, 2.25rem);
+    gap: clamp(2rem, 5vw, 3.5rem);
     padding-block: clamp(0.5rem, 2vw, 1.5rem);
   }
 
-  /* --- Hero console (self-contained dark instrument) ------------------ */
+  /* --- hero --------------------------------------------------------------- */
   .hero {
-    width: 100%;
+    display: grid;
+    grid-template-columns: 1.02fr 0.98fr;
+    gap: clamp(1.25rem, 3vw, 2.25rem);
+    align-items: center;
   }
-  .console {
-    position: relative;
-    padding: clamp(1.5rem, 4vw, 3rem) clamp(1.25rem, 4vw, 3rem) clamp(1.75rem, 4vw, 2.75rem);
-    border: 1px solid var(--ly-line);
-    border-radius: 20px;
-    background:
-      radial-gradient(90% 65% at 50% -12%, rgba(124, 92, 255, 0.16), transparent 62%),
-      radial-gradient(70% 60% at 108% 8%, rgba(53, 224, 216, 0.08), transparent 60%),
-      linear-gradient(180deg, #0e111b, #0b0d14 62%);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      0 40px 90px -50px rgba(0, 0, 0, 0.95);
-    overflow: hidden;
-  }
-  /* Faint precision grid texture. */
-  .console::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(var(--ly-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--ly-line) 1px, transparent 1px);
-    background-size: 44px 44px;
-    opacity: 0.14;
-    mask-image: radial-gradient(120% 90% at 50% 0%, #000 15%, transparent 75%);
-    pointer-events: none;
-  }
-  .console > * {
-    position: relative;
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
   }
 
-  .kicker {
-    margin: 0 0 0.9rem;
+  .pitch { min-width: 0; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--ly-line);
+    border-radius: 999px;
+    background: rgba(124, 92, 255, 0.08);
+    color: var(--ly-ink);
+    text-decoration: none;
     font-family: var(--sl-font-mono);
-    font-size: 0.72rem;
-    font-weight: 500;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-    color: var(--ly-spark);
+    font-size: 0.76rem;
+    letter-spacing: 0.01em;
   }
+  .badge b { color: var(--ly-charge); font-weight: 600; }
+  .badge:hover { border-color: var(--ly-charge); }
 
   .title {
-    margin: 0;
-    max-width: 20ch;
+    margin: 1.1rem 0 0;
     font-family: var(--sl-font);
     font-weight: 600;
-    font-size: clamp(1.85rem, 5.2vw, 3.15rem);
-    line-height: 1.06;
-    letter-spacing: -0.02em;
+    font-size: clamp(2.3rem, 6vw, 3.8rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
     color: var(--ly-ink);
+    text-wrap: balance;
   }
-  .grad {
-    color: var(--ly-spark); /* fallback if background-clip unsupported */
-  }
+  .grad { color: var(--ly-spark); }
   @supports ((-webkit-background-clip: text) or (background-clip: text)) {
     .grad {
-      background: linear-gradient(92deg, var(--ly-charge) 8%, var(--ly-spark));
+      background: linear-gradient(96deg, var(--ly-charge) 10%, var(--ly-spark));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
   }
 
-  .sub {
-    margin: 1rem 0 0;
-    max-width: 62ch;
+  .lead {
+    margin: 1.15rem 0 0;
+    max-width: 52ch;
     color: var(--ly-muted);
-    font-size: clamp(0.98rem, 1.6vw, 1.12rem);
-    line-height: 1.55;
+    font-size: clamp(1rem, 1.6vw, 1.12rem);
+    line-height: 1.6;
   }
-  .sub b {
-    color: var(--ly-ink);
-    font-weight: 600;
-  }
-  .sub code {
+  .lead b { color: var(--ly-ink); font-weight: 600; }
+  .lead code {
     font-family: var(--sl-font-mono);
     font-size: 0.9em;
     color: var(--ly-ink);
     background: rgba(124, 92, 255, 0.12);
     border: 1px solid var(--ly-line);
     border-radius: 5px;
-    padding: 0.05em 0.4em;
+    padding: 0.03em 0.36em;
   }
 
-  /* --- CTAs ----------------------------------------------------------- */
-  .cta {
-    margin-top: 1.6rem;
+  .install { margin-top: 1.7rem; max-width: 460px; }
+  .install__label {
+    font-family: var(--sl-font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ly-muted);
+    margin-bottom: 0.5rem;
+  }
+  .pm { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem; }
+  .pm__tab {
+    font-family: var(--sl-font-mono);
+    font-size: 0.76rem;
+    color: var(--ly-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    padding: 0.28rem 0.62rem;
+    cursor: pointer;
+  }
+  .pm__tab[aria-selected='true'] {
+    color: var(--ly-ink);
+    background: var(--ly-panel);
+    border-color: var(--ly-line);
+  }
+  .pm__tab:hover { color: var(--ly-ink); }
+  .cmd {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 0.75rem 0.9rem;
+    gap: 0.6rem;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--ly-line);
+    border-radius: 11px;
+    background: var(--ly-panel-2);
+    font-family: var(--sl-font-mono);
+    font-size: 0.9rem;
   }
+  .cmd__prompt { color: var(--ly-charge); user-select: none; }
+  .cmd__text { color: var(--ly-ink); flex: 1; white-space: nowrap; overflow-x: auto; background: none; padding: 0; border: 0; }
+  .cmd__copy {
+    flex: none;
+    font-family: var(--sl-font-mono);
+    font-size: 0.72rem;
+    color: var(--ly-muted);
+    background: var(--ly-panel);
+    border: 1px solid var(--ly-line);
+    border-radius: 7px;
+    padding: 0.3rem 0.55rem;
+    cursor: pointer;
+  }
+  .cmd__copy:hover { color: var(--ly-ink); border-color: var(--ly-charge); }
 
+  .cta { margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; }
   .btn {
     display: inline-flex;
     align-items: center;
-    padding: 0.62rem 1.25rem;
+    padding: 0.66rem 1.3rem;
     border-radius: 10px;
     background: linear-gradient(135deg, #6d4cff, #5b3ff0);
-    color: #ffffff;
+    color: #fff;
     font-weight: 600;
     font-size: 0.95rem;
     text-decoration: none;
     border: 1px solid rgba(124, 92, 255, 0.6);
-    box-shadow: 0 12px 30px -12px rgba(124, 92, 255, 0.75);
-    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    box-shadow: 0 14px 32px -14px rgba(124, 92, 255, 0.85);
+    transition: filter 0.15s ease, transform 0.1s ease;
   }
-  .btn:hover {
-    filter: brightness(1.08);
-    box-shadow: 0 16px 36px -12px rgba(124, 92, 255, 0.9);
-  }
-  .btn:active {
-    transform: translateY(1px);
-  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: translateY(1px); }
+  .link-arrow { color: var(--ly-spark); font-weight: 600; font-size: 0.92rem; text-decoration: none; }
+  .link-arrow:hover { text-decoration: underline; }
 
-  .install {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.55rem 0.85rem;
-    border-radius: 10px;
-    background: var(--ly-panel-2);
-    border: 1px solid var(--ly-line);
-    color: var(--ly-ink);
-    font-family: var(--sl-font-mono);
-    font-size: 0.86rem;
-    white-space: nowrap;
-  }
-  .install__prompt {
-    color: var(--ly-charge);
-    user-select: none;
-  }
-
-  .seebench {
-    color: var(--ly-spark);
-    font-weight: 600;
-    font-size: 0.92rem;
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition: border-color 0.15s ease;
-  }
-  .seebench:hover {
-    border-bottom-color: var(--ly-spark);
-  }
-
-  .console__trace {
-    margin-top: clamp(1.75rem, 4vw, 2.75rem);
-  }
-
-  @media (max-width: 720px) {
-    .cta {
-      gap: 0.7rem;
-    }
-    .install {
-      order: 3;
-      width: 100%;
-      justify-content: center;
-    }
-  }
-
-  /* Focus visibility (a11y). */
   .btn:focus-visible,
-  .seebench:focus-visible {
+  .link-arrow:focus-visible,
+  .badge:focus-visible {
     outline: 2px solid var(--ly-spark);
     outline-offset: 3px;
     border-radius: 8px;
   }
-
   @media (prefers-reduced-motion: reduce) {
     .btn { transition: none; }
   }
 </style>
 
 <style is:global>
-  /* Suppress Starlight's automatic page-title <h1> on this custom splash
-     landing — the hero supplies its own <h1>. Scoped to splash-without-hero
-     pages via the html data-attributes Starlight emits, and only shipped on
-     pages that render <Landing>. */
+  /* Suppress Starlight's automatic page-title <h1> on this custom splash landing —
+     the hero supplies its own <h1>. Scoped to splash-without-hero pages via the
+     html data-attributes Starlight emits. */
   html:not([data-has-sidebar]):not([data-has-hero]) main > .content-panel:has(#_top) {
     display: none;
   }
@@ -242,9 +288,8 @@ import Priorities from './Priorities.astro';
     border-top: 0;
   }
 
-  /* Home page is theme-locked to dark (see the inline script in index.mdx's
-     frontmatter `head`) — the light/dark toggle would be a lie, so hide it
-     here only. The rest of the site keeps its normal toggle. */
+  /* Home page is theme-locked to dark (see the inline script in index.mdx) — the
+     light/dark toggle would be a lie, so hide it here only. */
   html:not([data-has-sidebar]):not([data-has-hero]) starlight-theme-select {
     display: none;
   }

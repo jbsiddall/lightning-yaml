@@ -1,0 +1,253 @@
+---
+// HeroBench.astro — the hero's right-hand instrument: a four-tab benchmark
+// panel (Parse / Dump / Parse memory / Bundle size), Bun-homepage style.
+// CSS-only tab switching via sibling radio inputs — zero client JS. Every bar
+// is computed at BUILD TIME from the newest published run in
+// src/data/benchmarks/*.yaml (overlaid from the benchmark-data branch at
+// deploy), so the numbers here are the same measured data the /benchmarks page
+// shows — never a hand-typed figure. See CLAUDE.md "Integrity of benchmarks".
+//
+// Scale: each row scales to its slowest parser, EXCEPT when one parser runs
+// away from the field (>3× the runner-up) — then the row scales to the
+// runner-up so the fast parsers stay legible, and the outlier's bar is clipped
+// ("off-scale", ↗) with its real value still labelled.
+import speedRaw from '../data/benchmarks/speed.yaml?raw';
+import memoryRaw from '../data/benchmarks/memory.yaml?raw';
+import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
+import pkg from '../../package.json';
+import {
+  newestRun,
+  pickWorkloads,
+  bundleSizeItems,
+  formatNs,
+  formatMB,
+  formatKB,
+  LIBRARY_COLOR,
+} from '../lib/benchmarks';
+import type { SpeedDoc, MemoryDoc, BundleSizeDoc, LibraryId, SpeedStat, MemoryStat } from '../lib/benchmarks';
+
+const speed = newestRun<SpeedDoc>(speedRaw);
+const memory = newestRun<MemoryDoc>(memoryRaw);
+const bundle = newestRun<BundleSizeDoc>(bundleSizeRaw);
+
+const HERO_ORDER: LibraryId[] = ['JSON', 'lightning-yaml', 'js-yaml', 'yaml'];
+
+type Unit = 'ns' | 'MB' | 'bytes';
+interface Row {
+  name: string;
+  values: Partial<Record<LibraryId, number>>;
+}
+interface Bar {
+  id: string;
+  color: string;
+  label: string;
+  width: number;
+  over: boolean;
+  self: boolean;
+}
+
+const fmt = (v: number, unit: Unit) => (unit === 'ns' ? formatNs(v) : unit === 'MB' ? formatMB(v) : formatKB(v));
+
+function buildChart(rows: Row[], unit: Unit): { name: string; bars: Bar[] }[] {
+  return rows.map((r) => {
+    const present = HERO_ORDER.filter((id) => typeof r.values[id] === 'number');
+    const vals = present.map((id) => r.values[id] as number);
+    const max = Math.max(...vals);
+    const sorted = [...vals].sort((a, b) => a - b);
+    const second = sorted.length > 1 ? sorted[sorted.length - 2] : max;
+    // Clamp only for time charts, and only when one entry truly dwarfs the field.
+    const clamp = unit === 'ns' && max > second * 3;
+    const ceiling = clamp ? second * 1.18 : max;
+    const bars = present.map((id): Bar => {
+      const v = r.values[id] as number;
+      const over = clamp && v > ceiling;
+      return {
+        id,
+        color: LIBRARY_COLOR[id as LibraryId],
+        label: fmt(v, unit),
+        width: over ? 100 : Math.min(100, (v / ceiling) * 100),
+        over,
+        self: id === 'lightning-yaml',
+      };
+    });
+    return { name: r.name, bars };
+  });
+}
+
+const speedNames = ['small-records', 'medium-records', 'large-records'];
+const memoryNames = ['small-records', 'large-records', 'xlarge-records'];
+
+const avgRows = (ws: SpeedDoc['operations']['parse']): Row[] =>
+  ws.map((w) => ({
+    name: w.workload,
+    values: Object.fromEntries(Object.entries(w.values).map(([id, s]) => [id, (s as SpeedStat).avg])),
+  }));
+const rssRows = (ws: MemoryDoc['operations']['parse']): Row[] =>
+  ws.map((w) => ({
+    name: w.workload,
+    values: Object.fromEntries(Object.entries(w.values).map(([id, s]) => [id, (s as MemoryStat).peak_rss])),
+  }));
+
+const bundleValues = Object.fromEntries(bundleSizeItems(bundle).map((it) => [it.id, it.value]));
+
+const tabs = [
+  {
+    id: 'parse',
+    label: 'Parse speed',
+    caption: 'Avg time per parse() — real value on each bar. Scaled to the runner-up so the fast parsers stay legible; yaml runs off-scale (↗).',
+    chart: buildChart(avgRows(pickWorkloads(speed.operations.parse, speedNames)), 'ns'),
+  },
+  {
+    id: 'dump',
+    label: 'Dump speed',
+    caption: 'Avg time per stringify() — real value on each bar. JSON.stringify is the baseline; each row scaled to its slowest parser.',
+    chart: buildChart(avgRows(pickWorkloads(speed.operations.stringify, speedNames)), 'ns'),
+  },
+  {
+    id: 'memory',
+    label: 'Parse memory',
+    caption: 'Peak resident set size while parsing (25 iterations) — lower is better, each row scaled to its slowest.',
+    chart: buildChart(rssRows(pickWorkloads(memory.operations.parse, memoryNames)), 'MB'),
+  },
+  {
+    id: 'bundle',
+    label: 'Bundle size',
+    caption: 'Browser bundle (parse + stringify), min + gzip — smallest across every bundler measured.',
+    chart: buildChart([{ name: 'min + gzip', values: bundleValues }], 'bytes'),
+  },
+];
+
+const dep = (name: string) => (pkg.dependencies as Record<string, string>)[name]?.replace(/^[\^~]/, '');
+const lyVersion = bundle.libraries.find((l) => l.self)?.version ?? '0.1.0';
+const versions = `lightning-yaml ${lyVersion} · yaml ${dep('yaml')} · js-yaml ${dep('js-yaml')}`;
+---
+
+<figure class="hb" aria-label="Benchmarks: Lightning YAML versus js-yaml, yaml, and JSON">
+  <figcaption class="hb__head">
+    <span class="hb__title">How fast?</span>
+    <span class="hb__sub">measured, not marketing</span>
+  </figcaption>
+
+  {tabs.map((t, i) => (
+    <input class="hb__radio" type="radio" name="hb-tab" id={`hb-tab-${t.id}`} checked={i === 0} />
+  ))}
+
+  <div class="hb__tabs" role="tablist">
+    {tabs.map((t) => (
+      <label class="hb__tab" for={`hb-tab-${t.id}`}>{t.label}</label>
+    ))}
+  </div>
+
+  {tabs.map((t) => (
+    <section class="hb__panel" data-tab={t.id} aria-label={t.label}>
+      <p class="hb__cap">{t.caption}</p>
+      {t.chart.map((g) => (
+        <div class="grp">
+          <div class="grp__head">{g.name}</div>
+          {g.bars.map((b) => (
+            <div class:list={['barline', { 'barline--self': b.self, 'barline--over': b.over }]}>
+              <span class="barline__lib" style={`color:${b.color}`}>{b.id}</span>
+              <span class="barline__track"><span class="barline__bar" style={`width:${b.width}%;background:${b.color}`}></span></span>
+              <span class="barline__val">{b.label}{b.over && <span class="over-mark">↗</span>}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </section>
+  ))}
+
+  <div class="hb__foot">
+    <span class="hb__env">
+      {speed.env.runtime} · benchmark-data branch<br />
+      <span class="hb__vers">{versions}</span>
+    </span>
+    <a class="hb__more" href="/benchmarks/">Full benchmarks&nbsp;→</a>
+  </div>
+</figure>
+
+<style>
+  .hb {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--ly-line);
+    border-radius: 16px;
+    background:
+      radial-gradient(80% 60% at 100% 0%, rgba(53, 224, 216, 0.07), transparent 60%),
+      linear-gradient(180deg, #0f1320, #0b0d14 70%);
+    box-shadow: 0 30px 70px -46px rgba(0, 0, 0, 0.95);
+    overflow: hidden;
+  }
+
+  .hb__head { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.85rem 1.1rem 0.6rem; flex-wrap: wrap; }
+  .hb__title { font-family: var(--sl-font); font-weight: 600; font-size: 1rem; color: var(--ly-ink); }
+  .hb__sub { margin-inline-start: auto; font-family: var(--sl-font-mono); font-size: 0.66rem; color: var(--ly-muted); opacity: 0.8; }
+
+  .hb__radio { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+  .hb__tabs { display: flex; gap: 0.15rem; padding: 0 1.1rem; border-bottom: 1px solid var(--ly-line); overflow-x: auto; }
+  .hb__tab {
+    flex: none; padding: 0.5rem 0.7rem; margin-bottom: -1px;
+    font-family: var(--sl-font-mono); font-size: 0.78rem; color: var(--ly-muted);
+    border-bottom: 2px solid transparent; cursor: pointer; user-select: none; white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .hb__tab:hover { color: var(--ly-ink); }
+
+  .hb__panel { display: none; padding: 0.9rem 1.1rem 0.4rem; }
+  .hb__cap { margin: 0 0 0.85rem; font-family: var(--sl-font-mono); font-size: 0.68rem; line-height: 1.5; color: var(--ly-muted); }
+
+  .grp { margin-bottom: 0.95rem; }
+  .grp__head { font-family: var(--sl-font-mono); font-size: 0.7rem; color: var(--ly-muted); margin-bottom: 0.32rem; letter-spacing: 0.02em; }
+  .barline { display: grid; grid-template-columns: 92px 1fr 82px; align-items: center; gap: 0.5rem; height: 20px; }
+  .barline__lib { font-family: var(--sl-font-mono); font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .barline__track { height: 9px; background: rgba(255, 255, 255, 0.045); border-radius: 5px; overflow: hidden; }
+  .barline__bar { display: block; height: 100%; border-radius: 5px; }
+  .barline--self .barline__bar { box-shadow: 0 0 10px var(--ly-charge-glow); }
+  .barline--self .barline__lib { font-weight: 600; }
+  .barline--self .barline__val { color: var(--ly-ink); font-weight: 600; }
+  .barline__val { font-family: var(--sl-font-mono); font-size: 0.68rem; color: var(--ly-muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* Off-scale bar: cannot be contained — no rounded/solid right edge, it fades
+     out past the runner-up, and the value carries a ↗ marker. */
+  .barline--over .barline__track { overflow: visible; }
+  .barline--over .barline__bar {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+    mask-image: linear-gradient(90deg, #000 88%, transparent);
+  }
+  .over-mark { color: var(--ly-amber); margin-inline-start: 0.2rem; }
+
+  .hb__foot {
+    display: flex; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap;
+    padding: 0.7rem 1.1rem 0.95rem; border-top: 1px solid var(--ly-line); margin-top: 0.4rem;
+    font-family: var(--sl-font-mono); font-size: 0.68rem;
+  }
+  .hb__env { color: var(--ly-muted); opacity: 0.85; line-height: 1.5; }
+  .hb__vers { opacity: 0.75; }
+  .hb__more { color: var(--ly-spark); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .hb__more:hover { color: var(--ly-ink); }
+
+  /* CSS-only tab switching: radios are earlier siblings of the tabs + panels. */
+  #hb-tab-parse:checked ~ .hb__panel[data-tab='parse'],
+  #hb-tab-dump:checked ~ .hb__panel[data-tab='dump'],
+  #hb-tab-memory:checked ~ .hb__panel[data-tab='memory'],
+  #hb-tab-bundle:checked ~ .hb__panel[data-tab='bundle'] {
+    display: block;
+  }
+  #hb-tab-parse:checked ~ .hb__tabs label[for='hb-tab-parse'],
+  #hb-tab-dump:checked ~ .hb__tabs label[for='hb-tab-dump'],
+  #hb-tab-memory:checked ~ .hb__tabs label[for='hb-tab-memory'],
+  #hb-tab-bundle:checked ~ .hb__tabs label[for='hb-tab-bundle'] {
+    color: var(--ly-ink);
+    border-bottom-color: var(--ly-charge);
+  }
+  #hb-tab-parse:focus-visible ~ .hb__tabs label[for='hb-tab-parse'],
+  #hb-tab-dump:focus-visible ~ .hb__tabs label[for='hb-tab-dump'],
+  #hb-tab-memory:focus-visible ~ .hb__tabs label[for='hb-tab-memory'],
+  #hb-tab-bundle:focus-visible ~ .hb__tabs label[for='hb-tab-bundle'] {
+    outline: 2px solid var(--ly-spark);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+</style>
