@@ -4883,6 +4883,13 @@ function writeEntryValue(value: unknown, indent: number): void {
     out += " " + (name !== null ? "&" + name + " " : "") + writeBinaryScalar(obj) + "\n";
     return;
   }
+  if (obj instanceof Date) {
+    // YAML 1.2 core has no timestamp type (that is a YAML 1.1 type), so a Date has no
+    // faithful representation. Throw rather than silently emit `{}` (a Date has no own
+    // enumerable keys) or invent an ISO string that only round-trips under 1.1. A future
+    // opt-in custom schema can register a Date tag; until then this is unrepresentable.
+    throw new YAMLParseError("stringify: cannot represent a Date — YAML 1.2 core has no timestamp type");
+  }
   const isArr = Array.isArray(obj);
   const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
   if (isEmptyContainer(obj, isArr)) {
@@ -4913,6 +4920,12 @@ function writeDocumentValue(value: unknown): void {
     const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
     out += (name !== null ? "&" + name + " " : "") + writeBinaryScalar(obj) + "\n";
     return;
+  }
+  if (obj instanceof Date) {
+    // See the matching branch in `writeEntryValue`: YAML 1.2 core has no timestamp
+    // type, so a Date has no faithful representation and must throw, not silently
+    // emit `{}` or an ISO string that only round-trips under 1.1.
+    throw new YAMLParseError("stringify: cannot represent a Date — YAML 1.2 core has no timestamp type");
   }
   const isArr = Array.isArray(obj);
   const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;

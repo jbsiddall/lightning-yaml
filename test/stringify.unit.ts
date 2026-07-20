@@ -631,3 +631,47 @@ test("special keys: constructor / prototype as ordinary map keys", () => {
   const value = { constructor: 1, prototype: 2 };
   assertRoundTrips(value, "constructor/prototype keys");
 });
+
+// ---------------------------------------------------------------------------
+// 8. Unrepresentable values — a `Date` has no faithful YAML 1.2 core
+// representation (timestamps are a YAML 1.1 type), so `stringify` throws
+// rather than silently emit `{}` (a Date has no own enumerable keys) or
+// invent an ISO-8601 string that would only round-trip back to a plain
+// string, not a Date, under 1.2. This matches js-yaml's CORE_SCHEMA/
+// JSON_SCHEMA, which also throw on a Date; only permissive/1.1 schemas emit
+// ISO. The guard tests below confirm the throw is Date-specific — an empty
+// object/array and a Uint8Array (which also has no "normal" own keys) must
+// keep working exactly as before.
+// ---------------------------------------------------------------------------
+
+test("Date: throws at the root", () => {
+  throws(() => stringify(new Date("2024-01-01T00:00:00Z")), /Date|timestamp/, "root Date must throw, not emit {}");
+});
+
+test("Date: throws as a map value", () => {
+  throws(
+    () => stringify({ v: new Date("2024-01-01T00:00:00Z") }),
+    /Date|timestamp/,
+    "Date as a map value must throw",
+  );
+});
+
+test("Date: throws inside a sequence", () => {
+  throws(() => stringify([new Date("2024-01-01T00:00:00Z")]), /Date|timestamp/, "Date inside a sequence must throw");
+});
+
+test("Date: an invalid Date also throws (not special-cased to null)", () => {
+  throws(() => stringify(new Date("nonsense")), /Date|timestamp/, "an invalid Date must still throw, not emit null");
+});
+
+test("Date: guard — empty {}/[] and Uint8Array are unaffected by the Date throw", () => {
+  // A Date and an empty container both have zero "normal" own keys, and a
+  // Uint8Array's own keys are irrelevant to how it dumps (!!binary) — this
+  // proves the new throw branch checks `instanceof Date` specifically, not
+  // "object with no/ignored own keys" generally.
+  strictEqual(stringify({}), "{}\n", "empty map must still dump as {}");
+  strictEqual(stringify([]), "[]\n", "empty seq must still dump as []");
+  const bytes = stringify(new Uint8Array([1, 2, 3]));
+  ok(typeof bytes === "string", "Uint8Array must still dump as a string, not throw");
+  ok(bytes.includes("!!binary"), "Uint8Array must still dump tagged !!binary");
+});
