@@ -26,6 +26,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { load as jsYamlLoadSingle, loadAll as jsYamlLoadAll } from "js-yaml";
 import { parseAllDocuments, stringify as toYaml } from "yaml";
+import { ConformanceDocSchema } from "../schemas.ts";
 import { parse as ourParse, parseAll as ourParseAll } from "../../src/index.ts";
 import { candidateByName, libraryMeta } from "../candidates.ts";
 import { deepEqualSequences } from "./deepEqual.ts";
@@ -302,6 +303,7 @@ function main(): void {
     };
 
     mkdirSync(dirname(OUT_YAML), { recursive: true });
+    ConformanceDocSchema.parse(doc); // fail fast if the emitted doc doesn't match its schema
     writeFileSync(OUT_YAML, toYaml(doc));
     console.log(`Wrote ${OUT_YAML}`);
   } catch (err) {

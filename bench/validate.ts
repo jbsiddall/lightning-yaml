@@ -2,17 +2,6 @@
  * Validate benchmark YAML against the per-suite zod schemas (bench/schemas.ts).
  *
  *   node --import tsx bench/validate.ts <file.yaml> [<file.yaml> ...]
- *
- * Each file is a single- or multi-document `---`-separated stream. Every
- * document is validated against the schema for its own `suite` field (falling
- * back to the filename stem when a doc somehow lacks one). Exits 1 if ANY
- * document in ANY file fails, so it can gate CI both before an append (fresh
- * emitter output) and after (the whole updated history) — a malformed run never
- * reaches the append-only branch.
- *
- * A path that doesn't exist is warned about and skipped (a CI glob that expands
- * to a suite nobody produced this run must not hard-fail); a file that exists
- * but yields zero documents IS a failure (something went wrong producing it).
  */
 
 import { existsSync, readFileSync } from "node:fs";

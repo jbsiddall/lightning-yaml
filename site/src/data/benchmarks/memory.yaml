@@ -1,18 +1,4 @@
-# Lightning YAML — MEMORY benchmark suite (isolated child processes).
-#
-# Append-only, multi-document YAML (same model as speed.yaml): each '---'
-# document is one full RUN; CI appends, never rewrites.
-#
-#   peak_rss    — whole-process peak resident set, MB (process.resourceUsage().maxRSS)
-#   heap_delta  — per-run V8 heap allocation delta, KB (v8.getHeapStatistics(); may be negative)
-#
-# Both: lower is better. Fixed at 25 iterations (BENCH_ITERS) for comparability.
-#
-# schema_version pins the doc shape for validation (bench/schemas.ts). Every
-# library carries the `version` it was measured at (the installed package;
-# lightning-yaml's own release). Emitted runs additionally record `generated_at`
-# — a full ISO-8601 timestamp beside the date-only `generated` — left out of
-# these hand-written samples so no fabricated time ships with them.
+# Schema: https://github.com/jbsiddall/lightning-yaml/blob/main/bench/schemas.ts
 ---
 suite: memory
 scope: competition

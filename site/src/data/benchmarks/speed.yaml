@@ -1,18 +1,4 @@
-# Lightning YAML — SPEED benchmark suite (mitata, per-iteration wall time).
-#
-# Append-only, multi-document YAML. Each '---' document is one full RUN: a
-# snapshot of every workload at a point in time. A CI job APPENDS a new document
-# (it never rewrites earlier ones), so runs accumulate as history with no
-# read-modify-write and no merge conflicts. The site parses every document and
-# renders the newest by default; older documents power trend charts.
-#
-# Canonical unit: nanoseconds per iteration (ns/iter). Lower is better.
-#
-# schema_version pins the doc shape for validation (bench/schemas.ts). Every
-# library carries the `version` it was measured at (the installed package;
-# lightning-yaml's own release). Emitted runs additionally record `generated_at`
-# — a full ISO-8601 timestamp beside the date-only `generated` — left out of
-# these hand-written samples so no fabricated time ships with them.
+# Schema: https://github.com/jbsiddall/lightning-yaml/blob/main/bench/schemas.ts
 ---
 suite: speed
 scope: competition            # produced by `pnpm bench:competition` (all parsers)

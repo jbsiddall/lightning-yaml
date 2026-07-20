@@ -1,23 +1,3 @@
-/**
- * Zod schemas for the four benchmark YAML doc types — the single validation
- * source of truth shared by `bench/validate.ts` (the CLI runner + CI gates).
- *
- * These are written against the REAL append-only `benchmark-data` streams, not
- * the site's TS interfaces: the interfaces omit conformance's
- * `negative_passed`/`negative_total`, which every historical doc carries. The
- * streams also predate the newer provenance fields and encode real drift, so:
- *
- *  - `schema_version`, `generated_at`, and every library `version` are OPTIONAL
- *    (older docs lack them; only fresh emitter output sets them);
- *  - `source`/`generated` are `z.coerce.string()` — a bare all-decimal git SHA
- *    parses as a NUMBER in YAML, so coercion keeps such a doc valid;
- *  - `values` maps are PARTIAL records (the library roster grows over time —
- *    js-yaml-tuned only appears from the 4th run onward — and any given workload
- *    only lists the libraries it ran), so no particular library is ever required;
- *  - objects are plain (unknown keys are stripped, never rejected) so an
- *    as-yet-unmapped historical field can never turn a real run red.
- */
-
 import { z } from "zod";
 
 /** The complete library-id space across every suite and every historical doc. */
@@ -37,6 +17,7 @@ export const LibraryMetaSchema = z.object({
 const ProvenanceBase = z.object({
   scope: z.string(),
   schema_version: z.number().int().positive().optional(),
+  // coerce: a bare all-digit git SHA/date otherwise parses as a number in YAML.
   generated: z.coerce.string(),
   generated_at: z.string().optional(),
   source: z.coerce.string(),

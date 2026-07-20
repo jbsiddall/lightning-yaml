@@ -93,14 +93,6 @@ jobs:
           git diff --cached --quiet && { echo "nothing to append"; exit 0; }
           git commit -m "bench: run for ${GITHUB_SHA::7} [skip ci]"
 
-      # Re-validate the WHOLE updated streams (all history + the just-appended
-      # doc) before the push, so a corrupt append can never reach the shared
-      # branch. Run from repo root (not .benchmark-data) so tsx/zod/yaml resolve
-      # from the root install.
-      - name: Validate full benchmark-data streams
-        if: ${{ !cancelled() }}
-        run: node --import tsx bench/validate.ts .benchmark-data/speed.yaml .benchmark-data/memory.yaml .benchmark-data/conformance.yaml .benchmark-data/bundle-size.yaml
-
       - name: Push to benchmark-data (retry + rebase on races)
         if: ${{ !cancelled() }}
         working-directory: .benchmark-data

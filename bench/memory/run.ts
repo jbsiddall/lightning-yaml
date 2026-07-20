@@ -25,6 +25,7 @@ import { dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { stringify as toYaml } from "yaml";
+import { MemoryDocSchema } from "../schemas.ts";
 import {
   selectCandidates,
   scopeFromEnv,
@@ -233,6 +234,7 @@ export function emitMemoryYaml(scope: Scope, results: Result[] = runMemoryMatrix
   };
 
   mkdirSync(dirname(OUT_YAML), { recursive: true });
+  MemoryDocSchema.parse(doc); // fail fast if the emitted doc doesn't match its schema
   writeFileSync(OUT_YAML, toYaml(doc));
   console.log(`Wrote ${OUT_YAML}`);
 }

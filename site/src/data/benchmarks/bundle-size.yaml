@@ -1,18 +1,4 @@
-# Lightning YAML — BUNDLE-SIZE benchmark suite (browser, minified + compressed).
-#
-# Append-only, multi-document YAML (same model as speed.yaml): each '---'
-# document is one full RUN; CI appends, never rewrites. A run measures every
-# library x bundler pair; rows are keyed by bundler, each row's `values` by
-# library id (mirrors speed.yaml/memory.yaml's row/values convention).
-#
-# min/gzip/brotli are bytes of the production bundle after tree-shaking +
-# minification, importing only parse + stringify. rust marks bundlers written
-# in Rust (a property of the bundler, not the library). Lower is better.
-#
-# schema_version pins the doc shape for validation (bench/schemas.ts). This suite
-# already versions every library under `libraries`. Emitted runs additionally
-# record `generated_at` (a full ISO-8601 timestamp beside the date-only
-# `generated`) — omitted here so no fabricated time ships with the sample.
+# Schema: https://github.com/jbsiddall/lightning-yaml/blob/main/bench/schemas.ts
 ---
 suite: bundle-size
 scope: competition

@@ -110,9 +110,6 @@ jobs:
 
           rm -f ./.smoke-test.mjs ./.smoke-test.cjs
 
-  # The committed sample benchmark YAML ships with the site on every PR, so
-  # validate it against the suite schemas independently of src/site changes —
-  # a malformed sample is caught here rather than at site build time.
   validate-benchmarks:
     runs-on: ubuntu-latest
     steps:

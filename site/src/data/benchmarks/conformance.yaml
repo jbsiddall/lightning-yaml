@@ -1,15 +1,4 @@
-# Lightning YAML — CONFORMANCE benchmark suite (yaml-test-suite pass rate).
-#
-# Append-only, multi-document YAML (same model as speed.yaml): each '---'
-# document is one full suite RUN; CI appends, never rewrites.
-#
-# score is the pass rate as a percent; higher is better.
-#
-# schema_version pins the doc shape for validation (bench/schemas.ts). Competitor
-# rows carry the `version` they were scored at; the self (lightning-yaml) row is
-# pinned by the run's own `source` commit instead. Emitted runs additionally
-# record `generated_at` (a full ISO-8601 timestamp beside the date-only
-# `generated`) — omitted here so no fabricated time ships with the sample.
+# Schema: https://github.com/jbsiddall/lightning-yaml/blob/main/bench/schemas.ts
 ---
 suite: conformance
 scope: competition

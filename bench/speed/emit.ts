@@ -26,6 +26,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { bench, group, run, do_not_optimize } from "mitata";
 import { stringify as toYaml } from "yaml";
+import { SpeedDocSchema } from "../schemas.ts";
 import {
   selectCandidates,
   scopeFromEnv,
@@ -191,5 +192,6 @@ const doc = {
 };
 
 mkdirSync(dirname(OUT), { recursive: true });
+SpeedDocSchema.parse(doc); // fail fast if the emitted doc doesn't match its schema
 writeFileSync(OUT, toYaml(doc));
 console.log(`Wrote ${OUT}`);
