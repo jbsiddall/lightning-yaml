@@ -32,14 +32,11 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 24 bundles npm >= 11.5.1, required for OIDC Trusted Publishing.
+          # (Node 20/22 ship npm 10.x, which predates it.)
+          node-version: 24
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
-
-      # Trusted Publishing (OIDC) needs npm >= 11.5.1; the npm bundled with
-      # Node 20 predates it, so upgrade before the publish step runs.
-      - name: Upgrade npm for OIDC trusted publishing
-        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
