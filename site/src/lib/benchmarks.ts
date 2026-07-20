@@ -79,6 +79,9 @@ export interface ConformanceResult {
   score: number;
   self?: boolean;
   version?: string;
+  // Present on the self row (the should-fail subset); the conformance page reads it.
+  negative_passed?: number;
+  negative_total?: number;
 }
 
 export interface ConformanceDoc {
@@ -959,8 +962,14 @@ export function lineChartSVG(opts: LineChartOptions): string {
     })
     .join('');
 
+  // Anchor the edge ticks inward (first → start, last → end) so a full-width
+  // date at x=0 / x=plotW isn't clipped by the viewBox; a single tick (the
+  // one-run seed) stays centred under its dot.
   const xTickSvg = ticks
-    .map((t) => `<text x="${fx(xScale(t.i))}" y="${fx(plotY + plotHeight + 16)}" class="ly-axis" text-anchor="middle">${escapeXml(t.label)}</text>`)
+    .map((t, k) => {
+      const anchor = ticks.length === 1 ? 'middle' : k === 0 ? 'start' : k === ticks.length - 1 ? 'end' : 'middle';
+      return `<text x="${fx(xScale(t.i))}" y="${fx(plotY + plotHeight + 16)}" class="ly-axis" text-anchor="${anchor}">${escapeXml(t.label)}</text>`;
+    })
     .join('');
 
   const linesSvg = series

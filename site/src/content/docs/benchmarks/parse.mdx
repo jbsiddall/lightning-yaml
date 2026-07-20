@@ -87,7 +87,7 @@ A curated size progression (`small` through `xlarge`) plus one `yaml-rich` workl
 
 <ChartCard
   heading={`Parse time vs fastest, run over run — ${trendWorkload}`}
-  note="Lower is better, log scale. Absolute nanoseconds drift with CI-runner noise, so this tracks each parser's time as a multiple of the fastest parser in the same run (×) — a machine-invariant figure. The y-axis is logarithmic because the parsers span ~1× to ~100×; the fastest sits at 1× by construction, and a rising Lightning YAML line would mean a regression. One document per published run, oldest to newest."
+  note="Lower is better, log scale. Absolute nanoseconds drift with CI-runner noise, so this tracks each parser's time as a multiple of the fastest parser in the same run (×) — a machine-invariant figure. The y-axis is logarithmic because the parsers span about two orders of magnitude; the fastest sits at 1× by construction, and a rising Lightning YAML line would mean a regression. One document per published run, oldest to newest."
   legend={parseTrendLegend}
   svg={parseTrendSvg}
 />

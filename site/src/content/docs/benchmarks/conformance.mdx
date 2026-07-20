@@ -24,6 +24,7 @@ import {
 export const conformance = newestRun(conformanceRaw)
 export const conformanceRuns = parseRuns(conformanceRaw)
 export const selfConf = conformance.results.find((r) => r.self)
+export const negClause = selfConf.negative_passed ? ` — including all ${selfConf.negative_passed} negative (should-fail) cases` : ''
 
 export const conformanceSvg = barSVG({
   id: 'chart-conformance',
@@ -64,9 +65,9 @@ oracle, and `js-yaml`. Higher is better.
   svg={conformanceSvg}
 />
 
-Lightning YAML passes **{selfConf.score}%** of the suite — including all {selfConf.negative_passed}
-negative (should-fail) cases; the per-library standing is in the chart above and the table below.
-Merge keys (`<<`), absent from the test corpus, are the only unimplemented construct.
+Lightning YAML passes **{selfConf.score}%** of the suite{negClause}; the per-library standing is in
+the chart above and the table below. Merge keys (`<<`), absent from the test corpus, are the only
+unimplemented construct.
 
 ## Over time
 

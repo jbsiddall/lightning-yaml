@@ -90,7 +90,7 @@ on the stringify chart only: the rich workloads genuinely need the full schema, 
 
 <ChartCard
   heading={`Stringify time vs fastest, run over run — ${trendWorkload}`}
-  note="Lower is better, log scale. Absolute nanoseconds drift with CI-runner noise, so this tracks each dumper's time as a multiple of the fastest in the same run (×) — a machine-invariant figure. The y-axis is logarithmic because the dumpers span ~1× to ~65×; the fastest sits at 1× by construction, and a rising Lightning YAML line would mean a regression. One document per published run, oldest to newest."
+  note="Lower is better, log scale. Absolute nanoseconds drift with CI-runner noise, so this tracks each dumper's time as a multiple of the fastest in the same run (×) — a machine-invariant figure. The y-axis is logarithmic because the dumpers span well over an order of magnitude; the fastest sits at 1× by construction, and a rising Lightning YAML line would mean a regression. One document per published run, oldest to newest."
   legend={stringifyTrendLegend}
   svg={stringifyTrendSvg}
 />
