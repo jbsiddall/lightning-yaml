@@ -24,6 +24,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { totalmem } from "node:os";
 import { bench, group, run, do_not_optimize } from "mitata";
 import { stringify as toYaml } from "yaml";
 import {
@@ -172,6 +173,7 @@ const env = {
   clk: `~${trial.context.cpu.freq.toFixed(2)} GHz`,
   cpu: trial.context.cpu.name ?? "unknown",
   runtime: `${trial.context.runtime ?? "node"} ${trial.context.version ?? ""} (${trial.context.arch ?? "unknown"})`,
+  ram: `${(totalmem() / 1024 ** 3).toFixed(1)} GiB`,
 };
 
 const doc = {

@@ -17,6 +17,7 @@
  * candidates run for parse vs. stringify.
  */
 
+import { readFileSync } from "node:fs";
 import { load as jsYamlLoad, dump as jsYamlDump, CORE_SCHEMA, YAML11_SCHEMA } from "js-yaml";
 import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import { parse as ourParse, stringify as ourStringify, NotImplementedError } from "../src/index.ts";
@@ -176,12 +177,46 @@ export interface LibraryMeta {
   label: string;
   baseline?: boolean;
   self?: boolean;
+  /** Resolved version of the npm package backing this candidate (absent for the native JSON baseline). */
+  version?: string;
+}
+
+/** npm package backing each candidate — the tuned js-yaml row is the same install; JSON is native. */
+const PACKAGE_OF: Record<string, string | undefined> = {
+  JSON: undefined,
+  "js-yaml": "js-yaml",
+  "js-yaml-tuned": "js-yaml",
+  yaml: "yaml",
+  "lightning-yaml": "lightning-yaml",
+};
+
+/**
+ * The installed version of the package backing a candidate, read from its
+ * package.json — so every published benchmark records exactly which competitor
+ * build produced it (drift-proofing the numbers; see issue #25). lightning-yaml
+ * is the repo's own package, resolved from the root manifest rather than
+ * node_modules. Missing/unreadable → undefined (the field is simply omitted).
+ */
+function candidateVersion(name: string): string | undefined {
+  const pkg = PACKAGE_OF[name];
+  if (!pkg) return undefined;
+  const url =
+    pkg === "lightning-yaml"
+      ? new URL("../package.json", import.meta.url)
+      : new URL(`../node_modules/${pkg}/package.json`, import.meta.url);
+  try {
+    return (JSON.parse(readFileSync(url, "utf8")) as { version?: string }).version;
+  } catch {
+    return undefined;
+  }
 }
 
 export function libraryMeta(c: Candidate): LibraryMeta {
   const m: LibraryMeta = { id: c.name, label: DISPLAY_LABEL[c.name] ?? c.name };
   if (c.group === "baseline") m.baseline = true;
   if (c.group === "ours") m.self = true;
+  const version = candidateVersion(c.name);
+  if (version) m.version = version;
   return m;
 }
 

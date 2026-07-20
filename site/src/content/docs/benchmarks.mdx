@@ -101,7 +101,14 @@ export const bundleSizeSvg = barSVG({
   formatTick: formatKB,
 })
 
-export const provenanceLine = `Measured on ${speed.env.cpu} (${speed.env.clk}) · ${speed.env.runtime} · generated ${speed.generated} · source ${speed.source}`
+export const libraryVersions = speed.libraries.filter((l) => l.version).map((l) => `${l.label} ${l.version}`).join(', ')
+export const provenanceLine = [
+  `Measured on ${speed.env.cpu} (${speed.env.clk}${speed.env.ram ? `, ${speed.env.ram} RAM` : ''})`,
+  speed.env.runtime,
+  libraryVersions || null,
+  `generated ${speed.generated}`,
+  `source ${speed.source}`,
+].filter(Boolean).join(' · ')
 
 export const summaryTableHtml = speedTableHtml(speed.operations.parse, speed.libraries, presentIn(LIBRARY_ORDER, speed.operations.parse))
 export const stringifyTableHtml = speedTableHtml(speed.operations.stringify, speed.libraries, presentIn(LIBRARY_ORDER, speed.operations.stringify))

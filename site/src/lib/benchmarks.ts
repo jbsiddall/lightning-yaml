@@ -44,7 +44,7 @@ export interface SpeedDoc {
   lower_is_better: boolean;
   generated: string;
   source: string;
-  env: { clk: string; cpu: string; runtime: string };
+  env: { clk: string; cpu: string; runtime: string; ram?: string };
   libraries: LibraryMeta[];
   operations: { parse: SpeedWorkload[]; stringify: SpeedWorkload[] };
 }
@@ -67,6 +67,7 @@ export interface MemoryDoc {
   iterations: number;
   generated: string;
   source: string;
+  env?: { clk: string; cpu: string; runtime: string; ram?: string };
   libraries: LibraryMeta[];
   operations: { parse: MemoryWorkload[]; stringify: MemoryWorkload[] };
 }

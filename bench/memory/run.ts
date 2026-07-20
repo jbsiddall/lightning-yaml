@@ -24,6 +24,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { cpus, totalmem } from "node:os";
 import { stringify as toYaml } from "yaml";
 import {
   selectCandidates,
@@ -177,6 +178,22 @@ function gitShaOr(fallback: string): string {
   return sha || fallback;
 }
 
+/**
+ * Machine/runtime provenance for the emitted doc. Unlike the speed harness
+ * (which reads mitata's measurement context), this orchestrator never runs
+ * mitata, so the figures come from node:os + process directly. `cpu.speed` is
+ * 0 on some virtualized hosts — reported as "unknown" rather than "~0.00 GHz".
+ */
+function benchEnv(): { clk: string; cpu: string; runtime: string; ram: string } {
+  const cpu = cpus()[0];
+  return {
+    clk: cpu && cpu.speed ? `~${(cpu.speed / 1000).toFixed(2)} GHz` : "unknown",
+    cpu: cpu?.model ?? "unknown",
+    runtime: `node ${process.version} (${process.arch})`,
+    ram: `${(totalmem() / 1024 ** 3).toFixed(1)} GiB`,
+  };
+}
+
 interface MemoryStat {
   peak_rss: number;
   heap_delta: number;
@@ -225,6 +242,7 @@ export function emitMemoryYaml(scope: Scope, results: Result[] = runMemoryMatrix
     iterations: ITERS,
     generated: new Date().toISOString().slice(0, 10),
     source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
+    env: benchEnv(),
     libraries,
     operations: { parse: rowsFor(results, "parse"), stringify: rowsFor(results, "stringify") },
   };
