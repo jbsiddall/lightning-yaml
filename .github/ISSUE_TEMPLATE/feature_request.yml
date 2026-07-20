@@ -1,0 +1,25 @@
+name: Feature request / question
+description: Propose a change or ask about behavior.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Note the project's scope: **YAML 1.2.2 only — YAML 1.1 compatibility is a
+        non-goal**, and correctness is adjudicated by the spec (via the
+        yaml-test-suite), not by matching another library. Requests that would
+        pull the parser away from the 1.2.2 spec are unlikely to land.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The use case or problem behind the request.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What you'd like to see. Include a spec reference if it's about parse/dump behavior.
+    validations:
+      required: false

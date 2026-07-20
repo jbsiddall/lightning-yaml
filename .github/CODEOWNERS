@@ -1,0 +1,11 @@
+# Every change requests review from the maintainer. With branch protection's
+# "Require review from Code Owners" enabled, nothing merges without sign-off —
+# which matters most for the parser, the release pipeline, and CI config below.
+*                       @jbsiddall
+
+# Called out explicitly so a change here can never slip through on a rule that
+# someone later loosens for the catch-all above.
+/src/                   @jbsiddall
+/.github/               @jbsiddall
+/package.json           @jbsiddall
+/pnpm-lock.yaml         @jbsiddall

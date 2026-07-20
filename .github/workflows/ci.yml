@@ -10,6 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Every PR — including from strangers once this repo is public — runs this
+# workflow, so keep the token to the minimum both jobs need: read-only checkout.
+permissions:
+  contents: read
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
