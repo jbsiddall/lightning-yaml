@@ -1669,6 +1669,34 @@ function keyToString(node: unknown): string {
 // (and, rarely, a `!!set`/`!!omap` used as a key), never anchors/tags/comments.
 // ---------------------------------------------------------------------------
 
+const KEY_FLAG_COLLECTION = 1;
+const KEY_FLAG_ABSENT = 2;
+
+// Side metadata for a block-mapping object that is (rarely) used as ANOTHER
+// mapping's complex key. Once a collection key is flattened into a JS object
+// property string, that string is indistinguishable from a genuine scalar key,
+// and an omitted explicit value is indistinguishable from a real `null` — so we
+// record, per rendered key string, whether it was a COLLECTION (→ explicit `? `
+// prefix, and its already-composed text must NOT be re-quoted: re-quoting each
+// nesting level is O(2ⁿ) and eventually a RangeError — issue #15) and whether
+// its value was ABSENT (`? k` with no `: v` renders `{ k }`, not `{ k: null }`).
+// Keyed by object identity, so it never leaks into the value itself (the same
+// object is a plain `null`-valued map when used as a VALUE) and is GC'd with it.
+const complexKeyMeta = new WeakMap<object, Map<string, number>>();
+
+// A `!!binary` Uint8Array is scalar CONTENT, not a collection (mirrors
+// `isTabRestrictedCollection`); everything else object-typed is a collection.
+function isComplexKeyNodeCollection(node: unknown): boolean {
+  return node !== null && typeof node === "object" && !(node instanceof Uint8Array);
+}
+
+function markComplexKey(obj: object, key: string, isCollection: boolean, isAbsent: boolean): void {
+  const flags = (isCollection ? KEY_FLAG_COLLECTION : 0) | (isAbsent ? KEY_FLAG_ABSENT : 0);
+  let m = complexKeyMeta.get(obj);
+  if (m === undefined) complexKeyMeta.set(obj, (m = new Map()));
+  m.set(key, flags); // last-wins, matching duplicate-key value semantics
+}
+
 function stringifyKeyNode(node: object): string {
   if (Array.isArray(node)) return stringifyKeyItems(node.length, (i) => stringifyKeyValue(node[i]), "[", "]");
   if (node instanceof Set) {
@@ -1680,8 +1708,18 @@ function stringifyKeyNode(node: object): string {
     return stringifyKeyItems(entries.length, (i) => `${stringifyKeyScalar(keyToString(entries[i]![0]))}: ${stringifyKeyValue(entries[i]![1])}`, "{", "}");
   }
   if (node instanceof Uint8Array) return stringifyKeyNode(Array.from(node)); // best-effort, rare (a binary key)
-  const keys = Object.keys(node as Record<string, unknown>);
-  return stringifyKeyItems(keys.length, (i) => `${stringifyKeyScalar(keys[i]!)}: ${stringifyKeyValue((node as Record<string, unknown>)[keys[i]!])}`, "{", "}");
+  const obj = node as Record<string, unknown>;
+  const keys = Object.keys(obj);
+  const meta = complexKeyMeta.get(node);
+  return stringifyKeyItems(keys.length, (i) => {
+    const k = keys[i]!;
+    const flags = meta === undefined ? 0 : meta.get(k) ?? 0;
+    // A collection key's text was already composed once by a deeper
+    // `stringifyKeyNode` — emit it verbatim under `? `, never back through the
+    // scalar quoter (that is the O(2ⁿ) re-escape).
+    const keyText = (flags & KEY_FLAG_COLLECTION) !== 0 ? "? " + k : stringifyKeyScalar(k);
+    return (flags & KEY_FLAG_ABSENT) !== 0 ? keyText : `${keyText}: ${stringifyKeyValue(obj[k])}`;
+  }, "{", "}");
 }
 
 /** Shared flow-padding join for `stringifyKeyNode`'s array/object branches: `"[]"`/`"{}"` empty, else `"X item, item Y"`. */
@@ -3512,13 +3550,14 @@ function parseBlockSeq(col: number): unknown[] {
  * values are not interchangeable (an inline compact sequence is legal after
  * an explicit ':' but not an implicit one, calibrated against both oracles).
  */
-function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firstIsExplicit = false): Record<string, unknown> {
+function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firstIsExplicit = false, firstKeyIsCollection = false): Record<string, unknown> {
   if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
   const obj: Record<string, unknown> = {};
   registerPendingAnchor(obj); // before children (see parseFlowMap's identical call)
   let key = firstKey;
   let hasValue = firstHasValue;
   let isExplicit = firstIsExplicit;
+  let keyIsCollection = firstKeyIsCollection;
   // FastKeyMatch (M7) — see parseFlowMap for the shared scheme. `firstKey` was
   // already parsed by the caller (block maps enter with their first key in
   // hand), so it is only RECORDED here, never byte-matched; the loop fast-paths
@@ -3547,6 +3586,9 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
     } else {
       storeKey(obj, key, null); // explicit key with no ': value' at all
     }
+    // Record what's lost by flattening a complex key to a JS property (cold: only
+    // a collection key or an absent value); the hot implicit-key path is skipped.
+    if (keyIsCollection || !hasValue) markComplexKey(obj, key, keyIsCollection, !hasValue);
     if (pos >= len) break;
     const nc = pos - lineStart;
     // A col-0 document marker always ends the mapping — including when
@@ -3561,12 +3603,15 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
     if (src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) break; // sibling sequence, not our entry
     if (src.charCodeAt(pos) === QUESTION && isSpaceOrEolAt(pos + 1)) {
       pos++; // past '?'
-      key = internKey(keyToString(parseExplicitKey(col)));
+      const keyNode = parseExplicitKey(col);
+      key = internKey(keyToString(keyNode));
+      keyIsCollection = isComplexKeyNodeCollection(keyNode);
       hasValue = explicitValueFollows(col);
       isExplicit = true;
     } else {
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchBlockKey(ek) ? ek : parseBlockMapKey();
+      keyIsCollection = false;
       hasValue = true;
       isExplicit = false;
     }
@@ -3605,8 +3650,10 @@ function explicitValueFollows(col: number): boolean {
  */
 function parseBlockMapExplicit(col: number): Record<string, unknown> {
   pos++; // past '?'
-  const key = internKey(keyToString(parseExplicitKey(col)));
-  return parseBlockMap(col, key, explicitValueFollows(col), true);
+  const keyNode = parseExplicitKey(col);
+  const keyIsCollection = isComplexKeyNodeCollection(keyNode);
+  const key = internKey(keyToString(keyNode));
+  return parseBlockMap(col, key, explicitValueFollows(col), true, keyIsCollection);
 }
 
 /**
