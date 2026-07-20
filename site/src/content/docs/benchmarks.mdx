@@ -1,0 +1,383 @@
+---
+title: Benchmarks
+description: Speed, memory, YAML-test-suite conformance, and bundle size for Lightning YAML vs js-yaml, yaml, and JSON — latest run and full history.
+template: doc
+---
+
+import speedRaw from '../../data/benchmarks/speed.yaml?raw'
+import memoryRaw from '../../data/benchmarks/memory.yaml?raw'
+import conformanceRaw from '../../data/benchmarks/conformance.yaml?raw'
+import bundleSizeRaw from '../../data/benchmarks/bundle-size.yaml?raw'
+import ChartCard from '../../components/charts/ChartCard.astro'
+import {
+  newestRun,
+  parseRuns,
+  runDates,
+  xTicks,
+  pickWorkloads,
+  speedGroups,
+  memoryGroups,
+  seriesFor,
+  legendFor,
+  groupedBarSVG,
+  barSVG,
+  lineChartSVG,
+  speedTrend,
+  memoryTrend,
+  conformanceTrend,
+  bundleSizeTrend,
+  trendLegend,
+  speedBreakdownHtml,
+  memoryBreakdownHtml,
+  conformanceItems,
+  conformanceTableHtml,
+  bundleSizeItems,
+  bundleSizeTableHtml,
+  niceDomainMax,
+  formatRatio,
+  formatMB,
+  formatPercent,
+  formatKB,
+  LIBRARY_ORDER,
+  presentIn,
+} from '../../lib/benchmarks'
+
+export const speed = newestRun(speedRaw)
+export const speedRuns = parseRuns(speedRaw)
+export const speedTicks = xTicks(runDates(speedRuns))
+export const memory = newestRun(memoryRaw)
+export const memoryRuns = parseRuns(memoryRaw)
+export const memoryTicks = xTicks(runDates(memoryRuns))
+export const conformance = newestRun(conformanceRaw)
+export const conformanceRuns = parseRuns(conformanceRaw)
+export const bundleSize = newestRun(bundleSizeRaw)
+export const bundleSizeRuns = parseRuns(bundleSizeRaw)
+
+export const curated = ['small-records', 'medium-records', 'large-records', 'xlarge-records', 'yaml-rich-medium']
+export const memOrderIds = LIBRARY_ORDER.filter((id) => id !== 'js-yaml-tuned')
+export const speedTrendWl = 'large-records'
+export const memTrendWl = 'xlarge-records'
+
+export const parseBarWl = pickWorkloads(speed.operations.parse, curated)
+export const parseBarOrder = presentIn(LIBRARY_ORDER, parseBarWl)
+export const parseBarLegend = legendFor(speed.libraries, parseBarOrder)
+export const parseBarSvg = groupedBarSVG({
+  id: 'bar-parse-speed',
+  title: 'Parse time by workload (relative to fastest, per row)',
+  series: seriesFor(speed.libraries, parseBarOrder),
+  groups: speedGroups(parseBarWl),
+  unit: 'ns',
+  lowerIsBetter: true,
+  labelStyle: 'ratio-to-best',
+})
+export const parseSpeedTrendOrder = presentIn(LIBRARY_ORDER, pickWorkloads(speed.operations.parse, [speedTrendWl]))
+export const parseSpeedTrendSeries = speedTrend(speedRuns, 'parse', speedTrendWl, parseSpeedTrendOrder)
+export const parseSpeedTrendSvg = lineChartSVG({
+  id: 'trend-parse-speed',
+  title: `Parse time vs fastest over time — ${speedTrendWl}`,
+  series: parseSpeedTrendSeries,
+  ticks: speedTicks,
+  n: speedRuns.length,
+  yFormat: formatRatio,
+  higherIsBetter: false,
+  yScaleType: 'log',
+})
+export const parseSpeedTable = speedBreakdownHtml(speed.operations.parse, speed.libraries, presentIn(LIBRARY_ORDER, speed.operations.parse))
+
+export const parseMemWl = pickWorkloads(memory.operations.parse, curated)
+export const parseMemOrder = presentIn(memOrderIds, parseMemWl)
+export const parseMemLegend = legendFor(memory.libraries, parseMemOrder)
+export const parseMemBarSvg = groupedBarSVG({
+  id: 'bar-parse-memory',
+  title: 'Peak memory by workload (parse, resident set size)',
+  series: seriesFor(memory.libraries, parseMemOrder),
+  groups: memoryGroups(parseMemWl),
+  unit: 'MB',
+  lowerIsBetter: true,
+})
+export const parseMemTrendOrder = presentIn(memOrderIds, pickWorkloads(memory.operations.parse, [memTrendWl]))
+export const parseMemTrendSeries = memoryTrend(memoryRuns, 'parse', memTrendWl, parseMemTrendOrder)
+export const parseMemTrendSvg = lineChartSVG({
+  id: 'trend-parse-memory',
+  title: `Peak memory over time — ${memTrendWl}`,
+  series: parseMemTrendSeries,
+  ticks: memoryTicks,
+  n: memoryRuns.length,
+  yFormat: formatMB,
+  higherIsBetter: false,
+})
+export const parseMemTable = memoryBreakdownHtml(memory.operations.parse, memory.libraries, presentIn(memOrderIds, memory.operations.parse))
+
+export const dumpBarWl = pickWorkloads(speed.operations.stringify, curated)
+export const dumpBarOrder = presentIn(LIBRARY_ORDER, dumpBarWl)
+export const dumpBarLegend = legendFor(speed.libraries, dumpBarOrder)
+export const dumpBarSvg = groupedBarSVG({
+  id: 'bar-dump-speed',
+  title: 'Stringify time by workload (relative to fastest, per row)',
+  series: seriesFor(speed.libraries, dumpBarOrder),
+  groups: speedGroups(dumpBarWl),
+  unit: 'ns',
+  lowerIsBetter: true,
+  labelStyle: 'ratio-to-best',
+})
+export const dumpSpeedTrendOrder = presentIn(LIBRARY_ORDER, pickWorkloads(speed.operations.stringify, [speedTrendWl]))
+export const dumpSpeedTrendSeries = speedTrend(speedRuns, 'stringify', speedTrendWl, dumpSpeedTrendOrder)
+export const dumpSpeedTrendSvg = lineChartSVG({
+  id: 'trend-dump-speed',
+  title: `Stringify time vs fastest over time — ${speedTrendWl}`,
+  series: dumpSpeedTrendSeries,
+  ticks: speedTicks,
+  n: speedRuns.length,
+  yFormat: formatRatio,
+  higherIsBetter: false,
+  yScaleType: 'log',
+})
+export const dumpSpeedTable = speedBreakdownHtml(speed.operations.stringify, speed.libraries, presentIn(LIBRARY_ORDER, speed.operations.stringify))
+
+export const dumpMemWl = pickWorkloads(memory.operations.stringify, curated)
+export const dumpMemOrder = presentIn(memOrderIds, dumpMemWl)
+export const dumpMemLegend = legendFor(memory.libraries, dumpMemOrder)
+export const dumpMemBarSvg = groupedBarSVG({
+  id: 'bar-dump-memory',
+  title: 'Peak memory by workload (stringify, resident set size)',
+  series: seriesFor(memory.libraries, dumpMemOrder),
+  groups: memoryGroups(dumpMemWl),
+  unit: 'MB',
+  lowerIsBetter: true,
+})
+export const dumpMemTrendOrder = presentIn(memOrderIds, pickWorkloads(memory.operations.stringify, [memTrendWl]))
+export const dumpMemTrendSeries = memoryTrend(memoryRuns, 'stringify', memTrendWl, dumpMemTrendOrder)
+export const dumpMemTrendSvg = lineChartSVG({
+  id: 'trend-dump-memory',
+  title: `Peak memory over time — ${memTrendWl}`,
+  series: dumpMemTrendSeries,
+  ticks: memoryTicks,
+  n: memoryRuns.length,
+  yFormat: formatMB,
+  higherIsBetter: false,
+})
+export const dumpMemTable = memoryBreakdownHtml(memory.operations.stringify, memory.libraries, presentIn(memOrderIds, memory.operations.stringify))
+
+export const selfConf = conformance.results.find((r) => r.self)
+export const negClause = selfConf.negative_passed ? ` — including all ${selfConf.negative_passed} negative (should-fail) cases` : ''
+export const conformanceSvg = barSVG({
+  id: 'bar-conformance',
+  title: 'YAML test-suite conformance (pass rate)',
+  items: conformanceItems(conformance.results),
+  higherIsBetter: true,
+})
+export const confOrder = LIBRARY_ORDER.filter((id) => conformance.results.some((r) => r.id === id))
+export const confTrendSeries = conformanceTrend(conformanceRuns, confOrder)
+export const confScores = confTrendSeries.flatMap((s) => s.points.map((p) => p.y))
+export const confDomainMin = confScores.length ? Math.max(0, Math.floor((Math.min(...confScores) - 2) / 5) * 5) : 90
+export const confTrendSvg = lineChartSVG({
+  id: 'trend-conformance',
+  title: 'Conformance pass rate over time',
+  series: confTrendSeries,
+  ticks: xTicks(runDates(conformanceRuns)),
+  n: conformanceRuns.length,
+  yFormat: formatPercent,
+  higherIsBetter: true,
+  domainMin: confDomainMin,
+  domainMax: 100,
+})
+export const conformanceTable = conformanceTableHtml(conformance.results)
+
+export const bundleSizeBundlerCount = Object.keys(bundleSize.env.bundlers).length
+export const bundleSizeChartItems = bundleSizeItems(bundleSize)
+export const bundleSizeSvg = barSVG({
+  id: 'bar-bundle-size',
+  title: 'Bundle size (browser, minified + gzip, smallest across bundlers)',
+  items: bundleSizeChartItems,
+  higherIsBetter: false,
+  domainMax: niceDomainMax(Math.max(...bundleSizeChartItems.map((it) => it.value)), 5 * 1024),
+  formatValue: formatKB,
+  formatTick: formatKB,
+})
+export const bundleOrder = LIBRARY_ORDER.filter((id) => bundleSize.libraries.some((l) => l.id === id))
+export const bundleTrendSeries = bundleSizeTrend(bundleSizeRuns, bundleOrder)
+export const bundleTrendMax = Math.max(...bundleTrendSeries.flatMap((s) => s.points.map((p) => p.y)), 1)
+export const bundleTrendSvg = lineChartSVG({
+  id: 'trend-bundle-size',
+  title: 'Bundle size over time (smallest gzip across bundlers)',
+  series: bundleTrendSeries,
+  ticks: xTicks(runDates(bundleSizeRuns)),
+  n: bundleSizeRuns.length,
+  yFormat: formatKB,
+  higherIsBetter: false,
+  domainMax: niceDomainMax(bundleTrendMax, 5 * 1024),
+})
+export const bundleSizeTable = bundleSizeTableHtml(bundleSize)
+
+export const provenanceLine = `Measured on ${speed.env.cpu} (${speed.env.clk}) · ${speed.env.runtime} · generated ${speed.generated} · source ${speed.source}`
+
+Speed, memory, spec-conformance, and bundle size for **Lightning YAML** against the other
+parsers this repo benchmarks itself against: `js-yaml`, `yaml` (eemeli), and the `JSON`
+baseline where a workload is JSON-shaped enough for it to compete. Use the "On this page"
+panel to jump between sections; each metric shows the **latest run**, the **trend over
+time**, and a **full breakdown** by workload.
+
+<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.82em">{provenanceLine}</p>
+
+How to read these:
+
+- **Bar charts (latest run)** scale each workload row to its own slowest parser, so compare
+  bars *within* a row, not across rows; the label is that library's value relative to the
+  fastest in the row (`×`).
+- **Trend charts (over time)** render one document per published run, oldest to newest.
+  Absolute nanoseconds drift with CI-runner noise, so the **speed** trends plot a
+  machine-invariant ratio-to-fastest on a **log axis**; memory, conformance, and bundle size
+  are stable, so they trend as absolute values.
+- Every chart is a static image — inline SVG rendered at build time, no client JavaScript.
+
+These numbers track real runs, not a hand-captured snapshot: CI publishes each run to the
+orphan [`benchmark-data`](https://github.com/jbsiddall/lightning-yaml/tree/benchmark-data)
+branch, and the deploy workflow overlays that history at build time — the bar charts render
+the newest published document per suite, the trend charts the full history. To reproduce them
+yourself, see [running the benchmarks & tests](/research/methodology/#running-the-benchmarks--tests).
+
+## Parse
+
+Turning YAML text into JavaScript values — the hot path for most consumers.
+
+### Parse speed
+
+<ChartCard
+  heading="Parse time by workload"
+  note="Lower is better. Each workload is scaled to its own slowest parser; labels show time relative to the fastest parser in that row (×). Exact avg ns per parse() call is in the breakdown below."
+  legend={parseBarLegend}
+  svg={parseBarSvg}
+/>
+
+<ChartCard
+  heading={`Parse time vs fastest, run over run — ${speedTrendWl}`}
+  note="Lower is better, log scale. Each parser's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line would mean a regression."
+  legend={trendLegend(parseSpeedTrendSeries)}
+  svg={parseSpeedTrendSvg}
+/>
+
+**Full breakdown** — every workload, avg ns per `parse()` call (`—` where a library can't read that workload):
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={parseSpeedTable} />
+
+### Parse memory
+
+<ChartCard
+  heading="Peak memory by workload (parse)"
+  note="Lower is better. Whole-process peak resident set (process.resourceUsage().maxRSS) in isolated child processes, fixed at 25 iterations. Each workload is scaled to its own heaviest parser."
+  legend={parseMemLegend}
+  svg={parseMemBarSvg}
+/>
+
+<ChartCard
+  heading={`Peak memory, run over run — ${memTrendWl}`}
+  note="Lower is better. Absolute peak resident set size (MB) — peak RSS is the stable memory figure, so unlike speed it is shown absolute. One document per published run, oldest to newest."
+  legend={trendLegend(parseMemTrendSeries)}
+  svg={parseMemTrendSvg}
+/>
+
+**Full breakdown** — every workload, peak RSS (MB):
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={parseMemTable} />
+
+## Stringify (dump)
+
+Serializing JavaScript values back to YAML text.
+
+### Stringify speed
+
+<ChartCard
+  heading="Stringify time by workload"
+  note="Lower is better. Each workload is scaled to its own slowest dumper; labels show time relative to the fastest in that row (×). Exact avg ns per stringify() call is in the breakdown below."
+  legend={dumpBarLegend}
+  svg={dumpBarSvg}
+/>
+
+The **js-yaml (tuned)** series is the same library dumping with the lean `CORE` schema
+instead of its heavyweight default (YAML 1.1 plus timestamp/binary/omap/set). On
+JSON-shaped data that runs faster and round-trips identically — so it, not the default, is
+the fair yardstick for how fast js-yaml *can* stringify this data. It appears only where the
+data is JSON-shaped; the rich workloads genuinely need the full schema, where the "tuned"
+config would be identical to the default.
+
+<ChartCard
+  heading={`Stringify time vs fastest, run over run — ${speedTrendWl}`}
+  note="Lower is better, log scale. Each dumper's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line would mean a regression."
+  legend={trendLegend(dumpSpeedTrendSeries)}
+  svg={dumpSpeedTrendSvg}
+/>
+
+**Full breakdown** — every workload, avg ns per `stringify()` call (`—` marks a workload a library can't represent):
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={dumpSpeedTable} />
+
+### Stringify memory
+
+<ChartCard
+  heading="Peak memory by workload (stringify)"
+  note="Lower is better. Whole-process peak resident set while dumping, in isolated child processes, fixed at 25 iterations. Each workload is scaled to its own heaviest dumper."
+  legend={dumpMemLegend}
+  svg={dumpMemBarSvg}
+/>
+
+<ChartCard
+  heading={`Peak memory, run over run — ${memTrendWl}`}
+  note="Lower is better. Absolute peak resident set size (MB), one document per published run, oldest to newest."
+  legend={trendLegend(dumpMemTrendSeries)}
+  svg={dumpMemTrendSvg}
+/>
+
+**Full breakdown** — every workload, peak RSS (MB):
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={dumpMemTable} />
+
+## Conformance
+
+Pass rate across the official [yaml-test-suite](https://github.com/yaml/yaml-test-suite) — the
+YAML 1.2 spec operationalized as executable cases — a property of the parser, not a per-workload
+measurement. Higher is better.
+
+<ChartCard
+  heading="YAML test-suite conformance"
+  note={`Higher is better. Pass rate across ${conformance.suite_total} cases from the official yaml-test-suite.`}
+  svg={conformanceSvg}
+/>
+
+Lightning YAML passes **{selfConf.score}%** of the suite{negClause}; the per-library standing is in
+the chart above and the table below. Merge keys (`<<`), absent from the test corpus, are the only
+unimplemented construct.
+
+<ChartCard
+  heading="Conformance pass rate, run over run"
+  note="Higher is better. Pass rate (%) per library, one document per published run, oldest to newest. The y-axis is zoomed to the labelled range where the parsers sit so run-to-run movement is visible."
+  legend={trendLegend(confTrendSeries)}
+  svg={confTrendSvg}
+/>
+
+**Full breakdown** — {conformance.suite_total} cases, per library:
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={conformanceTable} />
+
+## Bundle size
+
+How many kilobytes each library adds to a browser bundle when an app imports only `parse` +
+`stringify` and ships it minified — a whole-library figure, not split by operation. Measured
+with `js-yaml`, `yaml` (eemeli), and `lightning-yaml`, tree-shaken and gzipped the same way a
+real app would ship them. Sizes are deterministic (not machine-dependent). Lower is better.
+
+<ChartCard
+  heading="Bundle size (browser)"
+  note={`Lower is better. Minified + gzipped, the smallest result across ${bundleSizeBundlerCount} bundlers (${bundleSize.tool}) for each library — parse + stringify only, tree-shaken.`}
+  svg={bundleSizeSvg}
+/>
+
+**Full breakdown** — every bundler, gzip with the raw minified size alongside:
+
+<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={bundleSizeTable} />
+
+<ChartCard
+  heading="Bundle size, run over run"
+  note="Lower is better. Smallest gzip across bundlers (KB) per library, one document per published run, oldest to newest."
+  legend={trendLegend(bundleTrendSeries)}
+  svg={bundleTrendSvg}
+/>

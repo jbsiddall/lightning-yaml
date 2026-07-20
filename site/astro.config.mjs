@@ -48,17 +48,7 @@ export default defineConfig({
         // it must be nested inside `items`.
         { label: 'Guides', items: [{ autogenerate: { directory: 'guides' } }] },
         { label: 'Playground', link: '/playground/' },
-        {
-          label: 'Benchmarks',
-          items: [
-            { label: 'Overview', link: '/benchmarks/' },
-            { label: 'Parse time', link: '/benchmarks/parse/' },
-            { label: 'Stringify time', link: '/benchmarks/stringify/' },
-            { label: 'Peak memory', link: '/benchmarks/memory/' },
-            { label: 'Conformance', link: '/benchmarks/conformance/' },
-            { label: 'Bundle size', link: '/benchmarks/bundle-size/' },
-          ],
-        },
+        { label: 'Benchmarks', link: '/benchmarks/' },
         { label: 'Research', items: [{ autogenerate: { directory: 'research' } }] },
         typeDocSidebarGroup,
       ],

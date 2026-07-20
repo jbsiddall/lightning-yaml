@@ -270,6 +270,10 @@ const TH_COL_STYLE = 'padding:0.4rem 0.65rem;border-bottom:1px solid var(--sl-co
   'text-align:right;white-space:nowrap;color:var(--sl-color-gray-3);font-weight:600';
 const TH_COL_FIRST_STYLE = TH_COL_STYLE.replace('text-align:right', 'text-align:left');
 const TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:0.85rem';
+// Category sub-header row inside a grouped breakdown table.
+const TH_GROUP_STYLE = 'padding:0.7rem 0.65rem 0.3rem;border-bottom:1px solid var(--sl-color-hairline);' +
+  'text-align:left;white-space:nowrap;font-family:var(--sl-font-mono);color:var(--sl-color-gray-3);' +
+  'font-weight:600;font-size:0.82em;letter-spacing:0.02em';
 
 /**
  * The "table view" twin for a speed chart (parse OR stringify — every workload,
@@ -348,6 +352,65 @@ export function bundleSizeTableHtml(doc: BundleSizeDoc): string {
   );
 }
 
+/**
+ * Breakdown table for a speed OR memory operation: every workload, grouped into
+ * WORKLOAD_CATEGORIES under a labelled section row. `cell` turns a per-library
+ * stat into its display string (avg ns for speed, peak RSS MB for memory); a
+ * missing library renders `—`. Built as a string for `set:html`, same as the
+ * other table helpers. Kept generic so speed and memory share one renderer.
+ */
+export function groupedBreakdownTableHtml<T extends { workload: string; values: Partial<Record<LibraryId, unknown>> }>(
+  workloads: T[],
+  libraries: LibraryMeta[],
+  order: readonly LibraryId[],
+  cell: (stat: unknown) => string,
+): string {
+  const byName = new Map(workloads.map((w) => [w.workload, w] as const));
+  const head = order
+    .map((id) => `<th scope="col" style="${TH_COL_STYLE}">${escapeXml(libraryLabel(libraries, id))}</th>`)
+    .join('');
+  const colSpan = order.length + 1;
+  const seen = new Set<string>();
+  const rowFor = (w: T): string => {
+    const cells = order
+      .map((id) => `<td style="${TD_STYLE}">${w.values[id] != null ? escapeXml(cell(w.values[id])) : '—'}</td>`)
+      .join('');
+    return `<tr><th scope="row" style="${TH_ROW_STYLE}">${escapeXml(w.workload)}</th>${cells}</tr>`;
+  };
+  const groupRow = (label: string): string =>
+    `<tr><th scope="colgroup" colspan="${colSpan}" style="${TH_GROUP_STYLE}">${escapeXml(label)}</th></tr>`;
+
+  const sections = WORKLOAD_CATEGORIES.map((cat) => {
+    const rows = cat.workloads
+      .map((name) => byName.get(name))
+      .filter((w): w is T => Boolean(w))
+      .map((w) => {
+        seen.add(w.workload);
+        return rowFor(w);
+      })
+      .join('');
+    return rows ? groupRow(cat.label) + rows : '';
+  }).join('');
+
+  const leftover = workloads.filter((w) => !seen.has(w.workload));
+  const leftoverSection = leftover.length ? groupRow('Other') + leftover.map(rowFor).join('') : '';
+
+  return (
+    `<table style="${TABLE_STYLE}"><thead><tr><th scope="col" style="${TH_COL_FIRST_STYLE}">Workload</th>${head}</tr></thead>` +
+    `<tbody>${sections}${leftoverSection}</tbody></table>`
+  );
+}
+
+/** Grouped breakdown for a speed operation — avg ns per iteration. */
+export function speedBreakdownHtml(workloads: SpeedWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
+  return groupedBreakdownTableHtml(workloads, libraries, order, (s) => formatNs((s as SpeedStat).avg));
+}
+
+/** Grouped breakdown for a memory operation — peak RSS in MB. */
+export function memoryBreakdownHtml(workloads: MemoryWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
+  return groupedBreakdownTableHtml(workloads, libraries, order, (s) => formatMB((s as MemoryStat).peak_rss));
+}
+
 // ---------------------------------------------------------------------------
 // Brand palette — one color per library, reused identically across every
 // chart on the page so identity ("violet = lightning-yaml") only has to be
@@ -376,6 +439,28 @@ export const LIBRARY_ORDER: readonly LibraryId[] = [
   'js-yaml-tuned',
   'yaml',
   'lightning-yaml',
+];
+
+/**
+ * Workload → display category for the grouped breakdown tables. Array order is
+ * section order; the names mirror the fixture categories in
+ * bench/fixtures/datasets.ts (JSON-shaped records/nested, plain block YAML, and
+ * rich YAML with anchors + `!!binary`). Any workload not listed still renders,
+ * in a trailing "Other" group (see groupedBreakdownTableHtml).
+ */
+export const WORKLOAD_CATEGORIES: ReadonlyArray<{ label: string; workloads: readonly string[] }> = [
+  {
+    label: 'JSON-shaped (records & nested)',
+    workloads: ['small-records', 'medium-records', 'large-records', 'xlarge-records', 'medium-nested', 'large-nested'],
+  },
+  {
+    label: 'Plain block YAML',
+    workloads: ['yaml-plain-small-records', 'yaml-plain-medium-records', 'yaml-plain-large-records', 'yaml-plain-medium-nested'],
+  },
+  {
+    label: 'Rich YAML (anchors + !!binary)',
+    workloads: ['yaml-rich-small', 'yaml-rich-medium', 'yaml-rich-large'],
+  },
 ];
 
 /**
@@ -835,14 +920,19 @@ export function speedTrend(
     .filter((s) => s.points.length > 0);
 }
 
-/** Memory trend for one workload: y = absolute peak RSS (MB) — the repo's stable memory figure. */
-export function memoryTrend(runs: MemoryDoc[], workload: string, order: readonly LibraryId[]): TrendSeries[] {
+/** Memory trend for one operation + workload: y = absolute peak RSS (MB) — the repo's stable memory figure. */
+export function memoryTrend(
+  runs: MemoryDoc[],
+  op: 'parse' | 'stringify',
+  workload: string,
+  order: readonly LibraryId[],
+): TrendSeries[] {
   const labels = runs.at(-1)?.libraries ?? [];
   return order
     .map((id) => {
       const points: TrendPoint[] = [];
       runs.forEach((run, i) => {
-        const stat = run.operations?.parse?.find((x) => x.workload === workload)?.values[id];
+        const stat = run.operations?.[op]?.find((x) => x.workload === workload)?.values[id];
         if (stat && typeof stat.peak_rss === 'number') points.push({ i, y: stat.peak_rss });
       });
       return { ...trendMeta(id, libraryLabel(labels, id)), points };
