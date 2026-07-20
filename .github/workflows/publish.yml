@@ -16,7 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # Enables npm provenance (OIDC-signed attestation of build origin).
+      # OIDC: authenticates the publish via npm Trusted Publishing (no stored
+      # NPM_TOKEN) and signs the provenance attestation of build origin.
       id-token: write
     # Optional: a maintainer may attach a protected GitHub `environment:` here
     # (e.g. `environment: npm-publish`) to require manual approval before this
@@ -34,6 +35,11 @@ jobs:
           node-version: 20
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
+
+      # Trusted Publishing (OIDC) needs npm >= 11.5.1; the npm bundled with
+      # Node 20 predates it, so upgrade before the publish step runs.
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -58,8 +64,10 @@ jobs:
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # Auth is via OIDC Trusted Publishing — configured on npmjs.com for this
+      # repo + this workflow filename — so there is no NODE_AUTH_TOKEN. If the
+      # trusted publisher isn't configured yet, this step fails; configure it
+      # before merging (see the PR that introduced this).
       - name: Publish to npm
         if: steps.guard.outputs.should_publish == 'true'
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
