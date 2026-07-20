@@ -217,13 +217,16 @@ export function emitMemoryYaml(scope: Scope, results: Result[] = runMemoryMatrix
     .filter((c) => usedNames.has(c.name))
     .map(libraryMeta);
 
+  const now = new Date();
   const doc = {
     suite: "memory" as const,
     scope: scopeLabel(scope),
     units: { peak_rss: "MB", heap_delta: "KB" },
     lower_is_better: true,
     iterations: ITERS,
-    generated: new Date().toISOString().slice(0, 10),
+    schema_version: 1,
+    generated: now.toISOString().slice(0, 10),
+    generated_at: now.toISOString(),
     source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
     libraries,
     operations: { parse: rowsFor(results, "parse"), stringify: rowsFor(results, "stringify") },

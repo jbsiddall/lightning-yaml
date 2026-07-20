@@ -7,19 +7,26 @@
 #   heap_delta  — per-run V8 heap allocation delta, KB (v8.getHeapStatistics(); may be negative)
 #
 # Both: lower is better. Fixed at 25 iterations (BENCH_ITERS) for comparability.
+#
+# schema_version pins the doc shape for validation (bench/schemas.ts). Every
+# library carries the `version` it was measured at (the installed package;
+# lightning-yaml's own release). Emitted runs additionally record `generated_at`
+# — a full ISO-8601 timestamp beside the date-only `generated` — left out of
+# these hand-written samples so no fabricated time ships with them.
 ---
 suite: memory
 scope: competition
 units: { peak_rss: MB, heap_delta: KB }
 lower_is_better: true
 iterations: 25
+schema_version: 1
 generated: "2026-07-13"
 source: "README.md@6b0c56e"
 libraries:
   - { id: JSON,           label: JSON,            baseline: true }
-  - { id: js-yaml,        label: js-yaml }
-  - { id: yaml,           label: yaml (eemeli) }
-  - { id: lightning-yaml, label: Lightning YAML,  self: true }
+  - { id: js-yaml,        label: js-yaml,         version: "5.2.1" }
+  - { id: yaml,           label: yaml (eemeli),   version: "2.9.0" }
+  - { id: lightning-yaml, label: Lightning YAML,  self: true, version: "0.1.1" }
 operations:
   parse:
     - workload: small-records

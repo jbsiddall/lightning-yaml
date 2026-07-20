@@ -22,7 +22,6 @@
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { load as jsYamlLoadSingle, loadAll as jsYamlLoadAll } from "js-yaml";
@@ -266,8 +265,6 @@ function main(): void {
   // ---------------------------------------------------------------------------
 
   try {
-    const require = createRequire(import.meta.url);
-
     const results = CANDIDATES.map((candidate) => {
       const t = tallies.get(candidate.name)!;
       const passed = t.positivePassed + t.negativePassed;
@@ -278,9 +275,9 @@ function main(): void {
         id: meta.id,
         label: meta.label,
         ...(meta.self ? { self: true } : {}),
-        ...(candidate.name === "js-yaml"
-          ? { version: (require("js-yaml/package.json") as { version: string }).version }
-          : {}),
+        // Version competitors so a run names the build it scored; ours is pinned
+        // by the run's own `source` commit, not a published dep version.
+        ...(meta.version && !meta.self ? { version: meta.version } : {}),
         passed,
         total,
         score,
@@ -290,13 +287,16 @@ function main(): void {
       };
     }).sort((a, b) => b.score - a.score);
 
+    const now = new Date();
     const doc = {
       suite: "conformance" as const,
       scope: "competition" as const,
       suite_total: scored.length,
       unit: "%",
       higher_is_better: true,
-      generated: new Date().toISOString().slice(0, 10),
+      schema_version: 1,
+      generated: now.toISOString().slice(0, 10),
+      generated_at: now.toISOString(),
       source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
       results,
     };

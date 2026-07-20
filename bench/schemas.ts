@@ -1,0 +1,149 @@
+/**
+ * Zod schemas for the four benchmark YAML doc types — the single validation
+ * source of truth shared by `bench/validate.ts` (the CLI runner + CI gates).
+ *
+ * These are written against the REAL append-only `benchmark-data` streams, not
+ * the site's TS interfaces: the interfaces omit conformance's
+ * `negative_passed`/`negative_total`, which every historical doc carries. The
+ * streams also predate the newer provenance fields and encode real drift, so:
+ *
+ *  - `schema_version`, `generated_at`, and every library `version` are OPTIONAL
+ *    (older docs lack them; only fresh emitter output sets them);
+ *  - `source`/`generated` are `z.coerce.string()` — a bare all-decimal git SHA
+ *    parses as a NUMBER in YAML, so coercion keeps such a doc valid;
+ *  - `values` maps are PARTIAL records (the library roster grows over time —
+ *    js-yaml-tuned only appears from the 4th run onward — and any given workload
+ *    only lists the libraries it ran), so no particular library is ever required;
+ *  - objects are plain (unknown keys are stripped, never rejected) so an
+ *    as-yet-unmapped historical field can never turn a real run red.
+ */
+
+import { z } from "zod";
+
+/** The complete library-id space across every suite and every historical doc. */
+export const LIBRARY_IDS = ["JSON", "js-yaml", "js-yaml-tuned", "yaml", "lightning-yaml"] as const;
+const LibraryIdSchema = z.enum(LIBRARY_IDS);
+
+/** Identity + provenance for one library, as it appears in a `libraries[]` catalog. */
+export const LibraryMetaSchema = z.object({
+  id: LibraryIdSchema,
+  label: z.string(),
+  baseline: z.boolean().optional(),
+  self: z.boolean().optional(),
+  version: z.string().optional(),
+});
+
+/** Provenance/scalar fields identical across all four suites. */
+const ProvenanceBase = z.object({
+  scope: z.string(),
+  schema_version: z.number().optional(),
+  generated: z.coerce.string(),
+  generated_at: z.string().optional(),
+  source: z.coerce.string(),
+});
+
+/** A per-workload row: a name plus a partial library-keyed map of that stat. */
+function workloadSchema<T extends z.ZodType>(stat: T) {
+  return z.object({
+    workload: z.string(),
+    values: z.partialRecord(LibraryIdSchema, stat),
+  });
+}
+
+const SpeedStatSchema = z.object({
+  avg: z.number().nonnegative(),
+  min: z.number().nonnegative(),
+  p75: z.number().nonnegative(),
+  p99: z.number().nonnegative(),
+  max: z.number().nonnegative(),
+});
+
+const MemoryStatSchema = z.object({
+  peak_rss: z.number().nonnegative(),
+  heap_delta: z.number(), // per-run heap delta; legitimately negative when a run frees more than it keeps.
+});
+
+const BundleSizeValueSchema = z.object({
+  min: z.number().nonnegative().optional(),
+  gzip: z.number().nonnegative().optional(),
+  brotli: z.number().nonnegative().optional(),
+  error: z.string().optional(), // reserved for a bundler failure; never observed in real data yet.
+});
+
+export const SpeedDocSchema = ProvenanceBase.extend({
+  suite: z.literal("speed"),
+  tool: z.string(),
+  unit: z.string(),
+  lower_is_better: z.boolean(),
+  env: z.object({ clk: z.string(), cpu: z.string(), runtime: z.string() }),
+  libraries: z.array(LibraryMetaSchema).min(1),
+  operations: z.object({
+    parse: z.array(workloadSchema(SpeedStatSchema)),
+    stringify: z.array(workloadSchema(SpeedStatSchema)),
+  }),
+});
+
+export const MemoryDocSchema = ProvenanceBase.extend({
+  suite: z.literal("memory"),
+  units: z.object({ peak_rss: z.string(), heap_delta: z.string() }),
+  lower_is_better: z.boolean(),
+  iterations: z.number().nonnegative(),
+  libraries: z.array(LibraryMetaSchema).min(1),
+  operations: z.object({
+    parse: z.array(workloadSchema(MemoryStatSchema)),
+    stringify: z.array(workloadSchema(MemoryStatSchema)),
+  }),
+});
+
+/**
+ * A conformance result IS a LibraryMeta plus its scores — the site's interface
+ * declares them as separate shapes, but the real docs inline id/label/self/version
+ * onto each row, so making the reuse explicit keeps them from drifting apart.
+ * `negative_*` ride only on the self row; `version` only on competitors.
+ */
+export const ConformanceResultSchema = LibraryMetaSchema.extend({
+  passed: z.number().nonnegative(),
+  total: z.number().nonnegative(),
+  score: z.number().nonnegative(),
+  negative_passed: z.number().nonnegative().optional(),
+  negative_total: z.number().nonnegative().optional(),
+});
+
+export const ConformanceDocSchema = ProvenanceBase.extend({
+  suite: z.literal("conformance"),
+  suite_total: z.number().nonnegative(),
+  unit: z.string(),
+  higher_is_better: z.boolean(),
+  results: z.array(ConformanceResultSchema).min(1),
+});
+
+const BundleSizeResultSchema = z.object({
+  bundler: z.string(),
+  rust: z.boolean(),
+  values: z.partialRecord(LibraryIdSchema, BundleSizeValueSchema),
+});
+
+export const BundleSizeDocSchema = ProvenanceBase.extend({
+  suite: z.literal("bundle-size"),
+  tool: z.string(),
+  units: z.object({ min: z.string(), gzip: z.string(), brotli: z.string() }),
+  lower_is_better: z.boolean(),
+  env: z.object({ bundlers: z.record(z.string(), z.string()) }),
+  libraries: z.array(LibraryMetaSchema).min(1),
+  results: z.array(BundleSizeResultSchema).min(1),
+});
+
+export type SuiteName = "speed" | "memory" | "conformance" | "bundle-size";
+
+/** Schema per suite — key the doc's own `suite` field into this to validate it. */
+export const SUITE_SCHEMAS = {
+  speed: SpeedDocSchema,
+  memory: MemoryDocSchema,
+  conformance: ConformanceDocSchema,
+  "bundle-size": BundleSizeDocSchema,
+} satisfies Record<SuiteName, z.ZodType>;
+
+export type SpeedDoc = z.infer<typeof SpeedDocSchema>;
+export type MemoryDoc = z.infer<typeof MemoryDocSchema>;
+export type ConformanceDoc = z.infer<typeof ConformanceDocSchema>;
+export type BundleSizeDoc = z.infer<typeof BundleSizeDocSchema>;

@@ -195,13 +195,16 @@ function libraryDoc(lib) {
  * written in), not the library, so it's hoisted onto the row rather than repeated per value.
  */
 function writeBundleSizeYaml(results, active, versions) {
+  const now = new Date();
   const doc = {
     suite: "bundle-size",
     scope: "competition",
     tool: active.map((b) => b.name).join(", "),
     units: { min: "bytes", gzip: "bytes", brotli: "bytes" },
     lower_is_better: true,
-    generated: new Date().toISOString().slice(0, 10),
+    schema_version: 1,
+    generated: now.toISOString().slice(0, 10),
+    generated_at: now.toISOString(),
     source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
     env: { bundlers: Object.fromEntries(active.map((b) => [b.name, versions[b.name] ?? "?"])) },
     libraries: LIBRARIES.map(libraryDoc),

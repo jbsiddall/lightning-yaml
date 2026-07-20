@@ -7,12 +7,19 @@
 # renders the newest by default; older documents power trend charts.
 #
 # Canonical unit: nanoseconds per iteration (ns/iter). Lower is better.
+#
+# schema_version pins the doc shape for validation (bench/schemas.ts). Every
+# library carries the `version` it was measured at (the installed package;
+# lightning-yaml's own release). Emitted runs additionally record `generated_at`
+# — a full ISO-8601 timestamp beside the date-only `generated` — left out of
+# these hand-written samples so no fabricated time ships with them.
 ---
 suite: speed
 scope: competition            # produced by `pnpm bench:competition` (all parsers)
 tool: mitata
 unit: ns/iter
 lower_is_better: true
+schema_version: 1
 generated: "2026-07-13"
 source: "README.md@6b0c56e"
 env:
@@ -21,9 +28,9 @@ env:
   runtime: "node 22.22.2 (x64-linux)"
 libraries:
   - { id: JSON,           label: JSON,            baseline: true }
-  - { id: js-yaml,        label: js-yaml }
-  - { id: yaml,           label: yaml (eemeli) }
-  - { id: lightning-yaml, label: Lightning YAML,  self: true }
+  - { id: js-yaml,        label: js-yaml,         version: "5.2.1" }
+  - { id: yaml,           label: yaml (eemeli),   version: "2.9.0" }
+  - { id: lightning-yaml, label: Lightning YAML,  self: true, version: "0.1.1" }
 operations:
   parse:
     - workload: small-records

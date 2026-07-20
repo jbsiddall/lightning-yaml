@@ -66,6 +66,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm bench:bundlesize    # -> results/benchmarks/bundle-size.yaml
 
+      # Catch a malformed emitter run before it pollutes the append-only branch.
+      # validate.ts skips any suite this run didn't produce (best-effort, like the
+      # producers above), so a partial run still validates whatever it wrote.
+      - name: Validate emitted benchmark YAML
+        if: ${{ !cancelled() }}
+        run: node --import tsx bench/validate.ts results/benchmarks/*.yaml
+
       - name: Append each produced run as a new document on benchmark-data
         if: ${{ !cancelled() }}
         working-directory: .benchmark-data
@@ -85,6 +92,14 @@ jobs:
           # No-op guard: nothing changed (e.g. every source missing) → succeed quietly.
           git diff --cached --quiet && { echo "nothing to append"; exit 0; }
           git commit -m "bench: run for ${GITHUB_SHA::7} [skip ci]"
+
+      # Re-validate the WHOLE updated streams (all history + the just-appended
+      # doc) before the push, so a corrupt append can never reach the shared
+      # branch. Run from repo root (not .benchmark-data) so tsx/zod/yaml resolve
+      # from the root install.
+      - name: Validate full benchmark-data streams
+        if: ${{ !cancelled() }}
+        run: node --import tsx bench/validate.ts .benchmark-data/speed.yaml .benchmark-data/memory.yaml .benchmark-data/conformance.yaml .benchmark-data/bundle-size.yaml
 
       - name: Push to benchmark-data (retry + rebase on races)
         if: ${{ !cancelled() }}

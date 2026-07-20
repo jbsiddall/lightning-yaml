@@ -174,13 +174,16 @@ const env = {
   runtime: `${trial.context.runtime ?? "node"} ${trial.context.version ?? ""} (${trial.context.arch ?? "unknown"})`,
 };
 
+const now = new Date();
 const doc = {
   suite: "speed" as const,
   scope: scopeLabel(scope),
   tool: "mitata",
   unit: "ns/iter",
   lower_is_better: true,
-  generated: new Date().toISOString().slice(0, 10),
+  schema_version: 1,
+  generated: now.toISOString().slice(0, 10),
+  generated_at: now.toISOString(),
   source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
   env,
   libraries: usedCandidates.map(libraryMeta),
