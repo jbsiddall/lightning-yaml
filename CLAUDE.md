@@ -11,9 +11,11 @@ implements `parse`/`parseAll`/`stringify`: the JSON subset, flow + block syntax,
 plain scalars with 1.2 core typing, quoting + escapes, comments, flow/block maps
 & sequences, implicit **and** explicit (`? `/`: `) keys, compact forms, block
 scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl. `!!binary`,
-`%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It passes
-**≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the `yaml`
-oracle). The repo around it is:
+`%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It targets high conformance to the official
+yaml-test-suite; the live pass rate comes from `pnpm test:suite` and is
+deliberately not pinned here — a hardcoded figure drifts (and comparative
+standings are version-bound), so read it from the run, per the provenance
+policy below. The repo around it is:
 
 - a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
   and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child
