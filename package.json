@@ -99,12 +99,12 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.1",
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.1.1",
     "js-yaml": "^5.2.1",
     "mitata": "^1.0.34",
     "tsup": "^8.5.1",
     "tsx": "^4.23.0",
-    "typescript": "^5.7.0",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"
