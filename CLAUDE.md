@@ -4,34 +4,22 @@ Guidance for Claude Code (and humans) working in this repo.
 
 ## What this is
 
-`lightning-yaml` is a YAML parser that approaches `JSON.parse` / `JSON.stringify`
-speed and memory, **targeting the YAML 1.2.2 spec exclusively — YAML 1.1
-compatibility is explicitly a non-goal.** [`src/index.ts`](src/index.ts)
-implements `parse`/`parseAll`/`stringify`: the JSON subset, flow + block syntax,
-plain scalars with 1.2 core typing, quoting + escapes, comments, flow/block maps
-& sequences, implicit **and** explicit (`? `/`: `) keys, compact forms, block
-scalars (`|`/`>`), anchors/aliases (`&`/`*`), tags incl. `!!binary`,
-`%YAML`/`%TAG` directives, and `---`/`...` multi-document streams. It passes
-**≈97.6% of the official yaml-test-suite** (ahead of js-yaml v5 and the `yaml`
-oracle). The repo around it is:
+`lightning-yaml` is a **YAML 1.2.2-compliant parser and serializer**
+([`src/index.ts`](src/index.ts) implements `parse`/`parseAll`/`stringify`). The
+project goal: performance approaching the browser's native
+`JSON.parse`/`JSON.stringify` in both browser and server environments, while
+maintaining full 1.2.2 compliance (YAML 1.1 is explicitly a non-goal). It
+targets high conformance to the official yaml-test-suite; the live pass rate
+comes from `pnpm test:suite`, not pinned here. Around the parser the repo carries two things, each detailed in
+its own section below: a **benchmark harness** (speed + peak memory, every
+parser, across JSON / plain-block-YAML / rich-YAML data) and a **consistency +
+conformance suite** that checks `parse`/`stringify` against the `yaml` oracle
+(`bench/oracle.ts`).
 
-- a **benchmark harness** that measures every parser (`JSON`, `js-yaml`, `yaml`,
-  and now `lightning-yaml`) on speed (mitata) and peak memory (isolated child
-  processes reading `process.resourceUsage().maxRSS`), across three data
-  categories: JSON, plain block-YAML, and rich YAML (`!!binary` tags + `&`/`*`
-  anchors); and
-- a **vitest consistency suite** (`pnpm test`) plus the parser's own node:test
-  suite (`pnpm test:unit`) that check our `parse` against a single spec oracle
-  (the `yaml` library — see `bench/oracle.ts`). All three categories (JSON, block
-  `yaml-plain`, and rich `yaml-rich` with `!!binary` + anchors) now pass; the dumper
-  is covered by `pnpm test:stringify` (round-trip vs the oracle).
-
-[README.md](README.md) is the **adopter-facing** doc — the pitch, install, usage,
-and drop-in story for developers picking up the library, plus the design/rationale
-of the harness lower down. The **full auto-generated benchmark tables live on the
-docs site, <https://lightning-yaml.dev>**, which reads published runs from the
-orphan `benchmark-data` branch — not in the README, which carries only a compact
-snapshot.
+[README.md](README.md) is the **adopter-facing** doc (pitch, install, usage,
+drop-in story); the full benchmark tables live on the docs site
+<https://lightning-yaml.dev> (published from the orphan `benchmark-data`
+branch), not in this file or the README.
 
 ## Integrity of benchmarks and claims — non-negotiable
 
