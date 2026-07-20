@@ -1,0 +1,39 @@
+version: 2
+updates:
+  # Root package (dev toolchain + the js-yaml/yaml differential aids). Grouped so
+  # routine bumps arrive as one reviewable PR instead of a flood.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        patterns: ["*"]
+
+  # The docs site is a self-contained pnpm project.
+  - package-ecosystem: npm
+    directory: "/site"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      site-dependencies:
+        patterns: ["*"]
+
+  # Isolated bundler toolchain (never touches the root install).
+  - package-ecosystem: npm
+    directory: "/bench/bundlesize"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+
+  # Keeps GitHub Actions current — and, once actions are pinned to commit SHAs,
+  # bumps the SHA while preserving the human-readable version comment.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

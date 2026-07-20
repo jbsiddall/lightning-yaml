@@ -36,10 +36,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Default-deny: the deploy job re-grants exactly what it needs below. A fork PR
+# runs build-check with only read access and no secrets.
+permissions: {}
+
 jobs:
   # Fast headless sanity build — fails CI before the Vercel steps if the site is broken.
   build-check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4 # site code (main / PR branch)
       - uses: actions/checkout@v4 # benchmark data (orphan branch)
