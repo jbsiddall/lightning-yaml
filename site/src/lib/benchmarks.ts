@@ -7,7 +7,8 @@
 // client JS. See CLAUDE.md ("Benchmarking rules") and the header comment of
 // each YAML file for the source schema this mirrors.
 
-import { parseAllDocuments } from 'yaml';
+// Dogfood: the docs site parses its own benchmark data with lightning-yaml.
+import { parseAll } from 'lightning-yaml';
 
 // ---------------------------------------------------------------------------
 // Schema types (mirror the header comments in src/data/benchmarks/*.yaml)
@@ -128,7 +129,7 @@ export interface BundleSizeDoc {
 
 /** Parse every `---` document in an append-only benchmark YAML stream. */
 export function parseRuns<T>(raw: string): T[] {
-  return parseAllDocuments(raw).map((doc) => doc.toJS() as T);
+  return parseAll(raw) as T[];
 }
 
 /** The newest (last-appended) run of a benchmark suite. */
