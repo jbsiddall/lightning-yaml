@@ -1,5 +1,6 @@
 ---
 title: "V8 JIT tier-residency and deopt audit of the hot parse + dump paths"
+description: "An audit of whether lightning-yaml's hot parse and dump functions reach TurboFan and avoid steady-state deopts: a clean bill of health, nothing to fix"
 ---
 **Verdict: Not worth pursuing** — the audit is a clean bill of health. Every hot parse
 and stringify function reaches TurboFan (the top optimizing tier on this runtime), and

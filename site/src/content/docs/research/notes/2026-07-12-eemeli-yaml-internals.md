@@ -1,5 +1,6 @@
 ---
 title: "Deep-dive: yaml (eemeli/yaml) v2.9.0 — pipeline anatomy, allocation profile, and why it loses to js-yaml"
+description: "A source-level dive into eemeli/yaml v2.9.0's four-stage lexer-parser-composer-toJS pipeline and why its CST retains 73x the input size, losing to js-yaml"
 ---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
 

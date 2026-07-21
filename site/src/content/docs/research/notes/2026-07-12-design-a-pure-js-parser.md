@@ -1,5 +1,6 @@
 ---
 title: "lightning-yaml v1 design — a single-pass, allocation-minimal, pure-JS YAML parser engineered for V8"
+description: "The recommended pure-JS parser design: single-pass recursive descent, allocation-minimal scanning, and V8-tuned scalar handling to approach JSON.parse speed"
 ---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
 

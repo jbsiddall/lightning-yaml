@@ -1,5 +1,6 @@
 ---
 title: "Hand-rolling number conversion in the parse path"
+description: "Checks whether a hand-rolled float parser can beat V8's native string-to-double conversion in the parse path: it cannot, running slower and losing precision"
 optimization:
   name: "Hand-rolled number parsing (parse)"
   conclusion: "Number conversion is ~18% of parse self-time but already sits on V8's native floor; a hand-written JS float parser is slower and loses precision."

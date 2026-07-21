@@ -1,5 +1,6 @@
 ---
 title: "Caching rendered map keys in stringify"
+description: "Caching each mapping key's rendered, quote-classified form during stringify is the single largest CPU lever found on the dump side, up to +46% on map-heavy data"
 optimization:
   name: "Map-key render cache (stringify)"
   conclusion: "Memoizing each map key's rendered \"key:\" string removes a repeated quote-classification and per-row concatenation, and is the single largest lever found on the dump side."

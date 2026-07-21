@@ -1,5 +1,6 @@
 ---
 title: "Object.freeze on parsed output"
+description: "Measuring whether Object.freeze on the parsed tree saves memory: it does not, and freezing costs 28% more to build while making reads about 3.9x slower"
 optimization:
   name: "Object.freeze on parsed output (memory)"
   conclusion: "Freezing the parsed tree saves no memory, costs ~28% more to build and ~3.9x slower reads, and breaks the mutable-output contract — at most an opt-in for immutability, never a memory optimization."

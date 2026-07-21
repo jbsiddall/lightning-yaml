@@ -1,5 +1,6 @@
 ---
 title: "Columnar (struct-of-arrays) storage behind a proxy facade"
+description: "Why a compact columnar, struct-of-arrays record store wrapped in a Proxy facade ends up using more memory and reading slower than lightning-yaml's plain objects"
 optimization:
   name: "Columnar store + proxy facade (memory)"
   conclusion: "A struct-of-arrays columnar store is genuinely compact, but the per-row proxy facade needed to keep the plain-object API costs more memory than the objects it replaces and slows reads."
