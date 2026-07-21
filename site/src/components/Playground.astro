@@ -552,6 +552,11 @@ const { autorun = 'view' }: Props = Astro.props;
   }
 
   // --- prefilled GitHub issue ------------------------------------------------
+  // Deep-links to the "Playground report" issue *form*. Blank issues are disabled
+  // (.github/ISSUE_TEMPLATE/config.yml), so a free-form ?body= link only strands
+  // the user on the template chooser and drops the prefill — the form does not.
+  // The query-param names below MUST match the field ids in
+  // .github/ISSUE_TEMPLATE/playground_report.yml.
   function issueUrl(rep) {
     const slower = (rows) => {
       const ly = rows.find((r) => r.id === 'lightning-yaml' && r.state === 'ok')
@@ -573,21 +578,33 @@ const { autorun = 'view' }: Props = Astro.props;
       '| library | stringify ns/op | round-trip |\n|---|---|---|\n' +
       rep.dumpRows.map((r) => '| ' + r.id + ' | ' + mdTime(r) + ' | ' + (r.state === 'ok' ? r.roundtrip : r.state) + ' |').join('\n')
 
-    const header = 'Reported from the lightning-yaml homepage playground (in-browser, indicative timing).\n\n'
-    const tables = '**Parse**\n\n' + pTable + '\n\n**Stringify**\n\n' + dTable + '\n\n'
-    const foot = '\n_Browser-measured, single run — please confirm against the CI benchmark before treating the timings as authoritative._\n'
+    const notes = hasDivergence
+      ? 'Parsers disagree on this input — see the agreement column above.'
+      : lySlower
+        ? 'lightning-yaml was slower than another parser here.'
+        : ''
+    const runtime = typeof navigator !== 'undefined' ? navigator.userAgent : ''
 
-    const budget = 5500
-    const fixed = header + tables + foot + '<details><summary>Input</summary>\n\n```yaml\n\n```\n</details>\n'
+    // Give the input whatever room the (small, bounded) other fields leave —
+    // GitHub truncates very long prefills.
+    const budget = 6000
+    const spent = title.length + pTable.length + dTable.length + notes.length + runtime.length
     let yaml = rep.text
-    const room = budget - fixed.length
-    let trimmed = ''
-    if (yaml.length > room) {
-      yaml = yaml.slice(0, Math.max(0, room - 40))
-      trimmed = '\n# … truncated for the issue link …'
-    }
-    const body = header + tables + '<details><summary>Input</summary>\n\n```yaml\n' + yaml + trimmed + '\n```\n</details>\n' + foot
-    return REPO + '/issues/new?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body)
+    const room = budget - spent
+    if (yaml.length > room) yaml = yaml.slice(0, Math.max(0, room - 40)) + '\n# … truncated for the issue link …'
+
+    // %20-encode (encodeURIComponent), not URLSearchParams' "+", so spaces in the
+    // YAML survive GitHub's decoder and the input's indentation isn't corrupted.
+    const params = [
+      ['template', 'playground_report.yml'],
+      ['title', title],
+      ['input', yaml],
+      ['parse', pTable],
+      ['stringify', dTable],
+      ['runtime', runtime],
+      ['notes', notes],
+    ]
+    return REPO + '/issues/new?' + params.filter(([, v]) => v !== '').map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&')
   }
 
   // --- staleness + wiring ----------------------------------------------------
