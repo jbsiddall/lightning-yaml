@@ -20,6 +20,23 @@ import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
 import { parseAllDocuments } from "yaml";
 
+/**
+ * Strip the uniform leading indentation that backtick nesting adds, so a
+ * multi-line YAML fixture reads as itself instead of a `\n`-spliced literal.
+ * Convention: write the content flush to the closing-backtick column; that
+ * column's whitespace is removed from every line, the opening newline is
+ * dropped, and a single trailing `\n` is (re)added. Only literal spaces are
+ * stripped — a meaningful space-then-tab inside a line survives — and `\t`/`\n`
+ * in the template are already real tab/newline characters.
+ */
+function dedent(strings: TemplateStringsArray): string {
+  const raw = strings[0];
+  const lastNl = raw.lastIndexOf("\n");
+  const indent = raw.slice(lastNl + 1);
+  const body = raw.slice(raw.indexOf("\n") + 1, lastNl);
+  return body.split("\n").map((l) => (l.startsWith(indent) ? l.slice(indent.length) : l)).join("\n") + "\n";
+}
+
 // --------------------------------------------------------------------------
 // M1 — exact JSON.parse parity on every JSON (flow) fixture.
 // --------------------------------------------------------------------------
@@ -1506,11 +1523,24 @@ test("STRICTNESS: a tab cannot indent a flow continuation line (yaml-test-suite 
 
 test("STRICTNESS: a space-then-tab cannot indent a deferred or root block collection (issue #18, yaml-test-suite 4EJS)", () => {
   for (const s of [
-    "a:\n \tb: 1\n", // deferred block MAP
-    "a:\n \t- 1\n", // deferred block SEQ
-    " \ta: 1\n", // ROOT block MAP
-    "\t- 1\n", // ROOT block SEQ
-    "a:\n \t- b: 1\n", // deferred compact seq-of-map
+    dedent`
+    a:
+     \tb: 1
+    `, // deferred block MAP
+    dedent`
+    a:
+     \t- 1
+    `, // deferred block SEQ
+    dedent`
+     \ta: 1
+    `, // ROOT block MAP
+    dedent`
+    \t- 1
+    `, // ROOT block SEQ
+    dedent`
+    a:
+     \t- b: 1
+    `, // deferred compact seq-of-map
   ]) {
     throws(() => parse(s), YAMLParseError);
     throws(() => oracleParse(s));
@@ -1518,24 +1548,77 @@ test("STRICTNESS: a space-then-tab cannot indent a deferred or root block collec
   // The identical `" \t"` bytes stay legal before content that is NOT a block
   // collection — a folding plain scalar, a flow collection VALUE, a quoted
   // scalar, or an alias (even one resolving to a collection): tab as separation.
-  for (const y of ["foo:\n \tbar\n", "a:\n \t[1, 2]\n", "a:\n \t{b: 1}\n", 'a:\n \t"x"\n', "x: &a [1]\nb:\n \t*a\n"]) {
+  for (const y of [
+    dedent`
+    foo:
+     \tbar
+    `,
+    dedent`
+    a:
+     \t[1, 2]
+    `,
+    dedent`
+    a:
+     \t{b: 1}
+    `,
+    dedent`
+    a:
+     \t"x"
+    `,
+    dedent`
+    x: &a [1]
+    b:
+     \t*a
+    `,
+  ]) {
     deepStrictEqual(parse(y), oracleParse(y));
   }
 });
 
 test("STRICTNESS: a space-then-tab cannot indent a block-collection continuation entry (issue #18)", () => {
   for (const s of [
-    "foo:\n  a: 1\n \tb: 2\n", // block-map continuation KEY
-    "m:\n  k1: v1\n \tk2: v2\n  k3: v3\n", // block-map middle key
-    "top:\n  x: 1\n  y:\n    m: 1\n \tn: 2\n", // continuation after a nested dedent
-    "a:\n  - 1\n \t- 2\n", // block-seq continuation entry
+    dedent`
+    foo:
+      a: 1
+     \tb: 2
+    `, // block-map continuation KEY
+    dedent`
+    m:
+      k1: v1
+     \tk2: v2
+      k3: v3
+    `, // block-map middle key
+    dedent`
+    top:
+      x: 1
+      y:
+        m: 1
+     \tn: 2
+    `, // continuation after a nested dedent
+    dedent`
+    a:
+      - 1
+     \t- 2
+    `, // block-seq continuation entry
   ]) {
     throws(() => parse(s), YAMLParseError);
     throws(() => oracleParse(s));
   }
   // Space-only continuations are unaffected.
-  deepStrictEqual(parse("foo:\n  a: 1\n  b: 2\n"), oracleParse("foo:\n  a: 1\n  b: 2\n"));
-  deepStrictEqual(parse("a:\n  - 1\n  - 2\n"), oracleParse("a:\n  - 1\n  - 2\n"));
+  for (const y of [
+    dedent`
+    foo:
+      a: 1
+      b: 2
+    `,
+    dedent`
+    a:
+      - 1
+      - 2
+    `,
+  ]) {
+    deepStrictEqual(parse(y), oracleParse(y));
+  }
 });
 
 // --------------------------------------------------------------------------

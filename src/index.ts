@@ -82,6 +82,22 @@ const TILDE = 126; // ~
 const BOM = 0xfeff;
 
 /**
+ * Escape hatch for the space-then-tab block-collection indentation guards (spec
+ * 6.1; `rejectBlockCollectionTabIndent` + the per-entry `checkNoTabIndent(col-1)`
+ * in the block seq/map continuation loops). Those run on every block-collection
+ * entry and cost a few percent of block-YAML parse time (measured ~4-8% on
+ * medium/large records, more on pathologically deep, many-entry input) purely to
+ * reject a rare malformed input. Default `false` keeps the spec-compliant
+ * rejection. A build that flips this to `true` drops the checks — V8
+ * constant-folds `if (!true)` away, so the penalty disappears entirely — trading
+ * strictness for speed: such a build tolerates (mis-parses) tab-indented block
+ * collections. Because these guards only ever THROW and never transform, VALID
+ * input parses identically in either mode; only rejection of the malformed case
+ * is gated.
+ */
+const SKIP_TAB_INDENT_CHECKS = false;
+
+/**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
  * `RangeError` on deeply nested input (an attack, not a use case) where
  * `JSON.parse` degrades to an iterative fallback. We turn it into a controlled
@@ -3495,7 +3511,7 @@ function parseBlockSeq(col: number): unknown[] {
     if (!(src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1))) break;
     // A continuation entry's indentation (cols 0..col-1) must be tab-free, the
     // sequence analogue of the block-mapping continuation guard (`a:\n  - 1\n \t- 2`).
-    checkNoTabIndent(col - 1);
+    if (!SKIP_TAB_INDENT_CHECKS) checkNoTabIndent(col - 1);
   }
   depth--;
   return arr;
@@ -3565,7 +3581,7 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
     // A continuation key is unconditionally part of this block mapping, so its
     // full indentation (cols 0..col-1) must be tab-free — unlike a deferred
     // FIRST node, there is no scalar-fold escape here (`foo:\n  a: 1\n \tb: 2`).
-    checkNoTabIndent(col - 1);
+    if (!SKIP_TAB_INDENT_CHECKS) checkNoTabIndent(col - 1);
     if (src.charCodeAt(pos) === QUESTION && isSpaceOrEolAt(pos + 1)) {
       pos++; // past '?'
       key = internKey(keyToString(parseExplicitKey(col)));
@@ -3874,7 +3890,7 @@ function parseDeferredBlockNode(parentCol: number, mapValue: boolean): unknown {
     const contentPos = pos;
     const firstChar = src.charCodeAt(pos);
     const node = parseBlockNode(parentCol, mapValue);
-    rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
+    if (!SKIP_TAB_INDENT_CHECKS) rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
     return node;
   }
   // A same-column block sequence is this node's (compact) value only under a
@@ -3898,7 +3914,7 @@ function parseRootBlockNode(): unknown {
   const contentPos = pos;
   const firstChar = src.charCodeAt(pos);
   const node = parseBlockNode(-1);
-  rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
+  if (!SKIP_TAB_INDENT_CHECKS) rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
   return node;
 }
 
