@@ -3,15 +3,10 @@ import starlight from '@astrojs/starlight'
 import sitemap from '@astrojs/sitemap'
 import starlightTypeDoc, { typeDocSidebarGroup } from 'starlight-typedoc'
 
-// Primary deploy is Vercel, serving the canonical domain (root path). The optional
-// GitHub Pages fallback workflow sets PAGES_BASE (e.g. "/lightning-yaml") so
-// project-page asset paths resolve. `site` feeds the generated sitemap's URLs, so
-// production must point at the canonical domain, not the raw *.vercel.app host.
-const PAGES_BASE = process.env.PAGES_BASE
-
 export default defineConfig({
-  site: PAGES_BASE ? 'https://jbsiddall.github.io' : 'https://lightning-yaml.dev',
-  base: PAGES_BASE || undefined,
+  // `site` feeds the generated sitemap's URLs, so it must be the canonical domain
+  // Vercel serves, not the raw *.vercel.app host.
+  site: 'https://lightning-yaml.dev',
   integrations: [
     sitemap(),
     starlight({
