@@ -66,6 +66,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm bench:bundlesize    # -> results/benchmarks/bundle-size.yaml
 
+      # Catch a malformed emitter run before it pollutes the append-only branch.
+      # validate.ts skips any suite this run didn't produce (best-effort, like the
+      # producers above), so a partial run still validates whatever it wrote.
+      - name: Validate emitted benchmark YAML
+        if: ${{ !cancelled() }}
+        run: node --import tsx bench/validate.ts results/benchmarks/*.yaml
+
       - name: Append each produced run as a new document on benchmark-data
         if: ${{ !cancelled() }}
         working-directory: .benchmark-data

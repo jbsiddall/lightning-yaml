@@ -1,5 +1,6 @@
 ---
 title: "Design C — Pragmatic hybrid: JSON.parse delegation + tiered fast-path routing inside a single-pass pure-JS YAML parser"
+description: "A hybrid parser design that delegates JSON-shaped documents to native JSON.parse and routes everything else through tiered pure-JS fast paths"
 ---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
 

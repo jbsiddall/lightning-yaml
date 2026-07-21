@@ -1,25 +1,18 @@
-# Lightning YAML — MEMORY benchmark suite (isolated child processes).
-#
-# Append-only, multi-document YAML (same model as speed.yaml): each '---'
-# document is one full RUN; CI appends, never rewrites.
-#
-#   peak_rss    — whole-process peak resident set, MB (process.resourceUsage().maxRSS)
-#   heap_delta  — per-run V8 heap allocation delta, KB (v8.getHeapStatistics(); may be negative)
-#
-# Both: lower is better. Fixed at 25 iterations (BENCH_ITERS) for comparability.
+# Schema: https://github.com/jbsiddall/lightning-yaml/blob/main/bench/schemas.ts
 ---
 suite: memory
 scope: competition
 units: { peak_rss: MB, heap_delta: KB }
 lower_is_better: true
 iterations: 25
+schema_version: 1
 generated: "2026-07-13"
 source: "README.md@6b0c56e"
 libraries:
   - { id: JSON,           label: JSON,            baseline: true }
-  - { id: js-yaml,        label: js-yaml }
-  - { id: yaml,           label: yaml (eemeli) }
-  - { id: lightning-yaml, label: Lightning YAML,  self: true }
+  - { id: js-yaml,        label: js-yaml,         version: "5.2.1" }
+  - { id: yaml,           label: yaml (eemeli),   version: "2.9.0" }
+  - { id: lightning-yaml, label: Lightning YAML,  self: true, version: "0.1.1" }
 operations:
   parse:
     - workload: small-records

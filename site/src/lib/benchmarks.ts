@@ -7,7 +7,8 @@
 // client JS. See CLAUDE.md ("Benchmarking rules") and the header comment of
 // each YAML file for the source schema this mirrors.
 
-import { parseAllDocuments } from 'yaml';
+// Dogfood: the docs site parses its own benchmark data with lightning-yaml.
+import { parseAll } from 'lightning-yaml';
 
 // ---------------------------------------------------------------------------
 // Schema types (mirror the header comments in src/data/benchmarks/*.yaml)
@@ -79,6 +80,9 @@ export interface ConformanceResult {
   score: number;
   self?: boolean;
   version?: string;
+  // Present on the self row (the should-fail subset); the conformance page reads it.
+  negative_passed?: number;
+  negative_total?: number;
 }
 
 export interface ConformanceDoc {
@@ -125,7 +129,7 @@ export interface BundleSizeDoc {
 
 /** Parse every `---` document in an append-only benchmark YAML stream. */
 export function parseRuns<T>(raw: string): T[] {
-  return parseAllDocuments(raw).map((doc) => doc.toJS() as T);
+  return parseAll(raw) as T[];
 }
 
 /** The newest (last-appended) run of a benchmark suite. */
@@ -143,9 +147,15 @@ export function newestRun<T>(raw: string): T {
 // the typed logic (and the only place object shapes are assumed) lives here.
 // ---------------------------------------------------------------------------
 
-/** Look up a library's display label by id, falling back to the id itself. */
+/** Append a version to a display label when the benchmark data recorded one (e.g. `js-yaml 5.2.1`). */
+export function withVersion(label: string, version?: string): string {
+  return version ? `${label} ${version}` : label;
+}
+
+/** Look up a library's display label by id (with version when available), falling back to the id itself. */
 export function libraryLabel(libraries: LibraryMeta[], id: LibraryId): string {
-  return libraries.find((l) => l.id === id)?.label ?? id;
+  const lib = libraries.find((l) => l.id === id);
+  return withVersion(lib?.label ?? id, lib?.version);
 }
 
 /** Build a chart's `series` list (id + label + brand color) from a fixed id order. */
@@ -198,7 +208,7 @@ export function conformanceItems(results: ConformanceResult[]): BarItem[] {
     .sort((a, b) => b.score - a.score)
     .map((r) => ({
       id: r.id,
-      label: r.label,
+      label: withVersion(r.label, r.version),
       value: r.score,
       color: LIBRARY_COLOR[r.id],
       self: Boolean(r.self),
@@ -237,6 +247,15 @@ export function niceDomainMax(maxValue: number, step: number): number {
   return Math.ceil(Math.max(maxValue, step) / step) * step;
 }
 
+/** Round up to the nearest 1/2/5 × 10^n — a clean axis ceiling when there's no natural step. */
+export function niceCeil(v: number): number {
+  if (!(v > 0)) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(v)));
+  const norm = v / mag;
+  const nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  return nice * mag;
+}
+
 // Every rule inline: this HTML is injected into an .mdx page via `set:html`,
 // and MDX parses literal `{`/`}` in its JSX children as expression syntax —
 // a real <style> block full of CSS braces is a build-error risk there, and
@@ -258,6 +277,10 @@ const TH_COL_STYLE = 'padding:0.4rem 0.65rem;border-bottom:1px solid var(--sl-co
   'text-align:right;white-space:nowrap;color:var(--sl-color-gray-3);font-weight:600';
 const TH_COL_FIRST_STYLE = TH_COL_STYLE.replace('text-align:right', 'text-align:left');
 const TABLE_STYLE = 'width:100%;border-collapse:collapse;font-size:0.85rem';
+// Category sub-header row inside a grouped breakdown table.
+const TH_GROUP_STYLE = 'padding:0.7rem 0.65rem 0.3rem;border-bottom:1px solid var(--sl-color-hairline);' +
+  'text-align:left;white-space:nowrap;font-family:var(--sl-font-mono);color:var(--sl-color-gray-3);' +
+  'font-weight:600;font-size:0.82em;letter-spacing:0.02em';
 
 /**
  * The "table view" twin for a speed chart (parse OR stringify — every workload,
@@ -296,7 +319,7 @@ export function conformanceTableHtml(results: ConformanceResult[]): string {
     .sort((a, b) => b.score - a.score)
     .map(
       (r) =>
-        `<tr><th scope="row" style="${TH_ROW_STYLE}">${escapeXml(r.label)}</th>` +
+        `<tr><th scope="row" style="${TH_ROW_STYLE}">${escapeXml(withVersion(r.label, r.version))}</th>` +
         `<td style="${TD_STYLE}">${r.passed}</td>` +
         `<td style="${TD_STYLE}">${r.total}</td>` +
         `<td style="${TD_STYLE}">${formatPercent(r.score)}</td></tr>`,
@@ -336,6 +359,65 @@ export function bundleSizeTableHtml(doc: BundleSizeDoc): string {
   );
 }
 
+/**
+ * Breakdown table for a speed OR memory operation: every workload, grouped into
+ * WORKLOAD_CATEGORIES under a labelled section row. `cell` turns a per-library
+ * stat into its display string (avg ns for speed, peak RSS MB for memory); a
+ * missing library renders `—`. Built as a string for `set:html`, same as the
+ * other table helpers. Kept generic so speed and memory share one renderer.
+ */
+export function groupedBreakdownTableHtml<T extends { workload: string; values: Partial<Record<LibraryId, unknown>> }>(
+  workloads: T[],
+  libraries: LibraryMeta[],
+  order: readonly LibraryId[],
+  cell: (stat: unknown) => string,
+): string {
+  const byName = new Map(workloads.map((w) => [w.workload, w] as const));
+  const head = order
+    .map((id) => `<th scope="col" style="${TH_COL_STYLE}">${escapeXml(libraryLabel(libraries, id))}</th>`)
+    .join('');
+  const colSpan = order.length + 1;
+  const seen = new Set<string>();
+  const rowFor = (w: T): string => {
+    const cells = order
+      .map((id) => `<td style="${TD_STYLE}">${w.values[id] != null ? escapeXml(cell(w.values[id])) : '—'}</td>`)
+      .join('');
+    return `<tr><th scope="row" style="${TH_ROW_STYLE}">${escapeXml(w.workload)}</th>${cells}</tr>`;
+  };
+  const groupRow = (label: string): string =>
+    `<tr><th scope="colgroup" colspan="${colSpan}" style="${TH_GROUP_STYLE}">${escapeXml(label)}</th></tr>`;
+
+  const sections = WORKLOAD_CATEGORIES.map((cat) => {
+    const rows = cat.workloads
+      .map((name) => byName.get(name))
+      .filter((w): w is T => Boolean(w))
+      .map((w) => {
+        seen.add(w.workload);
+        return rowFor(w);
+      })
+      .join('');
+    return rows ? groupRow(cat.label) + rows : '';
+  }).join('');
+
+  const leftover = workloads.filter((w) => !seen.has(w.workload));
+  const leftoverSection = leftover.length ? groupRow('Other') + leftover.map(rowFor).join('') : '';
+
+  return (
+    `<table style="${TABLE_STYLE}"><thead><tr><th scope="col" style="${TH_COL_FIRST_STYLE}">Workload</th>${head}</tr></thead>` +
+    `<tbody>${sections}${leftoverSection}</tbody></table>`
+  );
+}
+
+/** Grouped breakdown for a speed operation — avg ns per iteration. */
+export function speedBreakdownHtml(workloads: SpeedWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
+  return groupedBreakdownTableHtml(workloads, libraries, order, (s) => formatNs((s as SpeedStat).avg));
+}
+
+/** Grouped breakdown for a memory operation — peak RSS in MB. */
+export function memoryBreakdownHtml(workloads: MemoryWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
+  return groupedBreakdownTableHtml(workloads, libraries, order, (s) => formatMB((s as MemoryStat).peak_rss));
+}
+
 // ---------------------------------------------------------------------------
 // Brand palette — one color per library, reused identically across every
 // chart on the page so identity ("violet = lightning-yaml") only has to be
@@ -360,10 +442,32 @@ export const LIBRARY_COLOR: Record<LibraryId, string> = {
  */
 export const LIBRARY_ORDER: readonly LibraryId[] = [
   'JSON',
+  'lightning-yaml',
   'js-yaml',
   'js-yaml-tuned',
   'yaml',
-  'lightning-yaml',
+];
+
+/**
+ * Workload → display category for the grouped breakdown tables. Array order is
+ * section order; the names mirror the fixture categories in
+ * bench/fixtures/datasets.ts (JSON-shaped records/nested, plain block YAML, and
+ * rich YAML with anchors + `!!binary`). Any workload not listed still renders,
+ * in a trailing "Other" group (see groupedBreakdownTableHtml).
+ */
+export const WORKLOAD_CATEGORIES: ReadonlyArray<{ label: string; workloads: readonly string[] }> = [
+  {
+    label: 'JSON-shaped (records & nested)',
+    workloads: ['small-records', 'medium-records', 'large-records', 'xlarge-records', 'medium-nested', 'large-nested'],
+  },
+  {
+    label: 'Plain block YAML',
+    workloads: ['yaml-plain-small-records', 'yaml-plain-medium-records', 'yaml-plain-large-records', 'yaml-plain-medium-nested'],
+  },
+  {
+    label: 'Rich YAML (anchors + !!binary)',
+    workloads: ['yaml-rich-small', 'yaml-rich-medium', 'yaml-rich-large'],
+  },
 ];
 
 /**
@@ -729,6 +833,301 @@ export function barSVG(opts: BarOptions): string {
     `<style>${chartStyle()}</style>` +
     gridSvg +
     rowsSvg +
+    `</svg>`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Time-series ("trend") — one line per library across the append-only run
+// history (every '---' document in a *.yaml stream, oldest → newest). Built at
+// build time as a static inline SVG, same as the bar charts. Locally the
+// committed seed holds a single run, so a trend renders one dot; in production
+// the `benchmark-data` overlay supplies the full history and it renders as
+// lines. See the lib header + CLAUDE.md "Benchmarking rules".
+//
+// x is RUN INDEX, evenly spaced — not a literal date axis. Runs are unevenly
+// timed and several land on the same day, so a date-proportional axis would
+// clump them illegibly; a handful of ticks carry the dates instead. y differs
+// per suite (see the trend adapters below): speed is machine-noisy, so its
+// trend is a RATIO to the fastest parser that run (the same machine-invariant
+// figure the bar charts use); memory/conformance/bundle-size are stable, so
+// they trend as absolute values.
+// ---------------------------------------------------------------------------
+
+export interface TrendPoint {
+  /** Run index, 0-based, chronological. */
+  i: number;
+  y: number;
+  /** The run's `generated` date, for the point's hover tooltip. */
+  date?: string;
+  /** The library's version in this run, where the suite recorded one — drives the hover tooltip and version-change marker. */
+  version?: string;
+}
+
+export interface TrendSeries {
+  id: string;
+  label: string;
+  color: string;
+  self?: boolean;
+  points: TrendPoint[];
+}
+
+export interface XTick {
+  i: number;
+  label: string;
+}
+
+/** Each run's `generated` date string, in chronological (append) order. */
+export function runDates(runs: ReadonlyArray<{ generated?: unknown }>): string[] {
+  return runs.map((r) => String(r.generated ?? ''));
+}
+
+/** ~4 evenly spaced x-axis tick positions with date labels (all of them when there are few runs). */
+export function xTicks(dates: readonly string[]): XTick[] {
+  const n = dates.length;
+  if (n === 0) return [];
+  if (n <= 5) return dates.map((label, i) => ({ i, label }));
+  const positions = [0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1];
+  return [...new Set(positions)].map((i) => ({ i, label: dates[i] }));
+}
+
+/** Legend entries (real-HTML legend in ChartCard) matching a trend chart's series. */
+export function trendLegend(series: TrendSeries[]): LegendEntry[] {
+  return series.map((s) => ({ label: s.label, color: s.color, self: Boolean(s.self) }));
+}
+
+function trendMeta(id: LibraryId, label: string): Pick<TrendSeries, 'id' | 'label' | 'color' | 'self'> {
+  return { id, label, color: LIBRARY_COLOR[id], self: id === 'lightning-yaml' };
+}
+
+/**
+ * Speed trend for one workload: y = a library's `avg` divided by the FASTEST
+ * `avg` in that same workload+run (ratio-to-best, ≥ 1). Absolute ns drift with
+ * CI-runner noise, so only this ratio is machine-invariant — the fastest parser
+ * sits at 1× by construction (the reference), matching the bar chart's labels.
+ */
+export function speedTrend(
+  runs: SpeedDoc[],
+  op: 'parse' | 'stringify',
+  workload: string,
+  order: readonly LibraryId[],
+): TrendSeries[] {
+  const labels = runs.at(-1)?.libraries ?? [];
+  return order
+    .map((id) => {
+      const points: TrendPoint[] = [];
+      runs.forEach((run, i) => {
+        const w = run.operations?.[op]?.find((x) => x.workload === workload);
+        if (!w) return;
+        const avgs = order
+          .map((lid) => w.values[lid]?.avg)
+          .filter((v): v is number => typeof v === 'number' && v > 0);
+        const stat = w.values[id];
+        if (!avgs.length || !stat || typeof stat.avg !== 'number' || stat.avg <= 0) return;
+        points.push({ i, y: stat.avg / Math.min(...avgs), date: String(run.generated ?? ''), version: run.libraries?.find((l) => l.id === id)?.version });
+      });
+      return { ...trendMeta(id, libraryLabel(labels, id)), points };
+    })
+    .filter((s) => s.points.length > 0);
+}
+
+/** Memory trend for one operation + workload: y = absolute peak RSS (MB) — the repo's stable memory figure. */
+export function memoryTrend(
+  runs: MemoryDoc[],
+  op: 'parse' | 'stringify',
+  workload: string,
+  order: readonly LibraryId[],
+): TrendSeries[] {
+  const labels = runs.at(-1)?.libraries ?? [];
+  return order
+    .map((id) => {
+      const points: TrendPoint[] = [];
+      runs.forEach((run, i) => {
+        const stat = run.operations?.[op]?.find((x) => x.workload === workload)?.values[id];
+        if (stat && typeof stat.peak_rss === 'number') points.push({ i, y: stat.peak_rss, date: String(run.generated ?? ''), version: run.libraries?.find((l) => l.id === id)?.version });
+      });
+      return { ...trendMeta(id, libraryLabel(labels, id)), points };
+    })
+    .filter((s) => s.points.length > 0);
+}
+
+/** Conformance trend: y = pass rate (%). Deterministic, so plotted absolute. */
+export function conformanceTrend(runs: ConformanceDoc[], order: readonly LibraryId[]): TrendSeries[] {
+  const labels = new Map((runs.at(-1)?.results ?? []).map((r) => [r.id, withVersion(r.label, r.version)] as const));
+  return order
+    .map((id) => {
+      const points: TrendPoint[] = [];
+      runs.forEach((run, i) => {
+        const r = run.results?.find((x) => x.id === id);
+        if (r && typeof r.score === 'number') points.push({ i, y: r.score, date: String(run.generated ?? ''), version: r.version });
+      });
+      return { ...trendMeta(id, labels.get(id) ?? id), points };
+    })
+    .filter((s) => s.points.length > 0);
+}
+
+/** Bundle-size trend: y = smallest gzip across bundlers that run, in BYTES (format with formatKB). */
+export function bundleSizeTrend(runs: BundleSizeDoc[], order: readonly LibraryId[]): TrendSeries[] {
+  const labels = runs.at(-1)?.libraries ?? [];
+  return order
+    .map((id) => {
+      const points: TrendPoint[] = [];
+      runs.forEach((run, i) => {
+        const gzips = (run.results ?? [])
+          .map((r) => r.values[id])
+          .filter((v): v is BundleSizeValue => Boolean(v) && typeof v!.gzip === 'number')
+          .map((v) => v.gzip as number);
+        if (gzips.length) points.push({ i, y: Math.min(...gzips), date: String(run.generated ?? ''), version: run.libraries?.find((l) => l.id === id)?.version });
+      });
+      return { ...trendMeta(id, libraryLabel(labels, id)), points };
+    })
+    .filter((s) => s.points.length > 0);
+}
+
+// ---------------------------------------------------------------------------
+// lineChartSVG — the trend renderer. Shared y-axis (all series comparable, one
+// metric), evenly spaced run-index x-axis with a few date ticks. The self
+// series (lightning-yaml) is drawn thicker + glowed for the same 1:1 identity
+// the bar charts use. n == 1 (the committed seed) degrades to a single dot.
+// ---------------------------------------------------------------------------
+
+export interface LineChartOptions {
+  id: string;
+  title: string;
+  series: TrendSeries[];
+  ticks: XTick[];
+  /** Total run count; the x-domain is [0, n-1] regardless of any per-series gaps. */
+  n: number;
+  yFormat: (v: number) => string;
+  higherIsBetter: boolean;
+  domainMin?: number;
+  domainMax?: number;
+  /**
+   * 'log' (base 10) for wide-dynamic-range data — the speed trends compare a
+   * ratio-to-fastest that spans ~1× to ~130× across libraries, where a linear
+   * axis crushes the fast parsers into an unreadable sliver at the baseline and
+   * hides exactly the run-to-run movement the chart exists to show. Only valid
+   * for strictly-positive series (ratios are ≥ 1). Defaults to 'linear'.
+   */
+  yScaleType?: 'linear' | 'log';
+}
+
+export function lineChartSVG(opts: LineChartOptions): string {
+  const { id, title, series, ticks, n, yFormat, higherIsBetter } = opts;
+
+  const W = 620;
+  const marginTop = 14;
+  const marginBottom = 30;
+  const marginLeft = 64;
+  const marginRight = 20;
+  const plotW = W - marginLeft - marginRight;
+  const plotHeight = 176;
+  const H = marginTop + plotHeight + marginBottom;
+  const plotX = marginLeft;
+  const plotY = marginTop;
+
+  const allY = series.flatMap((s) => s.points.map((p) => p.y));
+  const dataMax = allY.length ? Math.max(...allY) : 1;
+  const isLog = opts.yScaleType === 'log';
+
+  const xScale = (i: number) => (n <= 1 ? plotX + plotW / 2 : plotX + (i / (n - 1)) * plotW);
+
+  let yScale: Scale;
+  let yTickValues: number[];
+  if (isLog) {
+    const domainMin = 1;
+    const domainMax = Math.max(dataMax * 1.12, 10);
+    const lo = Math.log10(domainMin);
+    const hi = Math.log10(domainMax);
+    yScale = (v) => plotY + plotHeight - ((Math.log10(Math.max(v, domainMin)) - lo) / (hi - lo)) * plotHeight;
+    // "Nice" decade ticks (1×, 3×, 10×, 30×, 100× …) up to the ceiling.
+    yTickValues = [];
+    for (let base = 1; base <= domainMax; base *= 10) {
+      yTickValues.push(base);
+      if (base * 3 <= domainMax) yTickValues.push(base * 3);
+    }
+  } else {
+    const domainMin = opts.domainMin ?? 0;
+    const domainMax = opts.domainMax ?? Math.max(niceCeil(dataMax), domainMin + 1);
+    yScale = linearScale([domainMin, domainMax], [plotY + plotHeight, plotY]);
+    const yTickCount = 4;
+    yTickValues = Array.from({ length: yTickCount + 1 }, (_, k) => domainMin + ((domainMax - domainMin) / yTickCount) * k);
+  }
+  const gridSvg = yTickValues
+    .map((t) => {
+      const y = yScale(t);
+      return (
+        `<line x1="${fx(plotX)}" y1="${fx(y)}" x2="${fx(plotX + plotW)}" y2="${fx(y)}" stroke="var(--ly-line)" stroke-width="1"/>` +
+        `<text x="${fx(plotX - 8)}" y="${fx(y)}" class="ly-axis" text-anchor="end" dominant-baseline="middle">${escapeXml(yFormat(t))}</text>`
+      );
+    })
+    .join('');
+
+  // Anchor the edge ticks inward (first → start, last → end) so a full-width
+  // date at x=0 / x=plotW isn't clipped by the viewBox; a single tick (the
+  // one-run seed) stays centred under its dot.
+  const xTickSvg = ticks
+    .map((t, k) => {
+      const anchor = ticks.length === 1 ? 'middle' : k === 0 ? 'start' : k === ticks.length - 1 ? 'end' : 'middle';
+      return `<text x="${fx(xScale(t.i))}" y="${fx(plotY + plotHeight + 16)}" class="ly-axis" text-anchor="${anchor}">${escapeXml(t.label)}</text>`;
+    })
+    .join('');
+
+  // Native SVG <title> = a no-JS hover tooltip: the run's date, the value, and
+  // (where the suite recorded one) the library version. A version differing from
+  // the prior run reads as "old → new".
+  const pointTitle = (p: TrendPoint, prevVersion?: string): string => {
+    const base = `${p.date ? p.date + ' · ' : ''}${yFormat(p.y)}`;
+    if (!p.version) return base;
+    return prevVersion && prevVersion !== p.version ? `${base} · ${prevVersion} → ${p.version}` : `${base} · v${p.version}`;
+  };
+  const dotSvg = (p: TrendPoint, k: number, pts: TrendPoint[], color: string, r: number): string => {
+    const cx = fx(xScale(p.i));
+    const cy = fx(yScale(p.y));
+    const prevV = k > 0 ? pts[k - 1].version : undefined;
+    const dot = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"><title>${escapeXml(pointTitle(p, prevV))}</title></circle>`;
+    // A version change also gets a hollow ring so it's visible without hovering.
+    const changed = Boolean(p.version && prevV && p.version !== prevV);
+    return changed ? `${dot}<circle cx="${cx}" cy="${cy}" r="${fx(r + 2.6)}" fill="none" stroke="${color}" stroke-width="1.3"/>` : dot;
+  };
+
+  const linesSvg = series
+    .map((s) => {
+      const pts = s.points;
+      if (!pts.length) return '';
+      const isSelf = Boolean(s.self);
+      const glow = isSelf ? ` filter="url(#${id}-glow)"` : '';
+      if (pts.length === 1) {
+        const p = pts[0];
+        return `<circle cx="${fx(xScale(p.i))}" cy="${fx(yScale(p.y))}" r="3.5" fill="${s.color}"${glow}><title>${escapeXml(pointTitle(p))}</title></circle>`;
+      }
+      const d = pts.map((p, k) => `${k === 0 ? 'M' : 'L'}${fx(xScale(p.i))},${fx(yScale(p.y))}`).join(' ');
+      const dots = pts.map((p, k) => dotSvg(p, k, pts, s.color, isSelf ? 2.6 : 2)).join('');
+      return (
+        `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${isSelf ? 2.5 : 1.5}" ` +
+        `stroke-linejoin="round" stroke-linecap="round"${glow}/>${dots}`
+      );
+    })
+    .join('');
+
+  const axis = `<line x1="${fx(plotX)}" y1="${fx(plotY)}" x2="${fx(plotX)}" y2="${fx(plotY + plotHeight)}" stroke="var(--ly-line)" stroke-width="1"/>`;
+
+  const dir = higherIsBetter ? 'higher is better' : 'lower is better';
+  const trail = series
+    .map((s) => (s.points.length ? `${s.label} ${yFormat(s.points.at(-1)!.y)}` : s.label))
+    .join(', ');
+  const descText = `${title} — ${dir}. Trend across ${n} benchmark run${n === 1 ? '' : 's'}, oldest to newest; latest values: ${trail}.`;
+
+  return (
+    svgOpen(id, W, H, title) +
+    `<title id="${id}-t">${escapeXml(title)}</title>` +
+    `<desc id="${id}-d">${escapeXml(descText)}</desc>` +
+    `<defs>${glowFilter(id)}</defs>` +
+    `<style>${chartStyle()}</style>` +
+    gridSvg +
+    axis +
+    xTickSvg +
+    linesSvg +
     `</svg>`
   );
 }

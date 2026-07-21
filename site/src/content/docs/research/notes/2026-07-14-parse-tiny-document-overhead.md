@@ -1,5 +1,6 @@
 ---
 title: "The fixed per-call overhead of parsing a tiny document"
+description: "Quantifies the fixed per-call overhead of parsing a tiny document versus JSON.parse: real but small, about 0.39 microseconds, with no single fix worth chasing"
 optimization:
   name: "Tiny-document fixed overhead (parse)"
   conclusion: "The fixed per-call parse cost is real but small, has no single dominant removable component, and only bites sub-microsecond documents outside the target workload."

@@ -1,5 +1,6 @@
 ---
 title: "js-yaml loader deep-dive (installed: js-yaml@4.3.0, NOT 4.1.0)"
+description: "Dissects js-yaml 4.3.0's single-pass loader architecture and its exploitable weaknesses, updated to note how 5.2.1 closes one via first-char scalar typing"
 ---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
 

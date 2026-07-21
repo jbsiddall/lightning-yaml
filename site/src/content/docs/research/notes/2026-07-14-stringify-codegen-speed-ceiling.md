@@ -1,5 +1,6 @@
 ---
 title: "Shape-specialized codegen: the ceiling for a compiled stringify"
+description: "The speed ceiling for a shape-specialized, runtime-compiled stringify serializer: about 2.2 to 2.4x JSON.stringify on record data, unusable under browser CSP"
 ---
 **Verdict: Reference / ceiling** — an informational upper bound, not a change to make now.
 A dumper compiled to a specific record shape (the `fast-json-stringify` approach) reaches

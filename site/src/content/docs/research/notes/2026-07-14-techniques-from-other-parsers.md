@@ -1,5 +1,6 @@
 ---
 title: "Runtime shape-codegen and record-structure techniques from binary and schema serializers"
+description: "A literature survey of shape-codegen techniques from binary and schema serializers, finding stringify speedups worth pursuing for large homogeneous record arrays"
 ---
 
 ## Abstract

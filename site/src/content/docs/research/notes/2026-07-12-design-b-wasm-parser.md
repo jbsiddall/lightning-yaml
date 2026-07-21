@@ -1,5 +1,6 @@
 ---
 title: "lightning-yaml Design Brief B: WASM-wrapped rapidyaml with in-WASM YAML→JSON transcode + native JSON.parse"
+description: "A WASM design wrapping rapidyaml with an in-WASM YAML-to-JSON transcode: it beats js-yaml but can't approach JSON.parse, and the route was rejected"
 ---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
 

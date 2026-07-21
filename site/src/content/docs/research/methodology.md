@@ -65,7 +65,7 @@ Our harness instead spawns one isolated process per candidate and reads
 mitata would report `yaml` at ~40 MB and **miss the 2.68 GB reality** — a 67×
 blind spot of exactly the native/off-heap memory a YAML parser burns. So the two
 tools are complementary: mitata for speed + per-call heap churn, our harness for
-true peak RSS. (See [Peak memory](/benchmarks/#peak-memory) for the full
+true peak RSS. (See [Parse memory](/benchmarks/#parse-memory) for the full
 peak-RSS comparison across every workload.)
 
 Each candidate runs in its **own OS process** (the correct isolation for a clean
@@ -120,7 +120,7 @@ disagree on schema-typing edge cases, tag/anchor handling, and error strictness
 now 1.2 core too, same as `yaml`):
 [`bench/oracle.ts`](https://github.com/jbsiddall/lightning-yaml/blob/main/bench/oracle.ts)
 designates **`yaml`** — the more spec-compliant of the two reference libraries,
-per the yaml-test-suite conformance results on [Benchmarks](/benchmarks/#conformance)
+per the yaml-test-suite conformance results on [Conformance](/benchmarks/#conformance)
 — as our **differential reference**. The actual correctness authority is the
 **YAML 1.2 spec** (operationalized by the yaml-test-suite); `yaml` is the one
 library we diff against — sound where it agrees with the spec, with any
