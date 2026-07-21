@@ -1,5 +1,6 @@
 ---
 title: "Skipping the ref-scan with a single-pass, restart-on-share dumper"
+description: "An optimistic single-pass dumper skipping the mandatory reference pre-scan showed real gains on tree data, then was reverted after regressing on large graphs"
 optimization:
   name: "Single-pass optimistic dumper (stringify)"
   conclusion: "An optimistic single write pass that skips the mandatory ref pre-scan and restarts only on a shared reference reproduces byte-identical output and gains +5-48% on tree-shaped data, but it was built and then removed: the dual-path restart machinery was not worth its cost given ~1.6-1.9x regressions on large graphs whose first shared reference appears late, so the two-pass pre-scan is retained."

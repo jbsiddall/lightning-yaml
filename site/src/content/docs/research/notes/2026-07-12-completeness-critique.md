@@ -1,5 +1,6 @@
 ---
 title: "Completeness critique: gaps in the lightning-yaml research + designs (ranked)"
+description: "A ranked critique of gaps across the three parser design briefs, from unmeasured stringify and block-mode throughput to unevaluated native N-API routes"
 ---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
 

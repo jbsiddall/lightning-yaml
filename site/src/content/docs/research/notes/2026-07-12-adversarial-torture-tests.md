@@ -1,5 +1,6 @@
 ---
 title: "Adversarial torture tests — parser differentials, breakage & spec corners (2026-07-13)"
+description: "How lightning-yaml holds up against parser-differential attacks and yaml-test-suite corner cases, with zero uncaught exceptions and measured verdicts"
 ---
 A later addition to this dossier. Docs 01–12 are the *implementation-strategy*
 research (how to build a fast parser); this one is about **correctness under

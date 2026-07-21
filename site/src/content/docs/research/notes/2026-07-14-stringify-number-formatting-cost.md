@@ -1,5 +1,6 @@
 ---
 title: "Hand-optimizing formatNumber in stringify"
+description: "formatNumber looks costly in the stringify CPU profile, but String(v) is already V8's optimal formatter, so hand-tuning it saves under 1% of dump time"
 optimization:
   name: "Hand-rolled formatNumber (stringify)"
   conclusion: "`formatNumber` looks costly in profiles but is near-irreducible — `String(v)` is already V8's optimal shortest round-trip and the best fast-path saves under 1% of dump time."

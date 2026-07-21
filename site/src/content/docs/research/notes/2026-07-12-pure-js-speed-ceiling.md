@@ -1,5 +1,6 @@
 ---
 title: "How fast can pure JS go on V8 — evidence for lightning-yaml's design"
+description: "Evidence for how close a hand-tuned pure-JS parser can get to native JSON.parse on V8, covering string scanning, JIT-friendly patterns, and prior art"
 ---
 > Produced by a multi-agent research session (Claude Code). All local numbers were measured on the session container — Node v22.22.2 / V8 12.4, 4-vCPU Xeon 2.80 GHz, 16 GB RAM; absolute MB/s are machine-specific, ratios are the durable signal. Referenced `scratchpad/*.mjs` scripts were session throwaways and are not committed.
 
