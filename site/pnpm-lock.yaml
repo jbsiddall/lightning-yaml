@@ -29,6 +29,9 @@ importers:
       js-yaml:
         specifier: 4.1.0
         version: 4.1.0
+      lightning-yaml:
+        specifier: ^0.1.1
+        version: 0.1.1
       starlight-typedoc:
         specifier: 0.23.0
         version: 0.23.0(@astrojs/starlight@0.41.3(@astrojs/markdown-remark@7.2.1)(astro@7.0.7(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.2)(@types/node@24.13.3)(yaml@2.9.0))(typescript@6.0.3))(typedoc-plugin-markdown@4.12.0(typedoc@0.28.20(typescript@6.0.3)))(typedoc@0.28.20(typescript@6.0.3))
@@ -38,9 +41,6 @@ importers:
       typedoc-plugin-markdown:
         specifier: 4.12.0
         version: 4.12.0(typedoc@0.28.20(typescript@6.0.3))
-      yaml:
-        specifier: 2.9.0
-        version: 2.9.0
 
 packages:
 
@@ -1261,6 +1261,10 @@ packages:
   klona@2.0.6:
     resolution: {integrity: sha512-dhG34DXATL5hSxJbIexCft8FChFXtmskoZYnoPWjXQuebWYCNkVeV3KkGegCK9CP1oswI/vQibS2GY7Em/sJJA==}
     engines: {node: '>= 8'}
+
+  lightning-yaml@0.1.1:
+    resolution: {integrity: sha512-35ndLDErxCwqnGMe//g9FSYThTuHDFNPaDhKZLB5Q77Qb3Rt+wolVGhPO6s2yDNGdF/2331oLy6YkeZow3HHvg==}
+    engines: {node: '>=20'}
 
   lightningcss-android-arm64@1.32.0:
     resolution: {integrity: sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg==}
@@ -3407,6 +3411,8 @@ snapshots:
   jsonc-parser@3.3.1: {}
 
   klona@2.0.6: {}
+
+  lightning-yaml@0.1.1: {}
 
   lightningcss-android-arm64@1.32.0:
     optional: true
