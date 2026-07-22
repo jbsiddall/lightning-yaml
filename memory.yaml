@@ -15,7 +15,6 @@ lower_is_better: true
 iterations: 25
 generated: "2026-07-13"
 source: "README.md@6b0c56e"
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~1.53 GHz
   cpu: Intel(R) Xeon(R) Processor @ 2.80GHz
@@ -181,7 +180,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-15
 source: e21f468c6e3f5d0a01cd5c3092776e8bfd2c0cae
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.84 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -535,7 +533,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-15
 source: 6b44fe2e3cc4b2c54f1f2c359ba640f647a9ce22
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.84 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -889,7 +886,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-16
 source: 666af4020766052e6ab5ed7b608157968757f06e
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.93 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -1284,7 +1280,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-16
 source: 84ea9b6b70439c42a97ac626a48120a672f87579
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.60 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -1679,7 +1674,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-16
 source: 1280df84aca14cdac5c4776300ab499305fcb600
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.92 GHz
   cpu: INTEL(R) XEON(R) PLATINUM 8573C
@@ -2074,7 +2068,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-16
 source: 83b1dd0cdaaf6c622c30e702485ad8b4e2e5fb78
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.65 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -2469,7 +2462,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-18
 source: 9ca17074ce89080a68215bd680f51e048d3fca9a
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.56 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -2864,7 +2856,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-18
 source: 01e733130dcff37356cbdf4ede03d750d08e754d
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.78 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -3259,7 +3250,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-18
 source: 006d27945106eeedfecd4c24b2a098c7ae2ff49e
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.58 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -3654,7 +3644,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-19
 source: 3a0c7433340bb7c5c41e07fe1a4efb2309567ed0
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.57 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -4049,7 +4038,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-19
 source: dd723058aab3184aa801259470246208cddd7718
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.91 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -4444,7 +4432,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-20
 source: 18219524876d0270b1ab8c3e14855991c4a906d9
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.83 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -4839,7 +4826,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-20
 source: 5bc318dc0cc05e719cf29d4f05b617e03d036664
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.61 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -5234,7 +5220,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-20
 source: d32cda1f555a89571546fbb6c457fbbfd41497d2
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.89 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -5629,7 +5614,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-20
 source: 506081868019e818206d6c2053915ec8d4ba85ab
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.61 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -6024,7 +6008,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-20
 source: 1c700482a00797df8afe002341479914808907b2
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~3.30 GHz
   cpu: Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz
@@ -6419,7 +6402,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-20
 source: c1c2ebd69fe5a211f87cb9b1b7077b18323bc4cb
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~3.35 GHz
   cpu: INTEL(R) XEON(R) PLATINUM 8573C
@@ -6814,7 +6796,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-20
 source: 88a95ed4ccdd286c32bf5c464ade505b316ed56a
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.72 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -7209,7 +7190,6 @@ lower_is_better: true
 iterations: 25
 generated: 2026-07-20
 source: 5a76e1799fadc63d8bbfd9ff6c2ba9f889bc4435
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.92 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -7606,7 +7586,6 @@ schema_version: 1
 generated: 2026-07-20
 generated_at: 2026-07-20T23:33:37.256Z
 source: 0c2a9cbcc19cfea4e62a06edb280870e3d2859a5
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.96 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -8007,7 +7986,6 @@ schema_version: 1
 generated: 2026-07-20
 generated_at: 2026-07-20T23:49:14.863Z
 source: fd5c5b089ba1be920107f98df0016cc7977b6eb3
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~3.00 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -8408,7 +8386,6 @@ schema_version: 1
 generated: 2026-07-21
 generated_at: 2026-07-21T00:46:15.502Z
 source: 89f67acf6cb8a3d2ec2e2c35c741b2cc0f599843
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.63 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -8809,7 +8786,6 @@ schema_version: 1
 generated: 2026-07-21
 generated_at: 2026-07-21T14:56:52.582Z
 source: da7c87fcee0d25d4aafa5b63b7c3c73acfc51b33
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.91 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -9210,7 +9186,6 @@ schema_version: 1
 generated: 2026-07-21
 generated_at: 2026-07-21T20:05:27.505Z
 source: 137fe77df72151d70a658d4571acecd23524c68c
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.93 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -9611,7 +9586,6 @@ schema_version: 1
 generated: 2026-07-21
 generated_at: 2026-07-21T22:09:04.356Z
 source: 248bc7bad9c35064359188d45101afa70fe16554
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.67 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -10012,7 +9986,6 @@ schema_version: 1
 generated: 2026-07-21
 generated_at: 2026-07-21T22:31:08.202Z
 source: b01b56c88d642a6e48a5f4c7759545995b817bea
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.59 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -10413,7 +10386,6 @@ schema_version: 1
 generated: 2026-07-21
 generated_at: 2026-07-21T23:22:43.686Z
 source: 8437c30fbf50b6aad4d4d4c7d16bcbb15c9e855d
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.95 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -10814,7 +10786,6 @@ schema_version: 1
 generated: 2026-07-22
 generated_at: 2026-07-22T00:28:45.660Z
 source: d65b86b531be74f926457d0b401c5c0976718b18
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.61 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -11215,7 +11186,6 @@ schema_version: 1
 generated: 2026-07-22
 generated_at: 2026-07-22T00:55:43.627Z
 source: c495477570e7d72e37f5adfd047767e2722104c1
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~2.66 GHz
   cpu: AMD EPYC 9V74 80-Core Processor
@@ -11616,7 +11586,6 @@ schema_version: 1
 generated: 2026-07-22
 generated_at: 2026-07-22T01:31:43.228Z
 source: de40c3427000a676f522696d437d356a8abd6462
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~3.08 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -12017,7 +11986,6 @@ schema_version: 1
 generated: 2026-07-22
 generated_at: 2026-07-22T01:47:45.788Z
 source: 8c57c2be7786b8670323953ab9b891da91636a3c
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~3.08 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -12418,7 +12386,6 @@ schema_version: 1
 generated: 2026-07-22
 generated_at: 2026-07-22T09:54:10.949Z
 source: 60cb3cbc3be528205e3dbd73f50cf64236534bfb
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~3.08 GHz
   cpu: AMD EPYC 7763 64-Core Processor
@@ -12819,7 +12786,6 @@ schema_version: 1
 generated: 2026-07-22
 generated_at: 2026-07-22T10:14:15.925Z
 source: 9063f5831b66e43cddd0be4f498bd2bfd0199cac
-# env backfilled 2026-07-22 from the same run's speed document (matched on source)
 env:
   clk: ~3.10 GHz
   cpu: INTEL(R) XEON(R) PLATINUM 8573C
