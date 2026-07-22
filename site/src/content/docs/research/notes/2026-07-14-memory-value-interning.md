@@ -1,5 +1,6 @@
 ---
 title: "Interning repeated string *values* during parse"
+description: "Testing whether interning repeated scalar string values, not just keys, during parse cuts retained heap on repetitive record arrays: it does, at a CPU cost"
 optimization:
   name: "String value interning (parse)"
   conclusion: "Deduplicating repeated string values during parse is a real, parity-safe retained-heap reduction on repetitive record arrays, but it costs measurable parse speed, so it belongs behind an opt-in flag."

@@ -25,6 +25,7 @@ import { dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { stringify as toYaml } from "yaml";
+import { MemoryDocSchema } from "../schemas.ts";
 import {
   selectCandidates,
   scopeFromEnv,
@@ -217,19 +218,23 @@ export function emitMemoryYaml(scope: Scope, results: Result[] = runMemoryMatrix
     .filter((c) => usedNames.has(c.name))
     .map(libraryMeta);
 
+  const now = new Date();
   const doc = {
     suite: "memory" as const,
     scope: scopeLabel(scope),
     units: { peak_rss: "MB", heap_delta: "KB" },
     lower_is_better: true,
     iterations: ITERS,
-    generated: new Date().toISOString().slice(0, 10),
+    schema_version: 1,
+    generated: now.toISOString().slice(0, 10),
+    generated_at: now.toISOString(),
     source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
     libraries,
     operations: { parse: rowsFor(results, "parse"), stringify: rowsFor(results, "stringify") },
   };
 
   mkdirSync(dirname(OUT_YAML), { recursive: true });
+  MemoryDocSchema.parse(doc); // fail fast if the emitted doc doesn't match its schema
   writeFileSync(OUT_YAML, toYaml(doc));
   console.log(`Wrote ${OUT_YAML}`);
 }

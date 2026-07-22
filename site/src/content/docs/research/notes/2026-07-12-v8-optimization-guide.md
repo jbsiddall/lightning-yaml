@@ -1,5 +1,6 @@
 ---
 title: "V8 Optimization Guide"
+description: "Engineering guidance on V8's JIT tiers, monomorphism, and hidden-class transitions for writing and reviewing performance-sensitive parser and dumper code"
 ---
 > Origin: a user-supplied V8
 > optimization guide, reviewed 2026-07-12 against the dossier and edited

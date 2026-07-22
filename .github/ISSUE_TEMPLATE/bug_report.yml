@@ -18,35 +18,35 @@ body:
       description: The exact YAML (or the exact `stringify` value) that triggers it.
       render: yaml
     validations:
-      required: true
+      required: false
   - type: textarea
     id: expected
     attributes:
       label: Expected result
       description: What you expected to get back (value, or thrown error).
     validations:
-      required: true
+      required: false
   - type: textarea
     id: actual
     attributes:
       label: Actual result
       description: What actually happened — the returned value, the error/stack, or "hangs".
     validations:
-      required: true
+      required: false
   - type: input
     id: version
     attributes:
       label: lightning-yaml version
       placeholder: e.g. 0.1.0
     validations:
-      required: true
+      required: false
   - type: input
     id: runtime
     attributes:
       label: Runtime
       placeholder: e.g. Node 20.11, Deno 2.1, Bun 1.1, Chrome 130
     validations:
-      required: true
+      required: false
   - type: textarea
     id: notes
     attributes:

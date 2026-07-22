@@ -26,6 +26,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { bench, group, run, do_not_optimize } from "mitata";
 import { stringify as toYaml } from "yaml";
+import { SpeedDocSchema } from "../schemas.ts";
 import {
   selectCandidates,
   scopeFromEnv,
@@ -174,13 +175,16 @@ const env = {
   runtime: `${trial.context.runtime ?? "node"} ${trial.context.version ?? ""} (${trial.context.arch ?? "unknown"})`,
 };
 
+const now = new Date();
 const doc = {
   suite: "speed" as const,
   scope: scopeLabel(scope),
   tool: "mitata",
   unit: "ns/iter",
   lower_is_better: true,
-  generated: new Date().toISOString().slice(0, 10),
+  schema_version: 1,
+  generated: now.toISOString().slice(0, 10),
+  generated_at: now.toISOString(),
   source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
   env,
   libraries: usedCandidates.map(libraryMeta),
@@ -188,5 +192,6 @@ const doc = {
 };
 
 mkdirSync(dirname(OUT), { recursive: true });
+SpeedDocSchema.parse(doc); // fail fast if the emitted doc doesn't match its schema
 writeFileSync(OUT, toYaml(doc));
 console.log(`Wrote ${OUT}`);

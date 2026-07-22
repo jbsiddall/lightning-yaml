@@ -1,5 +1,6 @@
 ---
 title: "The shape of real-world YAML: what to optimize the hot path for"
+description: "The canonical, confidence-graded profile of real-world YAML shape and size that other optimization notes should weigh their tradeoffs against"
 ---
 **Verdict: Reference / ceiling.** This note records a *target-workload profile* — the
 statistical shape of the YAML lightning-yaml is actually asked to parse in the wild — so

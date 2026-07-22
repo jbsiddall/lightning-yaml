@@ -1,5 +1,6 @@
 ---
 title: "Replacing the ConsString rope with an array-of-chunks + join"
+description: "Benchmarks whether an array-of-chunks plus join beats the dumper's ConsString rope for building output: it is 4 to 11% slower on most fixtures, so the rope stays"
 optimization:
   name: "Array-join vs ConsString rope (stringify)"
   conclusion: "Replacing the `out += ...` ConsString rope with an array-of-chunks + `join` is 4-11% slower on four of five fixtures, so the current rope is kept."

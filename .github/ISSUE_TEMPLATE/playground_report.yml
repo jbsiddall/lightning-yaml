@@ -1,0 +1,47 @@
+name: Playground report
+description: A divergence, surprising benchmark result, or slowdown captured from the homepage playground.
+title: "Playground: "
+labels: ["playground"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! This form is pre-filled by the **homepage playground** — the input,
+        timings, and agreement below come straight from your browser. Those timings
+        are **in-browser and indicative**, not the CI benchmark, and a disagreement
+        isn't automatically a bug (the YAML 1.2 spec adjudicates). Add anything the
+        playground couldn't capture under **What looks off**.
+  - type: textarea
+    id: input
+    attributes:
+      label: Input
+      description: The exact YAML (or `stringify` value) the playground ran.
+      render: yaml
+    validations:
+      required: false
+  - type: textarea
+    id: parse
+    attributes:
+      label: Parse — timings & agreement
+    validations:
+      required: false
+  - type: textarea
+    id: stringify
+    attributes:
+      label: Stringify — timings & round-trip
+    validations:
+      required: false
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      placeholder: e.g. Node 20.11, Deno 2.1, Bun 1.1, Chrome 130
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: What looks off
+      description: What made you file this — the divergence, the slowdown, or extra context. Optional.
+    validations:
+      required: false
