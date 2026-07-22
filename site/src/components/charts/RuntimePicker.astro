@@ -1,0 +1,109 @@
+---
+// RuntimePicker.astro — CSS-only runtime-family picker for /benchmarks,
+// following the same radio-tab idiom as HeroBench.astro (zero client JS).
+// Unlike HeroBench, the elements it shows/hides (ChartCard's data-runtime
+// figures, the raw breakdown-table divs) are NOT descendants of this
+// component's own markup — they live elsewhere in the .mdx page's content
+// flow, as later siblings. So the visibility rule below is `is:global` and
+// keys off `data-runtime`, not a component-local class.
+//
+// Renders nothing when there's only one runtime family — the /benchmarks
+// page must look exactly as it did before the runtime dimension existed
+// until CI actually publishes a second environment.
+interface RuntimeOption {
+  family: string;
+  /** Full `env.runtime` string (e.g. "node 24.18.0 (x64-linux)") — the label. */
+  runtime: string;
+}
+
+interface Props {
+  runtimes: RuntimeOption[];
+  canonical: string;
+}
+
+const { runtimes, canonical } = Astro.props;
+const GROUP = 'rt-speed';
+---
+
+{
+  runtimes.length > 1 && (
+    <>
+      {runtimes.map((r) => (
+        <input
+          class="rt-picker__radio"
+          type="radio"
+          name={GROUP}
+          id={`${GROUP}-${r.family}`}
+          checked={r.family === canonical}
+        />
+      ))}
+      <div class="rt-picker__tabs" role="tablist" aria-label="Benchmark runtime">
+        {runtimes.map((r) => (
+          <label class="rt-picker__tab" for={`${GROUP}-${r.family}`}>
+            {r.runtime}
+          </label>
+        ))}
+      </div>
+    </>
+  )
+}
+
+<style is:global>
+  .rt-picker__radio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .rt-picker__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.9rem 0 1.4rem;
+  }
+  .rt-picker__tab {
+    font-family: var(--sl-font-mono);
+    font-size: 0.78rem;
+    color: var(--sl-color-gray-3);
+    background: transparent;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 999px;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .rt-picker__tab:hover {
+    color: var(--sl-color-text);
+  }
+
+  /*
+   * Panels carrying data-runtime are hidden by default and revealed only
+   * when their family's radio is checked. Every rule here has to name each
+   * radio id explicitly (there is no CSS combinator that matches "the family
+   * of whichever radio is checked"), so this list is bounded to the runtime
+   * families runtimeFamily() documents (site/src/lib/queries.ts): node,
+   * chromium, webkit, bun, firefox. A new family beyond that set needs a rule
+   * added here.
+   */
+  [data-runtime] {
+    display: none;
+  }
+  #rt-speed-node:checked ~ [data-runtime='node'],
+  #rt-speed-chromium:checked ~ [data-runtime='chromium'],
+  #rt-speed-webkit:checked ~ [data-runtime='webkit'],
+  #rt-speed-bun:checked ~ [data-runtime='bun'],
+  #rt-speed-firefox:checked ~ [data-runtime='firefox'] {
+    display: revert;
+  }
+
+  #rt-speed-node:checked ~ .rt-picker__tabs label[for='rt-speed-node'],
+  #rt-speed-chromium:checked ~ .rt-picker__tabs label[for='rt-speed-chromium'],
+  #rt-speed-webkit:checked ~ .rt-picker__tabs label[for='rt-speed-webkit'],
+  #rt-speed-bun:checked ~ .rt-picker__tabs label[for='rt-speed-bun'],
+  #rt-speed-firefox:checked ~ .rt-picker__tabs label[for='rt-speed-firefox'] {
+    color: var(--sl-color-text);
+    border-color: var(--ly-charge, var(--sl-color-accent));
+  }
+</style>
