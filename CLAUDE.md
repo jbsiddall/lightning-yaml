@@ -136,16 +136,31 @@ its own context lean. Follow this loop for any non-trivial request.
 ### PRs squash-merge — keep the title & description accurate
 
 PRs land on `main` as a **single squash commit** whose message is the PR **title +
-description** (internal commits are collapsed) — so those must describe the *whole*
-change, not any one commit. When a PR is opened (by you or the user), write the
-title/description to match the work; if later turns add commits to the branch, go back
-and update them so they stay accurate. Don't mention Claude in the PR title or
-description — it just adds noise; write them as the change's own record. Pitch the
-title and top-line summary per _Audience & voice_ above — a reader who knows YAML
-but not our internals should get *what changed* without wading through
-grammar-production names or internal symbols. Cite the spec to back a claim (linked
-to its section), and keep the production-level walkthrough for the template's
-**Correctness note**.
+description** (internal commits are collapsed) — so together they must describe the
+*whole* change, not any one commit. Split that job by role: the **description**
+covers the full scope (every piece of work, however small); the **title is a
+headline, not a table of contents**. Name the one piece of work a reader most needs
+in order to understand the change, and phrase the title around *that* — prioritize a
+title a working YAML dev can read in one pass over one that enumerates every facet of
+the PR. A smaller, closely-related piece of work (a picker UI tweak that a bigger
+data change implies, a follow-on field added alongside the main one) doesn't need its
+own clause in the title — the reader should be able to infer it, or at worst not be
+surprised by it, once they open the description or the diff.
+
+For example, prefer `benchmarks: run on node & in browser` over `benchmarks: runtime
+dimension — canonical environment, /benchmarks picker, runtime provenance in memory
+data`: the picker and provenance fields are expected consequences of adding a second
+runtime, not independent claims the title needs to carry — the description is where
+they get spelled out.
+
+When a PR is opened (by you or the user), write the title/description to match the
+work; if later turns add commits to the branch, go back and update them so they stay
+accurate. Don't mention Claude in the PR title or description — it just adds noise;
+write them as the change's own record. Pitch the title and top-line summary per
+_Audience & voice_ above — a reader who knows YAML but not our internals should get
+*what changed* without wading through grammar-production names or internal symbols.
+Cite the spec to back a claim (linked to its section), and keep the
+production-level walkthrough for the template's **Correctness note**.
 
 ### Token discipline — temp files + tiny prompts (mandatory)
 
