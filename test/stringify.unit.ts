@@ -350,6 +350,20 @@ test("collection: empty map {}", () => {
   assertRoundTrips({}, "empty map");
 });
 
+test("collection: map properties with undefined values are omitted", () => {
+  const value = { a: undefined, b: 1 };
+  const text = stringify(value);
+  strictEqual(text, "b: 1\n");
+  deepStrictEqual(parse(text), { b: 1 });
+  deepStrictEqual(oracleParse(text), { b: 1 });
+
+  const emptyVal = { a: undefined };
+  const emptyText = stringify(emptyVal);
+  strictEqual(emptyText, "{}\n");
+  deepStrictEqual(parse(emptyText), {});
+  deepStrictEqual(oracleParse(emptyText), {});
+});
+
 test("collection: empty seq []", () => {
   assertRoundTrips([], "empty seq");
 });
