@@ -289,9 +289,36 @@ const trapStrings: Array<[string, string]> = [
   ['the string "off" (1.1-ism, stays a string under 1.2 core)', "off"],
   ["a string of only spaces", "   "],
   ['the string "-0"', "-0"],
+  ['the string "..." (document-end marker, issue #19)', "..."],
+  ['the string "---" (document-start marker, issue #19)', "---"],
 ];
 
 for (const [label, value] of trapStrings) testTrapString(label, value);
+
+// ---------------------------------------------------------------------------
+// 2b-i. Issue #19 regression — a root scalar that is EXACTLY the document-end
+// (`...`) or document-start (`---`) marker must be quoted, not just any string
+// that merely starts/contains those characters. `testTrapString` above (via
+// the `trapStrings` entries) already locks the round-trip; this locks the
+// literal emitted text so a future refactor can't silently widen or narrow
+// `isPlainScalarSafe`'s new guard.
+// ---------------------------------------------------------------------------
+
+test('document markers: "..." and "---" as root scalars are quoted, not bare (issue #19)', () => {
+  strictEqual(stringify("..."), "'...'\n", '"..." must be quoted so it does not read back as the document-end marker');
+  strictEqual(stringify("---"), "'---'\n", '"---" must stay quoted (already correct pre-fix via the leading "-" indicator rule)');
+});
+
+test("document markers: near-miss strings stay bare/unquoted (must NOT be caught by the new guard, issue #19)", () => {
+  const bareUnchanged = ["a.b", "...x", "x...", "..", "...."];
+  for (const s of bareUnchanged) {
+    strictEqual(stringify(s), s + "\n", `${JSON.stringify(s)} must stay emitted bare, unaffected by the issue #19 fix`);
+  }
+});
+
+test('document markers: "1.5" stays quoted for its pre-existing numeric-looking reason, unaffected by the new guard (issue #19)', () => {
+  strictEqual(stringify("1.5"), "'1.5'\n");
+});
 
 // ---------------------------------------------------------------------------
 // 2c. Strings needing quoting/escaping for structural reasons (leading

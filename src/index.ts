@@ -4600,10 +4600,13 @@ function looksLikeTypedScalar(s: string): boolean {
  * anywhere (never legal in a plain scalar, regardless of position — simpler
  * and safer than reasoning about which positions are actually reachable); an
  * interior `": "` (mapping separator) or `" #"` (comment) span; a trailing
- * `:` (ambiguous with a separator once nothing follows); or content that
- * would resolve to null/bool/number rather than staying a string.
+ * `:` (ambiguous with a separator once nothing follows); being exactly a
+ * document marker (`...`/`---`), which a bare root scalar would be misread as;
+ * or content that would resolve to null/bool/number rather than staying a
+ * string.
  */
 function isPlainScalarSafe(s: string): boolean {
+  if (s === "..." || s === "---") return false; // document markers: bare => misread as ... / --- (spec §9.1.6/§9.2)
   const n = s.length;
   if (n === 0) return false;
   const c0 = s.charCodeAt(0);
