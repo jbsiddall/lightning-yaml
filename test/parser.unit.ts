@@ -1621,6 +1621,26 @@ test("STRICTNESS: a space-then-tab cannot indent a block-collection continuation
   }
 });
 
+test("skipTabIndentChecks option: opting in skips the tab-indent guards, accepting input the default rejects (issue #18)", () => {
+  const skip = { optimizations: { skipTabIndentChecks: true } };
+  const tabIndented = "a:\n \tb: 1\n"; // space-then-tab positioning a nested block map
+  // Default: spec-compliant rejection (as the STRICTNESS tests above assert).
+  throws(() => parse(tabIndented), YAMLParseError);
+  throws(() => parseAll(tabIndented), YAMLParseError);
+  // Opted out: the guard is skipped, so the (spec-invalid) input parses to the
+  // lenient value instead of throwing.
+  deepStrictEqual(parse(tabIndented, skip), { a: { b: 1 } });
+  deepStrictEqual(parseAll(tabIndented, skip), [{ a: { b: 1 } }]);
+  // VALID input parses identically with the option on or off — the guards only
+  // ever throw, never transform.
+  for (const y of ["a:\n  b: 1\n", "a:\n  - 1\n  - 2\n", "foo:\n \tbar\n", "x: [1, 2]\n"]) {
+    deepStrictEqual(parse(y, skip), parse(y));
+  }
+  // The option is per-call and does not leak: a default parse after a skip parse
+  // still rejects.
+  throws(() => parse(tabIndented), YAMLParseError);
+});
+
 // --------------------------------------------------------------------------
 // A node can have at most one anchor (yaml-test-suite 4JVG): a deferred anchor
 // whose node begins with its OWN anchor and resolves to a scalar/non-mapping

@@ -82,20 +82,20 @@ const TILDE = 126; // ~
 const BOM = 0xfeff;
 
 /**
- * Escape hatch for the space-then-tab block-collection indentation guards (spec
- * 6.1; `rejectBlockCollectionTabIndent` + the per-entry `checkNoTabIndent(col-1)`
- * in the block seq/map continuation loops). Those run on every block-collection
+ * Backing flag for the `skipTabIndentChecks` parse optimization — it gates the
+ * space-then-tab block-collection indentation guards (spec 6.1;
+ * `rejectBlockCollectionTabIndent` + the per-entry `checkNoTabIndent(col-1)` in
+ * the block seq/map continuation loops). Those run on every block-collection
  * entry and cost a few percent of block-YAML parse time (measured ~4-8% on
  * medium/large records, more on pathologically deep, many-entry input) purely to
  * reject a rare malformed input. Default `false` keeps the spec-compliant
- * rejection. A build that flips this to `true` drops the checks — V8
- * constant-folds `if (!true)` away, so the penalty disappears entirely — trading
- * strictness for speed: such a build tolerates (mis-parses) tab-indented block
- * collections. Because these guards only ever THROW and never transform, VALID
- * input parses identically in either mode; only rejection of the malformed case
- * is gated.
+ * rejection; `parse`/`parseAll` set it per call from
+ * `options.optimizations.skipTabIndentChecks` and restore it afterwards. Because
+ * these guards only ever THROW and never transform, VALID input parses
+ * identically in either mode — only rejection of the malformed (tab-indented)
+ * case is gated.
  */
-const SKIP_TAB_INDENT_CHECKS = false;
+let SKIP_TAB_INDENT_CHECKS = false;
 
 /**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
@@ -549,6 +549,16 @@ export interface ParseOptimizations {
    * `===`-equal and immutable). Default: `false`.
    */
   internStrings?: boolean;
+
+  /**
+   * Skip the space-then-tab block-collection indentation guards (spec 6.1) for
+   * faster block-YAML parsing — ~4-8% on medium/large records, more on
+   * pathologically deep, many-entry block collections. Trades strictness for
+   * speed: a parse with this ON ACCEPTS tab-indented block collections that the
+   * spec-compliant default REJECTS. VALID input parses identically either way —
+   * only rejection of the malformed case is gated. Default: `false`.
+   */
+  skipTabIndentChecks?: boolean;
 }
 
 /** Options for {@link parse} / {@link parseAll}. Every field is optional; an omitted or `undefined` value leaves the parse behaviour byte-for-byte the default. */
@@ -584,6 +594,7 @@ export interface ParseOptions {
 export function parse(text: string, options?: ParseOptions): unknown {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
+  SKIP_TAB_INDENT_CHECKS = options?.optimizations?.skipTabIndentChecks === true;
   try {
     const value = parseNextDocument();
     if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
@@ -597,6 +608,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     return value;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
+    SKIP_TAB_INDENT_CHECKS = false; // restore the spec-compliant default
   }
 }
 
@@ -624,6 +636,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
 export function parseAll(text: string, options?: ParseOptions): unknown[] {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
+  SKIP_TAB_INDENT_CHECKS = options?.optimizations?.skipTabIndentChecks === true;
   try {
     const docs: unknown[] = [];
     for (;;) {
@@ -634,6 +647,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     return docs;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
+    SKIP_TAB_INDENT_CHECKS = false; // restore the spec-compliant default
   }
 }
 
