@@ -1333,10 +1333,15 @@ test("STRICTNESS: a tab cannot separate '?'/explicit ':' from content that opens
   throws(() => parse("? -\n:\t-\n"), YAMLParseError); // Y79Y/007
   throws(() => parse("?\tkey:\n"), YAMLParseError); // Y79Y/008
   throws(() => parse("? key:\n:\tkey:\n"), YAMLParseError); // Y79Y/009
+  // The restriction holds for a 2ND explicit key too (the loop path), not just
+  // the first — issue #17 routed both through the same `parseExplicitKey`.
+  throws(() => parse("? x\n: y\n?\t- a\n: z\n"), YAMLParseError);
+  throws(() => parse("? x\n: y\n?\tk: 1\n: z\n"), YAMLParseError);
   // A tab before an ORDINARY scalar (nothing collection-shaped follows) is
   // still fine — the restriction is specifically about tab-reached columns
   // that become a structural indentation reference for a NEW collection.
   deepStrictEqual(parse("?\tsimple\n: v\n"), { simple: "v" });
+  deepStrictEqual(parse("? x\n: y\n?\tsimple\n: z\n"), { x: "y", simple: "z" });
 });
 
 // --------------------------------------------------------------------------

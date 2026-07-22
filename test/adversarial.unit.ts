@@ -206,6 +206,19 @@ test("complex keys: EXPLICIT `?` collection key (block + flow) is accepted per s
   deepStrictEqual(parse("{? [1, 2]: v}"), oracleParse("{? [1, 2]: v}"));
 });
 
+test("complex keys: a zero-indented ('compact') block sequence is a valid explicit key (spec §8.2.2; yaml-test-suite 6PBE)", () => {
+  // The explicit key and its value share one production (`s-l+block-indented`),
+  // so a same-column compact sequence is legal on the KEY side as on the value side.
+  deepStrictEqual(parse("?\n- a\n:\n- c\n"), { "[ a ]": ["c"] });
+  deepStrictEqual(parse("?\n- a\n- b\n:\n- c\n- d\n"), { "[ a, b ]": ["c", "d"] }); // 6PBE shape
+  deepStrictEqual(parse("?\n- a\n"), { "[ a ]": null }); // key only, no ': value'
+  deepStrictEqual(parse("?\n- a\n:\n  b: 1\n"), { "[ a ]": { b: 1 } }); // seq key, mapping value
+  deepStrictEqual(parse("? x\n: y\n?\n- a\n- b\n: z\n"), { x: "y", "[ a, b ]": "z" }); // 2nd key (loop path)
+  for (const s of ["?\n- a\n:\n- c\n", "?\n- a\n- b\n:\n- c\n- d\n", "?\n- a\n", "?\n- a\n:\n  b: 1\n", "? x\n: y\n?\n- a\n- b\n: z\n"]) {
+    deepStrictEqual(parse(s), oracleParse(s));
+  }
+});
+
 test("complex keys: IMPLICIT flow collection key is a spec error — we reject it (impl diverges)", () => {
   // yaml-test-suite SBG9 / X38W: a flow collection used as an implicit key is an error.
   throwsBecause(() => parse("{[1, 2]: v}"), /mapping key/);

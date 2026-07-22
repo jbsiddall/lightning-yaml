@@ -3561,7 +3561,7 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
     if (src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) break; // sibling sequence, not our entry
     if (src.charCodeAt(pos) === QUESTION && isSpaceOrEolAt(pos + 1)) {
       pos++; // past '?'
-      key = internKey(keyToString(parseBlockValue(col, false)));
+      key = internKey(keyToString(parseExplicitKey(col)));
       hasValue = explicitValueFollows(col);
       isExplicit = true;
     } else {
@@ -3592,48 +3592,20 @@ function explicitValueFollows(col: number): boolean {
 
 /**
  * `? key` / `: value` (spec 8.17), entered from `parseBlockNode`'s dispatch
- * with `pos` at `?` and `col` its column. The key is parsed with the EXACT
- * same machinery as an ordinary mapping VALUE (`parseBlockValue`, ordinary
- * `parseBlockNode` dispatch) — inline right after `?`, or deferred to a more-
- * indented following line — so anchors, tags, nested collections, and multi-
- * line plain folding all compose for free: a key here is "just a node", which
- * is the entire reason the explicit form exists (an IMPLICIT key can't be
- * multi-line or a collection; this one can — yaml-test-suite JTV5/L94M/5WE3).
- * A collection key must still work as a JS object key: `keyToString` (via
- * `stringifyKeyNode`, cold) renders it into the SAME flow-style string the
- * oracle's `.toJS()` uses for a non-scalar map key.
- *
- * `mapValue=false` is passed for the key (matching a SEQUENCE entry's
- * convention, not a mapping VALUE's): the "compact collection at the SAME
- * column as the indicator" special case (`parseDeferredBlockNode`'s `mapValue
- * && nc === parentCol` branch) is deliberately NOT extended to keys — passing
- * `true` here would also (incorrectly) set `inlineMapValue` while parsing
- * INLINE key content, wrongly rejecting a perfectly legal inline nested map
- * as a key (`? a: 1\n  b: 2\n: v`, calibrated against the oracle). The narrow
- * cost: a key that's a compact sequence at EXACTLY `?`'s own column (deferred,
- * e.g. `?\n- a\n- b\n:\n- c\n- d\n`) is not supported — a documented, narrow
- * gap (that input isn't in the scored suite; real explicit-collection keys are
- * written one indent deeper, which already works, same as a seq entry's own
- * nested collections).
+ * with `pos` at `?` and `col` its column. The key (`parseExplicitKey`) and the
+ * value (`parseExplicitValue`) are mirror halves of the SAME production
+ * (`s-l+block-indented(n)`), so a key is "just a node" — anchors, tags, nested
+ * collections, and multi-line plain folding all compose for free, which is the
+ * entire reason the explicit form exists (an IMPLICIT key can't be multi-line
+ * or a collection; this one can — yaml-test-suite JTV5/L94M/5WE3, including a
+ * zero-indented compact sequence key `?\n- a\n- b` — 6PBE). A collection key
+ * must still work as a JS object key: `keyToString` (via `stringifyKeyNode`,
+ * cold) renders it into the SAME flow-style string the oracle's `.toJS()` uses
+ * for a non-scalar map key.
  */
 function parseBlockMapExplicit(col: number): Record<string, unknown> {
   pos++; // past '?'
-  // Mirrors `parseBlockValue`'s own inline/deferred dispatch (not called
-  // directly: it doesn't distinguish the two, and the tab check just below
-  // only applies to the INLINE case — see `isTabRestrictedCollection`'s doc
-  // comment for why a DEFERRED key, starting fresh on its own line, is exempt).
-  const tabRightAfterIndicator = src.charCodeAt(pos) === TAB;
-  skipInlineSpaces();
-  const c = pos < len ? src.charCodeAt(pos) : -1;
-  let keyNode: unknown;
-  if (c === -1 || c === LF || c === CR || c === HASH) {
-    nextLine();
-    keyNode = parseDeferredBlockNode(col, false);
-  } else {
-    keyNode = parseBlockNode(col, false);
-    if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
-  }
-  const key = internKey(keyToString(keyNode));
+  const key = internKey(keyToString(parseExplicitKey(col)));
   return parseBlockMap(col, key, explicitValueFollows(col), true);
 }
 
@@ -3696,8 +3668,8 @@ function checkNoTabIndent(parentCol: number): void {
  * suite 5WE3/A2M4 — "Explicit compact") or deferred to a following line at
  * the SAME column (`:\n- one\n- two`, calibrated against the oracle — both
  * accept it, matching an ordinary deferred value's already-established
- * precedent, hence `mapValue=true` is still passed to `parseDeferredBlockNode`
- * here, unlike the key side in `parseBlockMapExplicit` above).
+ * precedent, hence `mapValue=true` is passed to `parseDeferredBlockNode` here —
+ * exactly as the mirror key side does in `parseExplicitKey`).
  */
 function parseExplicitValue(col: number): unknown {
   const tabRightAfterIndicator = src.charCodeAt(pos) === TAB;
@@ -3710,6 +3682,31 @@ function parseExplicitValue(col: number): unknown {
   const value = parseBlockNode(col, false); // inline: NOT gated by the implicit-value inline-seq restriction
   if (tabRightAfterIndicator && isTabRestrictedCollection(value)) fail("a tab cannot separate ':' from a value that opens a new collection");
   return value;
+}
+
+/**
+ * The KEY after a `?` indicator (spec 8.17) — the exact mirror of
+ * `parseExplicitValue`. `c-l-block-map-explicit-key` shares one production with
+ * its value counterpart (`s-l+block-indented(n)`), so a DEFERRED key accepts a
+ * same-column ("zero-indented") compact sequence just as the value does
+ * (`?\n- a\n- b` — yaml-test-suite 6PBE), hence `mapValue=true` to
+ * `parseDeferredBlockNode`. INLINE key content stays `mapValue=false` so a
+ * nested inline map is still a legal key (`? a: 1\n  b: 2`, which would set
+ * `inlineMapValue` and wrongly reject under `true`); the tab-before-a-new-
+ * collection restriction, like the value's, applies to that inline case only.
+ * `pos` is already past the `?`.
+ */
+function parseExplicitKey(col: number): unknown {
+  const tabRightAfterIndicator = src.charCodeAt(pos) === TAB;
+  skipInlineSpaces();
+  const c = pos < len ? src.charCodeAt(pos) : -1;
+  if (c === -1 || c === LF || c === CR || c === HASH) {
+    nextLine();
+    return parseDeferredBlockNode(col, true);
+  }
+  const keyNode = parseBlockNode(col, false); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
+  if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
+  return keyNode;
 }
 
 /** Parse the next key of a block mapping, leaving `pos` at the `:` separator. */
