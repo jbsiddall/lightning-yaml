@@ -102,9 +102,9 @@ const { autorun = 'view' }: Props = Astro.props;
       'logo: !!binary |\n' +
       '  R0lGODlhAQABAAAAACw=\n',
     merge:
-      '# Merge keys (<<): js-yaml applies the old merge convention and MERGES this.\n' +
-      '# lightning-yaml and the `yaml` library keep "<<" as a literal key by default\n' +
-      '# (merge keys are not in YAML 1.2 core) — so here js-yaml is the outlier.\n' +
+      '# Merge keys (<<) are not in YAML 1.2 core, so all three parsers keep "<<"\n' +
+      '# as a literal key by default. js-yaml merges it only with its opt-in\n' +
+      '# YAML 1.1 schema (js-yaml 4 merged by default; v5 no longer does).\n' +
       'base: &base\n' +
       '  a: 1\n' +
       '  b: 2\n' +
@@ -558,10 +558,12 @@ const { autorun = 'view' }: Props = Astro.props;
   // The query-param names below MUST match the field ids in
   // .github/ISSUE_TEMPLATE/playground_report.yml.
   function issueUrl(rep) {
+    // Baseline rows (native JSON) are excluded: beating JSON.parse is the design
+    // target, not a race we claim to win — "slower" means slower than a YAML library.
     const slower = (rows) => {
       const ly = rows.find((r) => r.id === 'lightning-yaml' && r.state === 'ok')
       if (!ly) return false
-      return rows.some((r) => r.state === 'ok' && !r.self && r.median < ly.median)
+      return rows.some((r) => r.state === 'ok' && !r.self && !r.baseline && r.median < ly.median)
     }
     const hasDivergence = rep.diffs.length > 0 || rep.dumpRows.some((r) => r.roundtrip === 'diverges')
     const lySlower = slower(rep.parseRows) || slower(rep.dumpRows)
