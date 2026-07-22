@@ -56,12 +56,14 @@ const BundleSizeValueSchema = z
     message: "value must carry a size (min/gzip/brotli) or an error",
   });
 
+export const RuntimeEnvSchema = z.object({ clk: z.string(), cpu: z.string(), runtime: z.string() });
+
 export const SpeedDocSchema = ProvenanceBase.extend({
   suite: z.literal("speed"),
   tool: z.string(),
   unit: z.string(),
   lower_is_better: z.boolean(),
-  env: z.object({ clk: z.string(), cpu: z.string(), runtime: z.string() }),
+  env: RuntimeEnvSchema,
   libraries: z.array(LibraryMetaSchema).min(1),
   operations: z.object({
     parse: z.array(workloadSchema(SpeedStatSchema)),
@@ -71,6 +73,7 @@ export const SpeedDocSchema = ProvenanceBase.extend({
 
 export const MemoryDocSchema = ProvenanceBase.extend({
   suite: z.literal("memory"),
+  env: RuntimeEnvSchema,
   units: z.object({ peak_rss: z.string(), heap_delta: z.string() }),
   lower_is_better: z.boolean(),
   iterations: z.number().nonnegative(),
