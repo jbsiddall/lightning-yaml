@@ -13186,6 +13186,10 @@ schema_version: 1
 generated: 2026-07-22
 generated_at: 2026-07-22T12:53:34.645Z
 source: f1ffba66c5c51e912004aaf38d3737ea216a7550
+env:
+  clk: ~2.71 GHz
+  cpu: AMD EPYC 9V74 80-Core Processor
+  runtime: node 24.18.0 (x64-linux)
 libraries:
   - id: JSON
     label: JSON
