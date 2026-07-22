@@ -65,7 +65,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (url === "/" || url === "/index.html") return serveFile(res, HARNESS_HTML);
   if (url === "/bundle.js") return serveFile(res, BUNDLE_PATH);
   if (url.startsWith("/fixtures/")) return serveFixture(res, url);
-  res.writeHead(404, CROSS_ORIGIN_ISOLATION_HEADERS);
+  res.writeHead(404, { ...CROSS_ORIGIN_ISOLATION_HEADERS, "content-type": "text/plain" });
   res.end("not found");
 }
 
@@ -77,7 +77,9 @@ export interface RunningServer {
 export async function startServer(): Promise<RunningServer> {
   const server = createServer((req, res) => {
     handle(req, res).catch((err: unknown) => {
-      res.writeHead(500, CROSS_ORIGIN_ISOLATION_HEADERS);
+      // text/plain so error text (which can echo the request path) is never
+      // sniffed as HTML by the browser (CodeQL js/reflected-xss).
+      res.writeHead(500, { ...CROSS_ORIGIN_ISOLATION_HEADERS, "content-type": "text/plain" });
       res.end(String(err));
     });
   });
