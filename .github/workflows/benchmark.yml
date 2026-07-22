@@ -44,9 +44,12 @@ jobs:
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
+      # Bench on a current V8: node 20's older V8 understates js-yaml by ~3×,
+      # inflating our published ratios vs. what modern runtimes/browsers show
+      # (issues #83, #107 — the latter tracks a full runtime matrix).
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 25
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
