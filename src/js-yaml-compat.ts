@@ -3,7 +3,7 @@
  *
  * js-yaml-compat.ts — a drop-in-ish replacement for the `js-yaml` v5 public
  * API (`load`/`loadAll`/`dump`), backed by lightning-yaml's own parser
- * (./index.ts).
+ * (./core.ts).
  *
  * This module doc block is the MASTER SOURCE for js-yaml compatibility: it is
  * published verbatim to the website's API reference (site/astro.config.mjs
@@ -24,7 +24,7 @@
  * ## Goal
  *
  * Maximise drop-in compatibility **without ever compromising the two things
- * that outrank it: YAML-1.2-spec correctness and core (./index.ts) speed.**
+ * that outrank it: YAML-1.2-spec correctness and core (./core.ts) speed.**
  * Per-option cost is therefore paid either in this shim (pre-/post-processing
  * the plain-JS value, the way the `yaml` shim's reviver already does) or behind
  * a gated core seam that leaves the options-free fast path byte-identical. An
@@ -91,12 +91,12 @@
  *     `defineMappingTag`, `Schema`, the `*_SCHEMA` constants, and the `schema`
  *     option) are cheap stubs: they exist so imports resolve and
  *     `{ schema: CORE_SCHEMA }`-style options don't crash the call, but our
- *     parser is hardwired to YAML 1.2 core (see ./index.ts) and never
+ *     parser is hardwired to YAML 1.2 core (see ./core.ts) and never
  *     branches on them.
  *
  * One thing that IS aligned rather than merely stubbed: js-yaml's `load`
  * throws on a second document in the stream (use `loadAll` instead), and our
- * `parse` throws on a second document too (see ./index.ts) — so that
+ * `parse` throws on a second document too (see ./core.ts) — so that
  * particular divergence risk doesn't exist here.
  *
  * v5 REWRITE NOTE: js-yaml v5 is a from-scratch rewrite (event-based AST,
@@ -110,7 +110,7 @@
  * that.
  */
 
-import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./index.ts";
+import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
 
 // ---------------------------------------------------------------------------
 // YAMLException — shaped like js-yaml's (name/reason/message + a cheap mark).
@@ -134,7 +134,7 @@ export interface Mark {
   snippet: string;
 }
 
-/** `fail()` in ./index.ts renders positions as "<message> (line L, column C)". */
+/** `fail()` in ./core.ts renders positions as "<message> (line L, column C)". */
 const LINE_COL_RE = /\(line (\d+), column (\d+)\)\s*$/;
 
 function markFrom(message: string, filename: string | undefined): Mark {
@@ -184,7 +184,7 @@ function toYAMLException(err: unknown, filename: string | undefined): YAMLExcept
 
 // ---------------------------------------------------------------------------
 // Schema / tag-definition stubs — accepted-and-ignored. Our parser is fixed to
-// YAML 1.2 core (./index.ts); there is no schema composition to hook these
+// YAML 1.2 core (./core.ts); there is no schema composition to hook these
 // into yet.
 //
 // v5 REWRITE (vs. v4, which this shim used to mirror): js-yaml dropped the

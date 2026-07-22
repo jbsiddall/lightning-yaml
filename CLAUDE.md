@@ -5,7 +5,7 @@ Guidance for Claude Code (and humans) working in this repo.
 ## What this is
 
 `lightning-yaml` is a **YAML 1.2.2-compliant parser and serializer**
-([`src/index.ts`](src/index.ts) implements `parse`/`parseAll`/`stringify`). The
+([`src/core.ts`](src/core.ts) implements `parse`/`parseAll`/`stringify`). The
 project goal: performance approaching the browser's native
 `JSON.parse`/`JSON.stringify` in both browser and server environments, while
 maintaining full 1.2.2 compliance (YAML 1.1 is explicitly a non-goal). It
@@ -345,7 +345,7 @@ published copy to `benchmark-data` on push to `main`). Sizes are **deterministic
 sanity check when:
 
 - **dependency versions change** — `yaml`, `js-yaml`, or a bundler is bumped; or
-- **`src/index.ts` grows/shrinks materially** — our own bundle size moved.
+- **`src/core.ts` grows/shrinks materially** — our own bundle size moved.
 
 The bundler toolchain is isolated in `bench/bundlesize/package.json` (installed on first
 run), so it never touches the root install or `pnpm typecheck`; the harness is plain
@@ -356,7 +356,7 @@ PATH. Not needed on ordinary commits. See [bench/bundlesize](bench/bundlesize/RE
 
 - `bench/candidates.ts` is the single source of truth. `lightning-yaml` is
   already registered there (group `ours`), wired to `src/index.ts` — to bring it
-  to life you implement `src/index.ts`, you don't touch the registry. Each
+  to life you implement `src/core.ts`, you don't touch the registry. Each
   candidate declares a `kind` (`json` vs. `yaml`); `candidateApplies` uses it
   with the dataset category to decide which candidates run for parse vs.
   stringify (e.g. JSON never parses block YAML), and `candidateSupports` skips

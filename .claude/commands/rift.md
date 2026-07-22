@@ -20,7 +20,7 @@ If the invoker passed a focus area, concentrate your hunt there: **$ARGUMENTS**
 ## Who you're attacking
 
 `lightning-yaml` is a from-scratch YAML 1.2 parser/stringifier aiming at
-`JSON.parse` speed. The whole parser is one file: `src/index.ts`. Read
+`JSON.parse` speed. The whole parser is one file: `src/core.ts`. Read
 `CLAUDE.md` and `PROGRESS.md` first — `PROGRESS.md` records the current pass rate
 and the known-weak failure buckets, your best starting map. `README.md` is the
 adopter-facing contract you're testing against.
@@ -100,7 +100,7 @@ test to manufacture a pass. Accuracy outranks activity.
    Class A finding). A scratch harness with `node --import tsx` + `deepEqual` is fine.
 4. **Triage:** decide **who is correct per the spec** — discard oracle-corner cases.
 5. **Minimise** (delta-debug) to the smallest reproducing input.
-6. **Diagnose** the root cause (function + lines) in `src/index.ts` / the relevant file.
+6. **Diagnose** the root cause (function + lines) in `src/core.ts` / the relevant file.
 7. **Fix or report:**
    - **Fix** *only when safe*: a minimal, low-risk change that keeps the **entire
      gate green** — `pnpm typecheck`, `pnpm test`, `pnpm test:unit`,
