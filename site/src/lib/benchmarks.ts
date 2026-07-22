@@ -1,144 +1,27 @@
 // src/lib/benchmarks.ts
 //
-// Pure, DOM-free helpers for the Benchmarks doc page: load the newest run
-// from each append-only multi-document benchmark YAML stream
-// (src/data/benchmarks/*.yaml) and render static inline-SVG charts as plain
-// strings. Everything here runs at Astro BUILD TIME — no browser APIs, no
-// client JS. See CLAUDE.md ("Benchmarking rules") and the header comment of
-// each YAML file for the source schema this mirrors.
+// Chart/table rendering for the Benchmarks doc page: turn the doc-shaped data
+// from `./queries` into static inline-SVG charts and HTML table strings.
+// Everything here runs at Astro BUILD TIME — no browser APIs, no client JS.
+// See CLAUDE.md ("Benchmarking rules") and queries.ts for how the underlying
+// YAML streams are loaded and shaped.
 
-// Dogfood: the docs site parses its own benchmark data with lightning-yaml.
-import { parseAll } from 'lightning-yaml';
-
-// ---------------------------------------------------------------------------
-// Schema types (mirror the header comments in src/data/benchmarks/*.yaml)
-// ---------------------------------------------------------------------------
-
-export type LibraryId = 'JSON' | 'js-yaml' | 'js-yaml-tuned' | 'yaml' | 'lightning-yaml';
-
-export interface LibraryMeta {
-  id: LibraryId;
-  label: string;
-  baseline?: boolean;
-  self?: boolean;
-  version?: string;
-}
-
-export interface SpeedStat {
-  avg: number;
-  min: number;
-  p75: number;
-  p99: number;
-  max: number;
-}
-
-export interface SpeedWorkload {
-  workload: string;
-  values: Partial<Record<LibraryId, SpeedStat>>;
-}
-
-export interface SpeedDoc {
-  suite: 'speed';
-  scope: string;
-  tool: string;
-  unit: string;
-  lower_is_better: boolean;
-  generated: string;
-  source: string;
-  env: { clk: string; cpu: string; runtime: string };
-  libraries: LibraryMeta[];
-  operations: { parse: SpeedWorkload[]; stringify: SpeedWorkload[] };
-}
-
-export interface MemoryStat {
-  peak_rss: number;
-  heap_delta: number;
-}
-
-export interface MemoryWorkload {
-  workload: string;
-  values: Partial<Record<LibraryId, MemoryStat>>;
-}
-
-export interface MemoryDoc {
-  suite: 'memory';
-  scope: string;
-  units: { peak_rss: string; heap_delta: string };
-  lower_is_better: boolean;
-  iterations: number;
-  generated: string;
-  source: string;
-  libraries: LibraryMeta[];
-  operations: { parse: MemoryWorkload[]; stringify: MemoryWorkload[] };
-}
-
-export interface ConformanceResult {
-  id: LibraryId;
-  label: string;
-  passed: number;
-  total: number;
-  score: number;
-  self?: boolean;
-  version?: string;
-  // Present on the self row (the should-fail subset); the conformance page reads it.
-  negative_passed?: number;
-  negative_total?: number;
-}
-
-export interface ConformanceDoc {
-  suite: 'conformance';
-  suite_total: number;
-  unit: string;
-  higher_is_better: boolean;
-  generated: string;
-  source: string;
-  results: ConformanceResult[];
-}
-
-export interface BundleSizeValue {
-  min?: number;
-  gzip?: number;
-  brotli?: number;
-  error?: string;
-}
-
-export interface BundleSizeResult {
-  bundler: string;
-  rust: boolean;
-  values: Partial<Record<LibraryId, BundleSizeValue>>;
-}
-
-export interface BundleSizeDoc {
-  suite: 'bundle-size';
-  scope: string;
-  tool: string;
-  units: { min: string; gzip: string; brotli: string };
-  lower_is_better: boolean;
-  generated: string;
-  source: string;
-  env: { bundlers: Record<string, string> };
-  libraries: LibraryMeta[];
-  results: BundleSizeResult[];
-}
-
-// ---------------------------------------------------------------------------
-// Loaders — every *.yaml data file is an append-only multi-document stream;
-// CI appends a new '---' document per run and never rewrites earlier ones.
-// The site always renders the newest (last) document.
-// ---------------------------------------------------------------------------
-
-/** Parse every `---` document in an append-only benchmark YAML stream. */
-export function parseRuns<T>(raw: string): T[] {
-  return parseAll(raw) as T[];
-}
-
-/** The newest (last-appended) run of a benchmark suite. */
-export function newestRun<T>(raw: string): T {
-  const runs = parseRuns<T>(raw);
-  const last = runs.at(-1);
-  if (!last) throw new Error('benchmark YAML stream has no documents');
-  return last;
-}
+import { runtimeFamily, runsForFamily, pickWorkloads, LIBRARY_ORDER } from './queries';
+import type {
+  LibraryId,
+  LibraryMeta,
+  SpeedDoc,
+  SpeedStat,
+  SpeedWorkload,
+  MemoryDoc,
+  MemoryStat,
+  MemoryWorkload,
+  ConformanceDoc,
+  ConformanceResult,
+  BundleSizeDoc,
+  BundleSizeValue,
+  BarItem,
+} from './queries';
 
 // ---------------------------------------------------------------------------
 // Data-shaping helpers. These exist so the .mdx page — which compiles its
@@ -178,14 +61,6 @@ export function legendFor(libraries: LibraryMeta[], ids: readonly LibraryId[]): 
   }));
 }
 
-/** Select + order a curated subset of workloads by name; silently skips any that aren't found. */
-export function pickWorkloads<T extends { workload: string }>(workloads: T[], names: readonly string[]): T[] {
-  return names.flatMap((name) => {
-    const w = workloads.find((x) => x.workload === name);
-    return w ? [w] : [];
-  });
-}
-
 /** SpeedWorkload[] -> GroupedGroup[], reading the `avg` stat per library. */
 export function speedGroups(workloads: SpeedWorkload[]): GroupedGroup[] {
   return workloads.map((w) => ({
@@ -214,32 +89,6 @@ export function conformanceItems(results: ConformanceResult[]): BarItem[] {
       self: Boolean(r.self),
       sublabel: `${r.passed}/${r.total}`,
     }));
-}
-
-/**
- * BundleSizeDoc -> BarItem[], one item per library, sorted best-first
- * (lower_is_better). `value` is the MINIMUM gzip size across every bundler
- * that measured that library — the best achievable result, since bundler
- * choice is a build-tool decision, not something the library controls.
- * Errored (bundler, library) pairs are simply excluded from that minimum.
- */
-export function bundleSizeItems(doc: BundleSizeDoc): BarItem[] {
-  const ids = LIBRARY_ORDER.filter((id) => doc.libraries.some((l) => l.id === id));
-  return ids
-    .map((id) => {
-      const gzips = doc.results
-        .map((r) => r.values[id])
-        .filter((v): v is BundleSizeValue => Boolean(v) && typeof v!.gzip === 'number');
-      const value = gzips.length ? Math.min(...gzips.map((v) => v.gzip as number)) : 0;
-      return {
-        id,
-        label: libraryLabel(doc.libraries, id),
-        value,
-        color: LIBRARY_COLOR[id],
-        self: id === 'lightning-yaml',
-      };
-    })
-    .sort((a, b) => a.value - b.value);
 }
 
 /** Round a positive value up to a clean gridline step — used for a byte-valued chart's axis ceiling. */
@@ -433,20 +282,6 @@ export const LIBRARY_COLOR: Record<LibraryId, string> = {
   'js-yaml-tuned': 'var(--ly-amber-soft)',
   JSON: 'var(--ly-muted)', // baseline, when present
 };
-
-/**
- * Canonical series order, used consistently across every chart on the page.
- * A chart shows only the subset actually present in its workloads (see
- * `presentIn`) — so `js-yaml-tuned`, which has stringify data only, never
- * appears as an empty series on the parse or memory charts.
- */
-export const LIBRARY_ORDER: readonly LibraryId[] = [
-  'JSON',
-  'lightning-yaml',
-  'js-yaml',
-  'js-yaml-tuned',
-  'yaml',
-];
 
 /**
  * Workload → display category for the grouped breakdown tables. Array order is
@@ -740,15 +575,6 @@ export function groupedBarSVG(opts: GroupedBarOptions): string {
 // dataviz skill's "a single series needs no legend box" rule — there's no
 // separate legend: identity is already 1:1 with the label beside each bar.
 // ---------------------------------------------------------------------------
-
-export interface BarItem {
-  id: string;
-  label: string;
-  value: number;
-  color: string;
-  self?: boolean;
-  sublabel?: string;
-}
 
 export interface BarOptions {
   id: string;
@@ -1130,4 +956,105 @@ export function lineChartSVG(opts: LineChartOptions): string {
     linesSvg +
     `</svg>`
   );
+}
+
+// ---------------------------------------------------------------------------
+// Runtime-dimension composition for /benchmarks — bundles every speed-derived
+// chart/table (Parse + Stringify; memory, conformance, and bundle-size have
+// no runtime dimension, see queries.ts's loaders) for one runtime family's
+// newest document. Kept here, not in the .mdx script, per this file's
+// header: the .mdx page stays a thin composition layer, the typed logic
+// lives here.
+// ---------------------------------------------------------------------------
+
+export interface SpeedFamilySection {
+  family: string;
+  /** Full `env.runtime` string, for the picker label. */
+  runtime: string;
+  parseBarSvg: string;
+  parseBarLegend: LegendEntry[];
+  parseTrendSvg: string;
+  parseTrendLegend: LegendEntry[];
+  parseTable: string;
+  dumpBarSvg: string;
+  dumpBarLegend: LegendEntry[];
+  dumpTrendSvg: string;
+  dumpTrendLegend: LegendEntry[];
+  dumpTable: string;
+}
+
+/**
+ * `idSuffix` disambiguates chart element ids when multiple families render on
+ * the page at once (SVG ids must be page-unique); pass '' for the
+ * single-family case so ids stay byte-identical to the pre-runtime-dimension
+ * markup.
+ */
+export function speedFamilySection(
+  doc: SpeedDoc,
+  allRuns: readonly SpeedDoc[],
+  curated: readonly string[],
+  trendWorkload: string,
+  idSuffix: string,
+): SpeedFamilySection {
+  const runsThis = runsForFamily(allRuns, runtimeFamily(doc.env.runtime));
+  const ticks = xTicks(runDates(runsThis));
+
+  const parseWl = pickWorkloads(doc.operations.parse, curated);
+  const parseOrder = presentIn(LIBRARY_ORDER, parseWl);
+  const parseTrendOrder = presentIn(LIBRARY_ORDER, pickWorkloads(doc.operations.parse, [trendWorkload]));
+  const parseTrendSeries = speedTrend(runsThis, 'parse', trendWorkload, parseTrendOrder);
+
+  const dumpWl = pickWorkloads(doc.operations.stringify, curated);
+  const dumpOrder = presentIn(LIBRARY_ORDER, dumpWl);
+  const dumpTrendOrder = presentIn(LIBRARY_ORDER, pickWorkloads(doc.operations.stringify, [trendWorkload]));
+  const dumpTrendSeries = speedTrend(runsThis, 'stringify', trendWorkload, dumpTrendOrder);
+
+  return {
+    family: runtimeFamily(doc.env.runtime),
+    runtime: doc.env.runtime,
+    parseBarSvg: groupedBarSVG({
+      id: `bar-parse-speed${idSuffix}`,
+      title: 'Parse time by workload (relative to fastest, per row)',
+      series: seriesFor(doc.libraries, parseOrder),
+      groups: speedGroups(parseWl),
+      unit: 'ns',
+      lowerIsBetter: true,
+      labelStyle: 'ratio-to-best',
+    }),
+    parseBarLegend: legendFor(doc.libraries, parseOrder),
+    parseTrendSvg: lineChartSVG({
+      id: `trend-parse-speed${idSuffix}`,
+      title: `Parse time vs fastest over time — ${trendWorkload}`,
+      series: parseTrendSeries,
+      ticks,
+      n: runsThis.length,
+      yFormat: formatRatio,
+      higherIsBetter: false,
+      yScaleType: 'log',
+    }),
+    parseTrendLegend: trendLegend(parseTrendSeries),
+    parseTable: speedBreakdownHtml(doc.operations.parse, doc.libraries, presentIn(LIBRARY_ORDER, doc.operations.parse)),
+    dumpBarSvg: groupedBarSVG({
+      id: `bar-dump-speed${idSuffix}`,
+      title: 'Stringify time by workload (relative to fastest, per row)',
+      series: seriesFor(doc.libraries, dumpOrder),
+      groups: speedGroups(dumpWl),
+      unit: 'ns',
+      lowerIsBetter: true,
+      labelStyle: 'ratio-to-best',
+    }),
+    dumpBarLegend: legendFor(doc.libraries, dumpOrder),
+    dumpTrendSvg: lineChartSVG({
+      id: `trend-dump-speed${idSuffix}`,
+      title: `Stringify time vs fastest over time — ${trendWorkload}`,
+      series: dumpTrendSeries,
+      ticks,
+      n: runsThis.length,
+      yFormat: formatRatio,
+      higherIsBetter: false,
+      yScaleType: 'log',
+    }),
+    dumpTrendLegend: trendLegend(dumpTrendSeries),
+    dumpTable: speedBreakdownHtml(doc.operations.stringify, doc.libraries, presentIn(LIBRARY_ORDER, doc.operations.stringify)),
+  };
 }

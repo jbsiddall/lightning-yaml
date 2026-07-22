@@ -21,6 +21,7 @@
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
+import { cpus } from "node:os";
 import { dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -229,6 +230,15 @@ export function emitMemoryYaml(scope: Scope, results: Result[] = runMemoryMatrix
     generated: now.toISOString().slice(0, 10),
     generated_at: now.toISOString(),
     source: process.env.BENCH_SOURCE ?? gitShaOr("local"),
+    // Memory depends on the engine as much as speed does (V8 vs JSC heaps),
+    // so documents carry the same runtime provenance as speed.yaml for the
+    // multi-environment stream (#107). Mirrors bench/speed/emit.ts's format;
+    // os.cpus() reports nominal MHz (0 in some containers), not measured clock.
+    env: {
+      clk: cpus()[0]?.speed ? `~${(cpus()[0].speed / 1000).toFixed(2)} GHz` : "unknown",
+      cpu: cpus()[0]?.model ?? "unknown",
+      runtime: `node ${process.versions.node} (${process.arch}-${process.platform})`,
+    },
     libraries,
     operations: { parse: rowsFor(results, "parse"), stringify: rowsFor(results, "stringify") },
   };

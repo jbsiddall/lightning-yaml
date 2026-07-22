@@ -9,80 +9,65 @@ import memoryRaw from '../../data/benchmarks/memory.yaml?raw'
 import conformanceRaw from '../../data/benchmarks/conformance.yaml?raw'
 import bundleSizeRaw from '../../data/benchmarks/bundle-size.yaml?raw'
 import ChartCard from '../../components/charts/ChartCard.astro'
+import RuntimePicker from '../../components/charts/RuntimePicker.astro'
 import {
-  newestRun,
+  newestOf,
+  availableRuntimes,
+  canonicalRun,
+  canonicalFamily,
   parseRuns,
+  pickWorkloads,
+  bundleSizeItems,
+  LIBRARY_ORDER,
+  SpeedDocSchema,
+  MemoryDocSchema,
+  ConformanceDocSchema,
+  BundleSizeDocSchema,
+} from '../../lib/queries'
+import {
+  speedFamilySection,
   runDates,
   xTicks,
-  pickWorkloads,
-  speedGroups,
   memoryGroups,
   seriesFor,
   legendFor,
   groupedBarSVG,
   barSVG,
   lineChartSVG,
-  speedTrend,
   memoryTrend,
   conformanceTrend,
   bundleSizeTrend,
   trendLegend,
-  speedBreakdownHtml,
   memoryBreakdownHtml,
   conformanceItems,
   conformanceTableHtml,
-  bundleSizeItems,
   bundleSizeTableHtml,
   niceDomainMax,
-  formatRatio,
   formatMB,
   formatPercent,
   formatKB,
-  LIBRARY_ORDER,
   presentIn,
 } from '../../lib/benchmarks'
 
-export const speed = newestRun(speedRaw)
-export const speedRuns = parseRuns(speedRaw)
-export const speedTicks = xTicks(runDates(speedRuns))
-export const memory = newestRun(memoryRaw)
-export const memoryRuns = parseRuns(memoryRaw)
-export const memoryTicks = xTicks(runDates(memoryRuns))
-export const conformance = newestRun(conformanceRaw)
-export const conformanceRuns = parseRuns(conformanceRaw)
-export const bundleSize = newestRun(bundleSizeRaw)
-export const bundleSizeRuns = parseRuns(bundleSizeRaw)
-
+export const speedRuns = parseRuns(speedRaw, SpeedDocSchema)
+export const speed = canonicalRun(speedRuns)
+export const speedRuntimes = availableRuntimes(speedRuns)
 export const curated = ['small-records', 'medium-records', 'large-records', 'xlarge-records', 'yaml-rich-medium']
-export const memOrderIds = LIBRARY_ORDER.filter((id) => id !== 'js-yaml-tuned')
 export const speedTrendWl = 'large-records'
-export const memTrendWl = 'xlarge-records'
+export const speedSections = speedRuntimes.map((r) =>
+  speedFamilySection(r.doc, speedRuns, curated, speedTrendWl, speedRuntimes.length > 1 ? `-${r.family}` : ''),
+)
 
-export const parseBarWl = pickWorkloads(speed.operations.parse, curated)
-export const parseBarOrder = presentIn(LIBRARY_ORDER, parseBarWl)
-export const parseBarLegend = legendFor(speed.libraries, parseBarOrder)
-export const parseBarSvg = groupedBarSVG({
-  id: 'bar-parse-speed',
-  title: 'Parse time by workload (relative to fastest, per row)',
-  series: seriesFor(speed.libraries, parseBarOrder),
-  groups: speedGroups(parseBarWl),
-  unit: 'ns',
-  lowerIsBetter: true,
-  labelStyle: 'ratio-to-best',
-})
-export const parseSpeedTrendOrder = presentIn(LIBRARY_ORDER, pickWorkloads(speed.operations.parse, [speedTrendWl]))
-export const parseSpeedTrendSeries = speedTrend(speedRuns, 'parse', speedTrendWl, parseSpeedTrendOrder)
-export const parseSpeedTrendSvg = lineChartSVG({
-  id: 'trend-parse-speed',
-  title: `Parse time vs fastest over time — ${speedTrendWl}`,
-  series: parseSpeedTrendSeries,
-  ticks: speedTicks,
-  n: speedRuns.length,
-  yFormat: formatRatio,
-  higherIsBetter: false,
-  yScaleType: 'log',
-})
-export const parseSpeedTable = speedBreakdownHtml(speed.operations.parse, speed.libraries, presentIn(LIBRARY_ORDER, speed.operations.parse))
+export const memoryRuns = parseRuns(memoryRaw, MemoryDocSchema)
+export const memory = newestOf(memoryRuns)
+export const memoryTicks = xTicks(runDates(memoryRuns))
+export const conformanceRuns = parseRuns(conformanceRaw, ConformanceDocSchema)
+export const conformance = newestOf(conformanceRuns)
+export const bundleSizeRuns = parseRuns(bundleSizeRaw, BundleSizeDocSchema)
+export const bundleSize = newestOf(bundleSizeRuns)
+
+export const memOrderIds = LIBRARY_ORDER.filter((id) => id !== 'js-yaml-tuned')
+export const memTrendWl = 'xlarge-records'
 
 export const parseMemWl = pickWorkloads(memory.operations.parse, curated)
 export const parseMemOrder = presentIn(memOrderIds, parseMemWl)
@@ -107,32 +92,6 @@ export const parseMemTrendSvg = lineChartSVG({
   higherIsBetter: false,
 })
 export const parseMemTable = memoryBreakdownHtml(memory.operations.parse, memory.libraries, presentIn(memOrderIds, memory.operations.parse))
-
-export const dumpBarWl = pickWorkloads(speed.operations.stringify, curated)
-export const dumpBarOrder = presentIn(LIBRARY_ORDER, dumpBarWl)
-export const dumpBarLegend = legendFor(speed.libraries, dumpBarOrder)
-export const dumpBarSvg = groupedBarSVG({
-  id: 'bar-dump-speed',
-  title: 'Stringify time by workload (relative to fastest, per row)',
-  series: seriesFor(speed.libraries, dumpBarOrder),
-  groups: speedGroups(dumpBarWl),
-  unit: 'ns',
-  lowerIsBetter: true,
-  labelStyle: 'ratio-to-best',
-})
-export const dumpSpeedTrendOrder = presentIn(LIBRARY_ORDER, pickWorkloads(speed.operations.stringify, [speedTrendWl]))
-export const dumpSpeedTrendSeries = speedTrend(speedRuns, 'stringify', speedTrendWl, dumpSpeedTrendOrder)
-export const dumpSpeedTrendSvg = lineChartSVG({
-  id: 'trend-dump-speed',
-  title: `Stringify time vs fastest over time — ${speedTrendWl}`,
-  series: dumpSpeedTrendSeries,
-  ticks: speedTicks,
-  n: speedRuns.length,
-  yFormat: formatRatio,
-  higherIsBetter: false,
-  yScaleType: 'log',
-})
-export const dumpSpeedTable = speedBreakdownHtml(speed.operations.stringify, speed.libraries, presentIn(LIBRARY_ORDER, speed.operations.stringify))
 
 export const dumpMemWl = pickWorkloads(memory.operations.stringify, curated)
 export const dumpMemOrder = presentIn(memOrderIds, dumpMemWl)
@@ -237,29 +196,54 @@ branch, and the deploy workflow overlays that history at build time — the bar 
 the newest published document per suite, the trend charts the full history. To reproduce them
 yourself, see [running the benchmarks & tests](/research/methodology/#running-the-benchmarks--tests).
 
+{speedRuntimes.length > 1 && (
+  <>
+    <p>
+      The speed charts below (Parse speed, Stringify speed) were measured in more than one
+      runtime — pick one; it applies to both sections:
+    </p>
+    <RuntimePicker
+      runtimes={speedRuntimes.map((r) => ({ family: r.family, runtime: r.runtime }))}
+      canonical={canonicalFamily(speedRuns)}
+    />
+  </>
+)}
+
 ## Parse
 
 Turning YAML text into JavaScript values — the hot path for most consumers.
 
 ### Parse speed
 
-<ChartCard
-  heading="Parse time by workload"
-  note="Lower is better. Each workload is scaled to its own slowest parser; labels show time relative to the fastest parser in that row (×). Exact avg ns per parse() call is in the breakdown below."
-  legend={parseBarLegend}
-  svg={parseBarSvg}
-/>
+{speedSections.map((s) => (
+  <ChartCard
+    heading="Parse time by workload"
+    note="Lower is better. Each workload is scaled to its own slowest parser; labels show time relative to the fastest parser in that row (×). Exact avg ns per parse() call is in the breakdown below."
+    legend={s.parseBarLegend}
+    svg={s.parseBarSvg}
+    runtimeFamily={speedRuntimes.length > 1 ? s.family : undefined}
+  />
+))}
 
-<ChartCard
-  heading={`Parse time vs fastest, run over run — ${speedTrendWl}`}
-  note="Lower is better, log scale. Each parser's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line would mean a regression."
-  legend={trendLegend(parseSpeedTrendSeries)}
-  svg={parseSpeedTrendSvg}
-/>
+{speedSections.map((s) => (
+  <ChartCard
+    heading={`Parse time vs fastest, run over run — ${speedTrendWl}`}
+    note="Lower is better, log scale. Each parser's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line would mean a regression."
+    legend={s.parseTrendLegend}
+    svg={s.parseTrendSvg}
+    runtimeFamily={speedRuntimes.length > 1 ? s.family : undefined}
+  />
+))}
 
 **Full breakdown** — every workload, avg ns per `parse()` call (`—` where a library can't read that workload):
 
-<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={parseSpeedTable} />
+{speedSections.map((s) => (
+  <div
+    style="overflow-x:auto;margin:1rem 0 1.5rem"
+    set:html={s.parseTable}
+    data-runtime={speedRuntimes.length > 1 ? s.family : undefined}
+  />
+))}
 
 ### Parse memory
 
@@ -287,12 +271,15 @@ Serializing JavaScript values back to YAML text.
 
 ### Stringify speed
 
-<ChartCard
-  heading="Stringify time by workload"
-  note="Lower is better. Each workload is scaled to its own slowest dumper; labels show time relative to the fastest in that row (×). Exact avg ns per stringify() call is in the breakdown below."
-  legend={dumpBarLegend}
-  svg={dumpBarSvg}
-/>
+{speedSections.map((s) => (
+  <ChartCard
+    heading="Stringify time by workload"
+    note="Lower is better. Each workload is scaled to its own slowest dumper; labels show time relative to the fastest in that row (×). Exact avg ns per stringify() call is in the breakdown below."
+    legend={s.dumpBarLegend}
+    svg={s.dumpBarSvg}
+    runtimeFamily={speedRuntimes.length > 1 ? s.family : undefined}
+  />
+))}
 
 The **js-yaml (tuned)** series is the same library dumping with the lean `CORE` schema
 instead of its heavyweight default (YAML 1.1 plus timestamp/binary/omap/set). On
@@ -301,16 +288,25 @@ the fair yardstick for how fast js-yaml *can* stringify this data. It appears on
 data is JSON-shaped; the rich workloads genuinely need the full schema, where the "tuned"
 config would be identical to the default.
 
-<ChartCard
-  heading={`Stringify time vs fastest, run over run — ${speedTrendWl}`}
-  note="Lower is better, log scale. Each dumper's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line would mean a regression."
-  legend={trendLegend(dumpSpeedTrendSeries)}
-  svg={dumpSpeedTrendSvg}
-/>
+{speedSections.map((s) => (
+  <ChartCard
+    heading={`Stringify time vs fastest, run over run — ${speedTrendWl}`}
+    note="Lower is better, log scale. Each dumper's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line would mean a regression."
+    legend={s.dumpTrendLegend}
+    svg={s.dumpTrendSvg}
+    runtimeFamily={speedRuntimes.length > 1 ? s.family : undefined}
+  />
+))}
 
 **Full breakdown** — every workload, avg ns per `stringify()` call (`—` marks a workload a library can't represent):
 
-<div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={dumpSpeedTable} />
+{speedSections.map((s) => (
+  <div
+    style="overflow-x:auto;margin:1rem 0 1.5rem"
+    set:html={s.dumpTable}
+    data-runtime={speedRuntimes.length > 1 ? s.family : undefined}
+  />
+))}
 
 ### Stringify memory
 

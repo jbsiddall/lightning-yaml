@@ -1,9 +1,18 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
 import sitemap from '@astrojs/sitemap'
 import starlightTypeDoc, { typeDocSidebarGroup } from 'starlight-typedoc'
 
 export default defineConfig({
+  vite: {
+    resolve: {
+      // queries.ts imports ../bench/schemas.ts, whose `zod` import resolves
+      // node_modules upward from bench/ — the repo ROOT's install, which CI's
+      // site-only jobs never run. Pin zod to the site's own copy instead.
+      alias: { zod: fileURLToPath(new URL('./node_modules/zod', import.meta.url)) },
+    },
+  },
   // `site` feeds the generated sitemap's URLs, so it must be the canonical domain
   // Vercel serves, not the raw *.vercel.app host.
   site: 'https://lightning-yaml.dev',

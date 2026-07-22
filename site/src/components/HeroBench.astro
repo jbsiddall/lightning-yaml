@@ -15,19 +15,21 @@ import speedRaw from '../data/benchmarks/speed.yaml?raw';
 import memoryRaw from '../data/benchmarks/memory.yaml?raw';
 import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
 import {
+  parseRuns,
   newestRun,
+  canonicalRun,
   pickWorkloads,
   bundleSizeItems,
-  formatNs,
-  formatMB,
-  formatKB,
-  LIBRARY_COLOR,
-} from '../lib/benchmarks';
-import type { SpeedDoc, MemoryDoc, BundleSizeDoc, LibraryId, SpeedStat, MemoryStat } from '../lib/benchmarks';
+  SpeedDocSchema,
+  MemoryDocSchema,
+  BundleSizeDocSchema,
+} from '../lib/queries';
+import type { SpeedDoc, MemoryDoc, BundleSizeDoc, LibraryId, SpeedStat, MemoryStat } from '../lib/queries';
+import { formatNs, formatMB, formatKB, LIBRARY_COLOR } from '../lib/benchmarks';
 
-const speed = newestRun<SpeedDoc>(speedRaw);
-const memory = newestRun<MemoryDoc>(memoryRaw);
-const bundle = newestRun<BundleSizeDoc>(bundleSizeRaw);
+const speed = canonicalRun(parseRuns(speedRaw, SpeedDocSchema));
+const memory = newestRun(memoryRaw, MemoryDocSchema);
+const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
 const HERO_ORDER: LibraryId[] = ['JSON', 'lightning-yaml', 'js-yaml', 'yaml'];
 
@@ -54,7 +56,6 @@ function buildChart(rows: Row[], unit: Unit): { name: string; bars: Bar[] }[] {
     const max = Math.max(...vals);
     const sorted = [...vals].sort((a, b) => a - b);
     const second = sorted.length > 1 ? sorted[sorted.length - 2] : max;
-    // Clamp only for time charts, and only when one entry truly dwarfs the field.
     const clamp = unit === 'ns' && max > second * 3;
     const ceiling = clamp ? second * 1.18 : max;
     const bars = present.map((id): Bar => {
