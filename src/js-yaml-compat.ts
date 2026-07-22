@@ -62,9 +62,11 @@
  *   transform          mutate documents before dump              feature      (needs a Document/AST model)
  * ```
  *
- * [1] Our default is already last-wins (= `json: true`). Worth knowing: the
- *     yaml-test-suite treats duplicate keys as VALID (case 2JQS), so
- *     throw-on-duplicate is a js-yaml-PARITY knob, NOT a spec-conformance win.
+ * [1] Our default now THROWS on a duplicate key (= `json: false`, js-yaml's own
+ *     default; spec-aligned per YAML 1.2 §3.2.1.3 — issue #21 reversed the former
+ *     last-wins). The suite's dup-key fixtures (2JQS, NKF9) are unscorable (no
+ *     in.json, no error), so this tracks the spec text rather than a suite score and
+ *     leaves the pass rate unchanged. A `json: true` last-wins mode is a future knob.
  * [2] js-yaml v5's own default schema is 1.2-core, same as ours — so default
  *     typing already agrees; only an explicitly non-default schema diverges.
  * [3] `noRefs` can't just skip anchoring: the shared-reference pre-scan is also

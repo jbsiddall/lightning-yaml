@@ -16,8 +16,10 @@
  *       unexpected exception" oracle from the Atheris fuzzing technique).
  *
  * Two spec-corner behaviours are locked below, each with its rationale:
- *   - duplicate keys are last-wins (JSON.parse semantics) — our one DELIBERATE
- *     deviation from spec (the spec, and the `yaml` impl, treat duplicates as error);
+ *   - duplicate mapping keys are REJECTED with a YAMLParseError — spec-correct
+ *     (YAML 1.2 §3.2.1.3; matches the `yaml` impl and js-yaml). This REVERSES an
+ *     earlier deliberate last-wins deviation (issue #21); the consequence is that
+ *     it now diverges from `JSON.parse`, which is silent last-wins;
  *   - an IMPLICIT non-scalar key in a *flow* mapping (`{[1,2]: v}`) is a controlled
  *     throw — which is SPEC-CORRECT (suite SBG9/X38W); the `yaml` impl is the one
  *     that diverges by accepting it. The explicit `{? [1,2]: v}` form IS accepted.
@@ -147,21 +149,29 @@ test("numbers: 1.2-core boundary literals resolve per the active schema", () => 
 });
 
 // --------------------------------------------------------------------------
-// §4.3 Duplicate keys — DELIBERATE DIVERGENCE.
-// lightning-yaml's north star is JSON.parse, which is last-wins:
-// JSON.parse('{"a":1,"a":2}') === {a:2}. The `yaml` oracle instead REJECTS
-// duplicate keys ("Map keys must be unique"). We lock last-wins AND assert the
-// oracle diverges, so the policy (src/index.ts assignPair) is pinned. This is
-// the security-relevant differential the research doc flags (CVE-2017-12635
-// class: two parsers disagreeing on duplicate keys).
+// §4.3 Duplicate keys — REJECTED (issue #21). YAML 1.2 §3.2.1.3 requires a
+// mapping's keys to be unique; a duplicate is an error. This REVERSES the repo's
+// former last-wins policy (which followed JSON.parse). Every surface form throws
+// — block, flow, quoted-vs-plain, mixed implicit/explicit (`a:` + `? a`), and
+// duplicate EMPTY keys — and the `yaml` oracle now AGREES (it always rejected
+// duplicates), so this is no longer a divergence from it. The deliberate
+// consequence: `parse('{"a":1,"a":2}')` THROWS, diverging from `JSON.parse`
+// (silent last-wins). This is the security-relevant differential the research
+// doc flags (CVE-2017-12635 class: parsers disagreeing on duplicate keys).
 // --------------------------------------------------------------------------
 
-test("duplicate keys: last-wins (JSON.parse semantics), diverging from the oracle", () => {
-  deepStrictEqual(parse("lang: X\nlang: Y"), { lang: "Y" }, "block form");
-  deepStrictEqual(parse("{a: 1, a: 2}"), { a: 2 }, "flow form");
-  deepStrictEqual(parse('{"a": 1, "a": 2}'), JSON.parse('{"a": 1, "a": 2}'), "matches JSON.parse");
-  // The oracle rejects what we accept — this is the documented divergence.
-  throws(() => oracleParse("lang: X\nlang: Y"), "oracle rejects duplicate keys");
+test("duplicate mapping keys are rejected in every form (issue #21), the oracle agrees", () => {
+  throwsBecause(() => parse("lang: X\nlang: Y"), /duplicate mapping key/); // block
+  throwsBecause(() => parse("{a: 1, a: 2}"), /duplicate mapping key/); // flow
+  throwsBecause(() => parse('"a": 1\na: 2'), /duplicate mapping key/); // quoted key then plain, same string
+  throwsBecause(() => parse("a: 1\n? a\n: 2"), /duplicate mapping key/); // implicit then explicit
+  throwsBecause(() => parse('{"a":1,"a":2}'), /duplicate mapping key/); // JSON subset — NOT JSON.parse last-wins
+  throwsBecause(() => parse(": a\n: b"), /duplicate mapping key/); // duplicate EMPTY keys
+  // The oracle rejects duplicates too — no longer the divergence it once was.
+  throws(() => oracleParse("lang: X\nlang: Y"), "oracle also rejects duplicate keys");
+  // Anchor redefinition is a SEPARATE feature (anchorMap, not key dedup) and stays
+  // last-wins — distinct keys p/q/r, so no duplicate-key error here.
+  deepStrictEqual(parse("p: &a 1\nq: &a 2\nr: *a"), { p: 1, q: 2, r: 2 });
 });
 
 // --------------------------------------------------------------------------
@@ -181,9 +191,17 @@ test("merge key `<<` is read as a literal string key, not merged", () => {
 });
 
 test("merge: DarkForge four-parser payload does not crash (merge unimplemented)", () => {
+  // The payload aliases `*morge` back to the literal "<<" key, colliding with the
+  // top-level `<<`; under issue-#21 duplicate-key rejection this now (correctly)
+  // raises a controlled YAMLParseError. The robustness property is what's locked:
+  // a DECLARED throw is fine — only an unexpected TypeError/RangeError is a crash.
   const y = `<<: {?"lang": Go, !!merge : {lang: NodeJS}}\ndfl: &morge "<<"\n*morge : {lang: RUBY}\n!!merge : {lang: PYTHON}`;
-  const r = parse(y);
-  ok(r !== null && typeof r === "object", "parses to an object without throwing");
+  try {
+    const r = parse(y);
+    ok(r !== null && typeof r === "object", "parses to an object without throwing");
+  } catch (e) {
+    ok(e instanceof YAMLParseError, "only ever a declared YAMLParseError, never an unexpected exception");
+  }
 });
 
 // --------------------------------------------------------------------------

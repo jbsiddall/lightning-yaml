@@ -64,9 +64,13 @@ and lightning-yaml deliberately matches the spec against it — e.g. we reject a
 implicit flow collection key (`{[1,2]: v}`), a spec error (yaml-test-suite SBG9/X38W)
 that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof of
 correctness, and "differs from the oracle" is never on its own a bug: check the spec.
-Trust an implementation only where it agrees with the spec. The one sanctioned
-deviation *from* the spec is explicit and documented — duplicate-key last-wins, for
-`JSON.parse` parity (see `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`).
+Trust an implementation only where it agrees with the spec. lightning-yaml holds
+**no** sanctioned deviation *from* the spec: duplicate mapping keys — once kept as
+silent last-wins for `JSON.parse` parity — are now **rejected** (YAML 1.2 §3.2.1.3),
+matching js-yaml and the `yaml` oracle (issue #21; see
+`site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`). The visible cost is one
+spot where we deliberately choose the spec over `JSON.parse`: `parse('{"a":1,"a":2}')`
+throws where `JSON.parse` takes last-wins.
 
 Code can still carry bugs — behavior that contradicts the spec (or a stated design
 goal) is a bug to fix, not intent to enshrine.

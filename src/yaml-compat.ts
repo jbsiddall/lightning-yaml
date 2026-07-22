@@ -70,9 +70,11 @@
  *
  * [1] Our core already coerces non-scalar keys to strings, so `mapAsMap` keys
  *     come back as strings — partial fidelity vs real `yaml`.
- * [2] Our core is last-wins by default (= `uniqueKeys: false`). Throw-on-dup is
- *     a `yaml`-parity knob, NOT a spec/suite win — the yaml-test-suite treats
- *     duplicate keys as VALID (see js-yaml-compat.ts note [1]).
+ * [2] Our core now THROWS on a duplicate key by default (= `uniqueKeys: true`,
+ *     `yaml`'s own default; spec-aligned per YAML 1.2 §3.2.1.3 — issue #21 reversed
+ *     the former last-wins). The suite doesn't score key-duplication either way (its
+ *     dup fixtures 2JQS/NKF9 are unscorable), so the reversal is a spec-text call that
+ *     leaves the pass rate unchanged. A keep/comparator variant would be a future knob.
  * [3] Default 1.2-core already matches `yaml`'s own default; only `version: 1.1`
  *     / a non-core schema changes typing (yes->true, sexagesimal, legacy octal).
  *

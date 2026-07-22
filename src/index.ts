@@ -1624,14 +1624,19 @@ function parseFlowMap(): Record<string, unknown> {
 }
 
 /**
- * Assign a mapping pair. `__proto__` is guarded so it becomes an own data
- * property (matching `JSON.parse`) instead of poisoning the prototype chain —
- * the check is a single `charCodeAt` compare for the 99.9% of keys that don't
- * start with `_`, only escalating to a string compare + `defineProperty` for
- * the rare candidate. Duplicate keys are last-wins (JSON.parse semantics).
+ * Assign a mapping pair, rejecting a repeated key. YAML 1.2 §3.2.1.3 requires a
+ * mapping's keys to be unique; a duplicate is an error — matching js-yaml and
+ * the `yaml` oracle (and, deliberately, NOT `JSON.parse`, which is silent
+ * last-wins). `Object.hasOwn` (not `key in obj`) so an inherited name like
+ * `toString` isn't mistaken for a prior own key. `__proto__` is guarded so it
+ * becomes an own data property (matching `JSON.parse`) instead of poisoning the
+ * prototype chain — the check is a single `charCodeAt` compare for the 99.9% of
+ * keys that don't start with `_`, only escalating to a string compare +
+ * `defineProperty` for the rare candidate.
  */
 function storeKey(obj: Record<string, unknown>, key: string, value: unknown): void {
   if (key.charCodeAt(0) === UNDERSCORE && key === "__proto__") {
+    if (Object.hasOwn(obj, "__proto__")) fail("duplicate mapping key");
     Object.defineProperty(obj, "__proto__", {
       value,
       writable: true,
@@ -1639,6 +1644,7 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
       configurable: true,
     });
   } else {
+    if (Object.hasOwn(obj, key)) fail("duplicate mapping key");
     obj[key] = value;
   }
 }

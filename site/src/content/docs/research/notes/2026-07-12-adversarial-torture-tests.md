@@ -41,7 +41,9 @@ pathological fuzz sweep:
   alias bomb (10 levels, ~387M logical nodes if expanded) parses in <1 ms because
   aliases resolve to the **same reference** (structural sharing, O(1) `Map.get`),
   building a small shared-reference DAG rather than materializing the expansion.
-- **One deliberate deviation from spec** (duplicate keys → last-wins), and **one
+- **No deliberate spec deviation remains** — duplicate keys were the last one
+  (last-wins, for `JSON.parse` parity) and are now **rejected** per YAML 1.2
+  §3.2.1.3 (issue #21; see the 2026-07-15 correction in §1). What stands is **one
   case where the `yaml` oracle — not us — diverges from spec** (implicit flow
   collection keys). Both documented and locked below. (An earlier draft of this doc
   mis-scored the flow-key case as *our* limitation; that was an artifact of treating
@@ -62,7 +64,7 @@ oracle diverges · ⚠️ deliberate deviation from spec · 🔒 newly locked by
 | 4.2 | `8_000`, `0b1010`, `22:22:22` (sexagesimal) | **strings** (all 1.1-only) | ✅ 🔒 |
 | 4.2 | `-_` (Atheris ValueError case) | string `"-_"` — never throws | ✅ 🔒 |
 | 4.2 | `.inf`/`-.inf`/`.nan` | ±Infinity / NaN | ✅ (covered) |
-| 4.3 | **duplicate keys** `lang: X` / `lang: Y` | **last-wins** `{lang: Y}` | ⚠️ 🔒 deliberate deviation (spec: keys unique → error; we take JSON.parse last-wins) |
+| 4.3 | **duplicate keys** `lang: X` / `lang: Y` | **rejected** → `YAMLParseError` | ✅ 🔒 spec-correct (§3.2.1.3; issue #21 reversed the old last-wins — now diverges from `JSON.parse`) |
 | 4.4–4.9 | **merge key `<<`** | **literal string key** (not merged, not thrown) | ⚠️ 🔒 (merge unimplemented) |
 | 4.10 | billion-laughs / quadratic alias bomb | shared-ref DAG, <1 ms | ✅ 🔒 safe by sharing |
 | 4.11 | node-property / seq-under-map indentation | per 1.2 | ✅ (covered) |
@@ -78,26 +80,33 @@ oracle diverges · ⚠️ deliberate deviation from spec · 🔒 newly locked by
 | 4.18 | literal NEL/LS/PS (U+0085/2028/2029) | **content, not line breaks** (1.2) | ✅ 🔒 |
 | 4.19 | empty-anchor alias, forward ref, redefinition | null / throw / last-wins | ✅ 🔒 |
 
-## Spec vs. oracle: the one deviation, and one place the oracle is wrong
+## Spec vs. oracle: a closed deviation, and one place the oracle is wrong
 
 The correctness authority here is the **YAML 1.2 spec** (as operationalized by the
 spec-derived yaml-test-suite), *not* the `yaml` implementation. That distinction is
-load-bearing: on the two constructs below the spec and the `yaml` implementation
-disagree, so "matches the oracle" would give the wrong verdict on one of them. Both
-are pinned in `test/adversarial.unit.ts`.
+load-bearing: on the flow-collection-key construct in §2 the spec and the `yaml`
+implementation disagree, so "matches the oracle" would give the wrong verdict there.
+Both constructs are pinned in `test/adversarial.unit.ts`.
 
-### 1. Duplicate keys → last-wins — a deliberate deviation *from spec*
+### 1. Duplicate keys → rejected (spec-correct; formerly last-wins)
 
-`parse("lang: X\nlang: Y")` → `{ lang: "Y" }`. The YAML 1.2 spec requires mapping
-keys to be unique and treats a duplicate as an error (the yaml-test-suite happens
-not to cover mapping-key duplication directly — only duplicate *directives*, SF5V —
-so the spec text is the authority). The `yaml` implementation is spec-aligned here:
-it throws. We **deliberately deviate**, following **`JSON.parse` semantics** — the
-library's north star — where `JSON.parse('{"a":1,"a":2}')` is `{a:2}`. This is the
-security-relevant differential the brief flags (the CVE-2017-12635 class). It is the
-*only* place we knowingly choose behaviour the spec disallows; adopters needing
-strict rejection validate upstream. (A future opt-in strict mode could reject; the
-default stays JSON.parse-compatible.)
+> **Correction (2026-07-15, issue #21).** This section formerly recorded a
+> *deliberate deviation from spec* — duplicate keys kept last-wins for `JSON.parse`
+> parity. That is **reversed**: duplicate mapping keys now raise a `YAMLParseError`
+> (YAML 1.2 §3.2.1.3), matching the `yaml` oracle and js-yaml. The trade now runs the
+> other way — spec over `JSON.parse` — so `parse('{"a":1,"a":2}')` throws where
+> `JSON.parse` yields `{a:2}`. Every surface form is rejected (block, flow,
+> quoted-vs-plain, mixed implicit/explicit, duplicate empty keys).
+
+`parse("lang: X\nlang: Y")` throws. The spec requires mapping keys to be unique and
+treats a duplicate as an error; the yaml-test-suite exercises duplicates only in
+**unscorable** fixtures (2JQS `: a` / `: b` and NKF9 carry no `in.json` and no
+`error`), and duplicate *directives* (SF5V) are a separate case — so the spec text is
+the authority and the pass rate is unaffected by the reversal. Both `yaml` and js-yaml
+reject too, so this is no longer a divergence from the oracle; it remains the
+security-relevant differential the brief flags (the CVE-2017-12635 class). Adopters who
+want silent last-wins pre-process the input; a future opt-in lenient mode could restore
+it.
 
 ### 2. Implicit flow collection key → error — spec-correct; the *oracle* diverges
 
@@ -146,7 +155,8 @@ security** references behind the taxonomy above, kept for future torture work:
     class is still live. (lightning-yaml is insulated by structural sharing — see
     §4.10 above — but a downstream consumer that *expands* the DAG is not.)
   - CVE-2017-12635 (CouchDB) — cross-format duplicate-key divergence; the precedent
-    for our documented last-wins policy.
+    that motivates our **rejecting** duplicate keys (issue #21; §1 above) rather than
+    silently resolving them.
 - **Fuzzing corpora / firehoses** — `google/oss-fuzz` → `projects/libyaml`,
   `k8s.io/kubernetes/test/fuzz/yaml` (roundtrip oracle: unmarshal→marshal→assert),
   `brandonprry/yaml-fuzz`. Oracles to borrow: differential, roundtrip, and
