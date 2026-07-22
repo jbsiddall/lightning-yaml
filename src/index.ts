@@ -82,20 +82,23 @@ const TILDE = 126; // ~
 const BOM = 0xfeff;
 
 /**
- * Backing flag for the `skipTabIndentChecks` parse optimization — it gates the
- * space-then-tab block-collection indentation guards (spec 6.1;
+ * Backing flag for the `skipStrictValidation` parse optimization — an umbrella
+ * opt-out for STRICT-COMPLIANCE validations: spec checks that only REJECT
+ * malformed input and never shape how a VALID document is interpreted. Today it
+ * gates the space-then-tab block-collection indentation guards (spec 6.1:
  * `rejectBlockCollectionTabIndent` + the per-entry `checkNoTabIndent(col-1)` in
- * the block seq/map continuation loops). Those run on every block-collection
- * entry and cost a few percent of block-YAML parse time (measured ~4-8% on
- * medium/large records, more on pathologically deep, many-entry input) purely to
- * reject a rare malformed input. Default `false` keeps the spec-compliant
- * rejection; `parse`/`parseAll` set it per call from
- * `options.optimizations.skipTabIndentChecks` and restore it afterwards. Because
- * these guards only ever THROW and never transform, VALID input parses
- * identically in either mode — only rejection of the malformed (tab-indented)
- * case is gated.
+ * the block seq/map loops); future strict-only checks join it under this one flag.
+ *
+ * CONTRACT — anything gated on this flag may ONLY ever turn a rejection into
+ * acceptance. It must NEVER change the value or structure a valid parse yields:
+ * flipping the flag leaves every well-formed document byte-identical (only throws
+ * are dropped), trading strictness for speed/memory and incidentally tolerating
+ * some malformed input. A check that would alter a VALID parse does not belong here.
+ *
+ * Default `false` (fully strict). `parse`/`parseAll` set it per call from
+ * `options.optimizations.skipStrictValidation` and restore it in `finally`.
  */
-let SKIP_TAB_INDENT_CHECKS = false;
+let SKIP_STRICT_VALIDATION = false;
 
 /**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
@@ -551,14 +554,16 @@ export interface ParseOptimizations {
   internStrings?: boolean;
 
   /**
-   * Skip the space-then-tab block-collection indentation guards (spec 6.1) for
-   * faster block-YAML parsing — ~4-8% on medium/large records, more on
-   * pathologically deep, many-entry block collections. Trades strictness for
-   * speed: a parse with this ON ACCEPTS tab-indented block collections that the
-   * spec-compliant default REJECTS. VALID input parses identically either way —
-   * only rejection of the malformed case is gated. Default: `false`.
+   * Umbrella opt-out for strict-compliance validations that only REJECT malformed
+   * input (today: the space-then-tab block-collection indentation guards, spec
+   * 6.1; more may be added behind this one flag). Skipping them is ~4-8% faster on
+   * medium/large block-YAML (more on deep, many-entry input) and does less work.
+   * It NEVER changes how a valid document is interpreted — VALID input parses
+   * identically either way; only rejection of malformed input is relaxed, so a
+   * parse with this ON tolerates some spec-invalid YAML the default REJECTS.
+   * Default: `false` (spec-strict).
    */
-  skipTabIndentChecks?: boolean;
+  skipStrictValidation?: boolean;
 }
 
 /** Options for {@link parse} / {@link parseAll}. Every field is optional; an omitted or `undefined` value leaves the parse behaviour byte-for-byte the default. */
@@ -594,7 +599,7 @@ export interface ParseOptions {
 export function parse(text: string, options?: ParseOptions): unknown {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  SKIP_TAB_INDENT_CHECKS = options?.optimizations?.skipTabIndentChecks === true;
+  SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
   try {
     const value = parseNextDocument();
     if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
@@ -608,7 +613,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     return value;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
-    SKIP_TAB_INDENT_CHECKS = false; // restore the spec-compliant default
+    SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
   }
 }
 
@@ -636,7 +641,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
 export function parseAll(text: string, options?: ParseOptions): unknown[] {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  SKIP_TAB_INDENT_CHECKS = options?.optimizations?.skipTabIndentChecks === true;
+  SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
   try {
     const docs: unknown[] = [];
     for (;;) {
@@ -647,7 +652,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     return docs;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
-    SKIP_TAB_INDENT_CHECKS = false; // restore the spec-compliant default
+    SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
   }
 }
 
@@ -3525,7 +3530,7 @@ function parseBlockSeq(col: number): unknown[] {
     if (!(src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1))) break;
     // A continuation entry's indentation (cols 0..col-1) must be tab-free, the
     // sequence analogue of the block-mapping continuation guard (`a:\n  - 1\n \t- 2`).
-    if (!SKIP_TAB_INDENT_CHECKS) checkNoTabIndent(col - 1);
+    if (!SKIP_STRICT_VALIDATION) checkNoTabIndent(col - 1);
   }
   depth--;
   return arr;
@@ -3595,7 +3600,7 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
     // A continuation key is unconditionally part of this block mapping, so its
     // full indentation (cols 0..col-1) must be tab-free — unlike a deferred
     // FIRST node, there is no scalar-fold escape here (`foo:\n  a: 1\n \tb: 2`).
-    if (!SKIP_TAB_INDENT_CHECKS) checkNoTabIndent(col - 1);
+    if (!SKIP_STRICT_VALIDATION) checkNoTabIndent(col - 1);
     if (src.charCodeAt(pos) === QUESTION && isSpaceOrEolAt(pos + 1)) {
       pos++; // past '?'
       key = internKey(keyToString(parseExplicitKey(col)));
@@ -3904,7 +3909,7 @@ function parseDeferredBlockNode(parentCol: number, mapValue: boolean): unknown {
     const contentPos = pos;
     const firstChar = src.charCodeAt(pos);
     const node = parseBlockNode(parentCol, mapValue);
-    if (!SKIP_TAB_INDENT_CHECKS) rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
+    if (!SKIP_STRICT_VALIDATION) rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
     return node;
   }
   // A same-column block sequence is this node's (compact) value only under a
@@ -3928,7 +3933,7 @@ function parseRootBlockNode(): unknown {
   const contentPos = pos;
   const firstChar = src.charCodeAt(pos);
   const node = parseBlockNode(-1);
-  if (!SKIP_TAB_INDENT_CHECKS) rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
+  if (!SKIP_STRICT_VALIDATION) rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
   return node;
 }
 

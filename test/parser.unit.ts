@@ -1621,8 +1621,8 @@ test("STRICTNESS: a space-then-tab cannot indent a block-collection continuation
   }
 });
 
-test("skipTabIndentChecks option: opting in skips the tab-indent guards, accepting input the default rejects (issue #18)", () => {
-  const skip = { optimizations: { skipTabIndentChecks: true } };
+test("skipStrictValidation option: opting in skips the strict-compliance (tab-indent) guards, accepting input the default rejects (issue #18)", () => {
+  const skip = { optimizations: { skipStrictValidation: true } };
   const tabIndented = "a:\n \tb: 1\n"; // space-then-tab positioning a nested block map
   // Default: spec-compliant rejection (as the STRICTNESS tests above assert).
   throws(() => parse(tabIndented), YAMLParseError);
