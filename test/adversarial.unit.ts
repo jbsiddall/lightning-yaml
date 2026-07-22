@@ -230,6 +230,60 @@ test("complex keys: IMPLICIT flow collection key is a spec error — we reject i
 });
 
 // --------------------------------------------------------------------------
+// Issue #15 — a complex (collection) key nested inside another complex key was
+// re-rendered per level: each already-composed `{`/`[` key string was fed back
+// through the scalar quoter (`JSON.stringify`), doubling its backslashes every
+// level → O(2ⁿ) growth ending in `RangeError: Invalid string length`. Separately
+// an OMITTED explicit value collapsed to a real `null`, so `? ? a` rendered the
+// inner key `{ a: null }` instead of the value-absent `{ a }`. Both are fixed by
+// composing a nested collection key's text exactly once (verbatim under `? `,
+// never re-quoted) and tracking value-absent vs. real-null per key.
+// --------------------------------------------------------------------------
+
+test("issue #15: nested complex keys compose once (no O(2ⁿ) re-escape / crash)", () => {
+  // Symptom A: the original DoS — exponential before the fix, RangeError at n≥30.
+  // Structural linearity is the pin: the sole key's length grows +6 per level
+  // (`{ ? ` + ` }`), so any regression to doubling/crash trips this immediately.
+  for (const n of [30, 40, 120]) {
+    const started = performance.now();
+    const r = parse("? ".repeat(n) + "[1, 2]\n") as Record<string, unknown>;
+    ok(performance.now() - started < 500, `n=${n} must not stall`);
+    const keys = Object.keys(r);
+    strictEqual(keys.length, 1);
+    strictEqual(r[keys[0]!], null);
+    strictEqual(keys[0]!.length, 8 + 6 * (n - 1), `n=${n} key length is linear`);
+  }
+  // Short depths render exactly like the oracle (single-line, no re-escaping);
+  // the oracle line-wraps its own output past ~80 cols, which is why the deep
+  // cases above are pinned structurally rather than against it.
+  deepStrictEqual(parse("? ? [1, 2]\n"), { "{ ? [ 1, 2 ] }": null });
+  deepStrictEqual(parse("? ? [1, 2]\n"), oracleParse("? ? [1, 2]\n"));
+  deepStrictEqual(parse("? ? ? [1, 2]\n"), { "{ ? { ? [ 1, 2 ] } }": null });
+  deepStrictEqual(parse("? ? ? [1, 2]\n"), oracleParse("? ? ? [1, 2]\n"));
+  deepStrictEqual(parse("? ? {a: 1}\n"), oracleParse("? ? {a: 1}\n"));
+});
+
+test("issue #15: value-absent vs. real-null in a nested complex key", () => {
+  // Symptom B: an omitted inner value renders `{ a }`, not `{ a: null }`.
+  deepStrictEqual(parse("? ? a\n"), { "{ a }": null });
+  deepStrictEqual(parse("? ? a\n"), oracleParse("? ? a\n"));
+  // A REAL explicit null value must still render `: null` — the two must not blur.
+  const realNull = "?\n  ? a\n  : null\n";
+  deepStrictEqual(parse(realNull), { "{ a: null }": null });
+  deepStrictEqual(parse(realNull), oracleParse(realNull));
+});
+
+test("issue #15: scalar members needing quotes are still quoted in a nested key", () => {
+  // The fix must NOT stop quoting genuine scalar members that need it — only
+  // stop re-quoting an already-composed collection. A value with a colon-space
+  // still quotes, and matches the oracle where source quoting agrees.
+  deepStrictEqual(parse('? {x: "1: 2"}\n'), { '{ x: "1: 2" }': null });
+  deepStrictEqual(parse('? {x: "1: 2"}\n'), oracleParse('? {x: "1: 2"}\n'));
+  deepStrictEqual(parse('? ["a: b"]\n: z'), { '[ "a: b" ]': "z" });
+  deepStrictEqual(parse('? ["a: b"]\n: z'), oracleParse('? ["a: b"]\n: z'));
+});
+
+// --------------------------------------------------------------------------
 // §4.10 Anchor/alias resource bombs (billion laughs, quadratic blowup).
 // lightning-yaml resolves an alias to the SAME reference (structural sharing,
 // O(1) Map.get — never a deep copy), so an exponential alias bomb builds a small
