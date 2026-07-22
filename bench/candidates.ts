@@ -17,10 +17,12 @@
  * candidates run for parse vs. stringify.
  */
 
-import { createRequire } from "node:module";
 import { load as jsYamlLoad, dump as jsYamlDump, CORE_SCHEMA, YAML11_SCHEMA } from "js-yaml";
 import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import { parse as ourParse, stringify as ourStringify, NotImplementedError } from "../src/index.ts";
+import jsYamlPkg from "js-yaml/package.json" with { type: "json" };
+import yamlPkg from "yaml/package.json" with { type: "json" };
+import rootPkg from "../package.json" with { type: "json" };
 import type { Category, DatasetDef } from "./fixtures/datasets.ts";
 
 export type Group = "baseline" | "competition" | "ours";
@@ -171,29 +173,26 @@ const DISPLAY_LABEL: Record<string, string> = {
   "lightning-yaml": "Lightning YAML",
 };
 
-const require = createRequire(import.meta.url);
-
-/** A package's installed version, or undefined if it can't be resolved (so a lookup never throws). */
-function pkgVersion(specifier: string): string | undefined {
-  try {
-    return (require(specifier) as { version: string }).version;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
- * The package.json each candidate's `version` comes from. js-yaml-tuned is the
- * same js-yaml package under a leaner dump schema, so it reports js-yaml's
- * version; lightning-yaml is bundled from src/, not an installed dep, so its
- * version is the repo-root package.json (resolved relative to this file). JSON is
- * built into the runtime — no package, so it never carries a version.
+ * The package.json each candidate's `version` comes from — plain JSON module
+ * imports rather than `node:module`'s `createRequire` (the original
+ * implementation), so this file has zero Node-builtin imports and stays
+ * statically bundleable for the in-browser benchmark harness
+ * (bench/browser/): a top-level `createRequire(...)` call drags `node:module`
+ * into ANY bundle that imports this file at all — even bench/browser/entry.ts,
+ * which never calls `libraryMeta` — because static `import` resolution is
+ * eager regardless of whether the binding ends up used (verified against
+ * esbuild directly; tree-shaking only elides unreached code, not unresolvable
+ * import specifiers). js-yaml-tuned is the same js-yaml package under a leaner
+ * dump schema, so it reports js-yaml's version; lightning-yaml is bundled from
+ * src/, not an installed dep, so its version is the repo-root package.json.
+ * JSON is built into the runtime — no package, so it never carries a version.
  */
 const VERSION: Record<string, string | undefined> = {
-  "js-yaml": pkgVersion("js-yaml/package.json"),
-  "js-yaml-tuned": pkgVersion("js-yaml/package.json"),
-  yaml: pkgVersion("yaml/package.json"),
-  "lightning-yaml": pkgVersion("../package.json"),
+  "js-yaml": jsYamlPkg.version,
+  "js-yaml-tuned": jsYamlPkg.version,
+  yaml: yamlPkg.version,
+  "lightning-yaml": rootPkg.version,
 };
 
 /** Display metadata for a candidate, as it appears in a benchmark YAML doc's `libraries` list. */
