@@ -14,7 +14,6 @@
 import speedRaw from '../data/benchmarks/speed.yaml?raw';
 import memoryRaw from '../data/benchmarks/memory.yaml?raw';
 import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
-import pkg from '../../package.json';
 import {
   newestRun,
   pickWorkloads,
@@ -74,12 +73,22 @@ function buildChart(rows: Row[], unit: Unit): { name: string; bars: Bar[] }[] {
   });
 }
 
-const speedNames = ['small-records', 'medium-records', 'large-records'];
+// The speed tabs chart the block-YAML config fixtures: real-world YAML is
+// overwhelmingly block-style config (see the 2026-07-16 target-workload research
+// note), and the JSON-text fixtures — where our lead over js-yaml happens to be
+// larger — would flatter us. Memory keeps the JSON trio for the 10 MB tail case
+// (YAML fixtures are capped at 1 MB by design).
+const speedNames = ['yaml-plain-small-records', 'yaml-plain-medium-records', 'yaml-plain-large-records'];
 const memoryNames = ['small-records', 'large-records', 'xlarge-records'];
+const WORKLOAD_LABEL: Record<string, string> = {
+  'yaml-plain-small-records': 'small config · ~1 KB',
+  'yaml-plain-medium-records': 'medium config · ~100 KB',
+  'yaml-plain-large-records': 'large config · ~1 MB',
+};
 
 const avgRows = (ws: SpeedDoc['operations']['parse']): Row[] =>
   ws.map((w) => ({
-    name: w.workload,
+    name: WORKLOAD_LABEL[w.workload] ?? w.workload,
     values: Object.fromEntries(Object.entries(w.values).map(([id, s]) => [id, (s as SpeedStat).avg])),
   }));
 const rssRows = (ws: MemoryDoc['operations']['parse']): Row[] =>
@@ -94,13 +103,13 @@ const tabs = [
   {
     id: 'parse',
     label: 'Parse speed',
-    caption: 'Avg time per parse() — real value on each bar. Scaled to the runner-up so the fast parsers stay legible; yaml runs off-scale (↗).',
+    caption: 'Avg time per parse() on block-YAML config — the shape most real-world YAML takes. Scaled to the runner-up; yaml runs off-scale (↗). JSON.parse sits out: it can’t read block YAML.',
     chart: buildChart(avgRows(pickWorkloads(speed.operations.parse, speedNames)), 'ns'),
   },
   {
     id: 'dump',
     label: 'Dump speed',
-    caption: 'Avg time per stringify() — real value on each bar. JSON.stringify is the baseline; each row scaled to its slowest parser.',
+    caption: 'Avg time per stringify() of the same parsed config — JSON.stringify as baseline on the same value; each row scaled to its slowest parser.',
     chart: buildChart(avgRows(pickWorkloads(speed.operations.stringify, speedNames)), 'ns'),
   },
   {
@@ -117,9 +126,12 @@ const tabs = [
   },
 ];
 
-const dep = (name: string) => (pkg.dependencies as Record<string, string>)[name]?.replace(/^[\^~]/, '');
-const lyVersion = bundle.libraries.find((l) => l.self)?.version ?? '0.1.0';
-const versions = `lightning-yaml ${lyVersion} · yaml ${dep('yaml')} · js-yaml ${dep('js-yaml')}`;
+// Versions must come from the measured run's own metadata — reading them from a
+// package.json shows whatever the site happens to install, not what was benched
+// (that's how the footer once claimed js-yaml 4.1.0 while the data measured 5.2.1).
+const libVersion = (id: LibraryId) => speed.libraries.find((l) => l.id === id)?.version ?? '?';
+const lyVersion = speed.libraries.find((l) => l.self)?.version ?? '?';
+const versions = `lightning-yaml ${lyVersion} · yaml ${libVersion('yaml')} · js-yaml ${libVersion('js-yaml')}`;
 ---
 
 <figure class="hb" aria-label="Benchmarks: Lightning YAML versus js-yaml, yaml, and JSON">
