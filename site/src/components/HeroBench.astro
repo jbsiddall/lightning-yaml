@@ -14,13 +14,22 @@
 import speedRaw from '../data/benchmarks/speed.yaml?raw';
 import memoryRaw from '../data/benchmarks/memory.yaml?raw';
 import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
-import { newestRun, canonicalRun, pickWorkloads, bundleSizeItems } from '../lib/queries';
+import {
+  parseRuns,
+  newestRun,
+  canonicalRun,
+  pickWorkloads,
+  bundleSizeItems,
+  SpeedDocSchema,
+  MemoryDocSchema,
+  BundleSizeDocSchema,
+} from '../lib/queries';
 import type { SpeedDoc, MemoryDoc, BundleSizeDoc, LibraryId, SpeedStat, MemoryStat } from '../lib/queries';
 import { formatNs, formatMB, formatKB, LIBRARY_COLOR } from '../lib/benchmarks';
 
-const speed = canonicalRun<SpeedDoc>(speedRaw);
-const memory = newestRun<MemoryDoc>(memoryRaw);
-const bundle = newestRun<BundleSizeDoc>(bundleSizeRaw);
+const speed = canonicalRun(parseRuns(speedRaw, SpeedDocSchema));
+const memory = newestRun(memoryRaw, MemoryDocSchema);
+const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
 const HERO_ORDER: LibraryId[] = ['JSON', 'lightning-yaml', 'js-yaml', 'yaml'];
 

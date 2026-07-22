@@ -12,13 +12,21 @@ import Priorities from './Priorities.astro';
 import speedRaw from '../data/benchmarks/speed.yaml?raw';
 import conformanceRaw from '../data/benchmarks/conformance.yaml?raw';
 import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
-import { newestRun, canonicalRun, bundleSizeItems } from '../lib/queries';
+import {
+  parseRuns,
+  newestRun,
+  canonicalRun,
+  bundleSizeItems,
+  SpeedDocSchema,
+  ConformanceDocSchema,
+  BundleSizeDocSchema,
+} from '../lib/queries';
 import type { SpeedDoc, ConformanceDoc, BundleSizeDoc } from '../lib/queries';
 import { formatKB } from '../lib/benchmarks';
 
-const speed = canonicalRun<SpeedDoc>(speedRaw);
-const conformance = newestRun<ConformanceDoc>(conformanceRaw);
-const bundle = newestRun<BundleSizeDoc>(bundleSizeRaw);
+const speed = canonicalRun(parseRuns(speedRaw, SpeedDocSchema));
+const conformance = newestRun(conformanceRaw, ConformanceDocSchema);
+const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
 const confPct = (conformance.results.find((r) => r.self)?.score ?? 97.6).toFixed(1);
 

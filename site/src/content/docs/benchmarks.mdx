@@ -11,7 +11,7 @@ import bundleSizeRaw from '../../data/benchmarks/bundle-size.yaml?raw'
 import ChartCard from '../../components/charts/ChartCard.astro'
 import RuntimePicker from '../../components/charts/RuntimePicker.astro'
 import {
-  newestRun,
+  newestOf,
   availableRuntimes,
   canonicalRun,
   canonicalFamily,
@@ -19,6 +19,10 @@ import {
   pickWorkloads,
   bundleSizeItems,
   LIBRARY_ORDER,
+  SpeedDocSchema,
+  MemoryDocSchema,
+  ConformanceDocSchema,
+  BundleSizeDocSchema,
 } from '../../lib/queries'
 import {
   speedFamilySection,
@@ -45,22 +49,22 @@ import {
   presentIn,
 } from '../../lib/benchmarks'
 
-export const speed = canonicalRun(speedRaw)
-export const speedRuns = parseRuns(speedRaw)
-export const speedRuntimes = availableRuntimes(speedRaw)
+export const speedRuns = parseRuns(speedRaw, SpeedDocSchema)
+export const speed = canonicalRun(speedRuns)
+export const speedRuntimes = availableRuntimes(speedRuns)
 export const curated = ['small-records', 'medium-records', 'large-records', 'xlarge-records', 'yaml-rich-medium']
 export const speedTrendWl = 'large-records'
 export const speedSections = speedRuntimes.map((r) =>
   speedFamilySection(r.doc, speedRuns, curated, speedTrendWl, speedRuntimes.length > 1 ? `-${r.family}` : ''),
 )
 
-export const memory = newestRun(memoryRaw)
-export const memoryRuns = parseRuns(memoryRaw)
+export const memoryRuns = parseRuns(memoryRaw, MemoryDocSchema)
+export const memory = newestOf(memoryRuns)
 export const memoryTicks = xTicks(runDates(memoryRuns))
-export const conformance = newestRun(conformanceRaw)
-export const conformanceRuns = parseRuns(conformanceRaw)
-export const bundleSize = newestRun(bundleSizeRaw)
-export const bundleSizeRuns = parseRuns(bundleSizeRaw)
+export const conformanceRuns = parseRuns(conformanceRaw, ConformanceDocSchema)
+export const conformance = newestOf(conformanceRuns)
+export const bundleSizeRuns = parseRuns(bundleSizeRaw, BundleSizeDocSchema)
+export const bundleSize = newestOf(bundleSizeRuns)
 
 export const memOrderIds = LIBRARY_ORDER.filter((id) => id !== 'js-yaml-tuned')
 export const memTrendWl = 'xlarge-records'
@@ -200,7 +204,7 @@ yourself, see [running the benchmarks & tests](/research/methodology/#running-th
     </p>
     <RuntimePicker
       runtimes={speedRuntimes.map((r) => ({ family: r.family, runtime: r.runtime }))}
-      canonical={canonicalFamily(speedRaw)}
+      canonical={canonicalFamily(speedRuns)}
     />
   </>
 )}

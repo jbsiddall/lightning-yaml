@@ -1,134 +1,62 @@
 // src/lib/queries.ts
 //
 // All the interaction with the benchmark YAML data lives here — read the raw
-// append-only multi-document streams (src/data/benchmarks/*.yaml) and
-// select/shape them into the doc types below. No chart or table rendering
-// happens here; that's benchmarks.ts, which imports from this file.
-// Everything runs at Astro BUILD TIME — no browser APIs, no client JS. See
-// CLAUDE.md ("Benchmarking rules") and the header comment of each YAML file
-// for the source schema this mirrors.
+// append-only multi-document streams (src/data/benchmarks/*.yaml), validate
+// them against bench/schemas.ts (the single source of truth for the doc
+// shape — also used by bench/validate.ts and the emitters), and select/shape
+// the validated docs for benchmarks.ts to render. A schema change there is a
+// type error (and a build-time validation failure) here, not silent drift.
+// No chart or table rendering happens here; that's benchmarks.ts, which
+// imports from this file. Everything runs at Astro BUILD TIME — no browser
+// APIs, no client JS.
 
 // Dogfood: the docs site parses its own benchmark data with lightning-yaml.
 import { parseAll } from 'lightning-yaml';
+import { z } from 'zod';
+import {
+  LIBRARY_IDS,
+  LibraryMetaSchema,
+  RuntimeEnvSchema,
+  SpeedDocSchema,
+  MemoryDocSchema,
+  ConformanceDocSchema,
+  BundleSizeDocSchema,
+} from '../../../bench/schemas.ts';
 // bundleSizeItems (below) shapes a doc into chart-ready items, which needs
 // the brand color + versioned label — both presentation, so they stay
 // defined in benchmarks.ts; importing them back here is the one intentional
 // exception to this file's "queries only, no rendering" rule.
 import { LIBRARY_COLOR, libraryLabel } from './benchmarks';
 
+export { SpeedDocSchema, MemoryDocSchema, ConformanceDocSchema, BundleSizeDocSchema };
+
 // ---------------------------------------------------------------------------
-// Schema types (mirror the header comments in src/data/benchmarks/*.yaml)
+// Doc types — every one inferred from bench/schemas.ts, not hand-declared, so
+// a schema change there surfaces as a type error here instead of silently
+// drifting. `LibraryId` is likewise derived from the schemas' own
+// `LIBRARY_IDS` tuple (not widened to `string`), so indexing a `values` map
+// by `LibraryId` stays exactly the literal union the schemas validate.
 // ---------------------------------------------------------------------------
 
-export type LibraryId = 'JSON' | 'js-yaml' | 'js-yaml-tuned' | 'yaml' | 'lightning-yaml';
+export type LibraryId = (typeof LIBRARY_IDS)[number];
+export type LibraryMeta = z.infer<typeof LibraryMetaSchema>;
 
-export interface LibraryMeta {
-  id: LibraryId;
-  label: string;
-  baseline?: boolean;
-  self?: boolean;
-  version?: string;
-}
+export type SpeedDoc = z.infer<typeof SpeedDocSchema>;
+export type SpeedWorkload = SpeedDoc['operations']['parse'][number];
+export type SpeedStat = NonNullable<SpeedWorkload['values'][LibraryId]>;
 
-export interface SpeedStat {
-  avg: number;
-  min: number;
-  p75: number;
-  p99: number;
-  max: number;
-}
+export type MemoryDoc = z.infer<typeof MemoryDocSchema>;
+export type MemoryWorkload = MemoryDoc['operations']['parse'][number];
+export type MemoryStat = NonNullable<MemoryWorkload['values'][LibraryId]>;
 
-export interface SpeedWorkload {
-  workload: string;
-  values: Partial<Record<LibraryId, SpeedStat>>;
-}
+export type ConformanceDoc = z.infer<typeof ConformanceDocSchema>;
+export type ConformanceResult = ConformanceDoc['results'][number];
 
-export interface SpeedDoc {
-  suite: 'speed';
-  scope: string;
-  tool: string;
-  unit: string;
-  lower_is_better: boolean;
-  generated: string;
-  source: string;
-  env: { clk: string; cpu: string; runtime: string };
-  libraries: LibraryMeta[];
-  operations: { parse: SpeedWorkload[]; stringify: SpeedWorkload[] };
-}
+export type BundleSizeDoc = z.infer<typeof BundleSizeDocSchema>;
+export type BundleSizeResult = BundleSizeDoc['results'][number];
+export type BundleSizeValue = NonNullable<BundleSizeResult['values'][LibraryId]>;
 
-export interface MemoryStat {
-  peak_rss: number;
-  heap_delta: number;
-}
-
-export interface MemoryWorkload {
-  workload: string;
-  values: Partial<Record<LibraryId, MemoryStat>>;
-}
-
-export interface MemoryDoc {
-  suite: 'memory';
-  scope: string;
-  env: { clk: string; cpu: string; runtime: string };
-  units: { peak_rss: string; heap_delta: string };
-  lower_is_better: boolean;
-  iterations: number;
-  generated: string;
-  source: string;
-  libraries: LibraryMeta[];
-  operations: { parse: MemoryWorkload[]; stringify: MemoryWorkload[] };
-}
-
-export interface ConformanceResult {
-  id: LibraryId;
-  label: string;
-  passed: number;
-  total: number;
-  score: number;
-  self?: boolean;
-  version?: string;
-  // Present on the self row (the should-fail subset); the conformance page reads it.
-  negative_passed?: number;
-  negative_total?: number;
-}
-
-export interface ConformanceDoc {
-  suite: 'conformance';
-  suite_total: number;
-  unit: string;
-  higher_is_better: boolean;
-  generated: string;
-  source: string;
-  results: ConformanceResult[];
-}
-
-export interface BundleSizeValue {
-  min?: number;
-  gzip?: number;
-  brotli?: number;
-  error?: string;
-}
-
-export interface BundleSizeResult {
-  bundler: string;
-  rust: boolean;
-  values: Partial<Record<LibraryId, BundleSizeValue>>;
-}
-
-export interface BundleSizeDoc {
-  suite: 'bundle-size';
-  scope: string;
-  tool: string;
-  units: { min: string; gzip: string; brotli: string };
-  lower_is_better: boolean;
-  generated: string;
-  source: string;
-  env: { bundlers: Record<string, string> };
-  libraries: LibraryMeta[];
-  results: BundleSizeResult[];
-}
-
-/** One row of a bar chart (or its table twin): a library's value plus enough to render it standalone. */
+/** One row of a bar chart (or its table twin) — site-only, no schema counterpart. */
 export interface BarItem {
   id: string;
   label: string;
@@ -141,20 +69,27 @@ export interface BarItem {
 // ---------------------------------------------------------------------------
 // Loaders — every *.yaml data file is an append-only multi-document stream;
 // CI appends a new '---' document per run and never rewrites earlier ones.
-// The site always renders the newest (last) document.
+// `parseRuns` validates every document against `schema` (throws on the first
+// invalid one) — cheap at today's stream sizes, so callers that need the
+// full run history (trend charts) and callers that only need the newest
+// document both go through the same validated array; nothing here re-parses
+// or re-validates a stream it's already loaded.
 // ---------------------------------------------------------------------------
 
-/** Parse every `---` document in an append-only benchmark YAML stream. */
-export function parseRuns<T>(raw: string): T[] {
-  return parseAll(raw) as T[];
+export function parseRuns<S extends z.ZodType>(raw: string, schema: S): z.infer<S>[] {
+  return (parseAll(raw) as unknown[]).map((doc) => schema.parse(doc));
 }
 
-/** The newest (last-appended) run of a benchmark suite. */
-export function newestRun<T>(raw: string): T {
-  const runs = parseRuns<T>(raw);
+/** The last element of an already-loaded run history. Throws if empty. */
+export function newestOf<T>(runs: readonly T[]): T {
   const last = runs.at(-1);
   if (!last) throw new Error('benchmark YAML stream has no documents');
   return last;
+}
+
+/** parseRuns + newestOf, for a caller that only wants the newest document, not the full history. */
+export function newestRun<S extends z.ZodType>(raw: string, schema: S): z.infer<S> {
+  return newestOf(parseRuns(raw, schema));
 }
 
 // ---------------------------------------------------------------------------
@@ -163,8 +98,12 @@ export function newestRun<T>(raw: string): T {
 // document's `env.runtime` string (e.g. "node 24.18.0 (x64-linux)"). Only the
 // speed suite records `env.runtime` today; memory, conformance, and
 // bundle-size stay single-environment (see each doc's schema above), so
-// `newestRun` remains the right loader for those.
+// `newestOf` remains the right loader for those. These helpers all take an
+// already-loaded run array (from `parseRuns`), not a raw string, so a caller
+// juggling both a run history and a family selection never parses twice.
 // ---------------------------------------------------------------------------
+
+type WithRuntime = { env: z.infer<typeof RuntimeEnvSchema> };
 
 /** The runtime family from an `env.runtime` string, e.g. "node 24.18.0 (x64-linux)" -> "node". */
 export function runtimeFamily(runtime: string): string {
@@ -178,23 +117,21 @@ export interface RuntimeRun<T> {
   doc: T;
 }
 
-/** Every runtime family present in an append-only stream, each mapped to its own newest document. */
-export function availableRuntimes<T extends { env: { runtime: string } }>(raw: string): RuntimeRun<T>[] {
+export function availableRuntimes<T extends WithRuntime>(runs: readonly T[]): RuntimeRun<T>[] {
   const byFamily = new Map<string, T>();
   // Append order -> later assignments overwrite earlier ones, so each family ends up on its newest doc.
-  for (const doc of parseRuns<T>(raw)) byFamily.set(runtimeFamily(doc.env.runtime), doc);
+  for (const doc of runs) byFamily.set(runtimeFamily(doc.env.runtime), doc);
   return [...byFamily].map(([family, doc]) => ({ family, runtime: doc.env.runtime, doc }));
 }
 
-/** The newest document for one runtime family. Throws if the stream has no run from that family. */
-export function newestRunFor<T extends { env: { runtime: string } }>(raw: string, family: string): T {
-  const match = availableRuntimes<T>(raw).find((r) => r.family === family);
+/** The newest document for one runtime family. Throws if `runs` has no run from that family. */
+export function newestRunFor<T extends WithRuntime>(runs: readonly T[], family: string): T {
+  const match = availableRuntimes(runs).find((r) => r.family === family);
   if (!match) throw new Error(`benchmark YAML stream has no "${family}" runtime run`);
   return match.doc;
 }
 
-/** Narrow a run history to one runtime family, preserving chronological (append) order. */
-export function runsForFamily<T extends { env: { runtime: string } }>(runs: readonly T[], family: string): T[] {
+export function runsForFamily<T extends WithRuntime>(runs: readonly T[], family: string): T[] {
   return runs.filter((r) => runtimeFamily(r.env.runtime) === family);
 }
 
@@ -209,19 +146,17 @@ export function runsForFamily<T extends { env: { runtime: string } }>(runs: read
  */
 export const CANONICAL_RUNTIMES = ['chromium', 'node'] as const;
 
-/** The first family of CANONICAL_RUNTIMES actually present in the stream. */
-export function canonicalFamily(raw: string): string {
-  const present = new Set(availableRuntimes<{ env: { runtime: string } }>(raw).map((r) => r.family));
+export function canonicalFamily<T extends WithRuntime>(runs: readonly T[]): string {
+  const present = new Set(availableRuntimes(runs).map((r) => r.family));
   return CANONICAL_RUNTIMES.find((f) => present.has(f)) ?? CANONICAL_RUNTIMES.at(-1)!;
 }
 
-/** The newest document of the canonical runtime family (see `canonicalFamily`). */
-export function canonicalRun<T extends { env: { runtime: string } }>(raw: string): T {
-  return newestRunFor<T>(raw, canonicalFamily(raw));
+export function canonicalRun<T extends WithRuntime>(runs: readonly T[]): T {
+  return newestRunFor(runs, canonicalFamily(runs));
 }
 
 // ---------------------------------------------------------------------------
-// Data-shaping helpers — select/order the parsed docs into the shapes the
+// Data-shaping helpers — select/order the validated docs into the shapes the
 // chart and table builders in benchmarks.ts consume.
 // ---------------------------------------------------------------------------
 
