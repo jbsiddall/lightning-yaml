@@ -73,9 +73,7 @@ export const SpeedDocSchema = ProvenanceBase.extend({
 
 export const MemoryDocSchema = ProvenanceBase.extend({
   suite: z.literal("memory"),
-  // Optional: the stream (and the committed seed copies) hold documents from
-  // before the memory emitter recorded provenance; new emissions always write it.
-  env: RuntimeEnvSchema.optional(),
+  env: RuntimeEnvSchema,
   units: z.object({ peak_rss: z.string(), heap_delta: z.string() }),
   lower_is_better: z.boolean(),
   iterations: z.number().nonnegative(),

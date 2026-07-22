@@ -63,8 +63,7 @@ export interface MemoryWorkload {
 export interface MemoryDoc {
   suite: 'memory';
   scope: string;
-  /** Absent on documents appended before the memory emitter recorded runtime provenance. */
-  env?: { clk: string; cpu: string; runtime: string };
+  env: { clk: string; cpu: string; runtime: string };
   units: { peak_rss: string; heap_delta: string };
   lower_is_better: boolean;
   iterations: number;
