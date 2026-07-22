@@ -73,11 +73,7 @@ export const SpeedDocSchema = ProvenanceBase.extend({
 
 export const MemoryDocSchema = ProvenanceBase.extend({
   suite: z.literal("memory"),
-  // Optional until the last old-emitter writer is gone: main's CI keeps
-  // appending env-less memory documents until this branch's emitter change
-  // merges, so requiring env here loses the race against the stream. After the
-  // merge, backfill the interim documents and make this required.
-  env: RuntimeEnvSchema.optional(),
+  env: RuntimeEnvSchema,
   units: z.object({ peak_rss: z.string(), heap_delta: z.string() }),
   lower_is_better: z.boolean(),
   iterations: z.number().nonnegative(),
