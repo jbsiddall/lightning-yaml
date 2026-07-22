@@ -12,14 +12,18 @@ import ChartCard from '../../components/charts/ChartCard.astro'
 import RuntimePicker from '../../components/charts/RuntimePicker.astro'
 import {
   newestRun,
-  newestRunFor,
   availableRuntimes,
-  speedFamilySection,
-  CANONICAL_RUNTIME,
+  canonicalRun,
+  canonicalFamily,
   parseRuns,
+  pickWorkloads,
+  bundleSizeItems,
+  LIBRARY_ORDER,
+} from '../../lib/queries'
+import {
+  speedFamilySection,
   runDates,
   xTicks,
-  pickWorkloads,
   memoryGroups,
   seriesFor,
   legendFor,
@@ -33,17 +37,15 @@ import {
   memoryBreakdownHtml,
   conformanceItems,
   conformanceTableHtml,
-  bundleSizeItems,
   bundleSizeTableHtml,
   niceDomainMax,
   formatMB,
   formatPercent,
   formatKB,
-  LIBRARY_ORDER,
   presentIn,
 } from '../../lib/benchmarks'
 
-export const speed = newestRunFor(speedRaw, CANONICAL_RUNTIME)
+export const speed = canonicalRun(speedRaw)
 export const speedRuns = parseRuns(speedRaw)
 export const speedRuntimes = availableRuntimes(speedRaw)
 export const curated = ['small-records', 'medium-records', 'large-records', 'xlarge-records', 'yaml-rich-medium']
@@ -198,7 +200,7 @@ yourself, see [running the benchmarks & tests](/research/methodology/#running-th
     </p>
     <RuntimePicker
       runtimes={speedRuntimes.map((r) => ({ family: r.family, runtime: r.runtime }))}
-      canonical={CANONICAL_RUNTIME}
+      canonical={canonicalFamily(speedRaw)}
     />
   </>
 )}
