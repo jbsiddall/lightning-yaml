@@ -21,14 +21,21 @@ const bundle = newestRun<BundleSizeDoc>(bundleSizeRaw);
 
 const confPct = (conformance.results.find((r) => r.self)?.score ?? 97.6).toFixed(1);
 
-// Representative parse ratios (medium-records), derived so they never drift.
-const med = speed.operations.parse.find((w) => w.workload === 'medium-records')?.values;
-const ratio = (a: 'JSON' | 'js-yaml' | 'yaml' | 'lightning-yaml', b: typeof a) =>
-  med && med[a] && med[b] ? med[a]!.avg / med[b]!.avg : null;
+// Headline parse ratios, derived so they never drift. The js-yaml/yaml
+// head-to-heads come from block-YAML config — the shape most real-world YAML
+// takes (2026-07-16 target-workload note), not the JSON-text fixtures where our
+// lead is larger. The JSON.parse comparison necessarily uses the JSON-text
+// fixture of the same size: JSON.parse can't read block YAML.
+type RatioId = 'JSON' | 'js-yaml' | 'yaml' | 'lightning-yaml';
+const wl = (name: string) => speed.operations.parse.find((w) => w.workload === name)?.values;
+const medYaml = wl('yaml-plain-medium-records');
+const medJson = wl('medium-records');
+const ratio = (vals: typeof medYaml, a: RatioId, b: RatioId) =>
+  vals && vals[a] && vals[b] ? vals[a]!.avg / vals[b]!.avg : null;
 const fmtX = (n: number | null) => (n == null ? '—' : n < 10 ? `${n.toFixed(1)}×` : `${Math.round(n)}×`);
-const vsJson = fmtX(ratio('lightning-yaml', 'JSON'));
-const vsJsYaml = fmtX(ratio('js-yaml', 'lightning-yaml'));
-const vsYaml = fmtX(ratio('yaml', 'lightning-yaml'));
+const vsJson = fmtX(ratio(medJson, 'lightning-yaml', 'JSON'));
+const vsJsYaml = fmtX(ratio(medYaml, 'js-yaml', 'lightning-yaml'));
+const vsYaml = fmtX(ratio(medYaml, 'yaml', 'lightning-yaml'));
 const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
 ---
 
@@ -41,8 +48,9 @@ const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
 
       <p class="lead">
         A pure-JS YAML&nbsp;1.2 parser and stringifier that's out to give native <code>JSON.parse</code> a run
-        for its money — spec compliance first, then speed and memory within reach of it. On medium records:
-        about <b>{vsJson} JSON.parse</b>'s parse time, <b>{vsJsYaml} faster than js-yaml</b> and <b>{vsYaml} faster than yaml</b>. Zero dependencies, <b>{bundleKB}</b> min+gzip.
+        for its money — spec compliance first, then speed and memory within reach of it. On ~100&nbsp;KB of
+        block-YAML config: <b>{vsJsYaml} faster than js-yaml</b> and <b>{vsYaml} faster than yaml</b> — and
+        about <b>{vsJson} JSON.parse</b>'s parse time on the equivalent JSON. Zero dependencies, <b>{bundleKB}</b> min+gzip.
       </p>
 
       <div class="install">
