@@ -164,6 +164,17 @@ autonomously), and only *after* 1.0 may Claude pick `major`, only when certain a
 documented API/behavior actually breaks (else `minor`, or ask). Contributor
 details: [CONTRIBUTING.md](CONTRIBUTING.md).
 
+**Write the changeset for a working YAML dev, not a spec author.** A changeset's
+summary *and* body flow verbatim into `CHANGELOG.md` and the GitHub release
+notes — read by people who use YAML every day but don't know the 1.2.2 grammar
+or this parser's internals. Describe the **observable** change (what input used
+to break or misbehave, what now works) in plain language, ideally with a tiny
+before/after YAML snippet. Keep spec productions (`c-l-block-map-explicit-key`),
+section refs (§8.2.2), and oracle/test-suite mechanics *out* of it — that depth
+belongs in the PR description and commit body, where maintainers want it, not in
+the release notes. (E.g. "Accept a compact block sequence as an explicit mapping
+key (`?\n- a\n- b`)" beats a paragraph of grammar productions.)
+
 ## Research dossier — when to read it
 
 [site/src/content/docs/research/notes/](site/src/content/docs/research/notes/) holds the parser-strategy research
