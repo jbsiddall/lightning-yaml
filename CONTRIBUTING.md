@@ -33,8 +33,13 @@ pnpm changeset
 
 Answer the prompts: pick the bump level, then write a one-line summary. That
 summary becomes the changelog entry, so write it for an adopter reading the
-release notes ("Fixed `!!binary` rejecting …", not "fix bug"). The command
-writes a small markdown file under `.changeset/` — commit it with your PR.
+release notes ("Fixed `!!binary` rejecting …", not "fix bug"). Pitch it at a dev
+who uses YAML but doesn't know the 1.2.2 grammar or our parser internals: name the
+observable behaviour change in plain language, not grammar-production names like
+`c-l-block-map-explicit-key` — save that depth for the PR. A spec citation is fine
+(link the section on <https://yaml.org/spec/1.2.2/>). If one line isn't enough, add
+a short body below the frontmatter with a concrete before/after YAML example. The command writes a small markdown file under `.changeset/` —
+commit it with your PR.
 
 Choosing the bump level (we're pre-1.0, so `^0.x` ranges treat any **minor** as
 potentially breaking — lean on that):

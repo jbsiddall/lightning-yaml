@@ -44,6 +44,34 @@ much as to `src`. Reserve comments for non-obvious rationale: a constraint, a go
 or why a choice was made (especially where getting it wrong is costly). Prefer
 deleting a redundant or stale comment over keeping it. Don't add unnecessary comments.
 
+## Audience & voice — write for the reader, not the parser
+
+Every written artifact has a reader; name them and pitch to them. **User-facing
+prose — a PR title and its top-line summary, changeset entries, `README`, release
+notes / `CHANGELOG.md`, the docs site — is read by devs who use YAML every day but
+don't know the 1.2.2 grammar or this parser's internals.** Write it in plain
+language: describe the *observable* change (what input used to break, what now
+works) and let a tiny before/after YAML snippet carry the point. What to keep
+*out* is the vocabulary few readers can decode without deep context:
+grammar-production names (`c-l-block-map-explicit-key`), internal symbols
+(`parseFlowKeyAnchored`), and bare suite IDs standing in for an explanation
+(`SBG9`/`X38W`). Litmus test: if a working YAML dev couldn't tell *what changed for
+them* from your summary, rewrite the summary.
+
+**Spec section references are welcome, not stripped** — tying a claim back to the
+YAML 1.2.2 spec is a feature, not clutter; just format the reference for its medium.
+In rendered-markdown copy (PR titles/descriptions, issue descriptions, `README`, the
+docs site, research notes) link the reference to its heading on the official spec
+(<https://yaml.org/spec/1.2.2/>) rather than leaving a bare `§8.2.2`. In plain-text
+content (code comments) keep the existing `§8.2.2` syntax.
+
+The grammar-level depth isn't banned, it's *placed* — production names and internal
+mechanics belong where the reader is a maintainer: the PR's **Correctness note** (the
+template asks for the spec/suite citation there), a code comment, or a research note.
+Even there, favour a concrete YAML example over a paragraph of jargon, and reach for
+precise parser/spec terminology only when it's genuinely the clearest way to say the
+thing — necessary precision is fine, a jargon wall where an example would do is not.
+
 ## Source-of-truth precedence — when sources disagree
 
 Highest wins; the lower source is the bug to fix (don't average, and "more detailed"
@@ -112,7 +140,12 @@ description** (internal commits are collapsed) — so those must describe the *w
 change, not any one commit. When a PR is opened (by you or the user), write the
 title/description to match the work; if later turns add commits to the branch, go back
 and update them so they stay accurate. Don't mention Claude in the PR title or
-description — it just adds noise; write them as the change's own record.
+description — it just adds noise; write them as the change's own record. Pitch the
+title and top-line summary per _Audience & voice_ above — a reader who knows YAML
+but not our internals should get *what changed* without wading through
+grammar-production names or internal symbols. Cite the spec to back a claim (linked
+to its section), and keep the production-level walkthrough for the template's
+**Correctness note**.
 
 ### Token discipline — temp files + tiny prompts (mandatory)
 
@@ -163,6 +196,13 @@ boundary** — the first `1.0.0` is the maintainer's call (never crossed
 autonomously), and only *after* 1.0 may Claude pick `major`, only when certain a
 documented API/behavior actually breaks (else `minor`, or ask). Contributor
 details: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**A changeset's summary *and* body flow verbatim into `CHANGELOG.md` and the
+release notes — pure user-facing prose, so write them per _Audience & voice_
+above:** the observable change in plain language (a tiny before/after YAML snippet
+beats a paragraph of grammar productions), production names and internal mechanics
+left for the PR. A spec citation is welcome — linked to its section, per _Audience &
+voice_.
 
 ## Research dossier — when to read it
 
