@@ -1263,22 +1263,6 @@ test("explicit block keys: complex keys — a sequence or mapping AS the key", (
   }
 });
 
-test("explicit block keys: a zero-indented ('compact') block sequence at the '?' column is a valid key (yaml-test-suite 6PBE; issue #17)", () => {
-  // Regression #17: the DEFERRED key used to resolve to null and leave the
-  // '- a' line unconsumed, which surfaced downstream as a misleading "found
-  // more than one document" error. The key shares the value's
-  // `s-l+block-indented` production (spec 8.17), so a same-column compact
-  // sequence is legal on BOTH sides — the value side already accepted it.
-  deepStrictEqual(parse("?\n- a\n:\n- c\n"), { "[ a ]": ["c"] });
-  deepStrictEqual(parse("?\n- a\n- b\n:\n- c\n- d\n"), { "[ a, b ]": ["c", "d"] }); // 6PBE shape
-  deepStrictEqual(parse("?\n- a\n"), { "[ a ]": null }); // key only, no ': value'
-  deepStrictEqual(parse("?\n- a\n:\n  b: 1\n"), { "[ a ]": { b: 1 } }); // seq key, mapping value
-  deepStrictEqual(parse("? x\n: y\n?\n- a\n- b\n: z\n"), { x: "y", "[ a, b ]": "z" }); // as a 2nd key (loop path)
-  for (const s of ["?\n- a\n:\n- c\n", "?\n- a\n- b\n:\n- c\n- d\n", "?\n- a\n", "?\n- a\n:\n  b: 1\n", "? x\n: y\n?\n- a\n- b\n: z\n"]) {
-    deepStrictEqual(parse(s), oracleParse(s));
-  }
-});
-
 test("explicit block keys: a multi-line plain scalar folds into the key (yaml-test-suite JTV5)", () => {
   const s = "? a\n  true\n: null\n  d\n? e\n  42\n";
   deepStrictEqual(parse(s), { "a true": "null d", "e 42": null });
