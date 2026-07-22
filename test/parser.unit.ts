@@ -20,6 +20,23 @@ import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
 import { parseAllDocuments } from "yaml";
 
+/**
+ * Strip the uniform leading indentation that backtick nesting adds, so a
+ * multi-line YAML fixture reads as itself instead of a `\n`-spliced literal.
+ * Convention: write the content flush to the closing-backtick column; that
+ * column's whitespace is removed from every line, the opening newline is
+ * dropped, and a single trailing `\n` is (re)added. Only literal spaces are
+ * stripped — a meaningful space-then-tab inside a line survives — and `\t`/`\n`
+ * in the template are already real tab/newline characters.
+ */
+function dedent(strings: TemplateStringsArray): string {
+  const raw = strings[0];
+  const lastNl = raw.lastIndexOf("\n");
+  const indent = raw.slice(lastNl + 1);
+  const body = raw.slice(raw.indexOf("\n") + 1, lastNl);
+  return body.split("\n").map((l) => (l.startsWith(indent) ? l.slice(indent.length) : l)).join("\n") + "\n";
+}
+
 // --------------------------------------------------------------------------
 // M1 — exact JSON.parse parity on every JSON (flow) fixture.
 // --------------------------------------------------------------------------
@@ -1492,6 +1509,136 @@ test("STRICTNESS: a tab cannot indent a flow continuation line (yaml-test-suite 
   throws(() => oracleParse("- [\n\tfoo,\n foo\n ]\n"));
   // A tab on a BLANK line inside the flow is fine (yaml-test-suite Y79Y/002).
   deepStrictEqual(parse("- [\n\t\n foo\n ]\n"), oracleParse("- [\n\t\n foo\n ]\n"));
+});
+
+// --------------------------------------------------------------------------
+// Space-then-tab positioning a block collection (issue #18 — a deeper 4EJS
+// manifestation). `" \t"` is byte-identical whether it precedes a block
+// map/seq (illegal indentation, must throw) or a folding plain scalar / flow
+// collection / alias (legal separation), so the rejection is gated on the
+// produced node being a BLOCK collection — a purely lexical scan cannot tell
+// the two apart. Root-level input and continuation entries are covered too, as
+// neither flows through the ordinary deferred-node tab guard.
+// --------------------------------------------------------------------------
+
+test("STRICTNESS: a space-then-tab cannot indent a deferred or root block collection (issue #18, yaml-test-suite 4EJS)", () => {
+  for (const s of [
+    dedent`
+    a:
+     \tb: 1
+    `, // deferred block MAP
+    dedent`
+    a:
+     \t- 1
+    `, // deferred block SEQ
+    dedent`
+     \ta: 1
+    `, // ROOT block MAP
+    dedent`
+    \t- 1
+    `, // ROOT block SEQ
+    dedent`
+    a:
+     \t- b: 1
+    `, // deferred compact seq-of-map
+  ]) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+  // The identical `" \t"` bytes stay legal before content that is NOT a block
+  // collection — a folding plain scalar, a flow collection VALUE, a quoted
+  // scalar, or an alias (even one resolving to a collection): tab as separation.
+  for (const y of [
+    dedent`
+    foo:
+     \tbar
+    `,
+    dedent`
+    a:
+     \t[1, 2]
+    `,
+    dedent`
+    a:
+     \t{b: 1}
+    `,
+    dedent`
+    a:
+     \t"x"
+    `,
+    dedent`
+    x: &a [1]
+    b:
+     \t*a
+    `,
+  ]) {
+    deepStrictEqual(parse(y), oracleParse(y));
+  }
+});
+
+test("STRICTNESS: a space-then-tab cannot indent a block-collection continuation entry (issue #18)", () => {
+  for (const s of [
+    dedent`
+    foo:
+      a: 1
+     \tb: 2
+    `, // block-map continuation KEY
+    dedent`
+    m:
+      k1: v1
+     \tk2: v2
+      k3: v3
+    `, // block-map middle key
+    dedent`
+    top:
+      x: 1
+      y:
+        m: 1
+     \tn: 2
+    `, // continuation after a nested dedent
+    dedent`
+    a:
+      - 1
+     \t- 2
+    `, // block-seq continuation entry
+  ]) {
+    throws(() => parse(s), YAMLParseError);
+    throws(() => oracleParse(s));
+  }
+  // Space-only continuations are unaffected.
+  for (const y of [
+    dedent`
+    foo:
+      a: 1
+      b: 2
+    `,
+    dedent`
+    a:
+      - 1
+      - 2
+    `,
+  ]) {
+    deepStrictEqual(parse(y), oracleParse(y));
+  }
+});
+
+test("skipStrictValidation option: opting in skips the strict-compliance (tab-indent) guards, accepting input the default rejects (issue #18)", () => {
+  const skip = { optimizations: { skipStrictValidation: true } };
+  const tabIndented = "a:\n \tb: 1\n"; // space-then-tab positioning a nested block map
+  // Default: spec-compliant rejection (as the STRICTNESS tests above assert).
+  throws(() => parse(tabIndented), YAMLParseError);
+  throws(() => parseAll(tabIndented), YAMLParseError);
+  // Opted out: the guard is skipped, so the (spec-invalid) input parses to the
+  // lenient value instead of throwing.
+  deepStrictEqual(parse(tabIndented, skip), { a: { b: 1 } });
+  deepStrictEqual(parseAll(tabIndented, skip), [{ a: { b: 1 } }]);
+  // VALID input parses identically with the option on or off — the guards only
+  // ever throw, never transform.
+  for (const y of ["a:\n  b: 1\n", "a:\n  - 1\n  - 2\n", "foo:\n \tbar\n", "x: [1, 2]\n"]) {
+    deepStrictEqual(parse(y, skip), parse(y));
+  }
+  // The option is per-call and does not leak: a default parse after a skip parse
+  // still rejects.
+  throws(() => parse(tabIndented), YAMLParseError);
 });
 
 // --------------------------------------------------------------------------

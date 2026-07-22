@@ -82,6 +82,25 @@ const TILDE = 126; // ~
 const BOM = 0xfeff;
 
 /**
+ * Backing flag for the `skipStrictValidation` parse optimization — an umbrella
+ * opt-out for STRICT-COMPLIANCE validations: spec checks that only REJECT
+ * malformed input and never shape how a VALID document is interpreted. Today it
+ * gates the space-then-tab block-collection indentation guards (spec 6.1:
+ * `rejectBlockCollectionTabIndent` + the per-entry `checkNoTabIndent(col-1)` in
+ * the block seq/map loops); future strict-only checks join it under this one flag.
+ *
+ * CONTRACT — anything gated on this flag may ONLY ever turn a rejection into
+ * acceptance. It must NEVER change the value or structure a valid parse yields:
+ * flipping the flag leaves every well-formed document byte-identical (only throws
+ * are dropped), trading strictness for speed/memory and incidentally tolerating
+ * some malformed input. A check that would alter a VALID parse does not belong here.
+ *
+ * Default `false` (fully strict). `parse`/`parseAll` set it per call from
+ * `options.optimizations.skipStrictValidation` and restore it in `finally`.
+ */
+let SKIP_STRICT_VALIDATION = false;
+
+/**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
  * `RangeError` on deeply nested input (an attack, not a use case) where
  * `JSON.parse` degrades to an iterative fallback. We turn it into a controlled
@@ -533,6 +552,18 @@ export interface ParseOptimizations {
    * `===`-equal and immutable). Default: `false`.
    */
   internStrings?: boolean;
+
+  /**
+   * Umbrella opt-out for strict-compliance validations that only REJECT malformed
+   * input (today: the space-then-tab block-collection indentation guards, spec
+   * 6.1; more may be added behind this one flag). Skipping them is ~4-8% faster on
+   * medium/large block-YAML (more on deep, many-entry input) and does less work.
+   * It NEVER changes how a valid document is interpreted — VALID input parses
+   * identically either way; only rejection of malformed input is relaxed, so a
+   * parse with this ON tolerates some spec-invalid YAML the default REJECTS.
+   * Default: `false` (spec-strict).
+   */
+  skipStrictValidation?: boolean;
 }
 
 /** Options for {@link parse} / {@link parseAll}. Every field is optional; an omitted or `undefined` value leaves the parse behaviour byte-for-byte the default. */
@@ -568,6 +599,7 @@ export interface ParseOptions {
 export function parse(text: string, options?: ParseOptions): unknown {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
+  SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
   try {
     const value = parseNextDocument();
     if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
@@ -581,6 +613,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     return value;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
+    SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
   }
 }
 
@@ -608,6 +641,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
 export function parseAll(text: string, options?: ParseOptions): unknown[] {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
+  SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
   try {
     const docs: unknown[] = [];
     for (;;) {
@@ -618,6 +652,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     return docs;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
+    SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
   }
 }
 
@@ -3493,6 +3528,9 @@ function parseBlockSeq(col: number): unknown[] {
     if (pos >= len) break;
     if (pos - lineStart !== col) break;
     if (!(src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1))) break;
+    // A continuation entry's indentation (cols 0..col-1) must be tab-free, the
+    // sequence analogue of the block-mapping continuation guard (`a:\n  - 1\n \t- 2`).
+    if (!SKIP_STRICT_VALIDATION) checkNoTabIndent(col - 1);
   }
   depth--;
   return arr;
@@ -3559,6 +3597,10 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
     if (nc < col) break; // dedent → mapping ends
     if (nc > col) fail("bad indentation in block mapping");
     if (src.charCodeAt(pos) === MINUS && isSpaceOrEolAt(pos + 1)) break; // sibling sequence, not our entry
+    // A continuation key is unconditionally part of this block mapping, so its
+    // full indentation (cols 0..col-1) must be tab-free — unlike a deferred
+    // FIRST node, there is no scalar-fold escape here (`foo:\n  a: 1\n \tb: 2`).
+    if (!SKIP_STRICT_VALIDATION) checkNoTabIndent(col - 1);
     if (src.charCodeAt(pos) === QUESTION && isSpaceOrEolAt(pos + 1)) {
       pos++; // past '?'
       key = internKey(keyToString(parseExplicitKey(col)));
@@ -3649,6 +3691,34 @@ function isPlainMapping(value: unknown): boolean {
 function checkNoTabIndent(parentCol: number): void {
   const limit = lineStart + parentCol + 1;
   for (let i = lineStart; i < limit && i < pos; i++) {
+    if (src.charCodeAt(i) === TAB) {
+      pos = i;
+      fail("a tab character cannot be used as indentation");
+    }
+  }
+}
+
+/**
+ * Reject a TAB anywhere in a deferred/root node's leading indentation
+ * (`[wsStart, contentPos)`) — but only when that indentation positions a BLOCK
+ * collection. `checkNoTabIndent` above catches only the mandatory
+ * `0..parentCol` prefix (unconditionally, spaces or a plain-scalar fold alike);
+ * a tab in the DEEPER columns that carry the child past its parent is illegal
+ * (spec 6.1) solely when the child is a block map/seq — the identical bytes are
+ * legitimate SEPARATION before a flow collection, quoted scalar, alias, or a
+ * plain scalar that simply folds (`foo:\n \tbar` → `{foo: "bar"}` stays legal,
+ * where `a:\n \tb: 1` / `a:\n \t- 1` / ` \ta: 1` must error — yaml-test-suite
+ * 4EJS family, matching the oracle). Because a bare flow collection VALUE and a
+ * flow-collection KEY both surface as the same JS array/object, the value type
+ * alone can't tell them apart, so this also gates on the node's FIRST character:
+ * a `[`/`{`/`"`/`'`/`*` start is left to fold as separation (the oracle accepts
+ * `a:\n \t[1,2]` and even `*ref`-to-a-collection), while `&`/`!` properties are
+ * NOT exempt (`a:\n \t&x b: 1` is a tab-indented block map and errors).
+ */
+function rejectBlockCollectionTabIndent(wsStart: number, contentPos: number, firstChar: number, value: unknown): void {
+  if (!isTabRestrictedCollection(value)) return;
+  if (firstChar === LBRACKET || firstChar === LBRACE || firstChar === DQUOTE || firstChar === SQUOTE || firstChar === STAR) return;
+  for (let i = wsStart; i < contentPos; i++) {
     if (src.charCodeAt(i) === TAB) {
       pos = i;
       fail("a tab character cannot be used as indentation");
@@ -3833,7 +3903,14 @@ function parseDeferredBlockNode(parentCol: number, mapValue: boolean): unknown {
   const nc = pos - lineStart;
   if (nc > parentCol) {
     if (parentCol >= 0) checkNoTabIndent(parentCol);
-    return parseBlockNode(parentCol, mapValue);
+    // Scan only the DEEPER columns for the collection guard: `checkNoTabIndent`
+    // already cleared cols 0..parentCol (a root node, parentCol < 0, has none).
+    const wsStart = parentCol >= 0 ? lineStart + parentCol + 1 : lineStart;
+    const contentPos = pos;
+    const firstChar = src.charCodeAt(pos);
+    const node = parseBlockNode(parentCol, mapValue);
+    if (!SKIP_STRICT_VALIDATION) rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
+    return node;
   }
   // A same-column block sequence is this node's (compact) value only under a
   // mapping key; after a sequence dash it is a SIBLING, so an empty entry here
@@ -3843,6 +3920,21 @@ function parseDeferredBlockNode(parentCol: number, mapValue: boolean): unknown {
     return parseBlockSeq(nc);
   }
   return null;
+}
+
+/**
+ * The document's root node (`parentCol` = -1). It never flows through
+ * `parseDeferredBlockNode`, so its leading indentation is unchecked — a tab that
+ * positions a root-level block collection (` \ta: 1`, `\t- 1`) would otherwise
+ * slip through. Apply the same value-gated tab guard here.
+ */
+function parseRootBlockNode(): unknown {
+  const wsStart = lineStart;
+  const contentPos = pos;
+  const firstChar = src.charCodeAt(pos);
+  const node = parseBlockNode(-1);
+  if (!SKIP_STRICT_VALIDATION) rejectBlockCollectionTabIndent(wsStart, contentPos, firstChar, node);
+  return node;
 }
 
 /**
@@ -4328,7 +4420,7 @@ function parseNextDocument(): unknown {
     // document; otherwise the node begins right where the marker left `pos`
     // (same line if there was inline content — collections forbidden there —
     // else the following content line, where they're perfectly ordinary).
-    value = pos >= len || isDocMarkerAt(pos) ? null : parseBlockNode(inline ? ROOT_AFTER_INLINE_MARKER : -1);
+    value = pos >= len || isDocMarkerAt(pos) ? null : inline ? parseBlockNode(ROOT_AFTER_INLINE_MARKER) : parseRootBlockNode();
   } else if (marker) {
     // A bare '...' at a document's start position (no preceding content): an
     // empty document. The shared end-marker handling below consumes it.
@@ -4339,7 +4431,7 @@ function parseNextDocument(): unknown {
     // document's content simply ended (e.g. a flow value's closing bracket)
     // and this is unmarked trailing content, not a new document.
     if (!bareDocAllowed) fail("expected a '---' before the next document (a bare document may only follow an explicit '...')");
-    value = parseBlockNode(-1);
+    value = parseRootBlockNode();
   }
 
   // A trailing explicit end marker belongs to the document just produced, not
