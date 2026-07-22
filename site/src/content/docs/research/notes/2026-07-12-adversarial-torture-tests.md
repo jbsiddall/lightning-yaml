@@ -41,11 +41,12 @@ pathological fuzz sweep:
   alias bomb (10 levels, ~387M logical nodes if expanded) parses in <1 ms because
   aliases resolve to the **same reference** (structural sharing, O(1) `Map.get`),
   building a small shared-reference DAG rather than materializing the expansion.
-- **One deliberate deviation from spec** (duplicate keys → last-wins), and **one
-  case where the `yaml` oracle — not us — diverges from spec** (implicit flow
-  collection keys). Both documented and locked below. (An earlier draft of this doc
-  mis-scored the flow-key case as *our* limitation; that was an artifact of treating
-  the `yaml` implementation as the definition of correct — see the correction below.)
+- **One deliberate deviation from spec** (duplicate keys → last-wins), documented and
+  locked below. (This repo also long recorded implicit flow *collection* keys as a
+  spec-vs-oracle divergence — first as *our* limitation, then as the *oracle's* error.
+  Both were wrong: SBG9/X38W/FRK4/NKF9 are **positive** suite cases, so collection and
+  empty flow keys are **spec-VALID** and lightning-yaml now accepts them — issue #16;
+  see §2's dated correction below.)
 
 ## Measured verdict per category
 
@@ -68,7 +69,7 @@ oracle diverges · ⚠️ deliberate deviation from spec · 🔒 newly locked by
 | 4.11 | node-property / seq-under-map indentation | per 1.2 | ✅ (covered) |
 | 4.12 | **block** complex key `? [a, b]` | `{"[ a, b ]": …}` | ✅ (covered) |
 | 4.12 | **explicit** flow collection key `{? [1,2]: v}` | `{"[ 1, 2 ]": …}` | ✅ 🔒 |
-| 4.12 | **implicit** flow collection key `{[1,2]: v}` | **controlled `YAMLParseError`** | ✅✱ 🔒 spec ERROR (suite SBG9/X38W) — we reject; the oracle wrongly accepts |
+| 4.12 | **implicit** flow collection key `{[1,2]: v}` | `{"[ 1, 2 ]": …}` | ✅ 🔒 spec-VALID (SBG9/X38W are positive) — accepted per issue #16 (corrected; see §2) |
 | 4.12 | empty / inverted keys `: v`, `? k` | per 1.2 | ✅ (covered) |
 | 4.13 | `%YAML`/`%TAG` per-document reset | re-declared per doc | ✅ (covered) |
 | 4.14 | tabs as indentation | rejected | ✅ (covered) |
@@ -99,7 +100,20 @@ security-relevant differential the brief flags (the CVE-2017-12635 class). It is
 strict rejection validate upstream. (A future opt-in strict mode could reject; the
 default stays JSON.parse-compatible.)
 
-### 2. Implicit flow collection key → error — spec-correct; the *oracle* diverges
+### 2. Implicit flow collection key — spec-VALID; we now accept it (corrected, issue #16)
+
+> **Correction (2026-07-15, issue #16).** The analysis in this subsection was **wrong**
+> and is kept only as history. yaml-test-suite **SBG9** and **X38W** are **positive**
+> cases (each carries a `test.event` + `out.yaml` and **no `error` file**), and
+> **FRK4**/**NKF9** treat empty flow keys as valid too — so an implicit flow *collection*
+> key (`{[1,2]: v}`, `{a: [b,c], [d,e]: f}`) and an empty flow key (`{ : v }`) are
+> **spec-VALID**, not errors. The `yaml` oracle was **right** to accept them; lightning-yaml
+> now accepts them as well, rendering a collection key to the same flow-style string the
+> explicit `? [a]` / block paths use. (SBG9/X38W carry no `in.json`, so they are
+> **unscorable** — accepting them changed no conformance number.) X38W's anchored/aliased
+> key additionally diverges from the oracle's *spelling* (our resolve-then-stringify
+> collapses its two aliased keys under last-wins) — a benign JS-key materialization
+> difference the spec does not adjudicate. The original (incorrect) text follows.
 
 Per the grammar, a collection used as a key in flow context must carry the explicit
 `?` indicator. So `{? [1,2]: v}` is valid (we accept it → `{"[ 1, 2 ]": "v"}`), but

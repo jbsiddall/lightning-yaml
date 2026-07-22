@@ -18,15 +18,16 @@
  * Two spec-corner behaviours are locked below, each with its rationale:
  *   - duplicate keys are last-wins (JSON.parse semantics) — our one DELIBERATE
  *     deviation from spec (the spec, and the `yaml` impl, treat duplicates as error);
- *   - an IMPLICIT non-scalar key in a *flow* mapping (`{[1,2]: v}`) is a controlled
- *     throw — which is SPEC-CORRECT (suite SBG9/X38W); the `yaml` impl is the one
- *     that diverges by accepting it. The explicit `{? [1,2]: v}` form IS accepted.
+ *   - empty (`{ : v }`) and collection (`{[1,2]: v}`) keys in a *flow* mapping are
+ *     ACCEPTED — both are spec-valid (POSITIVE suite cases SBG9/X38W/FRK4/NKF9); a
+ *     collection key is rendered to a flow-style string. (This REVERSES an earlier
+ *     build that wrongly rejected them as a "spec error"; see issue #16.)
  *
  * Run: node --import tsx --test test/adversarial.unit.ts
  */
 
 import { test } from "node:test";
-import { deepStrictEqual, throws, strictEqual, ok } from "node:assert";
+import { deepStrictEqual, notDeepStrictEqual, throws, strictEqual, ok } from "node:assert";
 import { parse, parseAll, stringify, YAMLParseError } from "../src/index.ts";
 import { oracleParse } from "../bench/oracle.ts";
 
@@ -187,15 +188,15 @@ test("merge: DarkForge four-parser payload does not crash (merge unimplemented)"
 });
 
 // --------------------------------------------------------------------------
-// §4.12 Complex (non-scalar) mapping keys — SPEC is the oracle here.
-// A collection used as a key needs the explicit `?` indicator, so the EXPLICIT
-// forms (block `? [a,b]`, flow `{? [1,2]: v}`) are valid and we accept them;
-// the IMPLICIT flow form `{[1,2]: v}` is a spec ERROR — yaml-test-suite SBG9
-// (`{a: [b,c], [d,e]: f}`) and X38W mark it so. We match the spec on both sides.
-// The `yaml` implementation diverges: it accepts the implicit form (which is why
-// it fails SBG9/X38W, 89/91 negatives, while we pass 91/91). So this is NOT our
-// limitation — treating that implementation as the oracle would wrongly flag our
-// correct rejection as a bug.
+// §4.12 Complex (non-scalar) and empty mapping keys — the SPEC-derived suite adjudicates.
+// A collection used as a key MAY take the explicit `?` indicator (block `? [a,b]`,
+// flow `{? [1,2]: v}`), but the IMPLICIT flow forms are valid too: yaml-test-suite
+// SBG9 (`{a: [b,c], [d,e]: f}`) and X38W are POSITIVE cases (test.event + out.yaml, no
+// `error` file), and FRK4/NKF9 confirm empty flow keys (`{ : v }`). lightning-yaml now
+// accepts all of them (issue #16), rendering a collection key to the same flow-style
+// string the explicit/block paths use; the `yaml` oracle accepts them too and is right.
+// (This REVERSES an earlier build that wrongly rejected the implicit/empty forms as a
+// "spec error" and mis-scored SBG9/X38W as negatives — they are unscorable positives.)
 // --------------------------------------------------------------------------
 
 test("complex keys: EXPLICIT `?` collection key (block + flow) is accepted per spec", () => {
@@ -219,14 +220,35 @@ test("complex keys: a zero-indented ('compact') block sequence is a valid explic
   }
 });
 
-test("complex keys: IMPLICIT flow collection key is a spec error — we reject it (impl diverges)", () => {
-  // yaml-test-suite SBG9 / X38W: a flow collection used as an implicit key is an error.
-  throwsBecause(() => parse("{[1, 2]: v}"), /mapping key/);
-  throwsBecause(() => parse("{{a: 1}: v}"), /mapping key/);
-  throwsBecause(() => parse("{a: [b, c], [d, e]: f}"), /mapping key/); // SBG9
-  // The `yaml` implementation diverges from spec by accepting it — pinned so the
-  // differential stays visible (one of the 2 suite negatives that implementation fails).
-  deepStrictEqual(oracleParse("{[1, 2]: v}"), { "[ 1, 2 ]": "v" });
+test("complex keys: IMPLICIT flow collection key is spec-valid — we accept it (issue #16; suite SBG9/X38W)", () => {
+  // REVERSAL (issue #16): an earlier build rejected these as a supposed spec error.
+  // SBG9/X38W are POSITIVE yaml-test-suite cases (test.event + out.yaml, no `error`
+  // file), so a flow collection used as an implicit key is VALID; the `yaml` oracle was
+  // right to accept it and lightning-yaml now does too, rendering the collection to a
+  // flow-style key string (identical to the explicit `? [a]` path).
+  deepStrictEqual(parse("{[1, 2]: v}"), { "[ 1, 2 ]": "v" });
+  deepStrictEqual(parse("{{a: 1}: v}"), { "{ a: 1 }": "v" });
+  deepStrictEqual(parse("{a: [b, c], [d, e]: f}"), { a: ["b", "c"], "[ d, e ]": "f" }); // SBG9
+  for (const s of ["{[1, 2]: v}", "{{a: 1}: v}", "{a: [b, c], [d, e]: f}"]) deepStrictEqual(parse(s), oracleParse(s));
+});
+
+test("complex keys: X38W anchored/aliased flow key parses past the #16 bug; exact outcome tracks duplicate-key policy (issue #16)", () => {
+  // X38W is a POSITIVE suite case, so it must NOT throw the #16 "expected a mapping key"
+  // error. Its two keys are the SAME node (`*a` aliases `&a`'s sequence), both rendering
+  // to the key string "[ a, b ]" — i.e. a DUPLICATE. The exact result therefore depends
+  // on our duplicate-key policy, so this test is written to hold under BOTH:
+  //   - today (last-wins): the two entries collapse to one; the spelling also diverges
+  //     from the oracle, which keeps anchors/aliases textual ("[ a, &b b ]" / "*a");
+  //   - after duplicate-key rejection lands (PR #21): the duplicate is a controlled throw.
+  const x38w = "{ &a [a, &b b]: *b, *a : [c, *b, d]}";
+  try {
+    const r = parse(x38w);
+    deepStrictEqual(r, { "[ a, b ]": ["c", "b", "d"] });
+    notDeepStrictEqual(r, oracleParse(x38w));
+  } catch (e) {
+    // The one thing that must NEVER happen is the #16 bug — rejecting the key FORM itself.
+    ok(e instanceof YAMLParseError && /duplicate mapping key/.test(e.message), `X38W must parse or throw duplicate-key, got: ${e instanceof Error ? e.message : String(e)}`);
+  }
 });
 
 // --------------------------------------------------------------------------

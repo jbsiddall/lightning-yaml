@@ -84,17 +84,10 @@ correctness**, benchmarks own *numbers*, code owns *behavior*, README/research o
 rate) › `src/` (real behavior & API) › README / the research notes (intent) › `site/`'s generated API reference
 (downstream; generated from `src/`, never ahead of it).**
 
-The reference implementations we test against — `yaml` (`bench/oracle.ts`) and
-js-yaml — are **differential aids, NOT the definition of correct.** A disagreement
-between our output and an implementation flags a *candidate* to investigate; the
-**spec adjudicates**. Where an implementation diverges from the spec, the spec wins,
-and lightning-yaml deliberately matches the spec against it — e.g. we reject an
-implicit flow collection key (`{[1,2]: v}`), a spec error (yaml-test-suite SBG9/X38W)
-that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof of
-correctness, and "differs from the oracle" is never on its own a bug: check the spec.
-Trust an implementation only where it agrees with the spec. The one sanctioned
-deviation *from* the spec is explicit and documented — duplicate-key last-wins, for
-`JSON.parse` parity (see `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`).
+The **YAML 1.2.2 spec is the North Star.** The `yaml` (`bench/oracle.ts`) and
+js-yaml libraries' outputs are a North Star only inside the compatibility layers
+that target them (`src/yaml-compat.ts`, `src/js-yaml-compat.ts`); everywhere else a
+disagreement with them is not itself a bug — the spec adjudicates.
 
 Code can still carry bugs — behavior that contradicts the spec (or a stated design
 goal) is a bug to fix, not intent to enshrine.

@@ -1263,6 +1263,26 @@ test("explicit block keys: complex keys — a sequence or mapping AS the key", (
   }
 });
 
+test("flow keys: empty and collection keys in flow mappings are spec-valid (issue #16; yaml-test-suite SBG9/FRK4/NKF9)", () => {
+  // An empty flow key — the `:` value indicator with nothing before it (NKF9 `{ : }`,
+  // FRK4 `{ : bar }`) — is the flow analogue of the block bare-`:` empty key above.
+  deepStrictEqual(parse("{ : v }"), { "": "v" });
+  deepStrictEqual(parse("{ : }"), { "": null });
+  deepStrictEqual(parse("{ key: value, : empty key }"), { key: "value", "": "empty key" }); // NKF9
+  deepStrictEqual(parse("{\n  ? foo :,\n  : bar,\n}"), { foo: null, "": "bar" }); // FRK4
+  // A `:` NOT followed by a separator stays a plain-scalar key (`:v`), never empty.
+  deepStrictEqual(parse("{:v}"), { ":v": null });
+  // A flow collection as an IMPLICIT key renders to the same flow-style string as the
+  // explicit `? [a]` form and the block collection-key path (SBG9 is a positive case).
+  deepStrictEqual(parse("{ [a]: b }"), { "[ a ]": "b" });
+  deepStrictEqual(parse("{[1, 2]: v}"), { "[ 1, 2 ]": "v" });
+  deepStrictEqual(parse("{{a: 1}: v}"), { "{ a: 1 }": "v" });
+  deepStrictEqual(parse("{a: [b, c], [d, e]: f}"), { a: ["b", "c"], "[ d, e ]": "f" }); // SBG9
+  for (const s of ["{ : v }", "{ : }", "{ key: value, : empty key }", "{\n  ? foo :,\n  : bar,\n}", "{:v}", "{ [a]: b }", "{[1, 2]: v}", "{{a: 1}: v}", "{a: [b, c], [d, e]: f}"]) {
+    deepStrictEqual(parse(s), oracleParse(s));
+  }
+});
+
 test("explicit block keys: a multi-line plain scalar folds into the key (yaml-test-suite JTV5)", () => {
   const s = "? a\n  true\n: null\n  d\n? e\n  42\n";
   deepStrictEqual(parse(s), { "a true": "null d", "e 42": null });
