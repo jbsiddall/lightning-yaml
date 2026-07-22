@@ -62,6 +62,23 @@ jobs:
       - name: Speed + memory (full competition matrix)
         if: ${{ !cancelled() }}
         run: pnpm bench:competition   # -> results/benchmarks/{speed,memory}.yaml (scope competition)
+
+      # Browser legs: same speed suite, run inside a real browser instead of
+      # Node (bench/browser/). This runner has no pre-fetched cache (that's a
+      # local-dev-only path — see bench/browser/engines.ts), so install both
+      # engines via playwright-core's own installer first; the harness then
+      # resolves them through playwright-core's standard PLAYWRIGHT_BROWSERS_PATH
+      # lookup (no executablePath override needed here, unlike the local cache path).
+      - name: Install Playwright browsers
+        if: ${{ !cancelled() }}
+        run: pnpm exec playwright-core install --with-deps chromium webkit
+      - name: Browser speed (chromium)
+        if: ${{ !cancelled() }}
+        run: pnpm bench:browser chromium   # -> results/benchmarks/browser-speed-chromium.yaml
+      - name: Browser speed (webkit)
+        if: ${{ !cancelled() }}
+        run: pnpm bench:browser webkit     # -> results/benchmarks/browser-speed-webkit.yaml
+
       - name: Conformance (yaml-test-suite)
         if: ${{ !cancelled() }}
         run: pnpm test:suite          # runs gen:suite itself -> results/benchmarks/conformance.yaml
@@ -82,15 +99,28 @@ jobs:
         run: |
           git config user.name  "lightning-yaml-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          for s in speed memory conformance bundle-size; do
-            src="../results/benchmarks/$s.yaml"
-            if [ ! -f "$src" ]; then echo "missing $src — skipping $s"; continue; fi
-            # bundle-size.yaml may not exist on the branch yet — seed a header on first run.
-            if [ ! -f "$s.yaml" ]; then
-              printf '# %s benchmark — append-only stream, one document per CI run.\n' "$s" > "$s.yaml"
+
+          append_doc() { # $1 = dest suite file (e.g. speed.yaml), $2 = source path, $3 = label for logging
+            local dest="$1" src="$2" label="$3"
+            if [ ! -f "$src" ]; then echo "missing $src — skipping $label"; return 0; fi
+            # dest may not exist on the branch yet — seed a header on first run.
+            if [ ! -f "$dest" ]; then
+              printf '# %s benchmark — append-only stream, one document per CI run.\n' "${dest%.yaml}" > "$dest"
             fi
-            { echo '---'; cat "$src"; } >> "$s.yaml"
+            { echo '---'; cat "$src"; } >> "$dest"
+          }
+
+          for s in speed memory conformance bundle-size; do
+            append_doc "$s.yaml" "../results/benchmarks/$s.yaml" "$s"
           done
+          # The browser legs are additional `suite: speed` documents (one per
+          # engine) — they append onto the SAME speed.yaml stream as the Node
+          # run, not a separate file, so the site's runtime picker
+          # (env.runtime, site/src/lib/queries.ts) can tell the runs apart.
+          for engine in chromium webkit; do
+            append_doc "speed.yaml" "../results/benchmarks/browser-speed-$engine.yaml" "browser-speed-$engine"
+          done
+
           git add -A
           # No-op guard: nothing changed (e.g. every source missing) → succeed quietly.
           git diff --cached --quiet && { echo "nothing to append"; exit 0; }
