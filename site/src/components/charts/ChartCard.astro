@@ -19,12 +19,18 @@ interface Props {
   note?: string;
   legend?: LegendItem[];
   svg: string;
+  /**
+   * Tags this card for the /benchmarks runtime picker (site/src/lib/benchmarks.ts
+   * RuntimeRun#family) — omit it (leave undefined) when only one runtime family
+   * exists in the data, so no `data-runtime` attribute renders at all.
+   */
+  runtimeFamily?: string;
 }
 
-const { heading, note, legend, svg } = Astro.props;
+const { heading, note, legend, svg, runtimeFamily } = Astro.props;
 ---
 
-<figure class="chart-card">
+<figure class="chart-card" data-runtime={runtimeFamily}>
   <figcaption class="chart-card__caption">
     <h3 class="chart-card__heading">{heading}</h3>
     {note && <p class="chart-card__note">{note}</p>}

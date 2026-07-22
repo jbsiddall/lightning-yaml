@@ -12,10 +12,13 @@ import Priorities from './Priorities.astro';
 import speedRaw from '../data/benchmarks/speed.yaml?raw';
 import conformanceRaw from '../data/benchmarks/conformance.yaml?raw';
 import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
-import { newestRun, bundleSizeItems, formatKB } from '../lib/benchmarks';
+import { newestRun, newestRunFor, CANONICAL_RUNTIME, bundleSizeItems, formatKB } from '../lib/benchmarks';
 import type { SpeedDoc, ConformanceDoc, BundleSizeDoc } from '../lib/benchmarks';
 
-const speed = newestRun<SpeedDoc>(speedRaw);
+// Speed carries a runtime dimension (env.runtime); the landing lead paragraph
+// always derives from the canonical environment (see CANONICAL_RUNTIME).
+// Conformance and bundle size have no runtime dimension yet.
+const speed = newestRunFor<SpeedDoc>(speedRaw, CANONICAL_RUNTIME);
 const conformance = newestRun<ConformanceDoc>(conformanceRaw);
 const bundle = newestRun<BundleSizeDoc>(bundleSizeRaw);
 

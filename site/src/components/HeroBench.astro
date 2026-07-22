@@ -16,6 +16,8 @@ import memoryRaw from '../data/benchmarks/memory.yaml?raw';
 import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
 import {
   newestRun,
+  newestRunFor,
+  CANONICAL_RUNTIME,
   pickWorkloads,
   bundleSizeItems,
   formatNs,
@@ -25,7 +27,10 @@ import {
 } from '../lib/benchmarks';
 import type { SpeedDoc, MemoryDoc, BundleSizeDoc, LibraryId, SpeedStat, MemoryStat } from '../lib/benchmarks';
 
-const speed = newestRun<SpeedDoc>(speedRaw);
+// Speed carries a runtime dimension (env.runtime); the hero always shows the
+// canonical environment (see CANONICAL_RUNTIME). Memory and bundle size have
+// no runtime dimension yet, so they stay on `newestRun`.
+const speed = newestRunFor<SpeedDoc>(speedRaw, CANONICAL_RUNTIME);
 const memory = newestRun<MemoryDoc>(memoryRaw);
 const bundle = newestRun<BundleSizeDoc>(bundleSizeRaw);
 

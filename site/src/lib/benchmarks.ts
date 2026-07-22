@@ -141,6 +141,55 @@ export function newestRun<T>(raw: string): T {
 }
 
 // ---------------------------------------------------------------------------
+// Runtime dimension — CI will publish `speed.yaml` runs from more than one
+// execution environment (node, chromium, webkit, bun), distinguished by each
+// document's `env.runtime` string (e.g. "node 24.18.0 (x64-linux)"). Only the
+// speed suite records `env.runtime` today; memory, conformance, and
+// bundle-size stay single-environment (see each doc's schema above), so
+// `newestRun` remains the right loader for those.
+// ---------------------------------------------------------------------------
+
+/** The runtime family from an `env.runtime` string, e.g. "node 24.18.0 (x64-linux)" -> "node". */
+export function runtimeFamily(runtime: string): string {
+  return runtime.trim().split(/\s+/)[0]?.toLowerCase() ?? '';
+}
+
+export interface RuntimeRun<T> {
+  family: string;
+  /** Full `env.runtime` string of this family's newest run — the picker's display label. */
+  runtime: string;
+  doc: T;
+}
+
+/** Every runtime family present in an append-only stream, each mapped to its own newest document. */
+export function availableRuntimes<T extends { env: { runtime: string } }>(raw: string): RuntimeRun<T>[] {
+  const byFamily = new Map<string, T>();
+  // Append order -> later assignments overwrite earlier ones, so each family ends up on its newest doc.
+  for (const doc of parseRuns<T>(raw)) byFamily.set(runtimeFamily(doc.env.runtime), doc);
+  return [...byFamily].map(([family, doc]) => ({ family, runtime: doc.env.runtime, doc }));
+}
+
+/** The newest document for one runtime family. Throws if the stream has no run from that family. */
+export function newestRunFor<T extends { env: { runtime: string } }>(raw: string, family: string): T {
+  const match = availableRuntimes<T>(raw).find((r) => r.family === family);
+  if (!match) throw new Error(`benchmark YAML stream has no "${family}" runtime run`);
+  return match.doc;
+}
+
+/** Narrow a run history to one runtime family, preserving chronological (append) order. */
+export function runsForFamily<T extends { env: { runtime: string } }>(runs: readonly T[], family: string): T[] {
+  return runs.filter((r) => runtimeFamily(r.env.runtime) === family);
+}
+
+/**
+ * Headline claims (the hero panel, the landing page's lead paragraph) always
+ * derive from this one environment, so they read as a single consistent
+ * number no matter how many environments CI ends up publishing. Every other
+ * environment is selectable context on /benchmarks, never the headline.
+ */
+export const CANONICAL_RUNTIME = 'node';
+
+// ---------------------------------------------------------------------------
 // Data-shaping helpers. These exist so the .mdx page — which compiles its
 // component script as plain JS/JSX, not TypeScript — can stay a thin
 // composition layer: pick workloads, shape them into chart input, done. All
@@ -1130,4 +1179,105 @@ export function lineChartSVG(opts: LineChartOptions): string {
     linesSvg +
     `</svg>`
   );
+}
+
+// ---------------------------------------------------------------------------
+// Runtime-dimension composition for /benchmarks — bundles every speed-derived
+// chart/table (Parse + Stringify; memory, conformance, and bundle-size have
+// no runtime dimension, see the loaders section above) for one runtime
+// family's newest document. Kept here, not in the .mdx script, per this
+// file's header: the .mdx page stays a thin composition layer, the typed
+// logic lives here.
+// ---------------------------------------------------------------------------
+
+export interface SpeedFamilySection {
+  family: string;
+  /** Full `env.runtime` string, for the picker label. */
+  runtime: string;
+  parseBarSvg: string;
+  parseBarLegend: LegendEntry[];
+  parseTrendSvg: string;
+  parseTrendLegend: LegendEntry[];
+  parseTable: string;
+  dumpBarSvg: string;
+  dumpBarLegend: LegendEntry[];
+  dumpTrendSvg: string;
+  dumpTrendLegend: LegendEntry[];
+  dumpTable: string;
+}
+
+/**
+ * `idSuffix` disambiguates chart element ids when multiple families render on
+ * the page at once (SVG ids must be page-unique); pass '' for the
+ * single-family case so ids stay byte-identical to the pre-runtime-dimension
+ * markup.
+ */
+export function speedFamilySection(
+  doc: SpeedDoc,
+  allRuns: readonly SpeedDoc[],
+  curated: readonly string[],
+  trendWorkload: string,
+  idSuffix: string,
+): SpeedFamilySection {
+  const runsThis = runsForFamily(allRuns, runtimeFamily(doc.env.runtime));
+  const ticks = xTicks(runDates(runsThis));
+
+  const parseWl = pickWorkloads(doc.operations.parse, curated);
+  const parseOrder = presentIn(LIBRARY_ORDER, parseWl);
+  const parseTrendOrder = presentIn(LIBRARY_ORDER, pickWorkloads(doc.operations.parse, [trendWorkload]));
+  const parseTrendSeries = speedTrend(runsThis, 'parse', trendWorkload, parseTrendOrder);
+
+  const dumpWl = pickWorkloads(doc.operations.stringify, curated);
+  const dumpOrder = presentIn(LIBRARY_ORDER, dumpWl);
+  const dumpTrendOrder = presentIn(LIBRARY_ORDER, pickWorkloads(doc.operations.stringify, [trendWorkload]));
+  const dumpTrendSeries = speedTrend(runsThis, 'stringify', trendWorkload, dumpTrendOrder);
+
+  return {
+    family: runtimeFamily(doc.env.runtime),
+    runtime: doc.env.runtime,
+    parseBarSvg: groupedBarSVG({
+      id: `bar-parse-speed${idSuffix}`,
+      title: 'Parse time by workload (relative to fastest, per row)',
+      series: seriesFor(doc.libraries, parseOrder),
+      groups: speedGroups(parseWl),
+      unit: 'ns',
+      lowerIsBetter: true,
+      labelStyle: 'ratio-to-best',
+    }),
+    parseBarLegend: legendFor(doc.libraries, parseOrder),
+    parseTrendSvg: lineChartSVG({
+      id: `trend-parse-speed${idSuffix}`,
+      title: `Parse time vs fastest over time — ${trendWorkload}`,
+      series: parseTrendSeries,
+      ticks,
+      n: runsThis.length,
+      yFormat: formatRatio,
+      higherIsBetter: false,
+      yScaleType: 'log',
+    }),
+    parseTrendLegend: trendLegend(parseTrendSeries),
+    parseTable: speedBreakdownHtml(doc.operations.parse, doc.libraries, presentIn(LIBRARY_ORDER, doc.operations.parse)),
+    dumpBarSvg: groupedBarSVG({
+      id: `bar-dump-speed${idSuffix}`,
+      title: 'Stringify time by workload (relative to fastest, per row)',
+      series: seriesFor(doc.libraries, dumpOrder),
+      groups: speedGroups(dumpWl),
+      unit: 'ns',
+      lowerIsBetter: true,
+      labelStyle: 'ratio-to-best',
+    }),
+    dumpBarLegend: legendFor(doc.libraries, dumpOrder),
+    dumpTrendSvg: lineChartSVG({
+      id: `trend-dump-speed${idSuffix}`,
+      title: `Stringify time vs fastest over time — ${trendWorkload}`,
+      series: dumpTrendSeries,
+      ticks,
+      n: runsThis.length,
+      yFormat: formatRatio,
+      higherIsBetter: false,
+      yScaleType: 'log',
+    }),
+    dumpTrendLegend: trendLegend(dumpTrendSeries),
+    dumpTable: speedBreakdownHtml(doc.operations.stringify, doc.libraries, presentIn(LIBRARY_ORDER, doc.operations.stringify)),
+  };
 }
