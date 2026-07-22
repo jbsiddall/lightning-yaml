@@ -4,7 +4,7 @@
  * yaml-compat.ts — a drop-in-ish replacement for the `yaml` v2 public API
  * (github.com/eemeli/yaml — also this repo's own correctness reference /
  * oracle, see bench/oracle.ts), backed by lightning-yaml's own parser
- * (./index.ts).
+ * (./core.ts).
  *
  * This module doc block is the MASTER SOURCE for `yaml` compatibility: it is
  * published verbatim to the website's API reference (site/astro.config.mjs
@@ -25,7 +25,7 @@
  * ## Goal
  *
  * Maximise drop-in compatibility **without ever compromising the two things
- * that outrank it: YAML-1.2-spec correctness and core (./index.ts) speed.**
+ * that outrank it: YAML-1.2-spec correctness and core (./core.ts) speed.**
  * Per-option cost is paid either in this shim (pre-/post-processing the
  * plain-JS value, as the reviver already does — proof a hook here costs the
  * core nothing) or behind a gated core seam that leaves the options-free fast
@@ -90,13 +90,13 @@
  *   - We don't wrap thrown errors in `yaml`'s own `YAMLParseError`/`YAMLWarning`
  *     classes (unlike js-yaml-compat.ts, which IS required to rethrow as its
  *     own `YAMLException` — see that file). Confusingly, our own error class
- *     (./index.ts) is ALSO named `YAMLParseError`, purely by coincidence — a
+ *     (./core.ts) is ALSO named `YAMLParseError`, purely by coincidence — a
  *     different class with a different prototype chain, so
  *     `e instanceof (real yaml's) YAMLParseError` will not match ours. Not
  *     chased further for this milestone.
  */
 
-import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify } from "./index.ts";
+import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify } from "./core.ts";
 
 // ---------------------------------------------------------------------------
 // parse — calibrated against the REAL `yaml` v2 library, not assumed.
@@ -138,7 +138,7 @@ function applyReviver(holder: Record<string, unknown>, key: string, reviver: Rev
  * `YAML.parse()` on a source with more than one document THROWS —
  * `"Source contains multiple documents; please use YAML.parseAllDocuments()"`
  * — it does not silently return the first document. Our own `parse()` (see
- * ./index.ts) also throws on a second document, so this divergence-prone case
+ * ./core.ts) also throws on a second document, so this divergence-prone case
  * is naturally aligned with no special-casing needed here.
  */
 export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unknown>, _opts?: Record<string, unknown>): unknown {
@@ -178,7 +178,7 @@ function makeDocument(contents: unknown, errors: Error[] = []): CompatDocument {
 /**
  * Real `yaml`'s `parseAllDocuments` never throws — a malformed document's
  * error is captured in THAT document's `.errors`, and documents before/after
- * it still parse independently. Our `parseAll` (./index.ts) is single-shot
+ * it still parse independently. Our `parseAll` (./core.ts) is single-shot
  * and throws on the FIRST error anywhere in the stream, so on failure we
  * can't recover whichever documents parsed fine before it. Best-effort
  * approximation: report ONE Document carrying the error. Partial fidelity —

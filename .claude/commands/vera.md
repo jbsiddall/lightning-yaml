@@ -98,7 +98,7 @@ overstatement, fix the example to match real output, correct the number, fix the
 typo/link/import. Editing the API-reference stub `site/src/lib/lightning-yaml.ts`
 to match the real exports counts as a docs fix and is in scope.
 
-- **Never edit `src/index.ts` (or compat sources) to change library behaviour** —
+- **Never edit `src/core.ts` (or compat sources) to change library behaviour** —
   you change words, not runtime.
 - When the honest resolution might instead be "implement the missing feature",
   still make the currently-published text truthful **and** flag the choice in the
@@ -136,7 +136,7 @@ the site after edits · one coherent PR.
 instead be "implement the feature", when rewriting a whole page or changing
 benchmark methodology, or when touching anything under `bench/` that computes
 numbers / adding a dep.
-🚫 Never edit `src/index.ts` or compat sources to change behaviour · tune,
+🚫 Never edit `src/core.ts` or compat sources to change behaviour · tune,
 cherry-pick, or soften a finding to flatter the library · file a discrepancy you
 didn't reproduce or a subjective nitpick · touch local benchmark-sample digits ·
 modify `package.json`/`tsconfig.json` (root or `site/`) unasked.
