@@ -34,7 +34,7 @@ reviewer approves the latest commit before you hand the PR back.
 | --- | --- | --- |
 | `code-review-consistency`    | Sonnet · max | `src/**`, `test/**`, `bench/**` |
 | `code-review-comments`       | Sonnet · max | any git-tracked source file (not gitignored), except `bench/yaml-test-suite/**` and `test/corpus/**` |
-| `code-review-complexity`     | **Opus** · max | `src/**`, `bench/**`, `test/**`, or any new file/script |
+| `code-review-complexity`     | Sonnet · max | `src/**`, `bench/**`, `test/**`, or any new file/script |
 | `code-review-spec`           | Sonnet · max | `src/**` |
 | `code-review-compat-yaml`    | Sonnet · max | `src/yaml-compat.ts`, `src/core.ts`, `src/index.ts` |
 | `code-review-compat-js-yaml` | Sonnet · max | `src/js-yaml-compat.ts`, `src/core.ts`, `src/index.ts` |
@@ -73,7 +73,7 @@ the panel wait on it. In one message:
   `TaskStop` any of THIS round's reviewers still running and harvest their partial review files
   (the append-as-you-go review log means a stopped reviewer still leaves its findings behind).
   Never touch a different round's reviewers — a later commit's reviewers carry a different
-  `HEAD_SHA` and their own timer. `complexity` (Opus) is the usual straggler.
+  `HEAD_SHA` and their own timer.
 - **Start the gate** (only if the diff touches `src/` or `bench/`) as parallel Bash calls,
   after generating fixtures/suite once so they don't race:
 
@@ -94,9 +94,9 @@ the panel wait on it. In one message:
 
 ## Step 3 — fix as reviews arrive, adjudicate, loop
 
-**Don't idle until the whole panel is back.** Reviewers finish at different times (`complexity`
-on Opus is the usual straggler), so the moment a reviewer's file lands with a finding that needs
-work, **dispatch a fix subagent for it** — don't wait for the others. A fix subagent is
+**Don't idle until the whole panel is back.** Reviewers finish at different times, so the moment
+a reviewer's file lands with a finding that needs work, **dispatch a fix subagent for it** —
+don't wait for the others. A fix subagent is
 **Sonnet 5**; escalate to **Opus** only for a *substantial* fix (a real code change or multi-file
 reasoning, not a one-line doc or comment tweak). Fix subagents WRITE to the tree, so honor
 CLAUDE.md's single-writer rule: run **one tree-writing fixer at a time** (queue a later reviewer's
