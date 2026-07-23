@@ -298,20 +298,24 @@ test("yaml-compat.stringify fails loud on the JSON.stringify-style indent shorth
   }
 });
 
-test("yaml-compat.stringify fails loud on a truthy negative indent shorthand real yaml clamps to default", () => {
-  // Real yaml's indent clamp rounds anything < 1 down to its own default (confirmed live against real
-  // yaml@2.9.0: `stringify(V, null, -3)` and `stringify(V, null, -0.5)` both equal the no-options output
-  // below) — so for real yaml a negative width is a silent no-op, not a throw. We don't replicate that
-  // clamp table (see the residual note in stringify's impl comment, src/yaml-compat.ts) — every truthy
-  // numeric indent shorthand fails loud here, clamped-to-default or not, in both the 2-arg and 3-arg forms.
+test("yaml-compat.stringify fails loud on a truthy sub-1 indent shorthand real yaml clamps to default", () => {
+  // Real yaml's indent clamp rounds anything to < 1 down to its own default (confirmed live against real
+  // yaml@2.9.0: `stringify(V, null, -3)`, `-0.5`, and `0.4` — Math.round(0.4) is 0 — all equal the
+  // no-options output below) — so for real yaml a sub-1 width (negative or fractional) is a silent no-op,
+  // not a throw. We don't replicate that clamp table (see the residual note in stringify's impl comment,
+  // src/yaml-compat.ts) — every truthy numeric indent shorthand fails loud here, clamped-to-default or not,
+  // in both the 2-arg and 3-arg forms.
   const nested = { a: { b: 1 } };
   strictEqual(yamlReal.stringify(nested, null, -3), yamlReal.stringify(nested));
   strictEqual(yamlReal.stringify(nested, null, -0.5), yamlReal.stringify(nested));
+  strictEqual(yamlReal.stringify(nested, null, 0.4), yamlReal.stringify(nested));
   for (const call of [
     () => stringify(nested, -3),
     () => stringify(nested, -0.5),
+    () => stringify(nested, 0.4),
     () => stringify(nested, null, -3),
     () => stringify(nested, null, -0.5),
+    () => stringify(nested, null, 0.4),
   ]) {
     throws(call, (err: unknown) => err instanceof Error && err.message.includes("indent"));
   }
@@ -331,7 +335,7 @@ test("yaml-compat.stringify rejects a non-object options arg (boolean/symbol), m
 
 test("yaml-compat.stringify tolerates a falsy 2nd-arg options slot (matches real yaml)", () => {
   // Real yaml promotes the 2nd arg to options only when TRUTHY (`options === undefined && replacer`), so a
-  // falsy 2nd arg (`false`/`0`/`""`/`NaN` — e.g. a conditional `cond && opts` with `cond` false) means "no
+  // falsy 2nd arg (`false`/`0`/`""`/`NaN` — e.g. a conditional `cond && replacer` with `cond` false) means "no
   // options" and yields DEFAULT output, not an error. Verified live against real yaml@2.9.0. Locks the
   // reachable `stringify(value, cond && replacer)` idiom (falsy `cond`).
   const def = stringify(DUMP_VALUE);

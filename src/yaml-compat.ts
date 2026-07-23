@@ -318,10 +318,10 @@ export function stringify(value: unknown, replacerOrOptions?: unknown, options?:
   // no-op (it's `typeof "object"`). validateOptions TOLERATES a scalar (right for parse/load/dump, which
   // ignore it), so stringify — the one entry point where a scalar is meaningful — rejects it here.
   // Residual vs real `yaml`: it treats any truthy number/string here as an indent width and rounds/clamps
-  // it (`< 1` → its default, `> 8` → 8), so it always produces output; we can't honour a custom indent, so
-  // we reject every such value (both the 2-arg `stringify(v, -3)` and 3-arg positions) — a deliberate,
-  // fail-loud-safe superset of real yaml's clamp table, and an instance of the README-documented "`indent`
-  // is unimplemented → throws" rule.
+  // it (`Math.round(n) < 1` → its default, `> 8` → 8), so it always produces output; we can't honour a
+  // custom indent, so we reject every such value (both the 2-arg `stringify(v, -3)` and 3-arg positions) —
+  // a deliberate, fail-loud-safe superset of real yaml's clamp table, documented in README's "Decisions
+  // and deviations" (the compat-options-throw bullet, which names this shorthand).
   if (optionsSlot != null && typeof optionsSlot !== "object") {
     failOption(
       typeof optionsSlot === "number" || typeof optionsSlot === "string"
