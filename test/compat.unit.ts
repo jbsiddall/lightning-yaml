@@ -298,6 +298,25 @@ test("yaml-compat.stringify fails loud on the JSON.stringify-style indent shorth
   }
 });
 
+test("yaml-compat.stringify fails loud on a truthy negative indent shorthand real yaml clamps to default", () => {
+  // Real yaml's indent clamp rounds anything < 1 down to its own default (confirmed live against real
+  // yaml@2.9.0: `stringify(V, null, -3)` and `stringify(V, null, -0.5)` both equal the no-options output
+  // below) — so for real yaml a negative width is a silent no-op, not a throw. We don't replicate that
+  // clamp table (see the residual note in stringify's impl comment, src/yaml-compat.ts) — every truthy
+  // numeric indent shorthand fails loud here, clamped-to-default or not, in both the 2-arg and 3-arg forms.
+  const nested = { a: { b: 1 } };
+  strictEqual(yamlReal.stringify(nested, null, -3), yamlReal.stringify(nested));
+  strictEqual(yamlReal.stringify(nested, null, -0.5), yamlReal.stringify(nested));
+  for (const call of [
+    () => stringify(nested, -3),
+    () => stringify(nested, -0.5),
+    () => stringify(nested, null, -3),
+    () => stringify(nested, null, -0.5),
+  ]) {
+    throws(call, (err: unknown) => err instanceof Error && err.message.includes("indent"));
+  }
+});
+
 test("yaml-compat.stringify rejects a non-object options arg (boolean/symbol), matching real yaml's throw", () => {
   // Real yaml@2.9.0 throws a TypeError (`'indent' in <primitive>`) on a TRUTHY non-object promoted into
   // the options slot, and on any non-object handed directly as the 3rd arg — so `stringify(V, true)` and
@@ -313,12 +332,12 @@ test("yaml-compat.stringify rejects a non-object options arg (boolean/symbol), m
 test("yaml-compat.stringify tolerates a falsy 2nd-arg options slot (matches real yaml)", () => {
   // Real yaml promotes the 2nd arg to options only when TRUTHY (`options === undefined && replacer`), so a
   // falsy 2nd arg (`false`/`0`/`""`/`NaN` — e.g. a conditional `cond && opts` with `cond` false) means "no
-  // options" and yields DEFAULT output, not an error. Verified live against real yaml@2.9.0. (This is the
-  // reachable idiom the round-5 broadening regressed on, so it's locked here.)
+  // options" and yields DEFAULT output, not an error. Verified live against real yaml@2.9.0. Locks the
+  // reachable `stringify(value, cond && replacer)` idiom (falsy `cond`).
   const def = stringify(DUMP_VALUE);
   for (const falsy of [false, 0, "", NaN] as unknown[]) {
-    strictEqual(stringify(DUMP_VALUE, falsy as never), def);
-    deepStrictEqual(yamlReal.parse(stringify(DUMP_VALUE, falsy as never)), DUMP_VALUE);
+    strictEqual(stringify(DUMP_VALUE, falsy), def);
+    deepStrictEqual(yamlReal.parse(stringify(DUMP_VALUE, falsy)), DUMP_VALUE);
   }
 });
 
@@ -425,11 +444,10 @@ test("js-yaml-compat.loadAll validates options passed as the 2nd argument", () =
 });
 
 test("js-yaml-compat.loadAll resolves its options overload 2nd-arg-wins (opposite of yaml parse/stringify)", () => {
-  // js-yaml is 2ND-ARG-WINS — an object 2nd arg IS the options bag and silently discards the 3rd — the
-  // OPPOSITE of yaml-compat.ts's parse/stringify (3rd-arg-wins). So an unsupported option in the 3rd slot
-  // is IGNORED when a valid object 2nd arg is present: `loadAll("a: 1", {json:true}, {maxDepth:1})` does
-  // NOT throw (the `maxDepth` never runs), matching real js-yaml@5.2.1. If someone "DRY"s loadAll to
-  // 3rd-arg-wins, `maxDepth:1` would win and throw, and this fails.
+  // loadAll's 2ND-ARG-WINS overload resolution (the opposite of yaml-compat.ts's 3rd-arg-wins) is spelled
+  // out in loadAll's own comment (src/js-yaml-compat.ts). What THIS test locks: a valid object 2nd arg
+  // silently discards an unsupported 3rd-arg option — `loadAll("a: 1", {json:true}, {maxDepth:1})` does
+  // NOT throw — so a "DRY" refactor toward 3rd-arg-wins would make `maxDepth:1` win and throw, failing here.
   deepStrictEqual(loadAll("a: 1", { json: true }, { maxDepth: 1 }), [{ a: 1 }]);
   deepStrictEqual(loadAll("a: 1", { json: true }, { maxDepth: 1 }), jsyamlReal.loadAll("a: 1", { json: true } as never, { maxDepth: 1 } as never));
 });

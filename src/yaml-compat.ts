@@ -220,8 +220,8 @@ export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unkn
   // options bag ONLY in the 2-arg form (no 3rd arg, `opts === undefined`) AND only when truthy — a falsy
   // 2nd arg means "no options", like omitted; a present 3rd arg wins, so a well-formed options object
   // there is never silently dropped. (Truthy-gating is behaviour-neutral for parse — validateOptions
-  // tolerates a scalar bag either way — but it mirrors real yaml and keeps this gate identical to
-  // stringify's below.)
+  // tolerates a scalar bag either way — but it mirrors real yaml and applies the same truthy-gate rule
+  // as stringify below.)
   const optionBag = opts === undefined && typeof reviverOrOpts !== "function" && reviverOrOpts ? reviverOrOpts : opts;
   validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
   const value = ourParse(src);
@@ -317,9 +317,11 @@ export function stringify(value: unknown, replacerOrOptions?: unknown, options?:
   // any other primitive (boolean/symbol/bigint) real `yaml` itself throws on. An array falls through as a
   // no-op (it's `typeof "object"`). validateOptions TOLERATES a scalar (right for parse/load/dump, which
   // ignore it), so stringify — the one entry point where a scalar is meaningful — rejects it here.
-  // Residual vs real `yaml`: a number/string handed DIRECTLY as the 3rd options arg that real clamps to
-  // the default (`0`, negative, `""`) is rejected here too — a deliberate, fail-loud-safe superset of
-  // real yaml's clamp, not a replica of its round-to-default table.
+  // Residual vs real `yaml`: it treats any truthy number/string here as an indent width and rounds/clamps
+  // it (`< 1` → its default, `> 8` → 8), so it always produces output; we can't honour a custom indent, so
+  // we reject every such value (both the 2-arg `stringify(v, -3)` and 3-arg positions) — a deliberate,
+  // fail-loud-safe superset of real yaml's clamp table, and an instance of the README-documented "`indent`
+  // is unimplemented → throws" rule.
   if (optionsSlot != null && typeof optionsSlot !== "object") {
     failOption(
       typeof optionsSlot === "number" || typeof optionsSlot === "string"
