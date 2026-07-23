@@ -14,13 +14,14 @@
  *
  * **API-level, not behaviour-complete.** The exports and call signatures match
  * the real `yaml` library, so `import { parse } from "yaml"` (or the default
- * import) can swap to this module and keep running. What is NOT yet honoured is
- * almost every **option argument**: `parse(text, { version, schema, mapAsMap,
- * intAsBigInt })` and `stringify(value, { sortMapEntries, indent, ... })` are
- * accepted so call sites type-check, but are currently **ignored** — only the
- * `parse` reviver function actually runs. The shim is genuinely useful for
- * migrating today, but a call that relies on an option (or walks `.contents`
- * as an AST — see the Document note below) will diverge from real `yaml`.
+ * import) can swap to this module and keep running. Options are honoured on a
+ * growing allowlist, and anything not yet honoured **throws** rather than
+ * silently diverging. Today only the `parse` reviver runs, plus `schema` /
+ * `version` accepted *as the 1.2-core defaults* (`"core"` / `"1.2"`) — e.g.
+ * `parse(text, { mapAsMap: true })` or `stringify(value, { indent: 4 })` throws
+ * until that option's sub-task lands. A relied-upon option fails loud instead
+ * of producing silently-wrong output (walking `.contents` as an AST — see the
+ * Document note below — remains a documented gap).
  *
  * ## Goal
  *
@@ -29,8 +30,9 @@
  * Per-option cost is paid either in this shim (pre-/post-processing the
  * plain-JS value, as the reviver already does — proof a hook here costs the
  * core nothing) or behind a gated core seam that leaves the options-free fast
- * path byte-identical. An option we can't yet honour should eventually FAIL
- * LOUD, not be silently ignored. We are not there yet — this file tracks it.
+ * path byte-identical. An option we can't yet honour **fails loud** (throws)
+ * rather than being silently ignored; each option sub-task moves its key onto
+ * the honoured allowlist.
  *
  * ## Option support matrix
  *
@@ -97,6 +99,59 @@
  */
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify } from "./core.ts";
+import { validateOptions, notYetSupported, type OptionRule } from "./compat-options.ts";
+
+// ---------------------------------------------------------------------------
+// Options-dispatch rules. Unsupported options throw a `YAMLCompatError` rather
+// than being silently ignored; each option sub-task flips a key's rule from
+// throwing to honoured. (The `yaml` library takes STRING `schema`/`version`
+// values, unlike js-yaml's Schema objects.)
+// ---------------------------------------------------------------------------
+
+/** Thrown when a `./yaml` compat option isn't honoured yet. */
+class YAMLCompatError extends Error {
+  override name = "YAMLCompatError";
+}
+
+const failOption = (message: string): never => {
+  throw new YAMLCompatError(`lightning-yaml yaml compat: ${message}`);
+};
+
+/** Only the default `core` schema is a no-op; others change scalar typing. */
+const schemaCoreOnly: OptionRule = (v) =>
+  v === "core"
+    ? null
+    : `"${String(v)}" changes scalar typing — only the default "core" schema is supported`;
+
+/** We target YAML 1.2 core; `1.1` (and other versions) change scalar typing. */
+const version12Only: OptionRule = (v) =>
+  v === "1.2"
+    ? null
+    : `"${String(v)}" is not supported — lightning-yaml targets YAML 1.2 core only`;
+
+const PARSE_OPTION_RULES: Record<string, OptionRule> = {
+  schema: schemaCoreOnly,
+  version: version12Only,
+  intAsBigInt: notYetSupported,
+  mapAsMap: notYetSupported,
+  maxAliasCount: notYetSupported,
+  uniqueKeys: notYetSupported,
+  customTags: notYetSupported,
+  merge: () => "is not supported — merge keys (`<<`) are outside YAML 1.2 core",
+};
+
+const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
+  schema: schemaCoreOnly,
+  version: version12Only,
+  indent: notYetSupported,
+  singleQuote: notYetSupported,
+  nullStr: notYetSupported,
+  trueStr: notYetSupported,
+  falseStr: notYetSupported,
+  indentSeq: notYetSupported,
+  sortMapEntries: notYetSupported,
+  customTags: notYetSupported,
+};
 
 // ---------------------------------------------------------------------------
 // parse — calibrated against the REAL `yaml` v2 library, not assumed.
@@ -141,8 +196,9 @@ function applyReviver(holder: Record<string, unknown>, key: string, reviver: Rev
  * ./core.ts) also throws on a second document, so this divergence-prone case
  * is naturally aligned with no special-casing needed here.
  */
-export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unknown>, _opts?: Record<string, unknown>): unknown {
+export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unknown>, opts?: Record<string, unknown>): unknown {
   const reviver = typeof reviverOrOpts === "function" ? (reviverOrOpts as Reviver) : undefined;
+  validateOptions(reviver ? opts : (typeof reviverOrOpts === "object" ? reviverOrOpts : undefined), PARSE_OPTION_RULES, failOption);
   const value = ourParse(src);
   if (!reviver) return value;
   const holder: Record<string, unknown> = { "": value };
@@ -184,7 +240,8 @@ function makeDocument(contents: unknown, errors: Error[] = []): CompatDocument {
  * approximation: report ONE Document carrying the error. Partial fidelity —
  * documented gap, not chased further this milestone.
  */
-export function parseAllDocuments(src: string, _opts?: Record<string, unknown>): CompatDocument[] {
+export function parseAllDocuments(src: string, opts?: Record<string, unknown>): CompatDocument[] {
+  validateOptions(opts, PARSE_OPTION_RULES, failOption);
   try {
     return ourParseAll(src).map((v) => makeDocument(v));
   } catch (err) {
@@ -200,7 +257,8 @@ export function parseAllDocuments(src: string, _opts?: Record<string, unknown>):
  * failure yields an empty-contents Document with the error captured — either
  * way `parseDocument` itself never throws, matching the real contract.
  */
-export function parseDocument(src: string, _opts?: Record<string, unknown>): CompatDocument {
+export function parseDocument(src: string, opts?: Record<string, unknown>): CompatDocument {
+  validateOptions(opts, PARSE_OPTION_RULES, failOption);
   try {
     return makeDocument(ourParse(src));
   } catch (err) {
@@ -218,7 +276,11 @@ export function parseDocument(src: string, _opts?: Record<string, unknown>): Com
 // stringify — delegates to our `stringify`.
 // ---------------------------------------------------------------------------
 
-export function stringify(value: unknown, _replacerOrOptions?: unknown, _options?: unknown): string {
+export function stringify(value: unknown, replacerOrOptions?: unknown, options?: unknown): string {
+  const hasReplacer = typeof replacerOrOptions === "function" || Array.isArray(replacerOrOptions);
+  const optionBag = (hasReplacer ? options : replacerOrOptions) as Record<string, unknown> | undefined;
+  validateOptions(optionBag, STRINGIFY_OPTION_RULES, failOption);
+  if (hasReplacer) failOption("a replacer is not supported yet — the ./yaml stringify replacer is tracked separately");
   return ourStringify(value);
 }
 

@@ -7,9 +7,9 @@
  *                        see below)
  *
  * Named `*.unit.ts` (not `*.test.ts`) so vitest's glob (test/**\/*.test.ts)
- * ignores it, matching test/parser.unit.ts's convention. It is NOT part of
- * `pnpm test:unit` either (that command targets only test/parser.unit.ts by
- * name) — run this file directly, as above.
+ * ignores it, matching test/parser.unit.ts's convention. It now runs as part of
+ * `pnpm test:unit` (alongside test/parser.unit.ts and test/adversarial.unit.ts),
+ * and can also be run directly as above.
  *
  * Scope: this file asserts things that SHOULD PASS TODAY — the shim's API
  * surface is wired correctly and the constructs our parser already handles
@@ -35,6 +35,8 @@ import jsYamlCompatDefault, {
   CORE_SCHEMA,
   JSON_SCHEMA,
   FAILSAFE_SCHEMA,
+  type LoadOptions,
+  type DumpOptions,
 } from "../src/js-yaml-compat.ts";
 import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify } from "../src/yaml-compat.ts";
 
@@ -184,4 +186,108 @@ test("yaml-compat.stringify emits YAML the real yaml reads back", () => {
   const text = stringify(DUMP_VALUE);
   strictEqual(typeof text, "string");
   deepStrictEqual(yamlReal.parse(text), DUMP_VALUE);
+});
+
+// --------------------------------------------------------------------------
+// Options: fail loud on anything not yet honoured (#91). The shims validate
+// their option bag and THROW rather than silently ignoring an option they
+// can't honour yet — so a relied-upon option surfaces at the call site instead
+// of producing silently-wrong output. Each future option sub-task moves its key
+// from this throw-list onto the honoured allowlist.
+// --------------------------------------------------------------------------
+
+test("js-yaml-compat.load/dump accept honoured no-op options", () => {
+  deepStrictEqual(load("a: 1\n", { filename: "x.yaml" }), { a: 1 });
+  deepStrictEqual(load("a: 1\n", { schema: CORE_SCHEMA }), { a: 1 });
+  deepStrictEqual(load("a: 1\n", { json: true }), { a: 1 });
+  // An explicit `undefined` value is treated as absent, like the real libraries.
+  deepStrictEqual(load("a: 1\n", { schema: undefined, maxDepth: undefined }), { a: 1 });
+  strictEqual(typeof dump(DUMP_VALUE, { schema: CORE_SCHEMA }), "string");
+});
+
+const LOAD_THROWS: ReadonlyArray<readonly [string, LoadOptions]> = [
+  ["json:false", { json: false }],
+  ["schema:JSON_SCHEMA", { schema: JSON_SCHEMA }],
+  ["schema:YAML11_SCHEMA", { schema: YAML11_SCHEMA }],
+  ["maxAliases", { maxAliases: 100 }],
+  ["maxDepth", { maxDepth: 10 }],
+  ["maxTotalMergeKeys", { maxTotalMergeKeys: 1 }],
+];
+for (const [label, opts] of LOAD_THROWS) {
+  test(`js-yaml-compat.load throws YAMLException · ${label}`, () => {
+    throws(() => load("a: 1\n", opts), (err: unknown) => err instanceof YAMLException);
+  });
+  test(`js-yaml-compat.loadAll throws YAMLException · ${label}`, () => {
+    throws(() => loadAll("a: 1\n", null, opts), (err: unknown) => err instanceof YAMLException);
+  });
+}
+
+test("js-yaml-compat.load throws on an unknown option key", () => {
+  throws(
+    () => load("a: 1\n", { nope: true } as unknown as LoadOptions),
+    (err: unknown) => err instanceof YAMLException,
+  );
+});
+
+test("js-yaml-compat.dump throws YAMLException on any real dump option", () => {
+  for (const opts of [{ indent: 4 }, { sortKeys: true }, { noRefs: true }, { skipInvalid: true }] as DumpOptions[]) {
+    throws(() => dump(DUMP_VALUE, opts), (err: unknown) => err instanceof YAMLException);
+  }
+});
+
+test("js-yaml-compat: unsupported-option error names the option", () => {
+  try {
+    load("a: 1\n", { json: false });
+    throw new Error("expected load() to throw");
+  } catch (err) {
+    ok(err instanceof YAMLException);
+    ok((err as YAMLException).message.includes("json"));
+  }
+});
+
+test("yaml-compat.parse/stringify accept honoured no-op options and the reviver", () => {
+  deepStrictEqual(parse("a: 1\n", { schema: "core" }), { a: 1 });
+  deepStrictEqual(parse("a: 1\n", { version: "1.2" }), { a: 1 });
+  // The positional reviver still runs (it's honoured, not an option-bag key).
+  deepStrictEqual(parse("a: 1\nb: 2\n", (k, v) => (k === "b" ? undefined : v)), { a: 1 });
+  strictEqual(typeof stringify(DUMP_VALUE, { schema: "core" }), "string");
+});
+
+const PARSE_THROWS: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
+  ["mapAsMap", { mapAsMap: true }],
+  ["intAsBigInt", { intAsBigInt: true }],
+  ["maxAliasCount", { maxAliasCount: 10 }],
+  ["merge", { merge: true }],
+  ["schema:json", { schema: "json" }],
+  ["version:1.1", { version: "1.1" }],
+  ["unknown key", { nope: 1 }],
+];
+for (const [label, opts] of PARSE_THROWS) {
+  test(`yaml-compat.parse throws · ${label}`, () => {
+    throws(() => parse("a: 1\n", opts));
+  });
+  test(`yaml-compat.parseAllDocuments throws · ${label}`, () => {
+    throws(() => parseAllDocuments("a: 1\n", opts));
+  });
+  test(`yaml-compat.parseDocument throws · ${label}`, () => {
+    throws(() => parseDocument("a: 1\n", opts));
+  });
+}
+
+test("yaml-compat.stringify throws on options and on a replacer", () => {
+  throws(() => stringify(DUMP_VALUE, { indent: 4 }));
+  throws(() => stringify(DUMP_VALUE, { singleQuote: true }));
+  // A JSON.stringify-style replacer (function or array) is not honoured yet.
+  throws(() => stringify(DUMP_VALUE, (_k: string, v: unknown) => v));
+  throws(() => stringify(DUMP_VALUE, ["name"]));
+});
+
+test("yaml-compat: unsupported-option error names the option", () => {
+  try {
+    parse("a: 1\n", { mapAsMap: true });
+    throw new Error("expected parse() to throw");
+  } catch (err) {
+    ok(err instanceof Error);
+    ok((err as Error).message.includes("mapAsMap"));
+  }
 });
