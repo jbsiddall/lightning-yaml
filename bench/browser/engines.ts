@@ -1,5 +1,5 @@
 /**
- * Browser-engine registry for the driver (run.ts): resolving a real
+ * Browser-engine registry for the drivers (run.ts, memoryRun.ts): resolving a real
  * executable for chromium (the pre-fetched cache may point at a file OR a
  * directory — see resolveChromiumExecutable) and launching either engine via
  * playwright-core, which is used purely as a launcher/CDP bridge here —

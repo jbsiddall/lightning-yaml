@@ -26,8 +26,6 @@ export interface BuildOptions {
   entryPoint?: string;
   /** Defaults to BUNDLE_PATH. Override so a caller building more than one bundle per process (one per library, see bench/browser/memory/) doesn't overwrite the previous one before it's served. */
   outFile?: string;
-  /** Extra esbuild `define` literals beyond `__FIXTURE_MANIFEST__` — e.g. the memory harness's `__MEM_ITERS__`. */
-  define?: Record<string, string>;
 }
 
 export async function buildBrowserBundle(opts: BuildOptions = {}): Promise<BuildResult> {
@@ -47,7 +45,7 @@ export async function buildBrowserBundle(opts: BuildOptions = {}): Promise<Build
     // entry.ts's `declare const __FIXTURE_MANIFEST__`), not a JSON file
     // import — that keeps entry.ts typecheckable without a generated file on
     // disk (bench/browser/generated/ is gitignored, only produced here).
-    define: { __FIXTURE_MANIFEST__: JSON.stringify(manifest), ...opts.define },
+    define: { __FIXTURE_MANIFEST__: JSON.stringify(manifest) },
     // mitata probes for a Bun/Node/optional-counters environment via dynamic
     // `import()`/`require()` of 'bun:jsc', 'node:v8', 'os', 'node:os', and the
     // optional '@mitata/counters' package — every call site is already

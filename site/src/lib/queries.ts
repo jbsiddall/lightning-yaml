@@ -342,15 +342,33 @@ export function heroMemoryRatio(
   workload: string,
   numerator: LibraryId,
 ): number | undefined {
-  const chromiumDoc = availableRuntimes(memoryRatiosRuns).find((r) => r.family === 'chromium')?.doc;
+  const chromiumDoc = chromiumRatiosRun(memoryRatiosRuns)?.doc;
   if (chromiumDoc) return memoryRatioValueIn(chromiumDoc, workload, numerator);
   return canonicalMemoryRatio(memoryRuns, 'parse', workload, numerator, 'lightning-yaml');
 }
 
+/** The single home of the "chromium is the headline browser for memory" rule (see `heroMemoryRatio`'s doc). */
+function chromiumRatiosRun(memoryRatiosRuns: readonly MemoryRatiosDoc[]) {
+  return availableRuntimes(memoryRatiosRuns).find((r) => r.family === 'chromium');
+}
+
 /** The runtime string driving the Hero memory tab's "Measured in" line — mirrors `heroMemoryRatio`'s own preference. */
 export function heroMemoryRuntime(memoryRuns: readonly MemoryDoc[], memoryRatiosRuns: readonly MemoryRatiosDoc[]): string {
-  const chromium = availableRuntimes(memoryRatiosRuns).find((r) => r.family === 'chromium');
+  const chromium = chromiumRatiosRun(memoryRatiosRuns);
   return chromium ? chromium.runtime : newestOf(memoryRuns).env.runtime;
+}
+
+/**
+ * The library catalog (labels + versions) from the SAME doc `heroMemoryRatio`
+ * headlines — a label sourced from a different stream than the number it
+ * labels can silently drift once the streams update independently (the exact
+ * bug the hero footer once had with js-yaml's version).
+ */
+export function heroMemoryLibraries(
+  memoryRuns: readonly MemoryDoc[],
+  memoryRatiosRuns: readonly MemoryRatiosDoc[],
+): MemoryDoc['libraries'] {
+  return chromiumRatiosRun(memoryRatiosRuns)?.doc.libraries ?? newestOf(memoryRuns).libraries;
 }
 
 // ---------------------------------------------------------------------------

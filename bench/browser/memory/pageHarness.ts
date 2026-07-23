@@ -14,8 +14,7 @@
 declare global {
   interface Window {
     __memParseAndRetain?: (url: string, category: string, iters: number) => Promise<number>;
-    __memDropRetained?: () => void;
-    __memRetainedCount?: () => number;
+    __memDropRetained?: () => number;
     __memReadHeap?: () => Promise<number>;
   }
 }
@@ -39,15 +38,14 @@ export function installMemoryHarness(parseFn: (text: string, category: string) =
     return arr.length;
   };
 
-  window.__memDropRetained = (): void => {
+  // Returns the count it dropped so the driver can assert the batch actually
+  // survived until the "after" reading — a silent page reload or renderer
+  // crash mid-batch would zero it (and invalidate the measurement with it).
+  window.__memDropRetained = (): number => {
+    const dropped = retained?.length ?? 0;
     retained = null;
+    return dropped;
   };
-
-  // Read back for a sanity assertion at the driver's discretion (not on the
-  // hot measurement path) — also what makes `retained`'s value genuinely
-  // "used" rather than write-only, since its whole purpose is keeping the
-  // array reachable, not reading it back inside this module.
-  window.__memRetainedCount = (): number => retained?.length ?? 0;
 
   // Chromium-only (performance.memory doesn't exist in webkit); the webkit
   // leg never calls this and measures via /proc instead (see proc.ts). Runs
