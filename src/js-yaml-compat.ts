@@ -13,13 +13,15 @@
  *
  * **API-level, not behaviour-complete.** Every export and call signature the
  * real `js-yaml` exposes exists here, so code that imports `load`/`loadAll`/
- * `dump` compiles and runs unchanged. What is NOT yet honoured is almost every
- * **option argument**: `load(text, { schema, json, maxAliases, maxDepth })`
- * and `dump(obj, { sortKeys, indent, noRefs, ... })` are accepted so call
- * sites type-check, but are currently **ignored** — only `filename` (threaded
- * into a thrown error's mark) and `loadAll`'s iterator actually do anything.
- * The shim is genuinely useful for migrating today, but a call that relies on
- * an option will silently behave differently from real js-yaml.
+ * `dump` compiles and runs unchanged. Options are honoured on a growing
+ * allowlist, and anything not yet honoured **throws a `YAMLException`** rather
+ * than silently diverging. Today only `filename` (threaded into a thrown
+ * error's mark), `loadAll`'s iterator, `json: true`, and `schema` *as the
+ * default `CORE_SCHEMA`* are accepted (plus any boolean flag left at the value
+ * we already produce, usually `false`) — e.g. `load(text, { json: false })` or
+ * `dump(obj, { sortKeys: true })` throws until that option's sub-task lands. A
+ * relied-upon option fails loud at the call site instead of producing
+ * silently-wrong output.
  *
  * ## Goal
  *
@@ -28,8 +30,9 @@
  * Per-option cost is therefore paid either in this shim (pre-/post-processing
  * the plain-JS value, the way the `yaml` shim's reviver already does) or behind
  * a gated core seam that leaves the options-free fast path byte-identical. An
- * option we can't yet honour should eventually FAIL LOUD, not be silently
- * ignored. We are not there yet — this file tracks the gap.
+ * option we can't yet honour **fails loud** (throws) rather than being silently
+ * ignored; each option sub-task moves its key from the throw-list to the
+ * honoured allowlist below.
  *
  * ## Option support matrix
  *
@@ -85,8 +88,8 @@
  *     re-throw our `NotImplementedError` unwrapped rather than mislabeling it a
  *     `YAMLException` — but that path is defensive: the current parser is
  *     complete and never throws it.
- *   - `dump` delegates to our `stringify` (implemented); options beyond the
- *     value itself are currently ignored.
+ *   - `dump` delegates to our `stringify` (implemented); dump options are not
+ *     honoured yet and throw (see the matrix).
  *   - Custom schemas/tags (`defineScalarTag`/`defineSequenceTag`/
  *     `defineMappingTag`, `Schema`, the `*_SCHEMA` constants, and the `schema`
  *     option) are cheap stubs: they exist so imports resolve and
@@ -111,6 +114,7 @@
  */
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
+import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 
 // ---------------------------------------------------------------------------
 // YAMLException — shaped like js-yaml's (name/reason/message + a cheap mark).
@@ -183,9 +187,10 @@ function toYAMLException(err: unknown, filename: string | undefined): YAMLExcept
 }
 
 // ---------------------------------------------------------------------------
-// Schema / tag-definition stubs — accepted-and-ignored. Our parser is fixed to
-// YAML 1.2 core (./core.ts); there is no schema composition to hook these
-// into yet.
+// Schema / tag-definition stubs — they exist so imports resolve, and our parser
+// is fixed to YAML 1.2 core (./core.ts), so tag composition is a no-op. Passing
+// one as the `schema` option is validated by load/dump: only the default
+// CORE_SCHEMA is a no-op, others throw (see the option rules below).
 //
 // v5 REWRITE (vs. v4, which this shim used to mirror): js-yaml dropped the
 // `Type` class and `Schema.extend()` entirely — custom tags are now defined
@@ -227,19 +232,20 @@ export class Schema {
   }
 }
 
-/** Stub so `import { FAILSAFE_SCHEMA }` still works. We always parse as YAML 1.2 core, so the schema you pass has no effect. */
+/** Stub so `import { FAILSAFE_SCHEMA }` still works. Our parser is fixed to YAML 1.2 core, so passing this as the `schema` option to `load`/`dump` throws (only the default `CORE_SCHEMA` is accepted). */
 export const FAILSAFE_SCHEMA: Schema = new Schema();
 /** Stub — see {@link FAILSAFE_SCHEMA}. */
 export const JSON_SCHEMA: Schema = new Schema();
 /** Stub — see {@link FAILSAFE_SCHEMA}. */
 export const CORE_SCHEMA: Schema = new Schema();
-/** Stub. Does NOT turn on YAML 1.1 typing — `yes`/`no`/`on`/`off` and sexagesimals stay plain values, because we always parse as YAML 1.2 core. See {@link FAILSAFE_SCHEMA}. */
+/** Stub. Does NOT turn on YAML 1.1 typing; passing it as the `schema` option throws, because we always parse as YAML 1.2 core. See {@link FAILSAFE_SCHEMA}. */
 export const YAML11_SCHEMA: Schema = new Schema();
 
 // ---------------------------------------------------------------------------
-// Options — accepted, best-effort. `filename` is honored (threaded into a
-// thrown YAMLException's mark); the rest exist so option bags type-check and
-// are otherwise ignored (schema/style knobs have no effect — see above).
+// Option bags — shaped to mirror js-yaml v5's real `LoadOptions`/`DumpOptions`
+// so call sites type-check. Honouring is opt-in (see the rule tables below):
+// `filename` is applied (threaded into a thrown YAMLException's mark) and each
+// option's genuine no-op default is accepted; anything else throws.
 //
 // v5 REWRITE: these mirror v5's real `LoadOptions`/`DumpOptions` shapes, not
 // v4's. v5 dropped `onWarning`/`listener` (load) and `styles`/`replacer`/
@@ -278,6 +284,59 @@ export interface DumpOptions {
 }
 
 // ---------------------------------------------------------------------------
+// Options-dispatch rules. Every key the real js-yaml accepts is listed; a rule
+// returns null when the value is a genuine no-op / honoured, or a reason phrase
+// when it must throw. `load`/`loadAll`/`dump` validate their bag against these
+// and throw a `YAMLException` on anything unsupported, so a relied-upon option
+// fails loud instead of silently diverging. A later option sub-task flips a
+// key's rule from throwing to honoured.
+// ---------------------------------------------------------------------------
+
+/** Only the default `CORE_SCHEMA` is a no-op; other schemas change scalar typing. */
+const schemaCoreOnly: OptionRule = (v) =>
+  v === CORE_SCHEMA
+    ? null
+    : "must be the default CORE schema — other schemas change scalar typing, which is not implemented yet";
+
+const failOption = (message: string): never => {
+  throw new YAMLException(`lightning-yaml js-yaml compat: ${message}`);
+};
+
+const LOAD_OPTION_RULES: Record<string, OptionRule> = {
+  filename: () => null, // honoured — threaded into a thrown YAMLException's mark
+  schema: schemaCoreOnly,
+  json: (v) =>
+    v === true
+      ? null // last-wins is already our default (= `json: true`)
+      : "= false (throw on duplicate keys) is not supported yet — lightning-yaml keeps last-wins for JSON.parse parity",
+  maxAliases: notYetSupported,
+  maxDepth: notYetSupported,
+  maxTotalMergeKeys: () => "is not supported — merge keys (`<<`) are outside YAML 1.2 core",
+};
+
+const DUMP_OPTION_RULES: Record<string, OptionRule> = {
+  schema: schemaCoreOnly,
+  sortKeys: activatesFeature("would sort map keys on output — not supported yet"),
+  // NOT activatesFeature: real js-yaml's `false` THROWS on unrepresentable values (functions/Symbols)
+  // where our stringify silently serializes them — so `false` isn't a no-op; every value must fail loud.
+  skipInvalid: notYetSupported,
+  noRefs: activatesFeature("would expand shared refs instead of using `&`/`*` — not supported yet"),
+  forceQuotes: activatesFeature("would always quote strings — not supported yet"),
+  seqNoIndent: activatesFeature("would stop indenting block sequences — not supported yet"),
+  seqInlineFirst: activatesFeature("would inline a sequence's first item — not supported yet"),
+  flowBracketPadding: activatesFeature("would pad flow-collection brackets — not supported yet"),
+  flowSkipCommaSpace: activatesFeature("would drop the space after flow commas — not supported yet"),
+  flowSkipColonSpace: activatesFeature("would drop the space after flow colons — not supported yet"),
+  quoteFlowKeys: activatesFeature("would quote flow-collection keys — not supported yet"),
+  tagBeforeAnchor: activatesFeature("would emit the tag before the anchor — not supported yet"),
+  indent: notYetSupported,
+  flowLevel: notYetSupported,
+  lineWidth: notYetSupported,
+  quoteStyle: notYetSupported,
+  transform: notYetSupported,
+};
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -294,6 +353,7 @@ export interface DumpOptions {
  * divergence (see bench/conformance/compat.ts).
  */
 export function load(input: string, opts?: LoadOptions): unknown {
+  validateOptions(opts, LOAD_OPTION_RULES, failOption);
   try {
     return ourParse(input);
   } catch (err) {
@@ -302,23 +362,34 @@ export function load(input: string, opts?: LoadOptions): unknown {
   }
 }
 
-export function loadAll(input: string, iterator?: ((doc: unknown) => void) | null, opts?: LoadOptions): unknown[] | undefined {
+export function loadAll(input: string, iteratorOrOpts?: ((doc: unknown) => void) | LoadOptions | null, opts?: LoadOptions): unknown[] | undefined {
+  const iterator = typeof iteratorOrOpts === "function" ? iteratorOrOpts : undefined;
+  // js-yaml resolves this look-alike overload 2ND-ARG-WINS — the OPPOSITE of yaml-compat.ts's
+  // parse/stringify (3rd-arg-wins): a non-null OBJECT 2nd arg IS the options bag and silently discards
+  // any 3rd arg (js-yaml source: `else if (… typeof iteratorOrOptions === "object") options = iteratorOrOptions;`;
+  // verified live — `loadAll("a: 1\na: 2", {json:true}, {json:false})` -> `[{a:2}]`, no throw, 3rd arg
+  // ignored). Otherwise (an iterator, `null`, or omitted 2nd arg) the options are the 3rd arg. This
+  // asymmetry is deliberate — each shim matches its own real library — so do NOT "DRY" it into a shared
+  // resolver with yaml-compat.ts; the two must stay opposite. (Locked by a regression test.)
+  const options = iteratorOrOpts != null && typeof iteratorOrOpts === "object" ? iteratorOrOpts : opts;
+  validateOptions(options, LOAD_OPTION_RULES, failOption);
   let docs: unknown[];
   try {
     docs = ourParseAll(input);
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
-    throw toYAMLException(err, opts?.filename);
+    throw toYAMLException(err, options?.filename);
   }
-  if (typeof iterator === "function") {
+  if (iterator) {
     for (const doc of docs) iterator(doc);
     return undefined;
   }
   return docs;
 }
 
-/** Delegates to our `stringify`. */
-export function dump(obj: unknown, _opts?: DumpOptions): string {
+/** Delegates to our `stringify`; dump options are validated and throw until honoured. */
+export function dump(obj: unknown, opts?: DumpOptions): string {
+  validateOptions(opts, DUMP_OPTION_RULES, failOption);
   return ourStringify(obj);
 }
 
