@@ -1790,3 +1790,19 @@ for (const ds of datasets.filter((d) => d.category === "yaml-plain")) {
     deepStrictEqual(parse(text, { optimizations: { internStrings: true } }), parse(text));
   });
 }
+
+// --------------------------------------------------------------------------
+// keyCache cap (#136): mostly-distinct mapping keys must still parse correctly
+// once the per-parse key-intern cache stops growing past MAX_KEY_CACHE. This
+// pins correctness only — the cap's memory behaviour mirrors the already-proven
+// sibling caches (valueCache/dumpKeyCache), so no multi-million-key test here.
+// --------------------------------------------------------------------------
+
+test("mostly-distinct mapping keys all parse to the right key/value pairs", () => {
+  const n = 500;
+  let doc = "";
+  for (let i = 0; i < n; i++) doc += `key-${i}: value-${i}\n`;
+  const result = parse(doc) as Record<string, string>;
+  strictEqual(Object.keys(result).length, n);
+  for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
+});

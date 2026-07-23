@@ -300,6 +300,15 @@ let nextNewline = -1;
 let keyCache: Map<string, string> = new Map();
 
 /**
+ * Entry cap for `keyCache`, mirroring `MAX_VALUE_CACHE` below: past this many
+ * distinct keys we stop inserting and return the fresh (uncached) string —
+ * still correct (a map's own keys are unique regardless of interning; only
+ * cross-record key-string sharing is lost past the cap) — so an all-distinct-keys
+ * document (UUID/hostname/timestamp lookup tables) can't grow this map unbounded.
+ */
+const MAX_KEY_CACHE = 1_000_000;
+
+/**
  * Per-parse VALUE-intern cache — the value-side analogue of `keyCache`. `null`
  * means the feature is OFF (the default), so `internValue` is a single null
  * check with no probe and no allocation and the parse path stays byte-for-byte
@@ -1883,7 +1892,7 @@ function parseTaggedFlowKeyRaw(tag: string, c: number): unknown {
 function internKey(s: string): string {
   const hit = keyCache.get(s);
   if (hit !== undefined) return hit;
-  keyCache.set(s, s);
+  if (keyCache.size < MAX_KEY_CACHE) keyCache.set(s, s);
   return s;
 }
 
@@ -4532,7 +4541,7 @@ let dumpRefCounts: Map<object, number> | null = null;
 let dumpAnchors: Map<object, string> | null = null;
 let dumpAnchorSeq = 0;
 let dumpDepth = 0;
-/** Per-call cache of a rendered `writeStringScalar(key) + ":"` prefix, keyed by the raw key string — real records repeat the same keys across every row (see `writeCollectionBody`), so a repeat collapses to one Map lookup instead of re-classifying and re-concatenating. Capped defensively (unlike the parser's own per-parse `keyCache`, which has no such cap) so a document of millions of distinct keys can't grow it unbounded; past the cap we just stop memoizing new keys and recompute them, still correct, just uncached. */
+/** Per-call cache of a rendered `writeStringScalar(key) + ":"` prefix, keyed by the raw key string — real records repeat the same keys across every row (see `writeCollectionBody`), so a repeat collapses to one Map lookup instead of re-classifying and re-concatenating. Capped defensively (mirroring the parser's own per-parse `keyCache`/`MAX_KEY_CACHE`) so a document of millions of distinct keys can't grow it unbounded; past the cap we just stop memoizing new keys and recompute them, still correct, just uncached. */
 let dumpKeyCache: Map<string, string> | null = null;
 const MAX_DUMP_KEY_CACHE = 10_000;
 
