@@ -45,11 +45,9 @@ export function validateOptions(
   fail: (message: string) => never,
 ): void {
   if (opts == null) return;
-  // A non-plain-object options argument — a bare scalar (number/string/boolean) or an array —
-  // carries no recognized option keys: real `yaml`/`js-yaml` spread it into `{}` and ignore it, so
-  // treat it as no options rather than enumerating a string's or array's indices. The one place a
-  // scalar IS meaningful — a bare number/string as `yaml.stringify`'s indent shorthand — is rejected
-  // at that call site (src/yaml-compat.ts), before this helper runs.
+  // Treat it as no options rather than enumerating a scalar's or array's indices as bogus keys. The
+  // one place a scalar IS meaningful — a number/string as `yaml.stringify`'s indent shorthand — is
+  // rejected at that call site (src/yaml-compat.ts), before this helper runs.
   if (typeof opts !== "object" || Array.isArray(opts)) return;
   const bag = opts as Record<string, unknown>;
   for (const key of Object.keys(bag)) {

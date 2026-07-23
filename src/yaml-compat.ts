@@ -216,10 +216,11 @@ function applyReviver(holder: Record<string, unknown>, key: string, reviver: Rev
  */
 export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unknown> | null, opts?: Record<string, unknown>): unknown {
   const reviver = typeof reviverOrOpts === "function" ? (reviverOrOpts as Reviver) : undefined;
-  // Disambiguate `yaml`'s overloads: a non-null, non-function 2nd arg IS the
-  // options bag; otherwise (a reviver, or omitted) the options are the 3rd arg —
-  // so the bag is validated whichever legal call shape the caller used.
-  const optionBag = reviverOrOpts != null && typeof reviverOrOpts !== "function" ? reviverOrOpts : opts;
+  // Disambiguate `yaml`'s overloads exactly as real `yaml` does (dist/public-api.js): the 2nd arg is
+  // the options bag ONLY in the 2-arg form (no 3rd arg, `opts === undefined`); a present 3rd arg wins,
+  // so a well-formed options object there is never silently dropped. Either way the bag is validated
+  // under whichever legal call shape the caller used.
+  const optionBag = opts === undefined && reviverOrOpts != null && typeof reviverOrOpts !== "function" ? reviverOrOpts : opts;
   validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
   const value = ourParse(src);
   if (!reviver) return value;
@@ -303,22 +304,22 @@ export function parseDocument(src: string, opts?: Record<string, unknown>): Comp
 
 export function stringify(value: unknown, replacerOrOptions?: unknown, options?: unknown): string {
   const hasReplacer = typeof replacerOrOptions === "function" || Array.isArray(replacerOrOptions);
-  // Disambiguate `yaml.stringify`'s overloads: a non-null, non-replacer 2nd arg IS the
-  // options bag (the 2-arg form); otherwise (a replacer, `null`, or omitted) the options
-  // are the 3rd arg — so options are validated under every legal call shape, including
-  // `stringify(value, null, options)`.
-  const optionsSlot = !hasReplacer && replacerOrOptions != null ? replacerOrOptions : options;
-  // A bare number/string in the options slot is `yaml.stringify`'s `JSON.stringify`-style indent
-  // shorthand: real `yaml` reads it as the indent WIDTH (a number) or indent UNIT (a string's
-  // length) in EITHER the 2-arg (`stringify(v, 4)`) or 3-arg (`stringify(v, null, 4)`) position, and
-  // emits accordingly — `stringify({a:{b:1}}, 4)` indents 4, not the default 2. We hardcode indent 2
-  // and can't honour a custom width, so we fail loud rather than silently emit indent-2 output. (The
-  // shared validateOptions now TOLERATES a scalar bag — see compat-options.ts — because
-  // parse/load/dump genuinely ignore it; only stringify treats it as meaningful, so the reject
-  // lives here, not there.)
-  if (typeof optionsSlot === "number" || typeof optionsSlot === "string") {
+  // Disambiguate the overloads exactly as real `yaml` does (dist/public-api.js): the 2nd arg is the
+  // options bag ONLY in the 2-arg form — i.e. when no 3rd arg is given (`options === undefined`). A
+  // present 3rd arg wins, so a well-formed options object there is never silently discarded
+  // (`stringify(v, replacer, options)`).
+  const optionsSlot = options === undefined && !hasReplacer && replacerOrOptions != null ? replacerOrOptions : options;
+  // Only an object (or array) is a real options bag. A bare number/string is `yaml.stringify`'s
+  // `JSON.stringify`-style indent shorthand, honoured as the indent WIDTH (number) / UNIT (string
+  // length) — e.g. `stringify({a:{b:1}}, 4)` indents 4, not our hardcoded 2 — which we can't honour;
+  // any other primitive (boolean/symbol/bigint) real `yaml` itself throws on. The shared
+  // validateOptions now TOLERATES a scalar (correct for parse/load/dump, which ignore it), so
+  // stringify — the sole entry point where a scalar is meaningful — must reject one here.
+  if (optionsSlot != null && typeof optionsSlot !== "object") {
     failOption(
-      "the JSON.stringify-style indent shorthand (stringify(value, replacer, indent)) is not supported yet — custom indent width is unimplemented",
+      typeof optionsSlot === "number" || typeof optionsSlot === "string"
+        ? "the JSON.stringify-style indent shorthand (stringify(value, replacer, indent)) is not supported yet — custom indent width is unimplemented"
+        : `stringify options must be an object; received a ${typeof optionsSlot}`,
     );
   }
   validateOptions(optionsSlot as Record<string, unknown> | undefined, STRINGIFY_OPTION_RULES, failOption);
