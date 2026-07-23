@@ -21,14 +21,24 @@ export interface BuildResult {
   bundleBytes: number;
 }
 
-export async function buildBrowserBundle(): Promise<BuildResult> {
+export interface BuildOptions {
+  /** Defaults to entry.ts (the speed harness). The memory-ratios harness (bench/browser/memory/) points this at its own, per-library entries. */
+  entryPoint?: string;
+  /** Defaults to BUNDLE_PATH. Override so a caller building more than one bundle per process (one per library, see bench/browser/memory/) doesn't overwrite the previous one before it's served. */
+  outFile?: string;
+  /** Extra esbuild `define` literals beyond `__FIXTURE_MANIFEST__` — e.g. the memory harness's `__MEM_ITERS__`. */
+  define?: Record<string, string>;
+}
+
+export async function buildBrowserBundle(opts: BuildOptions = {}): Promise<BuildResult> {
   mkdirSync(GENERATED, { recursive: true });
 
   const manifest = buildManifest();
+  const outfile = opts.outFile ?? BUNDLE_PATH;
 
   const result = await esbuild.build({
-    entryPoints: [join(HERE, "entry.ts")],
-    outfile: BUNDLE_PATH,
+    entryPoints: [opts.entryPoint ?? join(HERE, "entry.ts")],
+    outfile,
     bundle: true,
     platform: "browser",
     format: "esm",
@@ -37,14 +47,16 @@ export async function buildBrowserBundle(): Promise<BuildResult> {
     // entry.ts's `declare const __FIXTURE_MANIFEST__`), not a JSON file
     // import — that keeps entry.ts typecheckable without a generated file on
     // disk (bench/browser/generated/ is gitignored, only produced here).
-    define: { __FIXTURE_MANIFEST__: JSON.stringify(manifest) },
+    define: { __FIXTURE_MANIFEST__: JSON.stringify(manifest), ...opts.define },
     // mitata probes for a Bun/Node/optional-counters environment via dynamic
     // `import()`/`require()` of 'bun:jsc', 'node:v8', 'os', 'node:os', and the
     // optional '@mitata/counters' package — every call site is already
     // wrapped in a try/catch (or an `if (globalThis.Bun)` guard) upstream, so
     // it degrades gracefully at runtime once these fail to resolve; without
     // `external` esbuild tries to resolve them at BUILD time instead (none
-    // exist for a browser target) and the bundle fails outright.
+    // exist for a browser target) and the bundle fails outright. Harmless (a
+    // no-op external) for the memory harness's entries, which never import
+    // mitata at all.
     external: ["bun:jsc", "node:v8", "node:os", "os", "@mitata/counters"],
     // Not minified: this bundle is measured for parse/stringify *speed*, not
     // shipped to users — bundle-size honesty lives in bench/bundlesize
@@ -59,5 +71,5 @@ export async function buildBrowserBundle(): Promise<BuildResult> {
     throw new Error(`esbuild failed:\n${result.errors.map((e) => e.text).join("\n")}`);
   }
 
-  return { manifest, bundlePath: BUNDLE_PATH, bundleBytes: statSync(BUNDLE_PATH).size };
+  return { manifest, bundlePath: outfile, bundleBytes: statSync(outfile).size };
 }
