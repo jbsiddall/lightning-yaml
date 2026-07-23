@@ -34,6 +34,17 @@ makes it != HEAD, the signal to re-run and update the hash. See
       for review, re-run `/code-review` and update the hash until all reviewers approve
       the new HEAD.
 
+**Flagged but not fixed in this PR** (one line each, so a reviewer sees at a glance what
+we're letting through; `None` if empty):
+
+<!--
+Anything the /code-review panel raised that this PR deliberately does NOT fix:
+- a pre-existing problem (predates this diff) filed as its own issue — link it (#123);
+- a non-blocking reviewer suggestion we chose to defer — say why in a few words.
+-->
+
+- None
+
 ## Changeset
 
 - [ ] This PR touches `src/` and includes a changeset (`pnpm changeset`, or

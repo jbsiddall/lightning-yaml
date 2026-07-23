@@ -9,7 +9,8 @@ on what they find, and re-run them until they all sign off on the current commit
 
 Run this **when you judge the PR is ready for the user to review** — the panel catches what
 a careful reviewer would, so the user's own time goes to a change that's already been
-vetted, not to issues a reviewer subagent could have caught. **Re-run it every time the PR
+vetted, not to issues a reviewer subagent could have caught. The panel is expensive, so run
+it **once per PR at that ready point — not after every commit**. **Re-run it every time the PR
 is updated and again reaches that ready-for-review point**, looping (Step 3) until every
 reviewer approves the latest commit before you hand the PR back.
 
@@ -33,7 +34,7 @@ reviewer approves the latest commit before you hand the PR back.
 | --- | --- | --- |
 | `code-review-consistency`    | Sonnet · max | `src/**`, `test/**`, `bench/**` |
 | `code-review-comments`       | Sonnet · max | any git-tracked source file (not gitignored), except `bench/yaml-test-suite/**` and `test/corpus/**` |
-| `code-review-complexity`     | **Opus** · max | `src/**`, `bench/**`, `test/**`, or any new file/script |
+| `code-review-complexity`     | Sonnet · max | `src/**`, `bench/**`, `test/**`, or any new file/script |
 | `code-review-spec`           | Sonnet · max | `src/**` |
 | `code-review-compat-yaml`    | Sonnet · max | `src/yaml-compat.ts`, `src/core.ts`, `src/index.ts` |
 | `code-review-compat-js-yaml` | Sonnet · max | `src/js-yaml-compat.ts`, `src/core.ts`, `src/index.ts` |
@@ -72,7 +73,7 @@ the panel wait on it. In one message:
   `TaskStop` any of THIS round's reviewers still running and harvest their partial review files
   (the append-as-you-go review log means a stopped reviewer still leaves its findings behind).
   Never touch a different round's reviewers — a later commit's reviewers carry a different
-  `HEAD_SHA` and their own timer. `complexity` (Opus) is the usual straggler.
+  `HEAD_SHA` and their own timer.
 - **Start the gate** (only if the diff touches `src/` or `bench/`) as parallel Bash calls,
   after generating fixtures/suite once so they don't race:
 
@@ -91,7 +92,18 @@ the panel wait on it. In one message:
   reviewers from surfacing their own issues. If the diff touches neither `src/` nor `bench/`,
   skip the gate — the guardians fast-path to a neutral approval.
 
-## Step 3 — collect, adjudicate, loop
+## Step 3 — fix as reviews arrive, adjudicate, loop
+
+**Don't idle until the whole panel is back.** Reviewers finish at different times, so the moment
+a reviewer's file lands with a finding that needs work, **dispatch a fix subagent for it** —
+don't wait for the others. A fix subagent is
+**Sonnet 5**; escalate to **Opus** only for a *substantial* fix (a real code change or multi-file
+reasoning, not a one-line doc or comment tweak). Fix subagents WRITE to the tree, so honor
+CLAUDE.md's single-writer rule: run **one tree-writing fixer at a time** (queue a later reviewer's
+fixes behind the current one) or isolate concurrent fixers in their own `git worktree`s. Reviewers
+stay read-only off a committed hash, so they never race a fixer — but the gate runs in the shared
+tree too, so if it's still going when you start a fixer, let it finish first (or run the fixer in a
+worktree) so the fix can't corrupt the gate run.
 
 Read each `.scratch/code_review_<name>_<HEAD_SHA>.md` and take its verdict — the final
 `APPROVED` / `CHANGES REQUESTED` line. Two special cases: a reviewer with **no file** for the
@@ -123,11 +135,28 @@ contradicts a higher one is not blocking — mirrors CLAUDE.md's source-of-truth
   **stop and ask the user** (`AskUserQuestion`) whether to fix it or add it to README's
   Decisions section. Don't add a deviation to README yourself, and don't merge past it.
 
-Then: fix every remaining `CHANGES REQUESTED`; for each non-blocking suggestion under an
-`APPROVED`, apply it or record a one-line reason you didn't (never silently drop it). Push
-fixes (new HEAD), re-run only the reviewers whose Domain the new commits touched, and repeat
-until every reviewer's latest section is at the current `HEAD_SHA` and ends `APPROVED`. Don't
-edit a reviewer's file to change its findings.
+**How to handle each finding — decide before you fix:**
+
+- **Pre-existing, not introduced by this PR** — the same problem reproduces on `BASE` (it
+  predates your diff). Don't grow this PR's scope to fix it: **file a GitHub issue** (or fold it
+  into an existing one, linking that instead of opening a duplicate) and list it — one line, with
+  the issue link — under **Flagged but not fixed in this PR** in the PR description. The one
+  exception is an *unsanctioned guardian divergence*, which still follows the README-registry
+  escalation above (ask the user).
+- **A `spec` / `compat` finding** (`spec`, `compat-yaml`, `compat-js-yaml` — a divergence from the
+  YAML 1.2.2 spec or from the `yaml` / `js-yaml` drop-in): **write a failing test first.** Look
+  for an existing case that already covers it in the repo's own tests (`test/**` — a `*.unit.ts`
+  case, or the `test:compat` suite); if none, add one that reproduces the bug and **confirm it
+  FAILS**, then fix until it passes. A fix without a red-first test isn't proven, so don't skip
+  that step. (`performance`, `comments`, `complexity`, `consistency`, `newcomer` findings rarely
+  reduce to a unit test — skip the test step and just fix them.)
+
+Then: fix every remaining `CHANGES REQUESTED` (test-first where the rule above applies); for each
+non-blocking suggestion under an `APPROVED`, apply it or **list it under _Flagged but not fixed in
+this PR_** with a one-line reason you didn't (never silently drop it). Push fixes (new HEAD),
+re-run only the reviewers whose Domain the new commits touched, and repeat until every reviewer's
+latest section is at the current `HEAD_SHA` and ends `APPROVED`. Don't edit a reviewer's file to
+change its findings.
 
 ## Step 4 — record the sign-off
 
@@ -135,17 +164,30 @@ Tick the PR description's **Code review** checkbox and set the reviewed-commit h
 current `HEAD_SHA`. A later push makes it `!= HEAD` — the signal to re-run (when the PR is
 again ready for review) and update it.
 
+Then fill in the description's **Flagged but not fixed in this PR** list: one line each for
+everything the panel raised that this PR is deliberately *not* fixing — a pre-existing problem
+you filed as its own issue (link it) and any non-blocking suggestion you consciously deferred
+(with the one-line why). Leave it as `None` if there's nothing. This is the human reviewer's
+at-a-glance record of what we're knowingly letting through, so keep it honest and complete.
+
 ## Boundaries
 
 ✅ Run when the PR is review-ready · spawn all in-scope reviewers in parallel with tiny
 file-pointer prompts · run the gate concurrently (parallel calls; bench deferred to CI) and
-own its pass/fail · resolve champion conflicts by the precedence order · gate guardian
+own its pass/fail · start fixing the moment each reviewer returns (fix subagents on Sonnet 5,
+Opus for a substantial fix) rather than waiting for the whole panel · write a failing test
+before fixing any `spec`/`compat` finding · file a GitHub issue for a pre-existing problem
+instead of fixing it here · list every let-through item (filed issue or deferred suggestion) in
+the PR description · resolve champion conflicts by the precedence order · gate guardian
 divergences on README's Decisions section, escalating unsanctioned ones to the user · loop
 until every reviewer approves the current HEAD.
 🚫 Don't serialize the reviewers · don't review the change yourself in place of the panel ·
 don't let a reviewer mutate the tree (they're read-only — isolate in
 `.scratch/code-review-<name>-playground/` or defer
-to you) · don't soften a reviewer's prompt or edit its file to change a verdict · don't treat
+to you) · don't sit idle until the whole panel is back before starting fixes · don't fix a
+`spec`/`compat` finding without a red-first test · don't expand this PR's scope to fix a
+pre-existing problem (file it instead) · don't silently drop or silently defer a flagged
+finding · don't soften a reviewer's prompt or edit its file to change a verdict · don't treat
 CLAUDE.md/comments/notes as sanctioning a deviation (only README's Decisions section does) ·
 don't add a deviation to README without the user's decision · don't commit the
 `.scratch/code_review_*.md` files.

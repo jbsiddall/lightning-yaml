@@ -33,10 +33,9 @@ const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
 const confPct = (conformance.results.find((r) => r.self)?.score ?? 97.6).toFixed(1);
 
-// Headline parse ratios: the CANONICAL environment's own measured ratio (a
-// real browser engine once one publishes, falling back to Node) — ONE real
-// measurement, never blended across environments (see queries.ts's "Ratio
-// queries" section). The js-yaml/yaml head-to-heads come from block-YAML
+// Headline parse ratios: one real measurement in the canonical environment —
+// see queries.ts's "Ratio queries" section for why it's never blended across
+// environments. The js-yaml/yaml head-to-heads come from block-YAML
 // config — the shape most real-world YAML takes (2026-07-16 target-workload
 // note), not the JSON-text fixtures where our lead is larger. The JSON.parse
 // comparison necessarily uses the JSON-text fixture of the same size:
