@@ -4302,16 +4302,21 @@ function isYamlVersionToken(s: string): boolean {
 
 /**
  * `%YAML <version>` — validates the version. We stay YAML 1.2 core throughout
- * (doc 07 §0 scope) and don't yet branch on the declared version, but per the
- * design recipe we do not reject 1.1 (or, pragmatically, any well-formed
- * MAJOR.MINOR): the directive's *shape* is validated (yaml-test-suite
- * H7TQ/9MMA expect a malformed or absent version, or trailing garbage after
- * it, to error), not its specific value.
+ * (doc 07 §0 scope) and don't branch on the declared *minor* version, per the
+ * design recipe: a higher minor (e.g. `1.3`) is accepted, not rejected (the
+ * directive's *shape* is validated — yaml-test-suite H7TQ/9MMA expect a
+ * malformed or absent version, or trailing garbage after it, to error — not
+ * its specific minor value). A higher *major*, however, MUST be rejected per
+ * spec §6.8.1 ("should be rejected with an appropriate error message"); we
+ * only ever produce YAML 1.x documents, so any other major is unsupported.
  */
 function parseYamlDirectiveArgs(): void {
   skipInlineSpaces();
   const tok = readDirectiveToken();
   if (!isYamlVersionToken(tok)) fail("malformed %YAML directive: expected a MAJOR.MINOR version");
+  const dot = tok.indexOf(".");
+  const major = Number(tok.slice(0, dot));
+  if (major !== 1) fail(`unsupported YAML major version: ${major}`);
   skipInlineSpaces();
   const c = pos < len ? src.charCodeAt(pos) : -1;
   if (c !== -1 && c !== LF && c !== CR && c !== HASH) {
@@ -4323,7 +4328,9 @@ function parseYamlDirectiveArgs(): void {
  * `%TAG <handle> <prefix>` — stores the handle → prefix mapping in the
  * per-document `tagHandles` map (created lazily), for a later milestone to
  * resolve `!handle!suffix` tags against. Tags themselves are not implemented
- * yet; storing directives must not require them to be (design recipe).
+ * yet; storing directives must not require them to be (design recipe). Per
+ * spec §6.8.2 (Example 6.17), redefining the same handle within one document
+ * is an error, not last-wins — checked before the map is populated.
  */
 function parseTagDirectiveArgs(): void {
   skipInlineSpaces();
@@ -4334,7 +4341,8 @@ function parseTagDirectiveArgs(): void {
     fail("malformed %TAG directive: expected a handle and a prefix");
   }
   if (tagHandles === null) tagHandles = new Map();
-  tagHandles.set(handle, prefix); // last-wins on a redefined handle, like the oracle
+  else if (tagHandles.has(handle)) fail(`duplicate %TAG directive for handle "${handle}"`);
+  tagHandles.set(handle, prefix);
 }
 
 /**
