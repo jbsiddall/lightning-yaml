@@ -22,3 +22,10 @@ Options that are genuine no-ops today keep working unchanged — the `parse` rev
 lightning-yaml already produces (for example `mapAsMap: false` or `sortKeys: false`). Anything that
 would actually change the output — a different schema, a custom `indent`, `sortKeys: true` — throws
 until its support lands, so you find out at the call site instead of downstream.
+
+The shims also read the options *argument position* the way each real library does. `parse` and
+`stringify` now honour a real third-argument options object — `stringify(value, replacer, options)` —
+instead of silently dropping it, and `stringify` rejects an unsupported indent shorthand
+(`stringify(value, 2)`) rather than quietly ignoring it. A falsy conditional options argument still
+means "no options": `stringify(value, cond && opts)` with `cond` false emits default output, matching
+real `yaml`.

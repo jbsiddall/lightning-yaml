@@ -216,11 +216,13 @@ function applyReviver(holder: Record<string, unknown>, key: string, reviver: Rev
  */
 export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unknown> | null, opts?: Record<string, unknown>): unknown {
   const reviver = typeof reviverOrOpts === "function" ? (reviverOrOpts as Reviver) : undefined;
-  // Disambiguate `yaml`'s overloads exactly as real `yaml` does (dist/public-api.js): the 2nd arg is
-  // the options bag ONLY in the 2-arg form (no 3rd arg, `opts === undefined`); a present 3rd arg wins,
-  // so a well-formed options object there is never silently dropped. Either way the bag is validated
-  // under whichever legal call shape the caller used.
-  const optionBag = opts === undefined && reviverOrOpts != null && typeof reviverOrOpts !== "function" ? reviverOrOpts : opts;
+  // Disambiguate `yaml`'s overloads exactly as real `yaml` does (dist/public-api.js): the 2nd arg is the
+  // options bag ONLY in the 2-arg form (no 3rd arg, `opts === undefined`) AND only when truthy — a falsy
+  // 2nd arg means "no options", like omitted; a present 3rd arg wins, so a well-formed options object
+  // there is never silently dropped. (Truthy-gating is behaviour-neutral for parse — validateOptions
+  // tolerates a scalar bag either way — but it mirrors real yaml and keeps this gate identical to
+  // stringify's below.)
+  const optionBag = opts === undefined && typeof reviverOrOpts !== "function" && reviverOrOpts ? reviverOrOpts : opts;
   validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
   const value = ourParse(src);
   if (!reviver) return value;
@@ -304,17 +306,20 @@ export function parseDocument(src: string, opts?: Record<string, unknown>): Comp
 
 export function stringify(value: unknown, replacerOrOptions?: unknown, options?: unknown): string {
   const hasReplacer = typeof replacerOrOptions === "function" || Array.isArray(replacerOrOptions);
-  // Disambiguate the overloads exactly as real `yaml` does (dist/public-api.js): the 2nd arg is the
-  // options bag ONLY in the 2-arg form — i.e. when no 3rd arg is given (`options === undefined`). A
-  // present 3rd arg wins, so a well-formed options object there is never silently discarded
-  // (`stringify(v, replacer, options)`).
-  const optionsSlot = options === undefined && !hasReplacer && replacerOrOptions != null ? replacerOrOptions : options;
-  // Only an object (or array) is a real options bag. A bare number/string is `yaml.stringify`'s
-  // `JSON.stringify`-style indent shorthand, honoured as the indent WIDTH (number) / UNIT (string
-  // length) — e.g. `stringify({a:{b:1}}, 4)` indents 4, not our hardcoded 2 — which we can't honour;
-  // any other primitive (boolean/symbol/bigint) real `yaml` itself throws on. The shared
-  // validateOptions now TOLERATES a scalar (correct for parse/load/dump, which ignore it), so
-  // stringify — the sole entry point where a scalar is meaningful — must reject one here.
+  // Real `yaml` promotes the 2nd arg to options only in the 2-arg form (no 3rd arg) AND only when it's
+  // TRUTHY — a falsy 2nd arg (`false`/`0`/`""`, e.g. a conditional `cond && opts`) means "no options",
+  // like `null`/omitted. A present 3rd arg always wins. (Matches real yaml's `options === undefined && replacer`.)
+  const optionsSlot = options === undefined && !hasReplacer && replacerOrOptions ? replacerOrOptions : options;
+  // After the truthy gate above, a falsy 2nd arg already fell through as "no options", so a non-object
+  // reaching here is a truthy 2nd-arg shorthand or a scalar handed straight to the 3rd-arg slot. A
+  // number/string is `yaml.stringify`'s `JSON.stringify`-style indent shorthand (number = width, string
+  // = its length — e.g. `stringify({a:{b:1}}, 4)` indents 4, not our hardcoded 2), which we can't honour;
+  // any other primitive (boolean/symbol/bigint) real `yaml` itself throws on. An array falls through as a
+  // no-op (it's `typeof "object"`). validateOptions TOLERATES a scalar (right for parse/load/dump, which
+  // ignore it), so stringify — the one entry point where a scalar is meaningful — rejects it here.
+  // Residual vs real `yaml`: a number/string handed DIRECTLY as the 3rd options arg that real clamps to
+  // the default (`0`, negative, `""`) is rejected here too — a deliberate, fail-loud-safe superset of
+  // real yaml's clamp, not a replica of its round-to-default table.
   if (optionsSlot != null && typeof optionsSlot !== "object") {
     failOption(
       typeof optionsSlot === "number" || typeof optionsSlot === "string"

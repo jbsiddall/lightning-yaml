@@ -364,9 +364,13 @@ export function load(input: string, opts?: LoadOptions): unknown {
 
 export function loadAll(input: string, iteratorOrOpts?: ((doc: unknown) => void) | LoadOptions | null, opts?: LoadOptions): unknown[] | undefined {
   const iterator = typeof iteratorOrOpts === "function" ? iteratorOrOpts : undefined;
-  // js-yaml's own `loadAll(input, options)` overload: a non-null object 2nd arg
-  // IS the options bag; otherwise (an iterator, `null`, or omitted) the options
-  // are the 3rd arg — so they're validated whichever legal call shape is used.
+  // js-yaml resolves this look-alike overload 2ND-ARG-WINS — the OPPOSITE of yaml-compat.ts's
+  // parse/stringify (3rd-arg-wins): a non-null OBJECT 2nd arg IS the options bag and silently discards
+  // any 3rd arg (js-yaml source: `else if (… typeof iteratorOrOptions === "object") options = iteratorOrOptions;`;
+  // verified live — `loadAll("a: 1\na: 2", {json:true}, {json:false})` -> `[{a:2}]`, no throw, 3rd arg
+  // ignored). Otherwise (an iterator, `null`, or omitted 2nd arg) the options are the 3rd arg. This
+  // asymmetry is deliberate — each shim matches its own real library — so do NOT "DRY" it into a shared
+  // resolver with yaml-compat.ts; the two must stay opposite. (Locked by a regression test.)
   const options = iteratorOrOpts != null && typeof iteratorOrOpts === "object" ? iteratorOrOpts : opts;
   validateOptions(options, LOAD_OPTION_RULES, failOption);
   let docs: unknown[];

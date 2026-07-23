@@ -299,17 +299,27 @@ test("yaml-compat.stringify fails loud on the JSON.stringify-style indent shorth
 });
 
 test("yaml-compat.stringify rejects a non-object options arg (boolean/symbol), matching real yaml's throw", () => {
-  // Real yaml@2.9.0 throws a TypeError on a boolean/symbol/bigint options arg (`'indent' in <primitive>`)
-  // in the 2-arg-truthy or 3-arg position — so `stringify(V, true)` / `stringify(V, null, true|false)`
-  // all throw there. The shared validateOptions now tolerates a scalar (right for parse/load/dump), so
-  // stringify rejects one at its own call site.
+  // Real yaml@2.9.0 throws a TypeError (`'indent' in <primitive>`) on a TRUTHY non-object promoted into
+  // the options slot, and on any non-object handed directly as the 3rd arg — so `stringify(V, true)` and
+  // `stringify(V, null, true|false|Symbol())` all throw. validateOptions tolerates a scalar (right for
+  // parse/load/dump), so stringify rejects one at its own call site. A FALSY 2nd arg is NOT promoted —
+  // it's tolerated as "no options" (see the falsy-tolerance test below).
   throws(() => stringify(DUMP_VALUE, true));
   throws(() => stringify(DUMP_VALUE, null, true));
   throws(() => stringify(DUMP_VALUE, null, false));
   throws(() => stringify(DUMP_VALUE, null, Symbol()));
-  // `stringify(V, false)` (2-arg, falsy) is the one shape real yaml tolerates (its falsy-replacer quirk
-  // → default output); we deliberately throw on it too — stricter, fail-loud-safe, never silently wrong.
-  throws(() => stringify(DUMP_VALUE, false));
+});
+
+test("yaml-compat.stringify tolerates a falsy 2nd-arg options slot (matches real yaml)", () => {
+  // Real yaml promotes the 2nd arg to options only when TRUTHY (`options === undefined && replacer`), so a
+  // falsy 2nd arg (`false`/`0`/`""`/`NaN` — e.g. a conditional `cond && opts` with `cond` false) means "no
+  // options" and yields DEFAULT output, not an error. Verified live against real yaml@2.9.0. (This is the
+  // reachable idiom the round-5 broadening regressed on, so it's locked here.)
+  const def = stringify(DUMP_VALUE);
+  for (const falsy of [false, 0, "", NaN] as unknown[]) {
+    strictEqual(stringify(DUMP_VALUE, falsy as never), def);
+    deepStrictEqual(yamlReal.parse(stringify(DUMP_VALUE, falsy as never)), DUMP_VALUE);
+  }
 });
 
 test("yaml-compat.stringify tolerates an array in the 3rd-arg options slot (matches real yaml)", () => {
@@ -331,9 +341,12 @@ test("yaml-compat.stringify tolerates an array in the 3rd-arg options slot (matc
 test("yaml-compat.parse tolerates a scalar/array options arg (matches real yaml)", () => {
   deepStrictEqual(parse("a: 1\n", 4 as unknown as Record<string, unknown>), yamlReal.parse("a: 1\n", 4 as never));
   deepStrictEqual(parse("a: 1\n", [1, 2, 3] as unknown as Record<string, unknown>), yamlReal.parse("a: 1\n", [1, 2, 3] as never));
+  // A falsy 2nd arg is "no options" too — the same truthy gate as stringify (behaviour-neutral for parse).
+  deepStrictEqual(parse("a: 1\n", false as unknown as Record<string, unknown>), yamlReal.parse("a: 1\n", false as never));
+  deepStrictEqual(parse("a: 1\n", 0 as unknown as Record<string, unknown>), yamlReal.parse("a: 1\n", 0 as never));
 });
 
-test("js-yaml-compat load/loadAll/dump tolerate a scalar/array options arg (matches real js-yaml)", () => {
+test("js-yaml-compat.load/loadAll/dump tolerate a scalar/array options arg (matches real js-yaml)", () => {
   deepStrictEqual(load("a: 1\n", 4 as unknown as LoadOptions), jsyamlReal.load("a: 1\n", 4 as never));
   deepStrictEqual(load("a: 1\n", [1] as unknown as LoadOptions), jsyamlReal.load("a: 1\n", [1] as never));
   // loadAll's 2-arg scalar form (scalar in the iterator slot) and its 3-arg options slot both tolerate it.
@@ -391,7 +404,7 @@ test("yaml-compat.stringify validates options in every call shape", () => {
   throws(() => stringify(DUMP_VALUE, { indent: 4 }));
 });
 
-test("yaml-compat parse/stringify: a present 3rd-arg options bag wins over a no-op 2nd arg", () => {
+test("yaml-compat.parse/stringify a present 3rd-arg options bag wins over a no-op 2nd arg", () => {
   // Real yaml adopts the 2nd arg as options only in the 2-arg form; a present 3rd arg wins (confirmed:
   // real `stringify(V, {indent:4}, {indent:2})` emits indent 2, and `parse("99", {intAsBigInt:true}, {})`
   // yields a Number, not a BigInt). So a no-op 2nd arg must NOT mask an unsupported 3rd-arg option —
@@ -409,6 +422,16 @@ test("js-yaml-compat.loadAll validates options passed as the 2nd argument", () =
   const seen: unknown[] = [];
   loadAll("---\na: 1\n---\nb: 2\n", (d) => seen.push(d));
   deepStrictEqual(seen, [{ a: 1 }, { b: 2 }]);
+});
+
+test("js-yaml-compat.loadAll resolves its options overload 2nd-arg-wins (opposite of yaml parse/stringify)", () => {
+  // js-yaml is 2ND-ARG-WINS — an object 2nd arg IS the options bag and silently discards the 3rd — the
+  // OPPOSITE of yaml-compat.ts's parse/stringify (3rd-arg-wins). So an unsupported option in the 3rd slot
+  // is IGNORED when a valid object 2nd arg is present: `loadAll("a: 1", {json:true}, {maxDepth:1})` does
+  // NOT throw (the `maxDepth` never runs), matching real js-yaml@5.2.1. If someone "DRY"s loadAll to
+  // 3rd-arg-wins, `maxDepth:1` would win and throw, and this fails.
+  deepStrictEqual(loadAll("a: 1", { json: true }, { maxDepth: 1 }), [{ a: 1 }]);
+  deepStrictEqual(loadAll("a: 1", { json: true }, { maxDepth: 1 }), jsyamlReal.loadAll("a: 1", { json: true } as never, { maxDepth: 1 } as never));
 });
 
 // --------------------------------------------------------------------------
