@@ -21,6 +21,15 @@ export type OptionRule = (value: unknown) => string | null;
 export const notYetSupported: OptionRule = () => "is not supported yet";
 
 /**
+ * Rule for a boolean option whose truthy value turns on a feature the shim
+ * can't honour yet — its falsy default (`false`/absent) is a genuine no-op, so
+ * only a truthy value is rejected (with `clause`, read after `option "<key>"`).
+ * This keeps `{ mapAsMap: false }` (the default) working while `{ mapAsMap: true }`
+ * fails loud.
+ */
+export const activatesFeature = (clause: string): OptionRule => (v) => (v ? clause : null);
+
+/**
  * Validate an option bag against `rules`, calling `fail` (which must throw) on
  * the first unsupported key or value. A key explicitly set to `undefined` is
  * treated as absent, matching how the real libraries ignore an omitted option.

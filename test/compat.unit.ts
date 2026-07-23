@@ -291,3 +291,63 @@ test("yaml-compat: unsupported-option error names the option", () => {
     ok((err as Error).message.includes("mapAsMap"));
   }
 });
+
+// --------------------------------------------------------------------------
+// Options: overload / arg-shape coverage. The option bag must be validated
+// whichever legal positional shape the caller uses — an options bag passed in a
+// middle/omitted slot slipping past validation would silently reintroduce the
+// exact divergence this feature exists to prevent.
+// --------------------------------------------------------------------------
+
+test("yaml-compat.parse validates options in every call shape", () => {
+  // reviver omitted as undefined/null, options in the 3rd slot
+  throws(() => parse("a: 1\n", undefined, { mapAsMap: true }));
+  throws(() => parse("a: 1\n", null, { mapAsMap: true }));
+  // options as the 2nd arg (no reviver)
+  throws(() => parse("a: 1\n", { mapAsMap: true }));
+  // an honoured no-op still passes in the 3rd slot
+  deepStrictEqual(parse("a: 1\n", undefined, { version: "1.2" }), { a: 1 });
+});
+
+test("yaml-compat.stringify validates options in every call shape", () => {
+  // replacer omitted as null/undefined, options in the 3rd slot
+  throws(() => stringify(DUMP_VALUE, null, { indent: 4 }));
+  throws(() => stringify(DUMP_VALUE, undefined, { sortMapEntries: true }));
+  // options as the 2nd arg
+  throws(() => stringify(DUMP_VALUE, { indent: 4 }));
+});
+
+test("js-yaml-compat.loadAll validates options passed as the 2nd argument", () => {
+  // js-yaml's own loadAll(input, options) overload — no iterator
+  throws(() => loadAll("a: 1\n", { maxDepth: 5 }), (err: unknown) => err instanceof YAMLException);
+  // iterator + options (3rd slot) still validates
+  throws(() => loadAll("a: 1\n", () => {}, { maxDepth: 5 }), (err: unknown) => err instanceof YAMLException);
+  // the plain iterator form still works
+  const seen: unknown[] = [];
+  loadAll("---\na: 1\n---\nb: 2\n", (d) => seen.push(d));
+  deepStrictEqual(seen, [{ a: 1 }, { b: 2 }]);
+});
+
+// --------------------------------------------------------------------------
+// Options: an option's genuine no-op default value is accepted ("accept only
+// true no-op values"), while the feature-activating value throws.
+// --------------------------------------------------------------------------
+
+test("yaml-compat accepts no-op default option values, rejects the active value", () => {
+  // prettyErrors is a no-op — our errors already carry line/column
+  deepStrictEqual(parse("a: 1\n", { prettyErrors: true }), { a: 1 });
+  // the falsy default of each boolean feature-flag is a genuine no-op
+  for (const opts of [{ mapAsMap: false }, { intAsBigInt: false }, { merge: false }, { uniqueKeys: false }] as Record<string, unknown>[]) {
+    deepStrictEqual(parse("a: 1\n", opts), { a: 1 });
+  }
+  strictEqual(typeof stringify(DUMP_VALUE, { sortMapEntries: false }), "string");
+  // ...but turning the feature on throws
+  throws(() => parse("a: 1\n", { mapAsMap: true }));
+  throws(() => parse("a: 1\n", { merge: true }));
+});
+
+test("js-yaml-compat.dump accepts a boolean option's no-op default, rejects the active value", () => {
+  strictEqual(typeof dump(DUMP_VALUE, { sortKeys: false }), "string");
+  strictEqual(typeof dump(DUMP_VALUE, { skipInvalid: false, noRefs: false }), "string");
+  throws(() => dump(DUMP_VALUE, { sortKeys: true }), (err: unknown) => err instanceof YAMLException);
+});

@@ -25,9 +25,9 @@ Everything else is secondary to those two.
 - **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~97.6% (364/373) of
   the official yaml-test-suite.
 - **Drop-in (API-level).** Same exports and signatures as `yaml` and `js-yaml` —
-  swap the import and your code runs. Option arguments (`schema`, `sortKeys`,
-  `indent`, …) are accepted-but-ignored today; see
-  [Drop-in](#drop-in-for-js-yaml-or-yaml).
+  swap the import and your code runs. An option we don't yet honour (`schema`,
+  `sortKeys`, `indent`, …) **throws a clear error** rather than silently changing
+  your output; see [Drop-in](#drop-in-for-js-yaml-or-yaml).
 - **Lean.** Zero runtime dependencies, small bundle; ships ESM + CJS + full
   TypeScript types.
 - **Complete.** Full YAML 1.2 core — flow & block syntax, anchors/aliases, tags
@@ -129,8 +129,10 @@ import { parse, stringify } from 'lightning-yaml/yaml';
 ```
 
 > **Status — surface-level today.** The shims are a TypeScript drop-in (same
-> exports and signatures), so your code compiles and runs — but option arguments
-> (`schema`, `sortKeys`, `indent`, …) are currently **accepted-and-ignored**.
+> exports and signatures), so your code compiles and runs — but an option we
+> don't yet honour (`schema`, `sortKeys`, `indent`, …) **throws** instead of
+> silently leaving your output unchanged, so you find out at the call site (an
+> option passed at its genuine no-op default still works).
 > Full option compatibility is the goal; each shim's **option-support matrix**
 > ([js-yaml](https://lightning-yaml.dev/api/js-yaml-compat/readme/#option-support-matrix),
 > [yaml](https://lightning-yaml.dev/api/yaml-compat/readme/#option-support-matrix))
@@ -212,10 +214,12 @@ here, treat it as a bug and
 - **Merge keys (`<<`) are read as an ordinary key, not merged.** `<<: *anchor`
   gives you a literal `"<<"` string key rather than merging the aliased map in
   (js-yaml and `yaml` merge it). It's neither expanded nor rejected today.
-- **Compat option arguments are accepted but ignored.** The
+- **Compat options that aren't implemented yet throw.** The
   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
-  (`schema`, `sortKeys`, `indent`, …) so your code compiles and runs, but they
-  don't change the output yet.
+  (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we
+  can't yet honour throws a clear error naming it — rather than silently leaving
+  the output unchanged. An option passed at its genuine no-op default (e.g.
+  `mapAsMap: false`) still works.
 - **YAML 1.2 core schema, not 1.1.** Plain `yes`/`no`/`on`/`off` stay strings (not
   booleans) and there are no base-60 numbers, so results can differ from js-yaml's
   1.1-flavoured default. YAML 1.1 is a non-goal.

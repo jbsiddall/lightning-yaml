@@ -16,8 +16,9 @@
  * `dump` compiles and runs unchanged. Options are honoured on a growing
  * allowlist, and anything not yet honoured **throws a `YAMLException`** rather
  * than silently diverging. Today only `filename` (threaded into a thrown
- * error's mark), `loadAll`'s iterator, and `schema` *as the default
- * `CORE_SCHEMA`* are accepted — e.g. `load(text, { json: false })` or
+ * error's mark), `loadAll`'s iterator, `json: true`, and `schema` *as the
+ * default `CORE_SCHEMA`* are accepted (plus each option's genuine no-op
+ * default) — e.g. `load(text, { json: false })` or
  * `dump(obj, { sortKeys: true })` throws until that option's sub-task lands. A
  * relied-upon option fails loud at the call site instead of producing
  * silently-wrong output.
@@ -113,7 +114,7 @@
  */
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
-import { validateOptions, notYetSupported, type OptionRule } from "./compat-options.ts";
+import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 
 // ---------------------------------------------------------------------------
 // YAMLException — shaped like js-yaml's (name/reason/message + a cheap mark).
@@ -231,19 +232,20 @@ export class Schema {
   }
 }
 
-/** Stub so `import { FAILSAFE_SCHEMA }` still works. We always parse as YAML 1.2 core, so the schema you pass has no effect. */
+/** Stub so `import { FAILSAFE_SCHEMA }` still works. Our parser is fixed to YAML 1.2 core, so passing this as the `schema` option to `load`/`dump` throws (only the default `CORE_SCHEMA` is accepted). */
 export const FAILSAFE_SCHEMA: Schema = new Schema();
 /** Stub — see {@link FAILSAFE_SCHEMA}. */
 export const JSON_SCHEMA: Schema = new Schema();
 /** Stub — see {@link FAILSAFE_SCHEMA}. */
 export const CORE_SCHEMA: Schema = new Schema();
-/** Stub. Does NOT turn on YAML 1.1 typing — `yes`/`no`/`on`/`off` and sexagesimals stay plain values, because we always parse as YAML 1.2 core. See {@link FAILSAFE_SCHEMA}. */
+/** Stub. Does NOT turn on YAML 1.1 typing; passing it as the `schema` option throws, because we always parse as YAML 1.2 core. See {@link FAILSAFE_SCHEMA}. */
 export const YAML11_SCHEMA: Schema = new Schema();
 
 // ---------------------------------------------------------------------------
-// Options — accepted, best-effort. `filename` is honored (threaded into a
-// thrown YAMLException's mark); the rest exist so option bags type-check and
-// are otherwise ignored (schema/style knobs have no effect — see above).
+// Option bags — shaped to mirror js-yaml v5's real `LoadOptions`/`DumpOptions`
+// so call sites type-check. Honouring is opt-in (see the rule tables below):
+// `filename` is applied (threaded into a thrown YAMLException's mark) and each
+// option's genuine no-op default is accepted; anything else throws.
 //
 // v5 REWRITE: these mirror v5's real `LoadOptions`/`DumpOptions` shapes, not
 // v4's. v5 dropped `onWarning`/`listener` (load) and `styles`/`replacer`/
@@ -314,21 +316,21 @@ const LOAD_OPTION_RULES: Record<string, OptionRule> = {
 
 const DUMP_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
+  sortKeys: activatesFeature("would sort map keys on output — not supported yet"),
+  skipInvalid: activatesFeature("would drop invalid (function/undefined) values — not supported yet"),
+  noRefs: activatesFeature("would expand shared refs instead of using `&`/`*` — not supported yet"),
+  forceQuotes: activatesFeature("would always quote strings — not supported yet"),
+  seqNoIndent: activatesFeature("would stop indenting block sequences — not supported yet"),
+  seqInlineFirst: activatesFeature("would inline a sequence's first item — not supported yet"),
+  flowBracketPadding: activatesFeature("would pad flow-collection brackets — not supported yet"),
+  flowSkipCommaSpace: activatesFeature("would drop the space after flow commas — not supported yet"),
+  flowSkipColonSpace: activatesFeature("would drop the space after flow colons — not supported yet"),
+  quoteFlowKeys: activatesFeature("would quote flow-collection keys — not supported yet"),
+  tagBeforeAnchor: activatesFeature("would emit the tag before the anchor — not supported yet"),
   indent: notYetSupported,
-  seqNoIndent: notYetSupported,
-  seqInlineFirst: notYetSupported,
-  skipInvalid: notYetSupported,
   flowLevel: notYetSupported,
-  sortKeys: notYetSupported,
   lineWidth: notYetSupported,
-  noRefs: notYetSupported,
   quoteStyle: notYetSupported,
-  forceQuotes: notYetSupported,
-  flowBracketPadding: notYetSupported,
-  flowSkipCommaSpace: notYetSupported,
-  flowSkipColonSpace: notYetSupported,
-  quoteFlowKeys: notYetSupported,
-  tagBeforeAnchor: notYetSupported,
   transform: notYetSupported,
 };
 
@@ -358,16 +360,21 @@ export function load(input: string, opts?: LoadOptions): unknown {
   }
 }
 
-export function loadAll(input: string, iterator?: ((doc: unknown) => void) | null, opts?: LoadOptions): unknown[] | undefined {
-  validateOptions(opts, LOAD_OPTION_RULES, failOption);
+export function loadAll(input: string, iteratorOrOpts?: ((doc: unknown) => void) | LoadOptions | null, opts?: LoadOptions): unknown[] | undefined {
+  const iterator = typeof iteratorOrOpts === "function" ? iteratorOrOpts : undefined;
+  // js-yaml's own `loadAll(input, options)` overload: a non-null object 2nd arg
+  // IS the options bag; otherwise (an iterator, `null`, or omitted) the options
+  // are the 3rd arg — so they're validated whichever legal call shape is used.
+  const options = iteratorOrOpts != null && typeof iteratorOrOpts === "object" ? iteratorOrOpts : opts;
+  validateOptions(options, LOAD_OPTION_RULES, failOption);
   let docs: unknown[];
   try {
     docs = ourParseAll(input);
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
-    throw toYAMLException(err, opts?.filename);
+    throw toYAMLException(err, options?.filename);
   }
-  if (typeof iterator === "function") {
+  if (iterator) {
     for (const doc of docs) iterator(doc);
     return undefined;
   }

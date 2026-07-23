@@ -99,7 +99,7 @@
  */
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify } from "./core.ts";
-import { validateOptions, notYetSupported, type OptionRule } from "./compat-options.ts";
+import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 
 // ---------------------------------------------------------------------------
 // Options-dispatch rules. Unsupported options throw a `YAMLCompatError` rather
@@ -132,24 +132,38 @@ const version12Only: OptionRule = (v) =>
 const PARSE_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   version: version12Only,
-  intAsBigInt: notYetSupported,
-  mapAsMap: notYetSupported,
+  prettyErrors: () => null, // no-op: our thrown errors already carry line/column
+  mapAsMap: activatesFeature("would return mappings as `Map` rather than plain objects — not supported yet"),
+  intAsBigInt: activatesFeature("would return large integers as exact `BigInt` — not supported yet"),
+  uniqueKeys: activatesFeature("would throw on duplicate keys — not supported yet (lightning-yaml keeps last-wins)"),
+  stringKeys: activatesFeature("would require scalar string keys — not supported yet"),
+  merge: activatesFeature("would enable `<<` merge keys, which are outside YAML 1.2 core"),
   maxAliasCount: notYetSupported,
-  uniqueKeys: notYetSupported,
   customTags: notYetSupported,
-  merge: () => "is not supported — merge keys (`<<`) are outside YAML 1.2 core",
+  resolveKnownTags: notYetSupported,
+  keepSourceTokens: notYetSupported,
+  lineCounter: notYetSupported,
+  onAnchor: notYetSupported,
 };
 
 const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   version: version12Only,
+  singleQuote: activatesFeature("would prefer single quotes — not supported yet"),
+  sortMapEntries: activatesFeature("would sort map entries on output — not supported yet"),
   indent: notYetSupported,
-  singleQuote: notYetSupported,
   nullStr: notYetSupported,
   trueStr: notYetSupported,
   falseStr: notYetSupported,
   indentSeq: notYetSupported,
-  sortMapEntries: notYetSupported,
+  directives: notYetSupported,
+  lineWidth: notYetSupported,
+  minContentWidth: notYetSupported,
+  blockQuote: notYetSupported,
+  collectionStyle: notYetSupported,
+  flowCollectionPadding: notYetSupported,
+  aliasDuplicateObjects: notYetSupported,
+  anchorPrefix: notYetSupported,
   customTags: notYetSupported,
 };
 
@@ -196,9 +210,13 @@ function applyReviver(holder: Record<string, unknown>, key: string, reviver: Rev
  * ./core.ts) also throws on a second document, so this divergence-prone case
  * is naturally aligned with no special-casing needed here.
  */
-export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unknown>, opts?: Record<string, unknown>): unknown {
+export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unknown> | null, opts?: Record<string, unknown>): unknown {
   const reviver = typeof reviverOrOpts === "function" ? (reviverOrOpts as Reviver) : undefined;
-  validateOptions(reviver ? opts : (typeof reviverOrOpts === "object" ? reviverOrOpts : undefined), PARSE_OPTION_RULES, failOption);
+  // Disambiguate `yaml`'s overloads: a non-null, non-function 2nd arg IS the
+  // options bag; otherwise (a reviver, or omitted) the options are the 3rd arg —
+  // so the bag is validated whichever legal call shape the caller used.
+  const optionBag = reviverOrOpts != null && typeof reviverOrOpts !== "function" ? reviverOrOpts : opts;
+  validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
   const value = ourParse(src);
   if (!reviver) return value;
   const holder: Record<string, unknown> = { "": value };
@@ -238,7 +256,8 @@ function makeDocument(contents: unknown, errors: Error[] = []): CompatDocument {
  * and throws on the FIRST error anywhere in the stream, so on failure we
  * can't recover whichever documents parsed fine before it. Best-effort
  * approximation: report ONE Document carrying the error. Partial fidelity —
- * documented gap, not chased further this milestone.
+ * documented gap, not chased further this milestone. (An unsupported option,
+ * unlike a parse error, throws up front — see the option rules above.)
  */
 export function parseAllDocuments(src: string, opts?: Record<string, unknown>): CompatDocument[] {
   validateOptions(opts, PARSE_OPTION_RULES, failOption);
@@ -255,7 +274,9 @@ export function parseAllDocuments(src: string, opts?: Record<string, unknown>): 
  * `.errors` (non-throwing), rather than rejecting outright. We approximate
  * that one case by falling back to `parseAll(src)[0]`; any other parse
  * failure yields an empty-contents Document with the error captured — either
- * way `parseDocument` itself never throws, matching the real contract.
+ * way `parseDocument` never throws on a *parse* error, matching the real
+ * contract. (Like every entry point it still throws up front on an unsupported
+ * option — see the option rules above.)
  */
 export function parseDocument(src: string, opts?: Record<string, unknown>): CompatDocument {
   validateOptions(opts, PARSE_OPTION_RULES, failOption);
@@ -278,7 +299,12 @@ export function parseDocument(src: string, opts?: Record<string, unknown>): Comp
 
 export function stringify(value: unknown, replacerOrOptions?: unknown, options?: unknown): string {
   const hasReplacer = typeof replacerOrOptions === "function" || Array.isArray(replacerOrOptions);
-  const optionBag = (hasReplacer ? options : replacerOrOptions) as Record<string, unknown> | undefined;
+  // A non-null, non-replacer 2nd arg IS the options bag; otherwise (a replacer,
+  // or omitted) the options are the 3rd arg — so options are validated under
+  // every legal call shape, including `stringify(value, null, options)`.
+  const optionBag = (!hasReplacer && replacerOrOptions != null && typeof replacerOrOptions === "object"
+    ? replacerOrOptions
+    : options) as Record<string, unknown> | undefined;
   validateOptions(optionBag, STRINGIFY_OPTION_RULES, failOption);
   if (hasReplacer) failOption("a replacer is not supported yet — the ./yaml stringify replacer is tracked separately");
   return ourStringify(value);
