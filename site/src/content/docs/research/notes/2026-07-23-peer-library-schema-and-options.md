@@ -401,6 +401,41 @@ On an alias/merge-heavy fixture, **both libraries refuse the document by default
 ~14–18 ms), dwarfing any option effect — so an alias-heavy fixture must raise the guard equally for every
 candidate, and the guard itself is about safety, not speed.
 
+### Can either library be tuned for more speed?
+
+js-yaml exposes the most output-tuning knobs, so it is the natural place to ask whether a
+performance-aware user could extract more speed *fairly* — i.e. without changing the parsed value or
+emitting output that doesn't round-trip. A focused sweep, round-trip-checking every "faster" config,
+settles it:
+
+- **Parse: nothing to gain.** Every *correct* load config (`CORE`, `JSON`, `json: true`) lands within
+  ±4 % of the default — run-to-run noise. The only meaningfully faster option, `FAILSAFE` (~8 %), types
+  every field as a string, so it is disqualified on JSON-shaped data. The default is already the fast,
+  correct choice.
+- **Dump: the schema, and only the schema.** Switching js-yaml's dump from its 1.1-derived default to a
+  1.2 schema is a real **~1.35–1.45× speedup that round-trips to an equal value**. `CORE_SCHEMA` and
+  `JSON_SCHEMA` are essentially tied here and emit **byte-identical** output on JSON-shaped data (the
+  gap is only that `JSON` has fewer implicit scalar types to test per node, not different text). `CORE`
+  is the safer general recommendation — it keeps full 1.2 scalar coverage (`.inf`/`.nan`, extra
+  int/bool forms) that `JSON` would mishandle on non-JSON-typed values — while `JSON` edges it only on
+  strictly-JSON data.
+- **The knobs that *look* like speed levers do nothing here.** `lineWidth: -1`, `noRefs`, and the
+  `flowSkipCommaSpace`/`flowSkipColonSpace` family each move dump cost by <2 % on block-shaped data:
+  `lineWidth: -1` is inert because every scalar is already under 80 columns so the fold logic never
+  fires, and the flow-only knobs never trigger on pure block output. `sortKeys` and `flowLevel` make it
+  *slower*. Combining them with the `CORE` schema does not beat `CORE` alone — the schema is the whole
+  win.
+- **The dump win is CPU-only.** Retained heap is flat (~2.9 MB — just the output string) across
+  default/`CORE`/`JSON`; the faster schema neither costs nor saves memory.
+- **Caveat — rich data must keep the 1.1-based default.** A lean `CORE`/`JSON` dump schema *throws* on
+  `Uint8Array`/`Date`/`Set` (only the 1.1-based default can serialize them), and a `!!binary` document
+  cannot even load under `CORE`. So this fair-speed dump recommendation applies to JSON-shaped / 1.2
+  data only; binary/timestamp data needs the 1.1-based default for both load and dump.
+
+The practical upshot: the harness's existing `js-yaml (tuned)` `CORE` dump row already captures the one
+legitimate js-yaml speed win, and nothing stacks on top of it — there is no comparable fair lever on the
+parse side, nor any dump-schema lever for `yaml` (whose default already is core).
+
 ## Implications for our benchmark harness
 
 The harness (`bench/candidates.ts`) already applies the "lightest correct config per data class"
