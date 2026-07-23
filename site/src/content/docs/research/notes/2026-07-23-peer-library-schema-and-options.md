@@ -413,12 +413,12 @@ settles it:
   every field as a string, so it is disqualified on JSON-shaped data. The default is already the fast,
   correct choice.
 - **Dump: the schema, and only the schema.** Switching js-yaml's dump from its 1.1-derived default to a
-  1.2 schema is a real **~1.35–1.45× speedup that round-trips to an equal value**. `CORE_SCHEMA` and
-  `JSON_SCHEMA` are essentially tied here and emit **byte-identical** output on JSON-shaped data (the
-  gap is only that `JSON` has fewer implicit scalar types to test per node, not different text). `CORE`
-  is the safer general recommendation — it keeps full 1.2 scalar coverage (`.inf`/`.nan`, extra
-  int/bool forms) that `JSON` would mishandle on non-JSON-typed values — while `JSON` edges it only on
-  strictly-JSON data.
+  1.2 schema is a real **~1.35× speedup that round-trips to an equal value** (the dump table above).
+  `CORE_SCHEMA` and `JSON_SCHEMA` are tied within run-to-run noise and emit **byte-identical** output on
+  JSON-shaped data (the only difference is that `JSON` has fewer implicit scalar types to test per node,
+  not different text). `CORE` is the safer general recommendation — it keeps full 1.2 scalar coverage
+  (`.inf`/`.nan`, extra int/bool forms) that `JSON` would mishandle on non-JSON-typed values.
+  <!-- js-yaml:5.2.1 -->
 - **The knobs that *look* like speed levers do nothing here.** `lineWidth: -1`, `noRefs`, and the
   `flowSkipCommaSpace`/`flowSkipColonSpace` family each move dump cost by <2 % on block-shaped data:
   `lineWidth: -1` is inert because every scalar is already under 80 columns so the fold logic never
@@ -479,20 +479,20 @@ current fixtures avoid that trap because only the rich category needs 1.1, and i
 
 - js-yaml 5.2.1 — schema composition and the four exported schemas; scalar resolvers (core/json/1.1);
   merge precedence and `maxTotalMergeKeys`; the `json`-option dup-key path; dump defaults and
-  compat-quoting. (Bundled `dist/js-yaml.mjs`; cite by concept — the build has no `lib/` tree.) Full
-  detail in the session scratch reference `RESULT_JSYAML.md`.
+  compat-quoting. (Bundled `dist/js-yaml.mjs`; cite by concept — the build has no `lib/` tree.)
 - yaml 2.9.0 — `Document.setSchema` (version→schema wiring); `schema/tags.js` (schema-name map, merge-tag
   add logic); `schema/yaml-1.1/binary.js` (Buffer default); `compose/util-map-includes.js` (`uniqueKeys`
   O(n²)); `public-api.js` (`prettyErrors`→LineCounter, `parse()` throw semantics); `nodes/toJS.js`
-  (bigint keep/down-convert). Full detail in the session scratch reference `RESULT_YAML.md`.
+  (bigint keep/down-convert).
 
 ## Provenance & sources
 
 - Libraries inspected: `js-yaml@5.2.1` and `yaml@2.9.0` as installed in this repo. <!-- js-yaml:5.2.1 yaml:2.9.0 ly:d3557e0 -->
 - Repo: `lightning-yaml`, branch `claude/jscml-yaml-schema-research-tsycz0`, at commit `d3557e0`.
 - Runtime: Node v22.22.2 on the session container (a 4-vCPU cloud VM). Behavioural claims were verified
-  by running the installed builds directly; perf figures are median-of-repeats — absolute milliseconds
-  are machine-specific, ratios are the durable signal.
+  by running the installed builds directly; perf figures are the minimum of repeated timings (the
+  stable figure — medians drift run-to-run) — absolute milliseconds are machine-specific, ratios are
+  the durable signal.
 - Official option references: js-yaml README (bundled at `node_modules/js-yaml/dist/README.md`) and the
   `yaml` documentation at <https://eemeli.org/yaml/>. The YAML 1.2.2 specification:
   <https://yaml.org/spec/1.2.2/>. Duplicate-key last-wins rationale for lightning-yaml is recorded in the
