@@ -21,16 +21,16 @@ Please confirm the relevant checks pass locally (see CONTRIBUTING.md):
 ## Code review
 
 <!--
-Run /code-review as a FRESH sub-agent, never a fork: a forked reviewer inherits the
-author's context and rationalises the change, so a clean one is what keeps the review
-unbiased. See .claude/commands/code-review.md.
+Run /code-review from the top-level assistant (it fans out its own reviewer subagents;
+it is NOT itself run as a subagent). It must re-run after every push until all reviewers
+approve the latest commit. Record the commit they approved below — a later push makes it
+!= HEAD, which is the signal to re-run and update the hash. See
+.claude/commands/code-review.md.
 -->
 
-- [ ] Ran `/code-review` as a fresh sub-agent (**not** a fork) and addressed every
-      issue it raised.
-- [ ] Any pushback on its feedback was fed back into `/code-review` and it was re-run
-      until it returned **✅ Satisfied** — the loop ends on the reviewer being
-      satisfied, not on the author insisting.
+- [ ] `/code-review` passed — every reviewer approved at commit `_______________` (the
+      HEAD it ran on). Pushing new commits invalidates this: re-run `/code-review` and
+      update the hash until all reviewers approve the new HEAD.
 
 ## Changeset
 

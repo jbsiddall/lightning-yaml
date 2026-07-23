@@ -17,5 +17,9 @@ results/
 .scratch/
 *.scratch.*
 
+# Per-reviewer /code-review output — ephemeral working notes, never committed
+# (the persistent signal is the reviewed-commit hash in the PR description)
+code_review_*.md
+
 # Transient subagent worktrees created by the Claude Code harness
 .claude/worktrees/
