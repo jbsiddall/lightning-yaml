@@ -1,9 +1,13 @@
-// src/lib/benchmarks.ts
+// src/lib/charts.ts
 //
-// Chart/table rendering for the Benchmarks doc page: turn the doc-shaped data
-// from `./queries` into static inline-SVG charts and HTML table strings.
-// Everything here runs at Astro BUILD TIME — no browser APIs, no client JS.
-// See CLAUDE.md ("Benchmarking rules") and queries.ts for how the underlying
+// The presentation counterpart to `./queries` (which owns data: loading,
+// validating, and shaping the benchmark YAML streams). Everything that turns
+// that shaped data into on-page output — inline-SVG charts, HTML table
+// strings, the ratio-bar builder, and the native-popover breakdown markup —
+// lives here, so a chart bug gets fixed once regardless of which page uses
+// it (HeroBench, /benchmarks' ChartCard, the Landing lead paragraph). Runs
+// entirely at Astro BUILD TIME — no browser APIs, no client JS. See
+// CLAUDE.md ("Benchmarking rules") and queries.ts for how the underlying
 // YAML streams are loaded and shaped.
 
 import { runtimeFamily, runsForFamily, pickWorkloads, LIBRARY_ORDER } from './queries';
@@ -21,6 +25,7 @@ import type {
   BundleSizeDoc,
   BundleSizeValue,
   BarItem,
+  RatioPoint,
 } from './queries';
 
 // ---------------------------------------------------------------------------
@@ -367,6 +372,151 @@ function escapeXml(s: string): string {
 /** Round an SVG coordinate to keep the markup compact and diff-friendly. */
 function fx(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+// ---------------------------------------------------------------------------
+// HeroBench — bar rows for the hero's four-tab instrument. Two flavours:
+// `buildChart` (absolute value, migrated in from HeroBench.astro) for
+// Bundle size, the one tab that stays absolute because bundle size is
+// deterministic and environment-free; `ratioBarRows` for Parse/Dump/Memory,
+// where every bar is the CANONICAL environment's own measured ratio against
+// lightning-yaml (always 1.0×) — one real measurement, never blended across
+// environments (see queries.ts's "Ratio queries" section). A native-popover
+// breakdown on every non-baseline bar lists each environment's own ratio the
+// same way. Both scale each row to its own largest entry, clipping an
+// outlier that runs away from the field (>3× the runner-up) so the rest of
+// the row stays legible — `buildChart` only does this for `unit: 'ns'`
+// (memory's spread never warranted it when this lived in HeroBench.astro);
+// `ratioBarRows` takes the same choice as an explicit `clampOffScale` flag so
+// callers (Parse/Dump vs. Memory) keep that distinction without hardcoding a
+// unit check.
+// ---------------------------------------------------------------------------
+
+export type HeroUnit = 'ns' | 'MB' | 'bytes';
+
+export interface HeroChartRow {
+  name: string;
+  values: Partial<Record<LibraryId, number>>;
+}
+
+/**
+ * One bar in a hero group, shared by both `buildChart` (absolute) and
+ * `ratioBarRows` (ratio) so a template can render either without a type
+ * discriminant: `buildChart`'s bars simply never set `popoverId`.
+ */
+export interface HeroBar {
+  id: LibraryId;
+  color: string;
+  label: string;
+  width: number;
+  over: boolean;
+  self: boolean;
+  /** Set together on a ratio bar with an inspectable breakdown — pair with a `<div popover>` built from `popoverHtml` (see HeroBench.astro). Absent on every `buildChart` bar. */
+  popoverId?: string;
+  popoverHtml?: string;
+}
+
+export function buildChart(rows: HeroChartRow[], unit: HeroUnit, order: readonly LibraryId[]): { name: string; bars: HeroBar[] }[] {
+  const fmt = (v: number) => (unit === 'ns' ? formatNs(v) : unit === 'MB' ? formatMB(v) : formatKB(v));
+  return rows.map((r) => {
+    const present = order.filter((id) => typeof r.values[id] === 'number');
+    const vals = present.map((id) => r.values[id] as number);
+    const max = Math.max(...vals);
+    const sorted = [...vals].sort((a, b) => a - b);
+    const second = sorted.length > 1 ? sorted[sorted.length - 2] : max;
+    const clamp = unit === 'ns' && max > second * 3;
+    const ceiling = clamp ? second * 1.18 : max;
+    const bars = present.map((id): HeroBar => {
+      const v = r.values[id] as number;
+      const over = clamp && v > ceiling;
+      return {
+        id,
+        color: LIBRARY_COLOR[id],
+        label: fmt(v),
+        width: over ? 100 : Math.min(100, (v / ceiling) * 100),
+        over,
+        self: id === 'lightning-yaml',
+      };
+    });
+    return { name: r.name, bars };
+  });
+}
+
+/**
+ * Build-time content for a ratio's `[popover]` breakdown: every environment's
+ * OWN measured ratio, listed separately — never combined into one figure.
+ * "Per-engine results" heads the list so it reads as raw measurements, not a
+ * statistic. Returns the popover's inner HTML; the caller supplies the
+ * wrapping element (`id`, the `popover` attribute) — see HeroBench.astro.
+ */
+export function ratioPopoverHtml(points: readonly RatioPoint[], title: string): string {
+  const rows = points
+    .map(
+      (r) =>
+        `<li><span class="ratio-pop__env">${escapeXml(r.runtime)}</span>` +
+        `<span class="ratio-pop__val">${escapeXml(formatRatio(r.ratio))}</span></li>`,
+    )
+    .join('');
+  return (
+    `<div class="ratio-pop__title">${escapeXml(title)}</div>` +
+    `<div class="ratio-pop__sub">Per-engine results</div>` +
+    `<ul class="ratio-pop__list">${rows}</ul>`
+  );
+}
+
+export interface RatioRow {
+  name: string;
+  /** The canonical environment's own ratio per library, keyed by id — THE headline number (includes `lightning-yaml` itself, always ratio 1). */
+  ratios: Partial<Record<LibraryId, number>>;
+  /** Every environment's own ratio per library, keyed by id — feeds the popover breakdown only, never the bar's headline number. */
+  points: Partial<Record<LibraryId, RatioPoint[]>>;
+}
+
+/**
+ * Ratio-native counterpart to `buildChart`: every bar is the CANONICAL
+ * environment's own measured ratio against `lightning-yaml` (always 1.0×) —
+ * one real number, not a blend. Bar geometry (including the off-scale clamp)
+ * reuses the same per-row relative-magnitude approach as `buildChart` — a
+ * ratio IS the row's absolute value already divided by a per-row constant
+ * (lightning-yaml's own figure), so scaling by relative ratio magnitude
+ * produces identical proportions to scaling by the original absolute values;
+ * only the printed label changes (`×` instead of a unit). Every bar except
+ * the 1.0× self baseline gets a `popoverId`/`popoverHtml` pair listing each
+ * environment's own ratio (see HeroBench.astro).
+ */
+export function ratioBarRows(
+  rows: RatioRow[],
+  order: readonly LibraryId[],
+  idPrefix: string,
+  titleFor: (rowName: string, id: LibraryId) => string,
+  clampOffScale: boolean,
+): { name: string; bars: HeroBar[] }[] {
+  return rows.map((r, ri) => {
+    const present = order.filter((id) => typeof r.ratios[id] === 'number' && Number.isFinite(r.ratios[id]));
+    const vals = present.map((id) => r.ratios[id] as number);
+    const max = Math.max(...vals);
+    const sorted = [...vals].sort((a, b) => a - b);
+    const second = sorted.length > 1 ? sorted[sorted.length - 2] : max;
+    const clamp = clampOffScale && max > second * 3;
+    const ceiling = clamp ? second * 1.18 : max;
+    const bars: HeroBar[] = present.map((id) => {
+      const v = r.ratios[id] as number;
+      const over = clamp && v > ceiling;
+      const self = id === 'lightning-yaml';
+      const popoverId = self ? undefined : `${idPrefix}-${ri}-${id}`;
+      return {
+        id,
+        color: LIBRARY_COLOR[id],
+        label: formatRatio(v),
+        width: over ? 100 : Math.min(100, (v / ceiling) * 100),
+        over,
+        self,
+        popoverId,
+        popoverHtml: popoverId ? ratioPopoverHtml(r.points[id] ?? [], titleFor(r.name, id)) : undefined,
+      };
+    });
+    return { name: r.name, bars };
+  });
 }
 
 // ---------------------------------------------------------------------------

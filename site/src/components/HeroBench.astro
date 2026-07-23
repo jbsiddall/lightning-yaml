@@ -2,77 +2,51 @@
 // HeroBench.astro — the hero's right-hand instrument: a four-tab benchmark
 // panel (Parse / Dump / Parse memory / Bundle size), Bun-homepage style.
 // CSS-only tab switching via sibling radio inputs — zero client JS. Every bar
-// is computed at BUILD TIME from the newest published run in
+// is computed at BUILD TIME from the published runs in
 // src/data/benchmarks/*.yaml (overlaid from the benchmark-data branch at
 // deploy), so the numbers here are the same measured data the /benchmarks page
 // shows — never a hand-typed figure. See CLAUDE.md "Integrity of benchmarks".
 //
-// Scale: each row scales to its slowest parser, EXCEPT when one parser runs
-// away from the field (>3× the runner-up) — then the row scales to the
-// runner-up so the fast parsers stay legible, and the outlier's bar is clipped
-// ("off-scale", ↗) with its real value still labelled.
+// Parse/Dump/Memory show RATIOS against lightning-yaml (always 1.0×), not
+// absolute times — the one exception is Bundle size, which stays absolute KB
+// because it's deterministic and environment-free. Every ratio is the
+// CANONICAL environment's own measured ratio (canonicalRun — a real browser
+// engine once one publishes, falling back to Node; see queries.ts's
+// "Ratio queries" section) — ONE real measurement, never blended across
+// environments. Click a ratio to open its native-Popover-API breakdown:
+// every environment's own ratio, listed separately, built at BUILD TIME,
+// zero client JS. Each row still scales to its own largest bar, clipping an
+// outlier that runs away from the field (>3× the runner-up, "off-scale" ↗)
+// so the rest stay legible.
 import speedRaw from '../data/benchmarks/speed.yaml?raw';
 import memoryRaw from '../data/benchmarks/memory.yaml?raw';
 import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
 import {
   parseRuns,
+  newestOf,
   newestRun,
   canonicalRun,
   pickWorkloads,
   bundleSizeItems,
+  speedWorkloadRatio,
+  memoryWorkloadRatio,
+  canonicalSpeedRatio,
+  canonicalMemoryRatio,
   SpeedDocSchema,
   MemoryDocSchema,
   BundleSizeDocSchema,
 } from '../lib/queries';
-import type { SpeedDoc, MemoryDoc, BundleSizeDoc, LibraryId, SpeedStat, MemoryStat } from '../lib/queries';
-import { formatNs, formatMB, formatKB, LIBRARY_COLOR } from '../lib/benchmarks';
+import type { LibraryId } from '../lib/queries';
+import { buildChart, ratioBarRows, libraryLabel } from '../lib/charts';
+import type { RatioRow } from '../lib/charts';
 
-const speed = canonicalRun(parseRuns(speedRaw, SpeedDocSchema));
-const memory = newestRun(memoryRaw, MemoryDocSchema);
+const speedRuns = parseRuns(speedRaw, SpeedDocSchema);
+const speed = canonicalRun(speedRuns);
+const memoryRuns = parseRuns(memoryRaw, MemoryDocSchema);
+const memory = newestOf(memoryRuns);
 const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
 const HERO_ORDER: LibraryId[] = ['JSON', 'lightning-yaml', 'js-yaml', 'yaml'];
-
-type Unit = 'ns' | 'MB' | 'bytes';
-interface Row {
-  name: string;
-  values: Partial<Record<LibraryId, number>>;
-}
-interface Bar {
-  id: string;
-  color: string;
-  label: string;
-  width: number;
-  over: boolean;
-  self: boolean;
-}
-
-const fmt = (v: number, unit: Unit) => (unit === 'ns' ? formatNs(v) : unit === 'MB' ? formatMB(v) : formatKB(v));
-
-function buildChart(rows: Row[], unit: Unit): { name: string; bars: Bar[] }[] {
-  return rows.map((r) => {
-    const present = HERO_ORDER.filter((id) => typeof r.values[id] === 'number');
-    const vals = present.map((id) => r.values[id] as number);
-    const max = Math.max(...vals);
-    const sorted = [...vals].sort((a, b) => a - b);
-    const second = sorted.length > 1 ? sorted[sorted.length - 2] : max;
-    const clamp = unit === 'ns' && max > second * 3;
-    const ceiling = clamp ? second * 1.18 : max;
-    const bars = present.map((id): Bar => {
-      const v = r.values[id] as number;
-      const over = clamp && v > ceiling;
-      return {
-        id,
-        color: LIBRARY_COLOR[id as LibraryId],
-        label: fmt(v, unit),
-        width: over ? 100 : Math.min(100, (v / ceiling) * 100),
-        over,
-        self: id === 'lightning-yaml',
-      };
-    });
-    return { name: r.name, bars };
-  });
-}
 
 // The speed tabs chart the block-YAML config fixtures: real-world YAML is
 // overwhelmingly block-style config (see the 2026-07-16 target-workload research
@@ -87,43 +61,67 @@ const WORKLOAD_LABEL: Record<string, string> = {
   'yaml-plain-large-records': 'large config · ~1 MB',
 };
 
-const avgRows = (ws: SpeedDoc['operations']['parse']): Row[] =>
-  ws.map((w) => ({
+function speedRatioRows(op: 'parse' | 'stringify', names: string[]): RatioRow[] {
+  return pickWorkloads(speed.operations[op], names).map((w) => ({
     name: WORKLOAD_LABEL[w.workload] ?? w.workload,
-    values: Object.fromEntries(Object.entries(w.values).map(([id, s]) => [id, (s as SpeedStat).avg])),
+    ratios: Object.fromEntries(
+      HERO_ORDER.map((id) => [id, canonicalSpeedRatio(speedRuns, op, w.workload, id, 'lightning-yaml')]),
+    ) as Partial<Record<LibraryId, number>>,
+    points: Object.fromEntries(
+      HERO_ORDER.map((id) => [id, speedWorkloadRatio(speedRuns, op, w.workload, id, 'lightning-yaml')]),
+    ) as RatioRow['points'],
   }));
-const rssRows = (ws: MemoryDoc['operations']['parse']): Row[] =>
-  ws.map((w) => ({
+}
+function memoryRatioRows(names: string[]): RatioRow[] {
+  return pickWorkloads(memory.operations.parse, names).map((w) => ({
     name: w.workload,
-    values: Object.fromEntries(Object.entries(w.values).map(([id, s]) => [id, (s as MemoryStat).peak_rss])),
+    ratios: Object.fromEntries(
+      HERO_ORDER.map((id) => [id, canonicalMemoryRatio(memoryRuns, 'parse', w.workload, id, 'lightning-yaml')]),
+    ) as Partial<Record<LibraryId, number>>,
+    points: Object.fromEntries(
+      HERO_ORDER.map((id) => [id, memoryWorkloadRatio(memoryRuns, 'parse', w.workload, id, 'lightning-yaml')]),
+    ) as RatioRow['points'],
   }));
+}
+
+const speedTitleFor = (rowName: string, id: LibraryId) =>
+  `${libraryLabel(speed.libraries, id)} ÷ ${libraryLabel(speed.libraries, 'lightning-yaml')} — ${rowName}`;
+const memoryTitleFor = (rowName: string, id: LibraryId) =>
+  `${libraryLabel(memory.libraries, id)} ÷ ${libraryLabel(memory.libraries, 'lightning-yaml')} — ${rowName} (peak RSS)`;
+
+// Off-scale clamping (>3× the runner-up gets clipped, ↗) mirrors the old
+// per-unit behaviour: speed rows clamp, memory rows never did.
+const parseChart = ratioBarRows(speedRatioRows('parse', speedNames), HERO_ORDER, 'hero-parse', speedTitleFor, true);
+const dumpChart = ratioBarRows(speedRatioRows('stringify', speedNames), HERO_ORDER, 'hero-dump', speedTitleFor, true);
+const memoryChart = ratioBarRows(memoryRatioRows(memoryNames), HERO_ORDER, 'hero-mem', memoryTitleFor, false);
 
 const bundleValues = Object.fromEntries(bundleSizeItems(bundle).map((it) => [it.id, it.value]));
+const bundleChart = buildChart([{ name: 'min + gzip', values: bundleValues }], 'bytes', HERO_ORDER);
 
 const tabs = [
   {
     id: 'parse',
     label: 'Parse speed',
-    caption: 'Avg time per parse() on block-YAML config — the shape most real-world YAML takes. Scaled to the runner-up; yaml runs off-scale (↗). JSON.parse sits out: it can’t read block YAML.',
-    chart: buildChart(avgRows(pickWorkloads(speed.operations.parse, speedNames)), 'ns'),
+    caption: 'Time to parse() block-YAML config, relative to Lightning YAML (always 1.0×) — the shape most real-world YAML takes. Scaled to the runner-up; yaml runs off-scale (↗). JSON.parse sits out: it can’t read block YAML. Click a ratio for per-engine results.',
+    chart: parseChart,
   },
   {
     id: 'dump',
     label: 'Dump speed',
-    caption: 'Avg time per stringify() of the same parsed config — JSON.stringify as baseline on the same value; each row scaled to its slowest parser.',
-    chart: buildChart(avgRows(pickWorkloads(speed.operations.stringify, speedNames)), 'ns'),
+    caption: 'Time to stringify() the same parsed config, relative to Lightning YAML (always 1.0×) — JSON.stringify included as a baseline on the same value. Click a ratio for per-engine results.',
+    chart: dumpChart,
   },
   {
     id: 'memory',
     label: 'Parse memory',
-    caption: 'Peak resident set size while parsing (25 iterations) — lower is better, each row scaled to its slowest.',
-    chart: buildChart(rssRows(pickWorkloads(memory.operations.parse, memoryNames)), 'MB'),
+    caption: 'Peak resident set size while parsing (25 iterations), relative to Lightning YAML (always 1.0×) — lower is better. Click a ratio for per-engine results.',
+    chart: memoryChart,
   },
   {
     id: 'bundle',
     label: 'Bundle size',
-    caption: 'Browser bundle (parse + stringify), min + gzip — smallest across every bundler measured.',
-    chart: buildChart([{ name: 'min + gzip', values: bundleValues }], 'bytes'),
+    caption: 'Browser bundle (parse + stringify), min + gzip — smallest across every bundler measured. Deterministic and environment-free, so this tab stays absolute.',
+    chart: bundleChart,
   },
 ];
 
@@ -161,9 +159,18 @@ const versions = `lightning-yaml ${lyVersion} · yaml ${libVersion('yaml')} · j
             <div class:list={['barline', { 'barline--self': b.self, 'barline--over': b.over }]}>
               <span class="barline__lib" style={`color:${b.color}`}>{b.id}</span>
               <span class="barline__track"><span class="barline__bar" style={`width:${b.width}%;background:${b.color}`}></span></span>
-              <span class="barline__val">{b.label}{b.over && <span class="over-mark">↗</span>}</span>
+              {b.popoverId ? (
+                <button type="button" class="barline__val ratio-btn" popovertarget={b.popoverId} aria-label={`${b.label} — click for per-engine results`}>
+                  {b.label}{b.over && <span class="over-mark">↗</span>}
+                </button>
+              ) : (
+                <span class="barline__val">{b.label}{b.over && <span class="over-mark">↗</span>}</span>
+              )}
             </div>
           ))}
+          {g.bars.map((b) =>
+            b.popoverId && b.popoverHtml ? <div id={b.popoverId} popover="auto" class="ratio-pop" set:html={b.popoverHtml} /> : null,
+          )}
         </div>
       ))}
     </section>
@@ -171,7 +178,7 @@ const versions = `lightning-yaml ${lyVersion} · yaml ${libVersion('yaml')} · j
 
   <div class="hb__foot">
     <span class="hb__env">
-      {speed.env.runtime} · benchmark-data branch<br />
+      Measured in {speed.env.runtime} · benchmark-data branch<br />
       <span class="hb__vers">{versions}</span>
     </span>
     <a class="hb__more" href="/benchmarks/">Full benchmarks&nbsp;→</a>
@@ -230,6 +237,52 @@ const versions = `lightning-yaml ${lyVersion} · yaml ${libVersion('yaml')} · j
     mask-image: linear-gradient(90deg, #000 88%, transparent);
   }
   .over-mark { color: var(--ly-amber); margin-inline-start: 0.2rem; }
+
+  /* Ratio bars with an inspectable breakdown render their value as a real
+     <button popovertarget=...> instead of a plain <span> — dotted underline
+     signals "click me" without looking like a generic form control. */
+  .ratio-btn {
+    all: unset;
+    cursor: pointer;
+    font-family: var(--sl-font-mono);
+    font-size: 0.68rem;
+    color: var(--ly-muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: currentColor;
+    text-underline-offset: 3px;
+  }
+  .ratio-btn:hover { color: var(--ly-ink); }
+  .ratio-btn:focus-visible { outline: 2px solid var(--ly-spark); outline-offset: 2px; border-radius: 3px; }
+  .barline--self .ratio-btn { color: var(--ly-ink); font-weight: 600; }
+
+  /* Native Popover API: `showPopover()`/light-dismiss/Esc are all free from
+     the `popover` attribute — this only styles the panel + its ::backdrop.
+     Content (per-engine rows) is built at BUILD TIME by ratioPopoverHtml()
+     in src/lib/charts.ts. */
+  .ratio-pop {
+    max-width: min(320px, calc(100vw - 2rem));
+    margin: auto;
+    padding: 0.7rem 0.85rem 0.75rem;
+    border: 1px solid var(--ly-line);
+    border-radius: 10px;
+    background: var(--ly-panel);
+    color: var(--ly-ink);
+    font-family: var(--sl-font-mono);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.95);
+  }
+  .ratio-pop::backdrop { background: rgba(5, 7, 12, 0.55); }
+  .ratio-pop__title { font-weight: 600; color: var(--ly-ink); margin: 0 0 0.3rem; }
+  .ratio-pop__sub { color: var(--ly-muted); font-size: 0.9em; margin: 0 0 0.5rem; letter-spacing: 0.02em; }
+  .ratio-pop__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.28rem; }
+  .ratio-pop__list li { display: flex; justify-content: space-between; gap: 0.9rem; color: var(--ly-muted); }
+  .ratio-pop__env { overflow-wrap: anywhere; }
+  .ratio-pop__val { color: var(--ly-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
   .hb__foot {
     display: flex; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap;

@@ -47,7 +47,7 @@ import {
   formatPercent,
   formatKB,
   presentIn,
-} from '../../lib/benchmarks'
+} from '../../lib/charts'
 
 export const speedRuns = parseRuns(speedRaw, SpeedDocSchema)
 export const speed = canonicalRun(speedRuns)
@@ -178,7 +178,22 @@ time**, and a **full breakdown** by workload.
 
 <p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.82em">{provenanceLine}</p>
 
-How to read these:
+## How to read these numbers
+
+Every figure on this page — and everywhere else on this site (the homepage, any "N× faster"
+figure) — is a **single real measurement** in the environment it's labelled with. Nothing here
+is ever averaged or blended across environments: a browser's engine and Node are different
+machines with different results, and combining them into one number would hide that. Where more
+than one environment has published results, use the picker below to see each engine's own
+numbers; a ratio's popover elsewhere on the site lists each engine's own measured value the
+same way.
+
+Right now, results come from **{speedRuntimes.map((r) => r.runtime).join(', ')}**. As a new
+environment — a browser engine, a different Node version — starts publishing benchmark runs, it
+adds its own rows and its own picker option; it never changes the numbers already shown for an
+environment that was already publishing.
+
+A few notes on the charts themselves:
 
 - **Bar charts (latest run)** scale each workload row to its own slowest parser, so compare
   bars *within* a row, not across rows. Speed bars are labelled with time relative to the
