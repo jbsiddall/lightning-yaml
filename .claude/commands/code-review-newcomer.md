@@ -36,3 +36,13 @@ Verify by running, not reading: check a documented example read-only with a smal
 repro; for anything needing a site build or a repo command, write it into your review file as
 an instruction for the top-level rather than running it yourself. Honesty outranks a rosy
 phrasing — if a claim flatters the library beyond what this change supports, flag it.
+
+**Published numbers from the live site.** `https://lightning-yaml.dev` renders the real
+benchmark tables and claims — overlaid from the `benchmark-data` branch, so they are not in
+the working tree — and you may fetch it to read figures that are awkward to reconstruct from
+the repo. Two cautions: it reflects **`origin/main`, not this PR**, so treat its numbers as a
+baseline; and your review range (`BASE..HEAD`) is exactly what the PR adds on top of it. Scan
+that diff for anything touching `README.md`, `site/**`, or benchmark-affecting code — where a
+committed change moves a number or claim, the **PR wins**, so review against the committed
+value, not the stale live one. The site is only a convenience for hard-to-extract data; your
+primary target is always the committed diff.
