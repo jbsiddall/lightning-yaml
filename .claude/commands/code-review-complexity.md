@@ -1,6 +1,6 @@
 ---
-description: "Code-review reviewer — complexity: reduce incidental complexity and long-term risk (Opus, deep thinker). Spawned in parallel by /code-review."
-model: opus
+description: "Code-review reviewer — complexity: reduce incidental complexity and long-term risk (deep thinker). Spawned in parallel by /code-review."
+model: sonnet
 argument-hint: "[base-commit] [head-commit] [pr-number?]"
 ---
 
