@@ -317,6 +317,8 @@ const LOAD_OPTION_RULES: Record<string, OptionRule> = {
 const DUMP_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   sortKeys: activatesFeature("would sort map keys on output — not supported yet"),
+  // NOT activatesFeature: real js-yaml's `false` THROWS on unrepresentable values (functions/Symbols)
+  // where our stringify silently serializes them — so `false` isn't a no-op; every value must fail loud.
   skipInvalid: notYetSupported,
   noRefs: activatesFeature("would expand shared refs instead of using `&`/`*` — not supported yet"),
   forceQuotes: activatesFeature("would always quote strings — not supported yet"),

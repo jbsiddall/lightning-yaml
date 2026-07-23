@@ -151,6 +151,8 @@ const PARSE_OPTION_RULES: Record<string, OptionRule> = {
 const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   version: version12Only,
+  // NOT activatesFeature: our stringify already prefers single quotes (like yaml's singleQuote:true),
+  // so even `false` isn't a no-op — every explicit value must fail loud.
   singleQuote: notYetSupported,
   sortMapEntries: activatesFeature("would sort map entries on output — not supported yet"),
   indent: notYetSupported,
@@ -306,10 +308,14 @@ export function stringify(value: unknown, replacerOrOptions?: unknown, options?:
   // are the 3rd arg — so options are validated under every legal call shape, including
   // `stringify(value, null, options)`.
   const optionsSlot = !hasReplacer && replacerOrOptions != null ? replacerOrOptions : options;
-  // `yaml.stringify(value, replacer, indent)` allows a `JSON.stringify`-style shorthand — a
-  // bare number (space count) or string (literal indent) — in the options slot. We hardcode
-  // indent 2 and can't honour a custom width yet, so fail loud rather than silently ignore it
-  // (a bare number would otherwise slip past validateOptions, since `Object.keys(4)` is empty).
+  // A bare number/string in the options slot is `yaml.stringify`'s `JSON.stringify`-style indent
+  // shorthand: real `yaml` reads it as the indent WIDTH (a number) or indent UNIT (a string's
+  // length) in EITHER the 2-arg (`stringify(v, 4)`) or 3-arg (`stringify(v, null, 4)`) position, and
+  // emits accordingly — `stringify({a:{b:1}}, 4)` indents 4, not the default 2. We hardcode indent 2
+  // and can't honour a custom width, so we fail loud rather than silently emit indent-2 output. (The
+  // shared validateOptions now TOLERATES a scalar bag — see compat-options.ts — because
+  // parse/load/dump genuinely ignore it; only stringify treats it as meaningful, so the reject
+  // lives here, not there.)
   if (typeof optionsSlot === "number" || typeof optionsSlot === "string") {
     failOption(
       "the JSON.stringify-style indent shorthand (stringify(value, replacer, indent)) is not supported yet — custom indent width is unimplemented",

@@ -29,8 +29,6 @@ export const notYetSupported: OptionRule = () => "is not supported yet";
  * lightning-yaml's hardcoded behaviour instead matches the option's *truthy* side (e.g. it
  * always single-quotes, so `singleQuote: false` would NOT be a no-op), this rule silently
  * emits wrong output — use `notYetSupported` there so every explicit value fails loud.
- *
- * Keeps `{ mapAsMap: false }` working while `{ mapAsMap: true }` fails loud.
  */
 export const activatesFeature = (clause: string): OptionRule => (v) => (v ? clause : null);
 
@@ -38,6 +36,8 @@ export const activatesFeature = (clause: string): OptionRule => (v) => (v ? clau
  * Validate an option bag against `rules`, calling `fail` (which must throw) on
  * the first unsupported key or value. A key explicitly set to `undefined` is
  * treated as absent, matching how the real libraries ignore an omitted option.
+ * A non-plain-object bag (a bare scalar or array) is treated as no options — the
+ * real libraries ignore it too.
  */
 export function validateOptions(
   opts: object | null | undefined,
@@ -45,11 +45,12 @@ export function validateOptions(
   fail: (message: string) => never,
 ): void {
   if (opts == null) return;
-  if (typeof opts !== "object") {
-    // A scalar bag (e.g. a JSON.stringify-style indent shorthand) has no own enumerable
-    // keys, so Object.keys() would let it pass as "no options" — fail loud instead.
-    fail(`expected an options object but received a ${typeof opts}`);
-  }
+  // A non-plain-object options argument — a bare scalar (number/string/boolean) or an array —
+  // carries no recognized option keys: real `yaml`/`js-yaml` spread it into `{}` and ignore it, so
+  // treat it as no options rather than enumerating a string's or array's indices. The one place a
+  // scalar IS meaningful — a bare number/string as `yaml.stringify`'s indent shorthand — is rejected
+  // at that call site (src/yaml-compat.ts), before this helper runs.
+  if (typeof opts !== "object" || Array.isArray(opts)) return;
   const bag = opts as Record<string, unknown>;
   for (const key of Object.keys(bag)) {
     const value = bag[key];

@@ -282,17 +282,47 @@ test("yaml-compat.stringify throws on options and on a replacer", () => {
   throws(() => stringify(DUMP_VALUE, ["name"]));
 });
 
-test("yaml-compat.stringify fails loud on the JSON.stringify-style indent shorthand", () => {
-  // `yaml.stringify(value, replacer, indent)` allows a bare number (space count) or string
-  // (literal indent) in the options slot. We hardcode indent 2, so it must throw — naming the
-  // indent shorthand, NOT a nonsensical `option "0"` (what Object.keys("  ") would yield).
+test("yaml-compat.stringify fails loud on the JSON.stringify-style indent shorthand (2- and 3-arg)", () => {
+  // Verified against real yaml@2.9.0 (dist/public-api.js): a bare number/string in the options slot
+  // is its `JSON.stringify`-style indent shorthand, honoured as the indent WIDTH (number) or UNIT
+  // (string length) in BOTH the 2-arg (`stringify(v, 4)`) and 3-arg (`stringify(v, null, 4)`)
+  // position — e.g. real `yaml.stringify({a:{b:1}}, 4)` emits 4-space indent, not our hardcoded 2
+  // (invisible only on a flat value). We can't honour a custom width, so every such call must fail
+  // loud, naming the indent shorthand — NOT a nonsensical `option "0"` (what Object.keys("  ")
+  // would yield). Even indent 2 (== our default) fails loud: we don't honour the knob at all.
   for (const call of [
     () => stringify(DUMP_VALUE, null, 4),
     () => stringify(DUMP_VALUE, null, "  "),
-    () => stringify(DUMP_VALUE, 2), // 2-arg numeric shorthand
+    () => stringify(DUMP_VALUE, 4), // 2-arg numeric shorthand — real yaml reads it as indent 4
+    () => stringify(DUMP_VALUE, "  "), // 2-arg string shorthand — real yaml reads it as indent = length
+    () => stringify(DUMP_VALUE, 2),
   ]) {
     throws(call, (err: unknown) => err instanceof Error && err.message.includes("indent") && !err.message.includes('option "0"'));
   }
+});
+
+// --------------------------------------------------------------------------
+// A bare scalar / array in the OPTIONS position is TOLERATED (no throw, default
+// output) by parse/load/loadAll/dump — matching real yaml/js-yaml, which spread
+// it into `{}` and proceed with defaults. (yaml.stringify is the sole exception:
+// a scalar there is the indent shorthand it honours, so ours fails loud — see the
+// indent-shorthand test above.) Regression guard: the shared options guard must
+// not throw on a scalar, nor enumerate an array's indices as bogus option keys.
+// --------------------------------------------------------------------------
+
+test("scalar/array options are tolerated as no-ops (parse/load/loadAll/dump), matching the real libs", () => {
+  // Verified against real yaml@2.9.0 / js-yaml@5.2.1: each ignores a scalar (or array) options arg
+  // and proceeds with defaults, so ours must NOT throw and must match their output.
+  deepStrictEqual(parse("a: 1\n", 4 as never), yamlReal.parse("a: 1\n", 4 as never));
+  deepStrictEqual(parse("a: 1\n", [1, 2, 3] as never), yamlReal.parse("a: 1\n", [1, 2, 3] as never));
+  deepStrictEqual(load("a: 1\n", 4 as never), jsyamlReal.load("a: 1\n", 4 as never));
+  deepStrictEqual(loadAll("a: 1\n", null, 4 as never), jsyamlReal.loadAll("a: 1\n", null, 4 as never));
+  // A nested value would expose a wrongly-honoured indent; js-yaml ignores the scalar, so the
+  // tolerated call must equal the no-options call (both our hardcoded indent 2).
+  const nested = { a: { b: 1 } };
+  strictEqual(dump(nested, 4 as never), dump(nested));
+  strictEqual(dump(nested, true as never), dump(nested));
+  strictEqual(dump(nested, "xy" as never), dump(nested));
 });
 
 test("yaml-compat.stringify throws on singleQuote at either value (our output already prefers single quotes)", () => {
