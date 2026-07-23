@@ -54,7 +54,14 @@ export function withVersion(label: string, version?: string): string {
 export function sourceLine(doc: { generated?: unknown; source?: unknown; env?: { cpu: string; clk: string; runtime: string } }): string {
   const generated = String(doc.generated ?? '');
   const source = String(doc.source ?? '');
-  if (doc.env) return `Measured on ${doc.env.cpu} (${doc.env.clk}) · ${doc.env.runtime} · generated ${generated} · source ${source}`;
+  if (doc.env) {
+    // Browser docs record cpu/clk as "unknown" — a page can't read the host's
+    // hardware (see bench/browser/run.ts) — and printing that verbatim reads
+    // like a bug, so name only what the doc actually knows.
+    const where =
+      doc.env.cpu === 'unknown' ? `in ${doc.env.runtime}` : `on ${doc.env.cpu} (${doc.env.clk}) · ${doc.env.runtime}`;
+    return `Measured ${where} · generated ${generated} · source ${source}`;
+  }
   return `Generated ${generated} · source ${source}`;
 }
 

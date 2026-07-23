@@ -29,7 +29,7 @@
  *
  * Env:
  *   BENCH_SOURCE      provenance string for the doc's `source` field (default: git sha)
- *   BENCH_MEM_ITERS   K, parses retained per fixture (default 40 — see the
+ *   BENCH_MEM_ITERS   K, parses retained per fixture (default 60 — see the
  *                     module-level ITERS comment for why).
  */
 
@@ -85,7 +85,7 @@ interface LibraryFixtureDeltas {
 
 declare const window: {
   __memParseAndRetain?: (url: string, category: string, iters: number) => Promise<number>;
-  __memDropRetained?: () => void;
+  __memDropRetained?: () => number;
   __memReadHeap?: () => number;
 };
 
@@ -130,7 +130,10 @@ async function runChromiumLeg(
           [fx.url, fx.category, ITERS],
         );
         const after = await readHeap(page);
-        await page.evaluate(() => window.__memDropRetained!());
+        const dropped = await page.evaluate(() => window.__memDropRetained!());
+        if (dropped !== ITERS) {
+          throw new Error(`${lib.id} / ${fx.name}: only ${dropped}/${ITERS} retained results survived to the drop — page reloaded or crashed mid-batch, reading invalid`);
+        }
         const net = after - before - emptyPageDeltaBytes;
         deltas[lib.id][fx.name] = net;
         console.log(`  ${lib.id} / ${fx.name}: Δheap=${(net / 1024).toFixed(1)} KB (raw ${((after - before) / 1024).toFixed(1)} KB, noise floor ${emptyPageDeltaBytes} B)`);
@@ -172,6 +175,10 @@ async function measureWebkitBatch(
       [fx.url, fx.category, iters],
     );
     const peak = readVmHwmBytes(webProcessPid);
+    const dropped = await page.evaluate(() => window.__memDropRetained!());
+    if (dropped !== iters) {
+      throw new Error(`only ${dropped}/${iters} retained results survived to the drop — page reloaded or crashed mid-batch, reading invalid`);
+    }
     return peak - baseline;
   } finally {
     await page.close();

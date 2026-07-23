@@ -38,6 +38,7 @@ import {
   canonicalSpeedRatio,
   heroMemoryRatio,
   heroMemoryRuntime,
+  heroMemoryLibraries,
   combinedMemoryRatioPoints,
   SpeedDocSchema,
   MemoryDocSchema,
@@ -59,11 +60,10 @@ const HERO_ORDER: LibraryId[] = ['JSON', 'lightning-yaml', 'js-yaml', 'yaml'];
 // Every tab charts the same block-YAML config trio: real-world YAML is
 // overwhelmingly block-style config (see the 2026-07-16 target-workload
 // research note), and the JSON-text fixtures — where our lead over js-yaml
-// happens to be larger — would flatter us. Memory used to chart the JSON
-// trio instead (for the 10 MB tail case, still shown on /benchmarks) — moved
-// onto this same trio so the browser memory-ratios suite (which only
-// measures yaml-plain/yaml-rich, never JSON — see bench/browser/memory/manifest.ts)
-// has workloads to actually attach to once it publishes.
+// happens to be larger — would flatter us. Memory included: the browser
+// memory-ratios suite only measures yaml-plain/yaml-rich, never JSON (see
+// bench/browser/memory/manifest.ts), so these are the only workloads its
+// data can attach to (the 10 MB JSON tail case stays on /benchmarks).
 const speedNames = ['yaml-plain-small-records', 'yaml-plain-medium-records', 'yaml-plain-large-records'];
 const memoryNames = speedNames;
 const WORKLOAD_LABEL: Record<string, string> = {
@@ -100,7 +100,7 @@ function memoryRatioRows(names: string[]): RatioRow[] {
 const speedTitleFor = (rowName: string, id: LibraryId) =>
   `${libraryLabel(speed.libraries, id)} ÷ ${libraryLabel(speed.libraries, 'lightning-yaml')} — ${rowName}`;
 const memoryTitleFor = (rowName: string, id: LibraryId) =>
-  `${libraryLabel(memoryRuns.at(-1)?.libraries ?? [], id)} ÷ Lightning YAML — ${rowName} (parse memory)`;
+  `${libraryLabel(heroMemoryLibraries(memoryRuns, memoryRatiosRuns), id)} ÷ Lightning YAML — ${rowName} (parse memory)`;
 
 const parseChart = ratioBarRows(speedRatioRows('parse', speedNames), HERO_ORDER, 'hero-parse', speedTitleFor, true);
 const dumpChart = ratioBarRows(speedRatioRows('stringify', speedNames), HERO_ORDER, 'hero-dump', speedTitleFor, true);
