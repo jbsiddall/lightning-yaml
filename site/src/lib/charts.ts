@@ -41,23 +41,23 @@ export function withVersion(label: string, version?: string): string {
 }
 
 /**
- * A section-scoped provenance line for /benchmarks — "Measured on <cpu>
- * (<clk>) · <runtime> · generated <date> · source <sha>" for a doc that
- * carries environment info (speed, memory, memory-ratios), or the leaner
- * "Generated <date> · source <sha>" for one that doesn't (conformance has no
- * `env` at all — it's a parser property, not a runtime measurement; bundle
- * size's `env` is bundler versions, not a CPU/runtime). Each section states
- * its OWN doc's provenance — a page-wide line reading one suite's data above
- * sections fed by other streams would misattribute them, the same shape #120
- * fixed for the hero's per-tab "Measured in" line.
+ * A section-scoped provenance line for /benchmarks. Three shapes, keyed to
+ * what the doc actually knows: "Measured on <cpu> (<clk>) · <runtime> · …"
+ * for a doc with full environment info (Node runs); "Measured in
+ * <runtime> · …" for browser docs, which record cpu/clk as "unknown" (a page
+ * can't read the host's hardware — see bench/browser/run.ts) and would
+ * otherwise print that verbatim like a bug; and the leaner "Generated <date>
+ * · source <sha>" for a doc with no `env` at all (conformance — a parser
+ * property, not a runtime measurement; bundle size's `env` is bundler
+ * versions, not a CPU/runtime). Each section states its OWN doc's provenance
+ * — a page-wide line reading one suite's data above sections fed by other
+ * streams would misattribute them, the same shape #120 fixed for the hero's
+ * per-tab "Measured in" line.
  */
 export function sourceLine(doc: { generated?: unknown; source?: unknown; env?: { cpu: string; clk: string; runtime: string } }): string {
   const generated = String(doc.generated ?? '');
   const source = String(doc.source ?? '');
   if (doc.env) {
-    // Browser docs record cpu/clk as "unknown" — a page can't read the host's
-    // hardware (see bench/browser/run.ts) — and printing that verbatim reads
-    // like a bug, so name only what the doc actually knows.
     const where =
       doc.env.cpu === 'unknown' ? `in ${doc.env.runtime}` : `on ${doc.env.cpu} (${doc.env.clk}) · ${doc.env.runtime}`;
     return `Measured ${where} · generated ${generated} · source ${source}`;

@@ -361,8 +361,7 @@ export function heroMemoryRuntime(memoryRuns: readonly MemoryDoc[], memoryRatios
 /**
  * The library catalog (labels + versions) from the SAME doc `heroMemoryRatio`
  * headlines — a label sourced from a different stream than the number it
- * labels can silently drift once the streams update independently (the exact
- * bug the hero footer once had with js-yaml's version).
+ * labels can silently drift once the streams update independently.
  */
 export function heroMemoryLibraries(
   memoryRuns: readonly MemoryDoc[],
