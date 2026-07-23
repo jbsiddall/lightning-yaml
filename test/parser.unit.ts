@@ -775,8 +775,22 @@ test("directives: %YAML is accepted (1.1 and 1.2) and requires a following '---'
   throws(() => parse("%YAML 1.2\n"), YAMLParseError); // no '---' before EOF either
 });
 
+test("directives: %YAML with a higher major version is rejected (spec §6.8.1)", () => {
+  throws(() => parse("%YAML 2.0\n---\nfoo: bar\n"), YAMLParseError);
+  throws(() => jsYamlLoad("%YAML 2.0\n---\nfoo: bar\n"));
+  // A higher *minor* is still accepted (process-with-warning, not rejected) —
+  // regression guard so 1.x keeps working.
+  deepStrictEqual(parse("%YAML 1.3\n---\nx\n"), "x");
+});
+
 test("directives: %TAG is accepted and stored without requiring tags to be implemented", () => {
   deepStrictEqual(parse("%TAG !e! tag:example.com,2000:\n---\nfoo\n"), "foo");
+});
+
+test("directives: duplicate %TAG for the same handle in one document is rejected (spec §6.8.2)", () => {
+  throws(() => parse("%TAG ! !foo\n%TAG ! !foo\n---\nbar\n"), YAMLParseError);
+  // Different handles are not a duplicate — regression guard.
+  deepStrictEqual(parse("%TAG ! !foo\n%TAG !e! !bar\n---\nbaz\n"), "baz");
 });
 
 test("directives: an unrecognized directive is ignored, not rejected", () => {
@@ -1776,3 +1790,19 @@ for (const ds of datasets.filter((d) => d.category === "yaml-plain")) {
     deepStrictEqual(parse(text, { optimizations: { internStrings: true } }), parse(text));
   });
 }
+
+// --------------------------------------------------------------------------
+// keyCache cap (#136): mostly-distinct mapping keys must still parse correctly
+// once the per-parse key-intern cache stops growing past MAX_KEY_CACHE. This
+// pins correctness only — the cap's memory behaviour mirrors the already-proven
+// sibling caches (valueCache/dumpKeyCache), so no multi-million-key test here.
+// --------------------------------------------------------------------------
+
+test("mostly-distinct mapping keys all parse to the right key/value pairs", () => {
+  const n = 500;
+  let doc = "";
+  for (let i = 0; i < n; i++) doc += `key-${i}: value-${i}\n`;
+  const result = parse(doc) as Record<string, string>;
+  strictEqual(Object.keys(result).length, n);
+  for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
+});
