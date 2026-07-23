@@ -4,9 +4,9 @@
 // append-only multi-document streams (src/data/benchmarks/*.yaml), validate
 // them against bench/schemas.ts (the single source of truth for the doc
 // shape — also used by bench/validate.ts and the emitters), and select/shape
-// the validated docs for benchmarks.ts to render. A schema change there is a
+// the validated docs for charts.ts to render. A schema change there is a
 // type error (and a build-time validation failure) here, not silent drift.
-// No chart or table rendering happens here; that's benchmarks.ts, which
+// No chart or table rendering happens here; that's charts.ts, which
 // imports from this file. Everything runs at Astro BUILD TIME — no browser
 // APIs, no client JS.
 
@@ -231,11 +231,11 @@ export function memoryWorkloadRatio(
 }
 
 /**
- * THE headline number: the canonical environment's own measured ratio for one
- * workload — a single real measurement, never averaged or blended with any
- * other environment. `undefined` when the canonical run doesn't have a value
- * for one side of the pair (that workload/library combination simply isn't
- * shown, rather than silently falling back to a different environment).
+ * THE headline number — see this file's "Ratio queries" section above for
+ * why it's one real measurement, never blended. `undefined` when the
+ * canonical run doesn't have a value for one side of the pair (that
+ * workload/library combination simply isn't shown, rather than silently
+ * falling back to a different environment).
  */
 export function canonicalSpeedRatio(
   runs: readonly SpeedDoc[],
@@ -274,7 +274,7 @@ export function pickWorkloads<T extends { workload: string }>(workloads: T[], na
 /**
  * Canonical series order, used consistently across every chart on the page.
  * A chart shows only the subset actually present in its workloads (see
- * `presentIn` in benchmarks.ts) — so `js-yaml-tuned`, which has stringify
+ * `presentIn` in charts.ts) — so `js-yaml-tuned`, which has stringify
  * data only, never appears as an empty series on the parse or memory charts.
  */
 export const LIBRARY_ORDER: readonly LibraryId[] = [

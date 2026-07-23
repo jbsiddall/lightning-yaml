@@ -9,15 +9,17 @@
 //
 // Parse/Dump/Memory show RATIOS against lightning-yaml (always 1.0×), not
 // absolute times — the one exception is Bundle size, which stays absolute KB
-// because it's deterministic and environment-free. Every ratio is the
-// CANONICAL environment's own measured ratio (canonicalRun — a real browser
-// engine once one publishes, falling back to Node; see queries.ts's
-// "Ratio queries" section) — ONE real measurement, never blended across
-// environments. Click a ratio to open its native-Popover-API breakdown:
-// every environment's own ratio, listed separately, built at BUILD TIME,
-// zero client JS. Each row still scales to its own largest bar, clipping an
-// outlier that runs away from the field (>3× the runner-up, "off-scale" ↗)
-// so the rest stay legible.
+// because it's deterministic and environment-free. Each ratio is one real
+// measurement in its suite's own canonical environment — see queries.ts's
+// "Ratio queries" section for why it's never blended across environments.
+// The Speed suite (Parse/Dump) and the Memory suite pick their canonical run
+// independently, so they can point at different environments — the footer
+// below states each tab's own runtime rather than one shared label. Click a
+// ratio to open its native-Popover-API breakdown: every environment's own
+// ratio, listed separately, built at BUILD TIME, zero client JS. Each row
+// still scales to its own largest bar, clipping an outlier that runs away
+// from the field (>3× the runner-up, "off-scale" ↗) so the rest stay
+// legible.
 import speedRaw from '../data/benchmarks/speed.yaml?raw';
 import memoryRaw from '../data/benchmarks/memory.yaml?raw';
 import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
@@ -89,14 +91,12 @@ const speedTitleFor = (rowName: string, id: LibraryId) =>
 const memoryTitleFor = (rowName: string, id: LibraryId) =>
   `${libraryLabel(memory.libraries, id)} ÷ ${libraryLabel(memory.libraries, 'lightning-yaml')} — ${rowName} (peak RSS)`;
 
-// Off-scale clamping (>3× the runner-up gets clipped, ↗) mirrors the old
-// per-unit behaviour: speed rows clamp, memory rows never did.
 const parseChart = ratioBarRows(speedRatioRows('parse', speedNames), HERO_ORDER, 'hero-parse', speedTitleFor, true);
 const dumpChart = ratioBarRows(speedRatioRows('stringify', speedNames), HERO_ORDER, 'hero-dump', speedTitleFor, true);
 const memoryChart = ratioBarRows(memoryRatioRows(memoryNames), HERO_ORDER, 'hero-mem', memoryTitleFor, false);
 
 const bundleValues = Object.fromEntries(bundleSizeItems(bundle).map((it) => [it.id, it.value]));
-const bundleChart = buildChart([{ name: 'min + gzip', values: bundleValues }], 'bytes', HERO_ORDER);
+const bundleChart = buildChart([{ name: 'min + gzip', values: bundleValues }], HERO_ORDER);
 
 const tabs = [
   {
@@ -178,7 +178,7 @@ const versions = `lightning-yaml ${lyVersion} · yaml ${libVersion('yaml')} · j
 
   <div class="hb__foot">
     <span class="hb__env">
-      Measured in {speed.env.runtime} · benchmark-data branch<br />
+      <span class="hb__foot-env" data-tab="parse">Measured in {speed.env.runtime}</span><span class="hb__foot-env" data-tab="dump">Measured in {speed.env.runtime}</span><span class="hb__foot-env" data-tab="memory">Measured in {memory.env.runtime}</span><span class="hb__foot-env" data-tab="bundle">Deterministic — no runtime to measure</span> · benchmark-data branch<br />
       <span class="hb__vers">{versions}</span>
     </span>
     <a class="hb__more" href="/benchmarks/">Full benchmarks&nbsp;→</a>
@@ -290,16 +290,26 @@ const versions = `lightning-yaml ${lyVersion} · yaml ${libVersion('yaml')} · j
     font-family: var(--sl-font-mono); font-size: 0.68rem;
   }
   .hb__env { color: var(--ly-muted); opacity: 0.85; line-height: 1.5; }
+  /* Which tab's runtime label shows is driven by the same radio state as the
+     panels below — see the CSS-only tab switching rules. */
+  .hb__foot-env { display: none; }
   .hb__vers { opacity: 0.75; }
   .hb__more { color: var(--ly-spark); font-weight: 600; text-decoration: none; white-space: nowrap; }
   .hb__more:hover { color: var(--ly-ink); }
 
-  /* CSS-only tab switching: radios are earlier siblings of the tabs + panels. */
+  /* CSS-only tab switching: radios are earlier siblings of the tabs, panels,
+     and the shared footer's per-tab runtime label (.hb__foot-env). */
   #hb-tab-parse:checked ~ .hb__panel[data-tab='parse'],
   #hb-tab-dump:checked ~ .hb__panel[data-tab='dump'],
   #hb-tab-memory:checked ~ .hb__panel[data-tab='memory'],
   #hb-tab-bundle:checked ~ .hb__panel[data-tab='bundle'] {
     display: block;
+  }
+  #hb-tab-parse:checked ~ .hb__foot .hb__foot-env[data-tab='parse'],
+  #hb-tab-dump:checked ~ .hb__foot .hb__foot-env[data-tab='dump'],
+  #hb-tab-memory:checked ~ .hb__foot .hb__foot-env[data-tab='memory'],
+  #hb-tab-bundle:checked ~ .hb__foot .hb__foot-env[data-tab='bundle'] {
+    display: inline;
   }
   #hb-tab-parse:checked ~ .hb__tabs label[for='hb-tab-parse'],
   #hb-tab-dump:checked ~ .hb__tabs label[for='hb-tab-dump'],
