@@ -6,6 +6,7 @@ template: doc
 
 import speedRaw from '../../data/benchmarks/speed.yaml?raw'
 import memoryRaw from '../../data/benchmarks/memory.yaml?raw'
+import memoryRatiosRaw from '../../data/benchmarks/memory-ratios.yaml?raw'
 import conformanceRaw from '../../data/benchmarks/conformance.yaml?raw'
 import bundleSizeRaw from '../../data/benchmarks/bundle-size.yaml?raw'
 import ChartCard from '../../components/charts/ChartCard.astro'
@@ -21,6 +22,7 @@ import {
   LIBRARY_ORDER,
   SpeedDocSchema,
   MemoryDocSchema,
+  MemoryRatiosDocSchema,
   ConformanceDocSchema,
   BundleSizeDocSchema,
 } from '../../lib/queries'
@@ -39,6 +41,7 @@ import {
   bundleSizeTrend,
   trendLegend,
   memoryBreakdownHtml,
+  groupedBreakdownTableHtml,
   conformanceItems,
   conformanceTableHtml,
   bundleSizeTableHtml,
@@ -46,7 +49,9 @@ import {
   formatMB,
   formatPercent,
   formatKB,
+  formatRatioCell,
   presentIn,
+  sourceLine,
 } from '../../lib/charts'
 
 export const speedRuns = parseRuns(speedRaw, SpeedDocSchema)
@@ -61,6 +66,14 @@ export const speedSections = speedRuntimes.map((r) =>
 export const memoryRuns = parseRuns(memoryRaw, MemoryDocSchema)
 export const memory = newestOf(memoryRuns)
 export const memoryTicks = xTicks(runDates(memoryRuns))
+
+export const memoryRatiosRuns = parseRuns(memoryRatiosRaw, MemoryRatiosDocSchema)
+export const memoryRatiosEnvs = availableRuntimes(memoryRatiosRuns)
+export const memRatioOrder = presentIn(
+  LIBRARY_ORDER.filter((id) => id !== 'js-yaml-tuned' && id !== 'JSON'),
+  memoryRatiosEnvs.flatMap((e) => e.doc.workloads),
+)
+
 export const conformanceRuns = parseRuns(conformanceRaw, ConformanceDocSchema)
 export const conformance = newestOf(conformanceRuns)
 export const bundleSizeRuns = parseRuns(bundleSizeRaw, BundleSizeDocSchema)
@@ -168,15 +181,13 @@ export const bundleTrendSvg = lineChartSVG({
 })
 export const bundleSizeTable = bundleSizeTableHtml(bundleSize)
 
-export const provenanceLine = `Measured on ${speed.env.cpu} (${speed.env.clk}) · ${speed.env.runtime} · generated ${speed.generated} · source ${speed.source}`
-
 Speed, memory, spec-conformance, and bundle size for **Lightning YAML** against the other
 parsers this repo benchmarks itself against: `js-yaml`, `yaml` (eemeli), and the `JSON`
 baseline where a workload is JSON-shaped enough for it to compete. Use the "On this page"
 panel to jump between sections; each metric shows the **latest run**, the **trend over
-time**, and a **full breakdown** by workload.
-
-<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.82em">{provenanceLine}</p>
+time**, and a **full breakdown** by workload. Every section below states its own
+measurement's date, source commit, and (where the suite records one) environment — sections
+come from different published runs, so this page never shows one line for all of them.
 
 ## How to read these numbers
 
@@ -230,6 +241,13 @@ Turning YAML text into JavaScript values — the hot path for most consumers.
 
 ### Parse speed
 
+{speedRuntimes.map((r) => (
+  <p
+    style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem"
+    data-runtime={speedRuntimes.length > 1 ? r.family : undefined}
+  >{sourceLine(r.doc)}</p>
+))}
+
 {speedSections.map((s) => (
   <ChartCard
     heading="Parse time by workload"
@@ -262,6 +280,8 @@ Turning YAML text into JavaScript values — the hot path for most consumers.
 
 ### Parse memory
 
+<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem">{sourceLine(memory)}</p>
+
 <ChartCard
   heading="Peak memory by workload (parse)"
   note="Lower is better. Whole-process peak resident set (process.resourceUsage().maxRSS) in isolated child processes, fixed at 25 iterations. Each workload is scaled to its own heaviest parser."
@@ -280,11 +300,49 @@ Turning YAML text into JavaScript values — the hot path for most consumers.
 
 <div style="overflow-x:auto;margin:1rem 0 1.5rem" set:html={parseMemTable} />
 
+### Parse memory — in-browser (ratio)
+
+The chart above measures Node; a browser page can't read its own process's memory the same
+way, so this is a separate, ratio-only measurement taken inside real browser engines — always
+relative to Lightning YAML (1.0×), never absolute megabytes. Two methods, not directly
+comparable to each other or to the Node figures above:
+
+- **Chrome's engine (Chromium)** — how much the page's own JS heap grows after parsing and
+  keeping the result, measured in-page and garbage-collected before each reading. Higher
+  confidence: it's reading the same engine doing the work.
+- **Safari's engine (WebKit)** — the operating system's peak memory reading for the browser's
+  page process during the same parse-and-keep step. Lower confidence: it also counts memory the
+  engine used and gave back, not just what's still held.
+
+{memoryRatiosEnvs.length === 0 && (
+  <p><em>No browser run has published yet.</em></p>
+)}
+
+{memoryRatiosEnvs.map((e) => (
+  <>
+    <p style="font-family:var(--sl-font-mono);font-weight:600;margin:1.2rem 0 0.2rem">
+      {e.family === 'chromium' ? "Chrome's engine (Chromium)" : e.family === 'webkit' ? "Safari's engine (WebKit)" : e.runtime} · {e.doc.method === 'heap-delta' ? 'retained-heap ratio' : 'peak-RSS ratio, lower confidence'}
+    </p>
+    <p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 0.6rem">{sourceLine(e.doc)}</p>
+    <div
+      style="overflow-x:auto;margin:0 0 1.5rem"
+      set:html={groupedBreakdownTableHtml(e.doc.workloads, e.doc.libraries, memRatioOrder, formatRatioCell)}
+    />
+  </>
+))}
+
 ## Stringify (dump)
 
 Serializing JavaScript values back to YAML text.
 
 ### Stringify speed
+
+{speedRuntimes.map((r) => (
+  <p
+    style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem"
+    data-runtime={speedRuntimes.length > 1 ? r.family : undefined}
+  >{sourceLine(r.doc)}</p>
+))}
 
 {speedSections.map((s) => (
   <ChartCard
@@ -325,6 +383,8 @@ config would be identical to the default.
 
 ### Stringify memory
 
+<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem">{sourceLine(memory)}</p>
+
 <ChartCard
   heading="Peak memory by workload (stringify)"
   note="Lower is better. Whole-process peak resident set while dumping, in isolated child processes, fixed at 25 iterations. Each workload is scaled to its own heaviest dumper."
@@ -348,6 +408,8 @@ config would be identical to the default.
 Pass rate across the official [yaml-test-suite](https://github.com/yaml/yaml-test-suite) — the
 YAML 1.2 spec operationalized as executable cases — a property of the parser, not a per-workload
 measurement. Higher is better.
+
+<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem">{sourceLine(conformance)}</p>
 
 <ChartCard
   heading="YAML test-suite conformance"
@@ -376,6 +438,8 @@ How many kilobytes each library adds to a browser bundle when an app imports onl
 `stringify` and ships it minified — a whole-library figure, not split by operation. Measured
 with `js-yaml`, `yaml` (eemeli), and `lightning-yaml`, tree-shaken and gzipped the same way a
 real app would ship them. Sizes are deterministic (not machine-dependent). Lower is better.
+
+<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem">{sourceLine({ generated: bundleSize.generated, source: bundleSize.source })}</p>
 
 <ChartCard
   heading="Bundle size (browser)"

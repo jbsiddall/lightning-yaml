@@ -14,28 +14,34 @@
 // "Ratio queries" section for why it's never blended across environments.
 // The Speed suite (Parse/Dump) and the Memory suite pick their canonical run
 // independently, so they can point at different environments — the footer
-// below states each tab's own runtime rather than one shared label. Click a
-// ratio to open its native-Popover-API breakdown: every environment's own
-// ratio, listed separately, built at BUILD TIME, zero client JS. Each row
-// still scales to its own largest bar, clipping an outlier that runs away
-// from the field (>3× the runner-up, "off-scale" ↗) so the rest stay
-// legible.
+// below states each tab's own runtime rather than one shared label. Memory's
+// canonical source can itself be one of two methods (Node peak-RSS-derived,
+// or — once CI publishes one — a chromium `memory-ratios` document's own
+// in-page ratio; see queries.ts's heroMemoryRatio) — the popover always lists
+// every environment's own number with its method labelled, never just the
+// headline's source. Click a ratio to open its native-Popover-API breakdown:
+// every environment's own ratio, listed separately, built at BUILD TIME, zero
+// client JS. Each row still scales to its own largest bar, clipping an
+// outlier that runs away from the field (>3× the runner-up, "off-scale" ↗)
+// so the rest stay legible.
 import speedRaw from '../data/benchmarks/speed.yaml?raw';
 import memoryRaw from '../data/benchmarks/memory.yaml?raw';
+import memoryRatiosRaw from '../data/benchmarks/memory-ratios.yaml?raw';
 import bundleSizeRaw from '../data/benchmarks/bundle-size.yaml?raw';
 import {
   parseRuns,
-  newestOf,
   newestRun,
   canonicalRun,
   pickWorkloads,
   bundleSizeItems,
   speedWorkloadRatio,
-  memoryWorkloadRatio,
   canonicalSpeedRatio,
-  canonicalMemoryRatio,
+  heroMemoryRatio,
+  heroMemoryRuntime,
+  combinedMemoryRatioPoints,
   SpeedDocSchema,
   MemoryDocSchema,
+  MemoryRatiosDocSchema,
   BundleSizeDocSchema,
 } from '../lib/queries';
 import type { LibraryId } from '../lib/queries';
@@ -45,18 +51,21 @@ import type { RatioRow } from '../lib/charts';
 const speedRuns = parseRuns(speedRaw, SpeedDocSchema);
 const speed = canonicalRun(speedRuns);
 const memoryRuns = parseRuns(memoryRaw, MemoryDocSchema);
-const memory = newestOf(memoryRuns);
+const memoryRatiosRuns = parseRuns(memoryRatiosRaw, MemoryRatiosDocSchema);
 const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
 const HERO_ORDER: LibraryId[] = ['JSON', 'lightning-yaml', 'js-yaml', 'yaml'];
 
-// The speed tabs chart the block-YAML config fixtures: real-world YAML is
-// overwhelmingly block-style config (see the 2026-07-16 target-workload research
-// note), and the JSON-text fixtures — where our lead over js-yaml happens to be
-// larger — would flatter us. Memory keeps the JSON trio for the 10 MB tail case
-// (YAML fixtures are capped at 1 MB by design).
+// Every tab charts the same block-YAML config trio: real-world YAML is
+// overwhelmingly block-style config (see the 2026-07-16 target-workload
+// research note), and the JSON-text fixtures — where our lead over js-yaml
+// happens to be larger — would flatter us. Memory used to chart the JSON
+// trio instead (for the 10 MB tail case, still shown on /benchmarks) — moved
+// onto this same trio so the browser memory-ratios suite (which only
+// measures yaml-plain/yaml-rich, never JSON — see bench/browser/memory/manifest.ts)
+// has workloads to actually attach to once it publishes.
 const speedNames = ['yaml-plain-small-records', 'yaml-plain-medium-records', 'yaml-plain-large-records'];
-const memoryNames = ['small-records', 'large-records', 'xlarge-records'];
+const memoryNames = speedNames;
 const WORKLOAD_LABEL: Record<string, string> = {
   'yaml-plain-small-records': 'small config · ~1 KB',
   'yaml-plain-medium-records': 'medium config · ~100 KB',
@@ -75,21 +84,23 @@ function speedRatioRows(op: 'parse' | 'stringify', names: string[]): RatioRow[] 
   }));
 }
 function memoryRatioRows(names: string[]): RatioRow[] {
-  return pickWorkloads(memory.operations.parse, names).map((w) => ({
-    name: w.workload,
-    ratios: Object.fromEntries(
-      HERO_ORDER.map((id) => [id, canonicalMemoryRatio(memoryRuns, 'parse', w.workload, id, 'lightning-yaml')]),
-    ) as Partial<Record<LibraryId, number>>,
-    points: Object.fromEntries(
-      HERO_ORDER.map((id) => [id, memoryWorkloadRatio(memoryRuns, 'parse', w.workload, id, 'lightning-yaml')]),
-    ) as RatioRow['points'],
-  }));
+  return names
+    .map((name) => ({
+      name: WORKLOAD_LABEL[name] ?? name,
+      ratios: Object.fromEntries(
+        HERO_ORDER.map((id) => [id, heroMemoryRatio(memoryRuns, memoryRatiosRuns, name, id)]),
+      ) as Partial<Record<LibraryId, number>>,
+      points: Object.fromEntries(
+        HERO_ORDER.map((id) => [id, combinedMemoryRatioPoints(memoryRuns, memoryRatiosRuns, name, id)]),
+      ) as RatioRow['points'],
+    }))
+    .filter((row) => Object.values(row.ratios).some((v) => typeof v === 'number')); // drop a workload absent from every source, same as pickWorkloads used to
 }
 
 const speedTitleFor = (rowName: string, id: LibraryId) =>
   `${libraryLabel(speed.libraries, id)} ÷ ${libraryLabel(speed.libraries, 'lightning-yaml')} — ${rowName}`;
 const memoryTitleFor = (rowName: string, id: LibraryId) =>
-  `${libraryLabel(memory.libraries, id)} ÷ ${libraryLabel(memory.libraries, 'lightning-yaml')} — ${rowName} (peak RSS)`;
+  `${libraryLabel(memoryRuns.at(-1)?.libraries ?? [], id)} ÷ Lightning YAML — ${rowName} (parse memory)`;
 
 const parseChart = ratioBarRows(speedRatioRows('parse', speedNames), HERO_ORDER, 'hero-parse', speedTitleFor, true);
 const dumpChart = ratioBarRows(speedRatioRows('stringify', speedNames), HERO_ORDER, 'hero-dump', speedTitleFor, true);
@@ -114,7 +125,7 @@ const tabs = [
   {
     id: 'memory',
     label: 'Parse memory',
-    caption: 'Peak resident set size while parsing (25 iterations), relative to Lightning YAML (always 1.0×) — lower is better. Click a ratio for per-engine results.',
+    caption: 'Memory used while parsing, relative to Lightning YAML (always 1.0×) — lower is better. How it’s measured differs by environment (Node’s whole-process peak RSS vs. a browser’s own in-page or process reading) — click a ratio to see each engine’s own number and method.',
     chart: memoryChart,
   },
   {
@@ -178,7 +189,7 @@ const versions = `lightning-yaml ${lyVersion} · yaml ${libVersion('yaml')} · j
 
   <div class="hb__foot">
     <span class="hb__env">
-      <span class="hb__foot-env" data-tab="parse">Measured in {speed.env.runtime}</span><span class="hb__foot-env" data-tab="dump">Measured in {speed.env.runtime}</span><span class="hb__foot-env" data-tab="memory">Measured in {memory.env.runtime}</span><span class="hb__foot-env" data-tab="bundle">Deterministic — no runtime to measure</span> · benchmark-data branch<br />
+      <span class="hb__foot-env" data-tab="parse">Measured in {speed.env.runtime}</span><span class="hb__foot-env" data-tab="dump">Measured in {speed.env.runtime}</span><span class="hb__foot-env" data-tab="memory">Measured in {heroMemoryRuntime(memoryRuns, memoryRatiosRuns)}</span><span class="hb__foot-env" data-tab="bundle">Deterministic — no runtime to measure</span> · benchmark-data branch<br />
       <span class="hb__vers">{versions}</span>
     </span>
     <a class="hb__more" href="/benchmarks/">Full benchmarks&nbsp;→</a>
@@ -282,6 +293,7 @@ const versions = `lightning-yaml ${lyVersion} · yaml ${libVersion('yaml')} · j
   .ratio-pop__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.28rem; }
   .ratio-pop__list li { display: flex; justify-content: space-between; gap: 0.9rem; color: var(--ly-muted); }
   .ratio-pop__env { overflow-wrap: anywhere; }
+  .ratio-pop__method { opacity: 0.75; }
   .ratio-pop__val { color: var(--ly-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
   .hb__foot {
