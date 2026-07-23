@@ -43,12 +43,20 @@ export const ORACLE_NAME = "yaml";
  * unequal). We standardize on `Uint8Array` — the portable browser+Node type and
  * the contract documented throughout this repo — so the correctness gate accepts
  * a spec-compliant parser instead of demanding a Node-specific `Buffer`.
+ *
+ * Decodes via the global `atob` rather than `Buffer.from(...)`: this module is
+ * also bundled into bench/browser/entry.ts to reconstruct in-memory values for
+ * the in-page stringify benchmarks, and `Buffer` doesn't exist in a browser —
+ * `atob` does (and Node has shipped it as a global since v16, so this is a
+ * behavior-neutral swap on the Node side too).
  */
 const binaryToUint8Array: ScalarTag = {
   tag: "tag:yaml.org,2002:binary",
   resolve(str: string): Uint8Array {
-    const bytes = Buffer.from(str.replace(/\s/g, ""), "base64");
-    return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const binary = atob(str.replace(/\s/g, ""));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
   },
 };
 

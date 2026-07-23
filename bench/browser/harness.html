@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>lightning-yaml browser speed harness</title>
+  </head>
+  <body>
+    <p id="status">running…</p>
+    <script type="module" src="/bundle.js"></script>
+    <script>
+      // Purely a headed-debugging aid — the driver never reads the DOM, only
+      // window.__BENCH_DONE__ / __BENCH_RESULT__ / __BENCH_ERROR__.
+      const el = document.getElementById("status");
+      const poll = setInterval(() => {
+        if (window.__BENCH_ERROR__) {
+          el.textContent = "error: " + window.__BENCH_ERROR__;
+          clearInterval(poll);
+        } else if (window.__BENCH_DONE__) {
+          el.textContent = "done";
+          clearInterval(poll);
+        }
+      }, 250);
+    </script>
+  </body>
+</html>

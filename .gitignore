@@ -9,6 +9,9 @@ bench/fixtures/data/
 # Vendored yaml-test-suite snapshot — regenerate with `pnpm gen:suite`
 bench/yaml-test-suite/data/
 
+# Bundled browser harness (esbuild output + derived fixture manifest) — regenerate with `pnpm bench:browser`
+bench/browser/generated/
+
 # Benchmark output
 results/
 *.log

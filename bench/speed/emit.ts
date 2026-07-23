@@ -37,6 +37,7 @@ import {
   scopeLabel,
 } from "../candidates.ts";
 import { datasets, loadFixtureText, loadFixtureValue } from "../fixtures/datasets.ts";
+import { reduceMitataTrial, rowsInOrder, type MitataTrial } from "../util/mitataTrial.ts";
 
 const OUT = fileURLToPath(new URL("../../results/benchmarks/speed.yaml", import.meta.url));
 
@@ -77,88 +78,36 @@ for (const ds of datasets) {
 }
 
 // mitata 1.0.34's runtime `run()` result carries `layout` (group index ->
-// label) and each benchmark's `group` index into it, neither of which is
-// declared in the package's shipped .d.mts — verified by probing the
-// installed package's actual return value. This local type documents the
-// real (larger) contract this file depends on; the cast below is therefore
-// deliberate, not a type-safety hole around unverified data.
-interface SpeedStat {
-  avg: number;
-  min: number;
-  p75: number;
-  p99: number;
-  max: number;
-}
-interface MitataRun {
-  stats?: SpeedStat;
-  error?: unknown;
-}
-interface MitataBenchmark {
-  alias: string;
-  group: number;
-  runs: MitataRun[];
-}
-interface MitataLayoutEntry {
-  name: string | null;
-}
+// label), each benchmark's `group` index into it, AND `context` (cpu/runtime/
+// arch), none of which are declared in the package's shipped .d.mts —
+// verified by probing the installed package's actual return value. The
+// layout/benchmarks shape is documented in bench/util/mitataTrial.ts (shared
+// with the browser emitter); `context` is Node-emitter-only, so it stays
+// local here as an extension. The cast below is therefore deliberate, not a
+// type-safety hole around unverified data.
 interface MitataContext {
   cpu: { freq: number; name: string | null };
   runtime: string | null;
   version?: string;
   arch: string | null;
 }
-interface MitataTrial {
-  layout: MitataLayoutEntry[];
+interface MitataTrialWithContext extends MitataTrial {
   context: MitataContext;
-  benchmarks: MitataBenchmark[];
 }
 
 // `throw: true` means any bench that errors rethrows immediately rather than
 // being captured per-run — the candidateHandles() filtering above means this
 // should never trigger; if it somehow does, failing loudly beats silently
 // publishing a bogus/missing row.
-const trial = (await run({ format: "quiet", throw: true })) as unknown as MitataTrial;
+const trial = (await run({ format: "quiet", throw: true })) as unknown as MitataTrialWithContext;
 
-interface WorkloadRow {
-  workload: string;
-  values: Record<string, SpeedStat>;
-}
+const values = reduceMitataTrial(trial);
 
-const values: Record<Op, Map<string, Record<string, SpeedStat>>> = {
-  parse: new Map(),
-  stringify: new Map(),
-};
-
-for (const b of trial.benchmarks) {
-  const label = trial.layout[b.group]?.name;
-  if (!label) continue;
-  const sep = label.indexOf(" · ");
-  if (sep === -1) continue;
-  const op = label.slice(0, sep) as Op;
-  const workload = label.slice(sep + 3);
-  const target = values[op];
-  if (!target) continue;
-  const run0 = b.runs[0];
-  if (!run0 || run0.error || !run0.stats) continue; // defensive; see `throw: true` note above.
-  const s = run0.stats;
-  const row = target.get(workload) ?? {};
-  row[b.alias] = {
-    avg: Math.round(s.avg),
-    min: Math.round(s.min),
-    p75: Math.round(s.p75),
-    p99: Math.round(s.p99),
-    max: Math.round(s.max),
-  };
-  target.set(workload, row);
-}
-
-function rowsFor(op: Op): WorkloadRow[] {
-  const rows: WorkloadRow[] = [];
-  for (const ds of datasets) {
-    const v = values[op].get(ds.name);
-    if (v && Object.keys(v).length > 0) rows.push({ workload: ds.name, values: v });
-  }
-  return rows;
+function rowsFor(op: Op): ReturnType<typeof rowsInOrder> {
+  return rowsInOrder(
+    values[op],
+    datasets.map((ds) => ds.name),
+  );
 }
 
 function gitShaOr(fallback: string): string {
