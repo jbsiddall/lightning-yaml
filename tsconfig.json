@@ -15,10 +15,11 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["bench/**/*.ts", "src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
-  // entry.ts runs in a browser, not Node — it needs DOM lib types (fetch,
-  // window, performance, crossOriginIsolated) that would be wrong/unavailable
-  // for every other file here. It's checked separately via
+  // entry.ts (and the memory-ratios harness's page-side files: pageHarness.ts
+  // + entries/*.ts) run in a browser, not Node — they need DOM lib types
+  // (fetch, window, performance, crossOriginIsolated) that would be wrong/
+  // unavailable for every other file here. They're checked separately via
   // `tsc --noEmit -p bench/browser/tsconfig.json` (see package.json's
   // `typecheck` script) instead.
-  "exclude": ["bench/browser/entry.ts"]
+  "exclude": ["bench/browser/entry.ts", "bench/browser/memory/pageHarness.ts", "bench/browser/memory/entries/**/*.ts"]
 }

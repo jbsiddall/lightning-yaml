@@ -1,0 +1,58 @@
+# Schema: https://github.com/jbsiddall/lightning-yaml/blob/main/bench/schemas.ts
+---
+suite: memory-ratios
+scope: competition
+method: heap-delta
+unit: ratio
+lower_is_better: true
+schema_version: 1
+generated: 2026-07-23
+generated_at: 2026-07-23T17:33:02.029Z
+source: 93c9870
+env:
+  clk: unknown
+  cpu: unknown
+  runtime: chromium 141.0.7390.37 (x64-linux)
+iterations: 60
+libraries:
+  - id: js-yaml
+    label: js-yaml
+    version: 5.2.1
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    version: 0.1.1
+workloads:
+  - workload: yaml-plain-small-records
+    values:
+      js-yaml: 1.18
+      yaml: 2.556
+      lightning-yaml: 1
+  - workload: yaml-rich-small
+    values:
+      js-yaml: 0.845
+      yaml: 1.437
+      lightning-yaml: 1
+  - workload: yaml-plain-medium-records
+    values:
+      js-yaml: 0.994
+      yaml: 1
+      lightning-yaml: 1
+  - workload: yaml-rich-medium
+    values:
+      js-yaml: 0.991
+      yaml: 0.992
+      lightning-yaml: 1
+  - workload: yaml-plain-large-records
+    values:
+      js-yaml: 1.001
+      yaml: 1.001
+      lightning-yaml: 1
+  - workload: yaml-rich-large
+    values:
+      js-yaml: 0.999
+      yaml: 1
+      lightning-yaml: 1

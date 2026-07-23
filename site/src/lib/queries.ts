@@ -19,6 +19,7 @@ import {
   RuntimeEnvSchema,
   SpeedDocSchema,
   MemoryDocSchema,
+  MemoryRatiosDocSchema,
   ConformanceDocSchema,
   BundleSizeDocSchema,
 } from '../../../bench/schemas.ts';
@@ -28,7 +29,7 @@ import {
 // exception to this file's "queries only, no rendering" rule.
 import { LIBRARY_COLOR, libraryLabel } from './charts';
 
-export { SpeedDocSchema, MemoryDocSchema, ConformanceDocSchema, BundleSizeDocSchema };
+export { SpeedDocSchema, MemoryDocSchema, MemoryRatiosDocSchema, ConformanceDocSchema, BundleSizeDocSchema };
 
 // ---------------------------------------------------------------------------
 // Doc types — every one inferred from bench/schemas.ts, not hand-declared, so
@@ -48,6 +49,10 @@ export type SpeedStat = NonNullable<SpeedWorkload['values'][LibraryId]>;
 export type MemoryDoc = z.infer<typeof MemoryDocSchema>;
 export type MemoryWorkload = MemoryDoc['operations']['parse'][number];
 export type MemoryStat = NonNullable<MemoryWorkload['values'][LibraryId]>;
+
+/** Browser in-page memory RATIOS (issue #107 Phase 3) — see MemoryRatiosDocSchema's doc comment for what `method` distinguishes. */
+export type MemoryRatiosDoc = z.infer<typeof MemoryRatiosDocSchema>;
+export type MemoryRatiosWorkload = MemoryRatiosDoc['workloads'][number];
 
 export type ConformanceDoc = z.infer<typeof ConformanceDocSchema>;
 export type ConformanceResult = ConformanceDoc['results'][number];
@@ -179,6 +184,15 @@ export interface RatioPoint {
   /** Full `env.runtime` string of this family's newest run (e.g. "node 24.18.0 (x64-linux)"). */
   runtime: string;
   ratio: number;
+  /**
+   * Distinguishes HOW a point was measured, shown beside its runtime in the
+   * popover. Set only where a suite can genuinely mix methods (memory: a
+   * Node process's peak RSS vs. a browser's own in-page retained-heap or
+   * out-of-process peak-RSS ratio — see MemoryRatiosDocSchema's doc comment
+   * for why those aren't directly comparable). Undefined everywhere a suite
+   * has exactly one method (speed; every other suite).
+   */
+  methodLabel?: string;
 }
 
 /** Shared plumbing: one ratio per family's newest doc, for the families where both libraries in the pair have a value. */
@@ -256,6 +270,104 @@ export function canonicalMemoryRatio(
   denominator: LibraryId,
 ): number | undefined {
   return memoryRatioIn(canonicalRun(runs), op, workload, numerator, denominator);
+}
+
+// ---------------------------------------------------------------------------
+// Memory-ratios (browser) — issue #107 Phase 3. A `memory-ratios` document
+// already stores a ratio to lightning-yaml directly (no peak_rss division
+// needed, unlike memoryRatioIn above), and — unlike the Node-only `memory`
+// suite — can publish from more than one runtime family (chromium, webkit),
+// each tagged with its own `method` (see MemoryRatiosDocSchema). These
+// helpers merge that stream with the existing Node-derived memory ratio into
+// one method-labelled RatioPoint[] for the Hero's popover, and pick the
+// Hero's headline number: Chromium's own ratio when a chromium memory-ratios
+// document has published, falling back to the Node figure otherwise (see
+// HeroBench.astro).
+// ---------------------------------------------------------------------------
+
+function memoryRatioValueIn(doc: MemoryRatiosDoc, workload: string, id: LibraryId): number | undefined {
+  const v = doc.workloads.find((w) => w.workload === workload)?.values[id];
+  return typeof v === 'number' ? v : undefined;
+}
+
+const MEMORY_METHOD_LABEL: Record<string, string> = {
+  node: 'peak RSS · Node process',
+  'chromium:heap-delta': "Chrome's engine · retained-heap ratio",
+  'webkit:peak-rss': "Safari's engine (WebKit) · peak-RSS ratio, lower confidence",
+};
+
+function memoryMethodLabel(family: string, method?: string): string {
+  const key = method ? `${family}:${method}` : family;
+  return MEMORY_METHOD_LABEL[key] ?? (method ? `${family} · ${method}` : family);
+}
+
+/**
+ * Every environment's own memory ratio for one workload+library, method-
+ * labelled and merged from BOTH streams — the Node-derived `memory` suite
+ * (always present) and the browser-native `memory-ratios` suite (present once
+ * CI publishes it). Still never blended INTO a single number, same rule as
+ * every other ratio query in this file — each point is one real measurement.
+ */
+export function combinedMemoryRatioPoints(
+  memoryRuns: readonly MemoryDoc[],
+  memoryRatiosRuns: readonly MemoryRatiosDoc[],
+  workload: string,
+  numerator: LibraryId,
+): RatioPoint[] {
+  const nodePoints = memoryWorkloadRatio(memoryRuns, 'parse', workload, numerator, 'lightning-yaml').map((p) => ({
+    ...p,
+    methodLabel: memoryMethodLabel(p.family),
+  }));
+  const browserPoints = availableRuntimes(memoryRatiosRuns).flatMap(({ family, runtime, doc }): RatioPoint[] => {
+    const ratio = memoryRatioValueIn(doc, workload, numerator);
+    if (typeof ratio !== 'number' || !Number.isFinite(ratio) || ratio <= 0) return [];
+    return [{ family, runtime, ratio, methodLabel: memoryMethodLabel(family, doc.method) }];
+  });
+  return [...nodePoints, ...browserPoints];
+}
+
+/**
+ * THE Hero memory tab's headline number: a chromium `memory-ratios` document
+ * (in-page heap-delta, higher confidence) takes over as canonical the moment
+ * one exists, since the browser is this library's primary target; until then
+ * this falls back to the existing Node-peak-RSS-derived ratio. webkit's
+ * lower-confidence peak-RSS ratio is never used for the headline, only shown
+ * in the popover breakdown — same "browser first, but only the good one"
+ * preference `canonicalFamily` already applies to the Speed tabs, scoped here
+ * to memory's two-stream split.
+ */
+export function heroMemoryRatio(
+  memoryRuns: readonly MemoryDoc[],
+  memoryRatiosRuns: readonly MemoryRatiosDoc[],
+  workload: string,
+  numerator: LibraryId,
+): number | undefined {
+  const chromiumDoc = chromiumRatiosRun(memoryRatiosRuns)?.doc;
+  if (chromiumDoc) return memoryRatioValueIn(chromiumDoc, workload, numerator);
+  return canonicalMemoryRatio(memoryRuns, 'parse', workload, numerator, 'lightning-yaml');
+}
+
+/** The single home of the "chromium is the headline browser for memory" rule (see `heroMemoryRatio`'s doc). */
+function chromiumRatiosRun(memoryRatiosRuns: readonly MemoryRatiosDoc[]) {
+  return availableRuntimes(memoryRatiosRuns).find((r) => r.family === 'chromium');
+}
+
+/** The runtime string driving the Hero memory tab's "Measured in" line — mirrors `heroMemoryRatio`'s own preference. */
+export function heroMemoryRuntime(memoryRuns: readonly MemoryDoc[], memoryRatiosRuns: readonly MemoryRatiosDoc[]): string {
+  const chromium = chromiumRatiosRun(memoryRatiosRuns);
+  return chromium ? chromium.runtime : newestOf(memoryRuns).env.runtime;
+}
+
+/**
+ * The library catalog (labels + versions) from the SAME doc `heroMemoryRatio`
+ * headlines — a label sourced from a different stream than the number it
+ * labels can silently drift once the streams update independently.
+ */
+export function heroMemoryLibraries(
+  memoryRuns: readonly MemoryDoc[],
+  memoryRatiosRuns: readonly MemoryRatiosDoc[],
+): MemoryDoc['libraries'] {
+  return chromiumRatiosRun(memoryRatiosRuns)?.doc.libraries ?? newestOf(memoryRuns).libraries;
 }
 
 // ---------------------------------------------------------------------------

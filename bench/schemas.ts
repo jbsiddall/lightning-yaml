@@ -85,6 +85,40 @@ export const MemoryDocSchema = ProvenanceBase.extend({
 });
 
 /**
+ * Browser in-page memory measurements, published as RATIOS ONLY (never
+ * absolute bytes — see CLAUDE.md's benchmark-integrity rule and issue #107
+ * Phase 3): a separate suite from `memory` above rather than folded into it,
+ * because the two `method`s measure genuinely different things and mixing
+ * unitless ratios into an MB/KB-denominated stream would blur that. Two
+ * methods, one per engine, both legitimate but not equivalent in confidence:
+ *  - "heap-delta" (Chromium, in-page): `performance.memory.usedJSHeapSize`
+ *    growth while retaining K parsed results, gc()'d before/after — measures
+ *    the JS engine's own retained-object heap.
+ *  - "peak-rss" (webkit, out-of-process): kernel-reported VmHWM peak of the
+ *    WebKitWebProcess child during the same retained-parse batch — measures
+ *    whole-process resident memory (JS heap + engine/allocator overhead), so
+ *    it isn't apples-to-apples with heap-delta even for the same library;
+ *    it's the only measurement webkit exposes without an in-page memory API,
+ *    which is why it's labelled lower-confidence everywhere it's shown.
+ * `workloads` (not `operations.parse`/`.stringify`, unlike the schemas above)
+ * because this suite only ever measures parse — there is no stringify
+ * variant to nest alongside it.
+ */
+export const MemoryRatiosDocSchema = ProvenanceBase.extend({
+  suite: z.literal("memory-ratios"),
+  method: z.enum(["heap-delta", "peak-rss"]),
+  unit: z.literal("ratio"),
+  lower_is_better: z.boolean(),
+  env: RuntimeEnvSchema,
+  iterations: z.number().positive(),
+  libraries: z.array(LibraryMetaSchema).min(1),
+  workloads: z.array(workloadSchema(z.number().positive())),
+}).refine(
+  (d) => d.workloads.every((w) => w.values["lightning-yaml"] == null || w.values["lightning-yaml"] === 1),
+  { message: "lightning-yaml's own ratio must be exactly 1.0 in every workload row" },
+);
+
+/**
  * A conformance result IS a LibraryMeta plus its scores — the site's interface
  * declares them as separate shapes, but the real docs inline id/label/self/version
  * onto each row, so making the reuse explicit keeps them from drifting apart.
@@ -127,17 +161,19 @@ export const BundleSizeDocSchema = ProvenanceBase.extend({
   results: z.array(BundleSizeResultSchema).min(1),
 });
 
-export type SuiteName = "speed" | "memory" | "conformance" | "bundle-size";
+export type SuiteName = "speed" | "memory" | "memory-ratios" | "conformance" | "bundle-size";
 
 /** Schema per suite — key the doc's own `suite` field into this to validate it. */
 export const SUITE_SCHEMAS = {
   speed: SpeedDocSchema,
   memory: MemoryDocSchema,
+  "memory-ratios": MemoryRatiosDocSchema,
   conformance: ConformanceDocSchema,
   "bundle-size": BundleSizeDocSchema,
 } satisfies Record<SuiteName, z.ZodType>;
 
 export type SpeedDoc = z.infer<typeof SpeedDocSchema>;
 export type MemoryDoc = z.infer<typeof MemoryDocSchema>;
+export type MemoryRatiosDoc = z.infer<typeof MemoryRatiosDocSchema>;
 export type ConformanceDoc = z.infer<typeof ConformanceDocSchema>;
 export type BundleSizeDoc = z.infer<typeof BundleSizeDocSchema>;

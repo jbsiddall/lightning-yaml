@@ -40,6 +40,31 @@ export function withVersion(label: string, version?: string): string {
   return version ? `${label} ${version}` : label;
 }
 
+/**
+ * A section-scoped provenance line for /benchmarks. Three shapes, keyed to
+ * what the doc actually knows: "Measured on <cpu> (<clk>) · <runtime> · …"
+ * for a doc with full environment info (Node runs); "Measured in
+ * <runtime> · …" for browser docs, which record cpu/clk as "unknown" (a page
+ * can't read the host's hardware — see bench/browser/run.ts) and would
+ * otherwise print that verbatim like a bug; and the leaner "Generated <date>
+ * · source <sha>" for a doc with no `env` at all (conformance — a parser
+ * property, not a runtime measurement; bundle size's `env` is bundler
+ * versions, not a CPU/runtime). Each section states its OWN doc's provenance
+ * — a page-wide line reading one suite's data above sections fed by other
+ * streams would misattribute them, the same shape #120 fixed for the hero's
+ * per-tab "Measured in" line.
+ */
+export function sourceLine(doc: { generated?: unknown; source?: unknown; env?: { cpu: string; clk: string; runtime: string } }): string {
+  const generated = String(doc.generated ?? '');
+  const source = String(doc.source ?? '');
+  if (doc.env) {
+    const where =
+      doc.env.cpu === 'unknown' ? `in ${doc.env.runtime}` : `on ${doc.env.cpu} (${doc.env.clk}) · ${doc.env.runtime}`;
+    return `Measured ${where} · generated ${generated} · source ${source}`;
+  }
+  return `Generated ${generated} · source ${source}`;
+}
+
 /** Look up a library's display label by id (with version when available), falling back to the id itself. */
 export function libraryLabel(libraries: LibraryMeta[], id: LibraryId): string {
   const lib = libraries.find((l) => l.id === id);
@@ -360,6 +385,16 @@ export function formatRatio(r: number): string {
   return `${r < 10 ? r.toFixed(1) : Math.round(r)}×`;
 }
 
+/**
+ * `formatRatio` typed to take groupedBreakdownTableHtml's `cell: (stat: unknown) => string`
+ * shape directly — MDX's expression parser (oxc) rejects a TS `as` cast written
+ * inline in a .mdx file's `{}` JSX expressions, so this exists purely so
+ * benchmarks.mdx can pass it as a plain function reference instead.
+ */
+export function formatRatioCell(stat: unknown): string {
+  return formatRatio(stat as number);
+}
+
 /** Labels are untrusted-shaped data (come from YAML, not literals) — escape for XML. */
 function escapeXml(s: string): string {
   return s
@@ -439,11 +474,12 @@ export function buildChart(rows: HeroChartRow[], order: readonly LibraryId[]): {
  */
 export function ratioPopoverHtml(points: readonly RatioPoint[], title: string): string {
   const rows = points
-    .map(
-      (r) =>
-        `<li><span class="ratio-pop__env">${escapeXml(r.runtime)}</span>` +
-        `<span class="ratio-pop__val">${escapeXml(formatRatio(r.ratio))}</span></li>`,
-    )
+    .map((r) => {
+      const env = r.methodLabel
+        ? `${escapeXml(r.runtime)} <span class="ratio-pop__method">· ${escapeXml(r.methodLabel)}</span>`
+        : escapeXml(r.runtime);
+      return `<li><span class="ratio-pop__env">${env}</span>` + `<span class="ratio-pop__val">${escapeXml(formatRatio(r.ratio))}</span></li>`;
+    })
     .join('');
   return (
     `<div class="ratio-pop__title">${escapeXml(title)}</div>` +
