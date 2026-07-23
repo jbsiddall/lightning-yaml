@@ -82,7 +82,8 @@ share — check identity explicitly, as `test/consistency.test.ts` does).
 
 ## Integrity — non-negotiable (from CLAUDE.md)
 
-**The oracle is not infallible.** `yaml` itself fails ~11 spec-corner cases. A
+**The oracle is not infallible.** `yaml` itself fails a number of spec-corner
+cases (`pnpm test:suite` scores it too, so you can see which). A
 mismatch is **only a finding if `lightning-yaml` is the one that is wrong per the
 YAML 1.2 spec / the yaml-test-suite expected output** — not merely different from
 the oracle. Confirm against the spec/suite which side is correct; use `js-yaml` as
