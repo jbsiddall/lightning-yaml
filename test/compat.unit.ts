@@ -282,6 +282,26 @@ test("yaml-compat.stringify throws on options and on a replacer", () => {
   throws(() => stringify(DUMP_VALUE, ["name"]));
 });
 
+test("yaml-compat.stringify fails loud on the JSON.stringify-style indent shorthand", () => {
+  // `yaml.stringify(value, replacer, indent)` allows a bare number (space count) or string
+  // (literal indent) in the options slot. We hardcode indent 2, so it must throw — naming the
+  // indent shorthand, NOT a nonsensical `option "0"` (what Object.keys("  ") would yield).
+  for (const call of [
+    () => stringify(DUMP_VALUE, null, 4),
+    () => stringify(DUMP_VALUE, null, "  "),
+    () => stringify(DUMP_VALUE, 2), // 2-arg numeric shorthand
+  ]) {
+    throws(call, (err: unknown) => err instanceof Error && err.message.includes("indent") && !err.message.includes('option "0"'));
+  }
+});
+
+test("yaml-compat.stringify throws on singleQuote at either value (our output already prefers single quotes)", () => {
+  // We can't faithfully honour `false` (real yaml's double-quote default) any more than `true`,
+  // so both fail loud rather than silently emit whichever quoting we happen to produce.
+  throws(() => stringify(DUMP_VALUE, { singleQuote: false }));
+  throws(() => stringify(DUMP_VALUE, { singleQuote: true }));
+});
+
 test("yaml-compat: unsupported-option error names the option", () => {
   try {
     parse("a: 1\n", { mapAsMap: true });
@@ -348,6 +368,13 @@ test("yaml-compat accepts no-op default option values, rejects the active value"
 
 test("js-yaml-compat.dump accepts a boolean option's no-op default, rejects the active value", () => {
   strictEqual(typeof dump(DUMP_VALUE, { sortKeys: false }), "string");
-  strictEqual(typeof dump(DUMP_VALUE, { skipInvalid: false, noRefs: false }), "string");
+  strictEqual(typeof dump(DUMP_VALUE, { noRefs: false }), "string");
   throws(() => dump(DUMP_VALUE, { sortKeys: true }), (err: unknown) => err instanceof YAMLException);
+});
+
+test("js-yaml-compat.dump throws on skipInvalid at either value (we neither drop nor throw on unrepresentable values)", () => {
+  // Real js-yaml's `skipInvalid: false` THROWS on a function/Symbol; our stringify would
+  // silently serialize it — so `false` is NOT a genuine no-op. Both values fail loud.
+  throws(() => dump(DUMP_VALUE, { skipInvalid: false }), (err: unknown) => err instanceof YAMLException);
+  throws(() => dump(DUMP_VALUE, { skipInvalid: true }), (err: unknown) => err instanceof YAMLException);
 });

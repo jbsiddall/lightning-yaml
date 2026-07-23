@@ -21,11 +21,16 @@ export type OptionRule = (value: unknown) => string | null;
 export const notYetSupported: OptionRule = () => "is not supported yet";
 
 /**
- * Rule for a boolean option whose truthy value turns on a feature the shim
- * can't honour yet — its falsy default (`false`/absent) is a genuine no-op, so
- * only a truthy value is rejected (with `clause`, read after `option "<key>"`).
- * This keeps `{ mapAsMap: false }` (the default) working while `{ mapAsMap: true }`
- * fails loud.
+ * Rule for a boolean option whose truthy value turns on a feature the shim can't honour
+ * yet, AND whose falsy value (`false`/absent) already matches what lightning-yaml produces
+ * — so only a truthy value is rejected (with `clause`, read after `option "<key>"`).
+ *
+ * Use ONLY after confirming the falsy value is a genuine no-op against REAL output. If
+ * lightning-yaml's hardcoded behaviour instead matches the option's *truthy* side (e.g. it
+ * always single-quotes, so `singleQuote: false` would NOT be a no-op), this rule silently
+ * emits wrong output — use `notYetSupported` there so every explicit value fails loud.
+ *
+ * Keeps `{ mapAsMap: false }` working while `{ mapAsMap: true }` fails loud.
  */
 export const activatesFeature = (clause: string): OptionRule => (v) => (v ? clause : null);
 
@@ -40,6 +45,11 @@ export function validateOptions(
   fail: (message: string) => never,
 ): void {
   if (opts == null) return;
+  if (typeof opts !== "object") {
+    // A scalar bag (e.g. a JSON.stringify-style indent shorthand) has no own enumerable
+    // keys, so Object.keys() would let it pass as "no options" — fail loud instead.
+    fail(`expected an options object but received a ${typeof opts}`);
+  }
   const bag = opts as Record<string, unknown>;
   for (const key of Object.keys(bag)) {
     const value = bag[key];

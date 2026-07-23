@@ -17,8 +17,8 @@
  * allowlist, and anything not yet honoured **throws a `YAMLException`** rather
  * than silently diverging. Today only `filename` (threaded into a thrown
  * error's mark), `loadAll`'s iterator, `json: true`, and `schema` *as the
- * default `CORE_SCHEMA`* are accepted (plus each option's genuine no-op
- * default) — e.g. `load(text, { json: false })` or
+ * default `CORE_SCHEMA`* are accepted (plus any boolean flag left at the value
+ * we already produce, usually `false`) — e.g. `load(text, { json: false })` or
  * `dump(obj, { sortKeys: true })` throws until that option's sub-task lands. A
  * relied-upon option fails loud at the call site instead of producing
  * silently-wrong output.
@@ -317,7 +317,7 @@ const LOAD_OPTION_RULES: Record<string, OptionRule> = {
 const DUMP_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   sortKeys: activatesFeature("would sort map keys on output — not supported yet"),
-  skipInvalid: activatesFeature("would drop invalid (function/undefined) values — not supported yet"),
+  skipInvalid: notYetSupported,
   noRefs: activatesFeature("would expand shared refs instead of using `&`/`*` — not supported yet"),
   forceQuotes: activatesFeature("would always quote strings — not supported yet"),
   seqNoIndent: activatesFeature("would stop indenting block sequences — not supported yet"),

@@ -131,8 +131,9 @@ import { parse, stringify } from 'lightning-yaml/yaml';
 > **Status — surface-level today.** The shims are a TypeScript drop-in (same
 > exports and signatures), so your code compiles and runs — but an option we
 > don't yet honour (`schema`, `sortKeys`, `indent`, …) **throws** instead of
-> silently leaving your output unchanged, so you find out at the call site (an
-> option passed at its genuine no-op default still works).
+> silently leaving your output unchanged, so you find out at the call site (a
+> boolean flag left at the value lightning-yaml already produces — usually
+> `false` — still works).
 > Full option compatibility is the goal; each shim's **option-support matrix**
 > ([js-yaml](https://lightning-yaml.dev/api/js-yaml-compat/readme/#option-support-matrix),
 > [yaml](https://lightning-yaml.dev/api/yaml-compat/readme/#option-support-matrix))
@@ -218,8 +219,8 @@ here, treat it as a bug and
   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
   (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we
   can't yet honour throws a clear error naming it — rather than silently leaving
-  the output unchanged. An option passed at its genuine no-op default (e.g.
-  `mapAsMap: false`) still works.
+  the output unchanged. A boolean flag left at the value lightning-yaml already
+  produces (e.g. `mapAsMap: false`) still works; any other value throws.
 - **YAML 1.2 core schema, not 1.1.** Plain `yes`/`no`/`on`/`off` stay strings (not
   booleans) and there are no base-60 numbers, so results can differ from js-yaml's
   1.1-flavoured default. YAML 1.1 is a non-goal.

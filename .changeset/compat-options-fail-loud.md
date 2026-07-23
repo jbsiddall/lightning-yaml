@@ -17,7 +17,8 @@ import { dump } from "lightning-yaml/js-yaml";
 dump(value, { sortKeys: true });
 ```
 
-Options that are genuine no-ops today keep working unchanged: js-yaml's
-`filename`, the default `CORE_SCHEMA`, and `json: true`; the `yaml` `parse`
-reviver; and `schema: "core"` / `version: "1.2"`. Everything else throws until
-its support lands, so you find out at the call site instead of downstream.
+Options that are genuine no-ops today keep working unchanged — the `parse` reviver, `filename`, and
+`schema` / `version` at their YAML-1.2-core defaults, plus any boolean flag left at the value
+lightning-yaml already produces (for example `mapAsMap: false` or `sortKeys: false`). Anything that
+would actually change the output — a different schema, a custom `indent`, `sortKeys: true` — throws
+until its support lands, so you find out at the call site instead of downstream.

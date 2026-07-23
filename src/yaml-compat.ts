@@ -17,9 +17,11 @@
  * import) can swap to this module and keep running. Options are honoured on a
  * growing allowlist, and anything not yet honoured **throws** rather than
  * silently diverging. Today only the `parse` reviver runs, plus `schema` /
- * `version` accepted *as the 1.2-core defaults* (`"core"` / `"1.2"`) — e.g.
- * `parse(text, { mapAsMap: true })` or `stringify(value, { indent: 4 })` throws
- * until that option's sub-task lands. A relied-upon option fails loud instead
+ * `version` accepted *as the 1.2-core defaults* (`"core"` / `"1.2"`), and any
+ * boolean flag left at the value lightning-yaml already produces (usually
+ * `false`, e.g. `mapAsMap: false`) — e.g. `parse(text, { mapAsMap: true })` or
+ * `stringify(value, { indent: 4 })` throws until that option's sub-task lands. A
+ * relied-upon option fails loud instead
  * of producing silently-wrong output (walking `.contents` as an AST — see the
  * Document note below — remains a documented gap).
  *
@@ -149,7 +151,7 @@ const PARSE_OPTION_RULES: Record<string, OptionRule> = {
 const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   version: version12Only,
-  singleQuote: activatesFeature("would prefer single quotes — not supported yet"),
+  singleQuote: notYetSupported,
   sortMapEntries: activatesFeature("would sort map entries on output — not supported yet"),
   indent: notYetSupported,
   nullStr: notYetSupported,
@@ -299,13 +301,21 @@ export function parseDocument(src: string, opts?: Record<string, unknown>): Comp
 
 export function stringify(value: unknown, replacerOrOptions?: unknown, options?: unknown): string {
   const hasReplacer = typeof replacerOrOptions === "function" || Array.isArray(replacerOrOptions);
-  // A non-null, non-replacer 2nd arg IS the options bag; otherwise (a replacer,
-  // or omitted) the options are the 3rd arg — so options are validated under
-  // every legal call shape, including `stringify(value, null, options)`.
-  const optionBag = (!hasReplacer && replacerOrOptions != null && typeof replacerOrOptions === "object"
-    ? replacerOrOptions
-    : options) as Record<string, unknown> | undefined;
-  validateOptions(optionBag, STRINGIFY_OPTION_RULES, failOption);
+  // Disambiguate `yaml.stringify`'s overloads: a non-null, non-replacer 2nd arg IS the
+  // options bag (the 2-arg form); otherwise (a replacer, `null`, or omitted) the options
+  // are the 3rd arg — so options are validated under every legal call shape, including
+  // `stringify(value, null, options)`.
+  const optionsSlot = !hasReplacer && replacerOrOptions != null ? replacerOrOptions : options;
+  // `yaml.stringify(value, replacer, indent)` allows a `JSON.stringify`-style shorthand — a
+  // bare number (space count) or string (literal indent) — in the options slot. We hardcode
+  // indent 2 and can't honour a custom width yet, so fail loud rather than silently ignore it
+  // (a bare number would otherwise slip past validateOptions, since `Object.keys(4)` is empty).
+  if (typeof optionsSlot === "number" || typeof optionsSlot === "string") {
+    failOption(
+      "the JSON.stringify-style indent shorthand (stringify(value, replacer, indent)) is not supported yet — custom indent width is unimplemented",
+    );
+  }
+  validateOptions(optionsSlot as Record<string, unknown> | undefined, STRINGIFY_OPTION_RULES, failOption);
   if (hasReplacer) failOption("a replacer is not supported yet — the ./yaml stringify replacer is tracked separately");
   return ourStringify(value);
 }
