@@ -1,30 +1,36 @@
 ---
-description: "Code review — run by the top-level assistant after pushing to a PR; fans out a panel of independent single-goal reviewer subagents, collects their per-reviewer files, and loops until every reviewer approves the current commit."
+description: "Code review — run by the top-level assistant when a PR looks ready for the user to review; fans out a panel of independent, read-only, single-goal reviewer subagents in parallel, collects their per-reviewer files, and loops until every reviewer approves the current commit."
 argument-hint: "[optional: a single reviewer name to run, or a focus area]"
 ---
 
 You are the **top-level assistant** driving code review for `lightning-yaml`. You do
-**not** review the change yourself — you **orchestrate** a panel of independent
-reviewer subagents, act on what they find, and re-run them until they all sign off on
-the current commit.
+**not** review the change yourself — you **orchestrate** a panel of independent reviewer
+subagents, act on what they find, and re-run them until they all sign off on the current
+commit.
 
-Run this **after you've pushed commits to a PR**, and **again after every subsequent
-push**, until every reviewer approves the latest commit.
+Run this **when you judge the PR is ready for the user to review** — the panel's job is
+to catch what a careful reviewer would, so the user's own review time is spent on a
+change that's already been vetted, not on issues a reviewer subagent could have caught.
+**Re-run it every time the PR is updated and again reaches that ready-for-review point**,
+and keep looping (Step 4) until every reviewer approves the latest commit before you hand
+the PR back to the user.
 
 ## Why it's shaped this way
 
 - **You run at the top level, not as a subagent** — a subagent can't spawn its own
-  subagents, so fanning the panel out has to happen here. This also lets the reviewers
-  run **in parallel**.
-- **Each reviewer is a fresh subagent, spawned with a fixed prompt** (the code blocks
-  below) — not a fork of this conversation. It sees the diff and CLAUDE.md, **not** the
-  PR's self-justifying narrative. Fixed prompts + no authoring context = low bias and
-  low variance.
+  subagents, so fanning the panel out has to happen here.
+- **All reviewers run as fresh subagents in parallel**, each spawned with a fixed prompt
+  (the code blocks below) — not a fork of this conversation. A reviewer sees the diff and
+  CLAUDE.md, **not** the PR's self-justifying narrative. Fixed prompts + no authoring
+  context = low bias and low variance; parallel = fast.
+- **Reviewers are strictly read-only.** A subagent must not run a mutating command or edit
+  a tracked file (concurrent writers corrupt each other and the git index). Anything
+  heavy or mutating is the top-level's job — see the read-only rule in Step 2.
 - **Each reviewer champions exactly one goal** and is *not* a representative of the
-  codebase as a whole. Conflicts between champions are expected; you resolve them with
-  the precedence order below.
+  codebase as a whole. Conflicts between champions are expected; you resolve them with the
+  precedence order below.
 
-## Step 1 — set up (you, before spawning anything)
+## Step 1 — set up and run the gate (you, before spawning anything)
 
 ```bash
 git fetch origin main --quiet 2>/dev/null || true
@@ -34,48 +40,57 @@ git diff --name-only "$BASE"...HEAD     # which files the PR touches (drives sco
 git diff --stat "$BASE"...HEAD
 ```
 
-- **Review files.** Each reviewer owns one file at the repo root:
-  `code_review_<name>.md` (e.g. `code_review_comments.md`, `code_review_compat-js-yaml.md`).
-  They are **gitignored** — ephemeral working notes, never committed. The only in-repo
-  signal that persists is the reviewed-commit hash in the PR description (Step 5).
-- **Shared gate (only if the diff touches `src/` or `bench/`).** Run the gate **once**,
-  yourself, and save the output for the empirical guardians — do **not** have several
-  subagents run it concurrently (CLAUDE.md: concurrent heavy runs in one tree corrupt
-  each other, and benchmark timings are only valid on a quiet machine):
+- **Review files.** Each reviewer owns one file under the **already-gitignored**
+  `.scratch/` folder: `.scratch/code_review_<name>.md` (e.g.
+  `.scratch/code_review_compat-js-yaml.md`). Ephemeral working notes, never committed —
+  the only in-repo signal that persists is the reviewed-commit hash in the PR description
+  (Step 5).
+- **The gate (only if the diff touches `src/` or `bench/`).** You run it — the reviewers
+  don't. Generate fixtures + suite **once first** (so the parallel runs below don't race
+  on generation), then run the fast, read-only checks as **parallel Bash tool calls**
+  (independent calls in one message), saving each to `.scratch/gate/`:
 
   ```bash
-  mkdir -p .scratch/code-review
-  pnpm typecheck            2>&1 | tee .scratch/code-review/typecheck.txt
-  pnpm test                 2>&1 | tee .scratch/code-review/test.txt
-  pnpm test:unit            2>&1 | tee .scratch/code-review/test-unit.txt
-  pnpm test:stringify       2>&1 | tee .scratch/code-review/test-stringify.txt
-  pnpm test:suite           2>&1 | tee .scratch/code-review/test-suite.txt
-  pnpm test:compat          2>&1 | tee .scratch/code-review/test-compat.txt
-  pnpm bench:self           2>&1 | tee .scratch/code-review/bench-self.txt
+  mkdir -p .scratch/gate && pnpm gen:fixtures && pnpm gen:suite   # once, sequential
+  # then, in parallel tool calls:
+  pnpm typecheck      2>&1 | tee .scratch/gate/typecheck.txt
+  pnpm test           2>&1 | tee .scratch/gate/test.txt
+  pnpm test:unit      2>&1 | tee .scratch/gate/test-unit.txt
+  pnpm test:stringify 2>&1 | tee .scratch/gate/test-stringify.txt
+  pnpm test:suite     2>&1 | tee .scratch/gate/test-suite.txt
+  pnpm test:compat    2>&1 | tee .scratch/gate/test-compat.txt
   ```
 
-  If the diff touches neither `src/` nor `bench/`, skip the gate — the guardians will
-  fast-path to a neutral approval.
+  **Benchmark, separately.** A benchmark needs a quiet machine, so never run it alongside
+  the checks above. Run `pnpm bench:self` on its own **only if it finishes quickly** (~<1
+  min here); if it's slower, **skip it inline and leave the perf signal to the CI
+  benchmark job** — the `performance` guardian then reviews against CI's numbers (or marks
+  its perf verdict pending-CI). If the diff touches neither `src/` nor `bench/`, skip the
+  gate entirely — the guardians fast-path to a neutral approval.
 
-## Step 2 — how to spawn each reviewer
+## Step 2 — spawn the panel (all in parallel)
 
-For every reviewer in the roster, spawn a **fresh subagent (not a fork)** whose prompt
-is the **shared preamble + that reviewer's code block, verbatim** — don't soften them.
-Use the model/effort noted on the block (default **Sonnet, maximum thinking**; the
-`complexity` reviewer uses **Opus, maximum thinking**).
+Spawn **every** in-scope reviewer as a **fresh subagent (not a fork)**, all at once, whose
+prompt is the **shared preamble + that reviewer's code block, verbatim** — don't soften
+them. Use the model/effort on the block (default **Sonnet, maximum thinking**; the
+`complexity` reviewer uses **Opus, maximum thinking**). Hand the guardians the paths to
+the gate output you saved.
 
-**Scope-gating (deterministic).** A reviewer only needs to run when the change touches
-its **Domain** (globs on each block). Compute `git diff --name-only <last-reviewed>..HEAD`
-(or `<BASE>..HEAD` on the first pass) and spawn a reviewer only if that set intersects
-its Domain. A reviewer whose domain isn't touched keeps its previous approval; if you do
-spawn it anyway, it will fast-path to a neutral pass.
+**Scope-gating (deterministic).** A reviewer only needs to run when the change touches its
+**Domain** (globs on each block). Compute `git diff --name-only <last-reviewed>..HEAD` (or
+`<BASE>..HEAD` on the first pass) and spawn a reviewer only if that set intersects its
+Domain. An untouched-domain reviewer keeps its previous approval.
 
-**Concurrency.** The read-only reviewers — `consistency`, `comments`, `complexity`,
-`compat-yaml`, `compat-js-yaml` — take no gate and can run **all in parallel**. Spawn the
-empirical guardians — `spec`, `performance` — **after** the shared gate, handing them the
-saved output. A guardian that needs a *fresh* full `test:suite`/`bench` run (rare — the
-shared output usually suffices) must do it in a throwaway `git worktree`, never the shared
-tree; small `tsx` scratch repros in-tree are fine.
+**The read-only rule (every reviewer).** A reviewer must not run a mutating command
+(`git checkout`, a build, a fix) or edit a tracked file. If it needs something like that:
+
+1. **Essential and self-contained** (e.g. a fresh benchmark or an isolated repro) → copy
+   the repo into a fresh `/tmp/<uuid>/` and run it **there**, never in the shared tree.
+2. **A repo command or file edit is really needed** (e.g. "apply this fix", "run X and
+   show the result") → write it into the review file as an **instruction for the
+   top-level to run**; on the next `/code-review` pass the top-level has run it and the
+   result is in the file. A reviewer's own `.scratch/code_review_<name>.md` is the one
+   file it writes.
 
 **Shared preamble** (prepend to each reviewer's block):
 
@@ -88,17 +103,21 @@ sanctioned deviations from them is README.md's "Decisions and deviations" sectio
 deviation is sanctioned only if it is listed THERE (never because CLAUDE.md, a research
 note, or a code comment says so).
 
+You are READ-ONLY: do not run a mutating command or edit any tracked file. If a repro
+is essential, copy the repo into a fresh /tmp/<uuid>/ and run it there. If a repo
+command or file edit is genuinely needed, do NOT do it — write it into your review file
+as an instruction for the top-level to run; its result will be in the file next pass.
+
 Reviewing: commits <BASE>..<HEAD_SHA> on the current branch. If your file
-code_review_<name>.md already ends with a section for an earlier commit, review only
-`git diff <that-commit>..HEAD` (fall back to <BASE>..HEAD if that commit is
+.scratch/code_review_<name>.md already ends with a section for an earlier commit, review
+only `git diff <that-commit>..HEAD` (fall back to <BASE>..HEAD if that commit is
 unreachable, e.g. after a rebase), with the full <BASE>..HEAD diff as context.
 
 Stay in your lane (your Domain, below). If the diff touches nothing in your Domain, do
 not invent work — record a neutral pass.
 
-OUTPUT — append (never overwrite) to code_review_<name>.md, and write nothing else.
-Use its absolute path in the main working tree even if you run commands from a
-worktree. Append exactly:
+OUTPUT — append (never overwrite) to .scratch/code_review_<name>.md, and write nothing
+else. Append exactly:
 
   ## <name> — <HEAD_SHA>
   <your findings. Each: a concrete issue, file:line, and WHY it matters. Context is
@@ -195,10 +214,11 @@ that README section, it blocks and the top-level agent must escalate it (Step 4)
 Persona: guardian of YAML 1.2.2 correctness — the project's #1 goal. You represent the
 spec, not the codebase and not any library. The `yaml`/js-yaml libraries are
 differential aids, not ground truth: where they disagree with the spec, the spec wins.
-Evidence over opinion: read the shared gate output you're handed — `pnpm test:suite`
-(the pass rate must NOT drop) and `pnpm test`/`test:unit`/`test:stringify`. To probe a
-specific case, add a scratch `tsx` repro importing `src/`; for a full suite re-run use
-your own git worktree.
+Evidence over opinion: read the gate output you're handed — `pnpm test:suite` (the pass
+rate must NOT drop) and `pnpm test`/`test:unit`/`test:stringify`. To probe a specific
+case, do it read-only in a /tmp/<uuid>/ copy (a small `tsx` repro importing `src/`); if
+you need a full suite re-run, write that instruction into your review file for the
+top-level.
 Apply the divergence contract with the spec as your reference. A dropped suite pass
 rate is always blocking (regressions aren't "deviations"). Cite the spec section or the
 suite case id. If the diff changes no parse/dump behavior, record a neutral pass.
@@ -241,20 +261,24 @@ pass.
 ```
 Persona: guardian of the project's #2 goal — parse/stringify speed and memory within
 reach of native JSON.parse/JSON.stringify. You represent performance, not the codebase.
-Evidence over opinion: read the shared `pnpm bench:self` output you're handed; it must
-show NO regression versus the base. Timings drift run-to-run and are invalid when other
-heavy jobs co-run — peak-RSS and heap-Δ are the stable figures. For a sharper number,
-re-measure in your own quiet git worktree.
+Evidence over opinion: read the `pnpm bench:self` output you're handed; it must show NO
+regression versus the base. If bench was deferred to CI (too slow to run inline), review
+against CI's benchmark numbers, or mark your perf verdict pending-CI rather than guess.
+Timings drift run-to-run and are invalid when other heavy jobs co-run — peak-RSS and
+heap-Δ are the stable figures. For a sharper number, write a "re-run bench" instruction
+into your review file for the top-level (don't run it yourself in the shared tree).
 Blocking when the change regresses a hot path (speed or peak memory) with no
-spec-compliance reason that outranks it. A performance win or a neutral change ends
-APPROVED. If the diff touches no parser/serializer hot path, record a neutral pass.
+spec-compliance reason that outranks it. A win or neutral change ends APPROVED. If the
+diff touches no parser/serializer hot path, record a neutral pass.
 ```
 
 ## Step 4 — collect, adjudicate, and loop (you)
 
-Read each `code_review_<name>.md` and take the verdict from the section whose header
-hash equals the **current** `HEAD_SHA`. If a reviewer's latest section is for an older
-commit, it's stale — re-run that reviewer (if its Domain was touched).
+Read each `.scratch/code_review_<name>.md` and take the verdict from the section whose
+header hash equals the **current** `HEAD_SHA`. If a reviewer's latest section is for an
+older commit, it's stale — re-run that reviewer (if its Domain was touched). Also run any
+in-file **instruction to the top-level** a reviewer left (a fix to apply, a command to
+run), so its result is available next pass.
 
 **Precedence when champions conflict** (higher wins; a lower reviewer's finding that
 contradicts a higher one is not blocking — mirrors CLAUDE.md's source-of-truth order):
@@ -300,18 +324,20 @@ Do not edit a reviewer's file to change its findings; you act on them or record 
 Once all reviewers approve the current commit, update the PR description's **Code
 review** checkbox: tick it and set the reviewed-commit hash to the current `HEAD_SHA`.
 That hash is the staleness signal — any later push makes it `!= HEAD`, which means run
-`/code-review` again and update it.
+`/code-review` again (when the PR is again ready for review) and update it.
 
 ## Boundaries
 
-✅ Spawn reviewers as fresh non-fork subagents with the prompts verbatim · give them the
-diff + CLAUDE.md, not the PR's justification · run the shared gate once yourself and hand
-it over · resolve champion conflicts by the precedence order · gate guardian divergences
-on README's Decisions section and escalate the unsanctioned ones to the user · loop until
-every reviewer approves the current HEAD.
-🚫 Don't review the change yourself in place of the panel · don't soften a reviewer's
-prompt or edit its file to change a verdict · don't treat CLAUDE.md/comments/notes as
-sanctioning a deviation (only README's Decisions section does) · don't add a deviation to
-README without the user's decision · don't run heavy commands concurrently in the shared
-tree (isolate with a worktree) · don't commit the `code_review_*.md` files · don't let a
-blocking finding through unresolved, or a non-blocking one vanish unrecorded.
+✅ Run when the PR is ready for the user to review · spawn reviewers as fresh non-fork
+subagents, all in parallel, with the prompts verbatim · give them the diff + CLAUDE.md,
+not the PR's justification · run the gate yourself (parallel tool calls; bench alone or
+deferred to CI) and hand the output over · resolve champion conflicts by the precedence
+order · gate guardian divergences on README's Decisions section and escalate the
+unsanctioned ones to the user · loop until every reviewer approves the current HEAD.
+🚫 Don't review the change yourself in place of the panel · don't let a reviewer run a
+mutating command or edit a tracked file (isolate in `/tmp/<uuid>/`, or defer to the
+top-level via the review file) · don't soften a reviewer's prompt or edit its file to
+change a verdict · don't treat CLAUDE.md/comments/notes as sanctioning a deviation (only
+README's Decisions section does) · don't add a deviation to README without the user's
+decision · don't run the benchmark alongside other heavy jobs · don't let a blocking
+finding through unresolved, or a non-blocking one vanish unrecorded.
