@@ -24,9 +24,9 @@ import {
 } from '../../../bench/schemas.ts';
 // bundleSizeItems (below) shapes a doc into chart-ready items, which needs
 // the brand color + versioned label — both presentation, so they stay
-// defined in benchmarks.ts; importing them back here is the one intentional
+// defined in charts.ts; importing them back here is the one intentional
 // exception to this file's "queries only, no rendering" rule.
-import { LIBRARY_COLOR, libraryLabel } from './benchmarks';
+import { LIBRARY_COLOR, libraryLabel } from './charts';
 
 export { SpeedDocSchema, MemoryDocSchema, ConformanceDocSchema, BundleSizeDocSchema };
 
@@ -156,8 +156,111 @@ export function canonicalRun<T extends WithRuntime>(runs: readonly T[]): T {
 }
 
 // ---------------------------------------------------------------------------
+// Ratio queries — a same-run ratio (e.g. js-yaml.avg / lightning-yaml.avg for
+// one workload) is a same-machine, same-run comparison, so this repo NEVER
+// blends one across environments into a single number — a browser engine and
+// Node are different machines with different results, and combining them
+// would hide that. Every ratio shown anywhere on the site is one real
+// measurement in one named environment (see `canonicalSpeedRatio` /
+// `canonicalMemoryRatio`, which read straight off `canonicalRun`). What this
+// section DOES provide is the per-environment ratio COLLECTION — every
+// family's own ratio, unblended — for two honest uses: a popover breakdown
+// listing each engine's own number, and a data-derived "up to N×" range
+// across the environments that have actually published. Scoped to one
+// workload — sizes are never combined together. A family contributes only
+// when BOTH libraries in the pair have a value in its newest document (e.g.
+// JSON.parse never ran on a block-YAML workload, so it silently drops out of
+// that ratio rather than producing a bogus one).
+// ---------------------------------------------------------------------------
+
+/** One environment's own measured ratio — never combined with any other environment's. */
+export interface RatioPoint {
+  family: string;
+  /** Full `env.runtime` string of this family's newest run (e.g. "node 24.18.0 (x64-linux)"). */
+  runtime: string;
+  ratio: number;
+}
+
+/** Shared plumbing: one ratio per family's newest doc, for the families where both libraries in the pair have a value. */
+function ratioAcrossFamilies<T extends WithRuntime>(
+  runs: readonly T[],
+  ratioOf: (doc: T) => number | undefined,
+): RatioPoint[] {
+  const points: RatioPoint[] = [];
+  for (const { family, runtime, doc } of availableRuntimes(runs)) {
+    const r = ratioOf(doc);
+    if (typeof r === 'number' && Number.isFinite(r) && r > 0) points.push({ family, runtime, ratio: r });
+  }
+  return points;
+}
+
+function speedRatioIn(doc: SpeedDoc, op: 'parse' | 'stringify', workload: string, numerator: LibraryId, denominator: LibraryId): number | undefined {
+  const w = doc.operations[op].find((x) => x.workload === workload);
+  const num = w?.values[numerator]?.avg;
+  const den = w?.values[denominator]?.avg;
+  return typeof num === 'number' && typeof den === 'number' && den > 0 ? num / den : undefined;
+}
+
+function memoryRatioIn(doc: MemoryDoc, op: 'parse' | 'stringify', workload: string, numerator: LibraryId, denominator: LibraryId): number | undefined {
+  const w = doc.operations[op].find((x) => x.workload === workload);
+  const num = w?.values[numerator]?.peak_rss;
+  const den = w?.values[denominator]?.peak_rss;
+  return typeof num === 'number' && typeof den === 'number' && den > 0 ? num / den : undefined;
+}
+
+/** Every runtime family's own `numerator.avg / denominator.avg` for one workload — unblended, one entry per environment. */
+export function speedWorkloadRatio(
+  runs: readonly SpeedDoc[],
+  op: 'parse' | 'stringify',
+  workload: string,
+  numerator: LibraryId,
+  denominator: LibraryId,
+): RatioPoint[] {
+  return ratioAcrossFamilies(runs, (doc) => speedRatioIn(doc, op, workload, numerator, denominator));
+}
+
+/** Every runtime family's own `numerator.peak_rss / denominator.peak_rss` for one workload — unblended, one entry per environment. */
+export function memoryWorkloadRatio(
+  runs: readonly MemoryDoc[],
+  op: 'parse' | 'stringify',
+  workload: string,
+  numerator: LibraryId,
+  denominator: LibraryId,
+): RatioPoint[] {
+  return ratioAcrossFamilies(runs, (doc) => memoryRatioIn(doc, op, workload, numerator, denominator));
+}
+
+/**
+ * THE headline number: the canonical environment's own measured ratio for one
+ * workload — a single real measurement, never averaged or blended with any
+ * other environment. `undefined` when the canonical run doesn't have a value
+ * for one side of the pair (that workload/library combination simply isn't
+ * shown, rather than silently falling back to a different environment).
+ */
+export function canonicalSpeedRatio(
+  runs: readonly SpeedDoc[],
+  op: 'parse' | 'stringify',
+  workload: string,
+  numerator: LibraryId,
+  denominator: LibraryId,
+): number | undefined {
+  return speedRatioIn(canonicalRun(runs), op, workload, numerator, denominator);
+}
+
+/** THE headline number for memory: see `canonicalSpeedRatio` — same contract, `peak_rss` instead of `avg`. */
+export function canonicalMemoryRatio(
+  runs: readonly MemoryDoc[],
+  op: 'parse' | 'stringify',
+  workload: string,
+  numerator: LibraryId,
+  denominator: LibraryId,
+): number | undefined {
+  return memoryRatioIn(canonicalRun(runs), op, workload, numerator, denominator);
+}
+
+// ---------------------------------------------------------------------------
 // Data-shaping helpers — select/order the validated docs into the shapes the
-// chart and table builders in benchmarks.ts consume.
+// chart and table builders in charts.ts consume.
 // ---------------------------------------------------------------------------
 
 /** Select + order a curated subset of workloads by name; silently skips any that aren't found. */
