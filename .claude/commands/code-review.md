@@ -32,7 +32,7 @@ reviewer approves the latest commit before you hand the PR back.
 | Reviewer file (`.claude/commands/`) | Model | Domain — re-run only if a touched file matches |
 | --- | --- | --- |
 | `code-review-consistency`    | Sonnet · max | `src/**`, `test/**`, `bench/**` |
-| `code-review-comments`       | Sonnet · max | any changed code file (`src/**`, `test/**`, `bench/**`, `*.ts`, `*.mjs`) |
+| `code-review-comments`       | Sonnet · max | any git-tracked source file (not gitignored), except `bench/yaml-test-suite/**` and `test/corpus/**` |
 | `code-review-complexity`     | **Opus** · max | `src/**`, `bench/**`, `test/**`, or any new file/script |
 | `code-review-spec`           | Sonnet · max | `src/**` |
 | `code-review-compat-yaml`    | Sonnet · max | `src/yaml-compat.ts`, `src/core.ts`, `src/index.ts` |
@@ -49,9 +49,12 @@ HEAD_SHA=$(git rev-parse --short=12 HEAD)
 git diff --name-only "$BASE"...HEAD    # intersect with each reviewer's Domain for scope-gating
 ```
 
-Review files live under the already-gitignored `.scratch/` (`.scratch/code_review_<name>.md`).
-Only spawn a reviewer whose Domain intersects the touched files (or whose latest section is
-older than `HEAD_SHA`); an untouched-domain reviewer keeps its approval.
+Review files live under the already-gitignored `.scratch/`, one per reviewer per commit:
+`.scratch/code_review_<name>_<HEAD_SHA>.md` (the sha in the filename keeps reviews across
+commits from overwriting each other). Only spawn a reviewer whose Domain intersects the touched
+files (or that has no file for the current `HEAD_SHA` yet); an untouched-domain reviewer keeps
+its prior approval. On a re-review, pass the reviewer its previously-reviewed sha as `PREV` so
+it diffs only `PREV..HEAD`.
 
 ## Step 2 — launch the gate AND the panel together (one message)
 
@@ -61,8 +64,9 @@ the panel wait on it. In one message:
 - **Spawn every in-scope reviewer in parallel** (Task tool, fresh non-fork subagent, model
   per the table). Each prompt is tiny:
   > Read `.claude/commands/code-review-<name>.md` and follow it exactly. BASE=`<sha>`,
-  > HEAD=`<sha>`. Your review file is `.scratch/code_review_<name>.md`. Gate output (if any)
-  > is under `.scratch/gate/`. Work strictly read-only.
+  > HEAD=`<sha>` (add PREV=`<sha>` on a re-review). Write your review to
+  > `.scratch/code_review_<name>_<HEAD>.md`. Gate output (if any) is under `.scratch/gate/`;
+  > any repro goes in `.scratch/code-review-<name>-playground/`. Work strictly read-only.
 - **Start the gate** (only if the diff touches `src/` or `bench/`) as parallel Bash calls,
   after generating fixtures/suite once so they don't race:
 
@@ -83,10 +87,11 @@ the panel wait on it. In one message:
 
 ## Step 3 — collect, adjudicate, loop
 
-Read each `.scratch/code_review_<name>.md` and take the verdict from the section whose header
-hash equals the current `HEAD_SHA` (older = stale → re-run if its Domain was touched). Run any
-in-file **instruction to the top-level** a reviewer left (a fix to apply, a command to run) so
-its result is available next pass. Combine with the gate result (a red gate blocks).
+Read each `.scratch/code_review_<name>_<HEAD_SHA>.md` and take its verdict (the final line). A
+reviewer with no file for the current `HEAD_SHA` is stale → re-run it if its Domain was touched,
+passing its previously-reviewed sha as `PREV`. Run any in-file **instruction to the top-level**
+a reviewer left (a fix to apply, a command to run) so its result is available next pass. Combine
+with the gate result (a red gate blocks).
 
 **Precedence when champions conflict** (higher wins; a lower reviewer's finding that
 contradicts a higher one is not blocking — mirrors CLAUDE.md's source-of-truth order):
@@ -129,7 +134,8 @@ own its pass/fail · resolve champion conflicts by the precedence order · gate 
 divergences on README's Decisions section, escalating unsanctioned ones to the user · loop
 until every reviewer approves the current HEAD.
 🚫 Don't serialize the reviewers · don't review the change yourself in place of the panel ·
-don't let a reviewer mutate the tree (they're read-only — isolate in `/tmp/<uuid>/` or defer
+don't let a reviewer mutate the tree (they're read-only — isolate in
+`.scratch/code-review-<name>-playground/` or defer
 to you) · don't soften a reviewer's prompt or edit its file to change a verdict · don't treat
 CLAUDE.md/comments/notes as sanctioning a deviation (only README's Decisions section does) ·
 don't add a deviation to README without the user's decision · don't commit the

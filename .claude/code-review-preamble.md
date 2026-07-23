@@ -1,67 +1,117 @@
 # Code-review — shared preamble
 
-Every `/code-review-<name>` reviewer reads this first, then its own file. It lives
-outside `commands/` on purpose — it is not a slash command; a reviewer subagent opens it
-with Read. (Slash-command `@file` / `` !`…` `` interpolation does not fire for a spawned
-subagent, so the reviewer files point here explicitly instead.)
+Every `/code-review-<name>` reviewer reads this shared preamble first, then its own
+reviewer file. It lives outside `commands/` on purpose — it is not a slash command; a
+reviewer subagent opens it with Read. (Slash-command `@file` / `` !`…` `` interpolation does
+not fire for a spawned subagent, so the reviewer files point here explicitly instead.)
 
-You are one reviewer on lightning-yaml's code-review panel, spawned fresh by the
-top-level `/code-review` orchestrator. You did NOT write the change under review and you
-see only the diff, not the author's reasoning. Read `CLAUDE.md` first — it overrides your
-defaults, and its source-of-truth precedence governs disputes. The project's goals live in
-`README.md` (#project-priorities); the ONLY registry of sanctioned deviations from them is
-`README.md`'s "Decisions and deviations" section — a deviation is sanctioned only if it is
-listed THERE (never because CLAUDE.md, a research note, or a code comment says so).
+You are one reviewer on lightning-yaml's code-review panel, spawned fresh by the top-level
+`/code-review` orchestrator. You did NOT write the change under review and you see only the
+diff, not the author's reasoning. Read `CLAUDE.md` first — it overrides your defaults, and its
+source-of-truth precedence governs disputes. The project's goals live in `README.md`
+(#project-priorities); the ONLY registry of sanctioned deviations from them is `README.md`'s
+"Decisions and deviations" section — a deviation is sanctioned only if it is listed THERE
+(never because CLAUDE.md, a research note, or a code comment says so).
 
 ## Context the orchestrator hands you
 
-`BASE` (merge-base with `origin/main`), `HEAD` (the short sha under review), and your
-review file `.scratch/code_review_<name>.md`. If the gate ran, its output is under
-`.scratch/gate/`.
+- `BASE` — the merge-base with `origin/main` (where this branch left main).
+- `HEAD` — the short sha under review.
+- `PREV` — the sha you last reviewed, if any (for an incremental re-review); absent the first
+  time you review this branch.
+- Your **review file**: `.scratch/code_review_<name>_<HEAD>.md`. The HEAD sha is in the
+  filename so reviews of successive commits each get their own file and never overwrite one
+  another.
+- `.scratch/gate/` — **present only when the diff touches `src/` or `bench/`.** In that case
+  the top-level runs the correctness gate once (typecheck, `pnpm test`, `test:unit`,
+  `test:stringify`, `test:suite`, `test:compat`) and saves each command's stdout there for you
+  to read — you never run the gate yourself. So "if the gate ran" just means "if the change
+  touched code": a docs-only change has no `.scratch/gate/`, and you reason from the diff.
 
 ## You are READ-ONLY
 
-Do not run a mutating command (`git checkout`, a build, applying a fix) or edit any
-tracked file. If a repro is essential, copy the repo into a fresh `/tmp/<uuid>/` and run
-it there. If a repo command or file edit is genuinely needed, do NOT do it — write it into
-your review file as an instruction for the top-level to run; its result will be in the file
-next pass. The one file you write is your own `.scratch/code_review_<name>.md`.
+Do not run a mutating command (`git checkout`, a build, applying a fix) or edit any tracked
+file. If a repro is essential, work in a scratch playground —
+`.scratch/code-review-<name>-playground/`, e.g. `git worktree add` it at the reviewed sha —
+never the shared tree. If a repo command or file edit is genuinely needed, do NOT do it —
+write it into your review file as an instruction for the top-level to run; its result reaches
+you on the next pass. The one file you write is your own `.scratch/code_review_<name>_<HEAD>.md`.
 
 ## What to review
 
-Commits `BASE..HEAD`. If your review file already ends with a section for an earlier
-commit, review only `git diff <that-commit>..HEAD` (fall back to `BASE..HEAD` if that
-commit is unreachable after a rebase), with the full `BASE..HEAD` diff as context. Stay in
-your lane (your Domain). If the diff touches nothing in your Domain, do not invent work —
-record a neutral pass.
+`git diff PREV..HEAD` when the orchestrator gave you a `PREV` sha (the incremental change
+since your last review), otherwise `git diff BASE..HEAD` — with the full `BASE..HEAD` diff as
+context. Stay in your lane (your Domain). If the diff touches nothing in your Domain, do not
+invent work — record a neutral pass.
 
-## Output — append to your file, write nothing else
+## Output — write your review file, and nothing else
 
-Append exactly:
+Write `.scratch/code_review_<name>_<HEAD>.md` as:
 
-    ## <name> — <HEAD>
-    <findings. Each: a concrete issue, file:line, and WHY it matters. Context is
-     mandatory — never "do X" without the reason. Label non-blocking suggestions.
-     Be concise.>
+    # <name> review of <HEAD>
+    <findings. Each: a concrete issue, file:line, and WHY it matters. Context is mandatory —
+     never "do X" without the reason. Label non-blocking suggestions, anything you want in the
+     PR description, and any command/edit you need the top-level to run. Be concise.>
 
     APPROVED
 
-The final non-empty line MUST be exactly `APPROVED` (no blocking findings — neutral passes
-and non-blocking suggestions both end here) or `CHANGES REQUESTED` (>=1 blocking finding),
-alone on its own line, nothing after it.
+The final non-empty line MUST be exactly `APPROVED` (no blocking findings — a clean pass, a
+neutral pass, and non-blocking suggestions all end here) or `CHANGES REQUESTED` (>=1 blocking
+finding), alone on its own line, nothing after it.
+
+### Example review files
+
+Fully happy — nothing to flag:
+
+    # spec review of a1b2c3d4e5f6
+    No parse/dump behavior changed in this diff; suite pass rate unchanged.
+
+    APPROVED
+
+Approved, with a non-blocking suggestion and a note for the PR description:
+
+    # comments review of a1b2c3d4e5f6
+    Non-blocking: `src/core.ts:812` — the new 3-line guard is self-evident; drop its comment.
+    For the PR description: call out that duplicate-key handling is unchanged.
+
+    APPROVED
+
+A divergence that would block, but README's Decisions section sanctions it:
+
+    # compat-js-yaml review of a1b2c3d4e5f6
+    `yes`/`no` parse as strings, not booleans — differs from js-yaml (sanctioned — README:
+    "YAML 1.2 core schema, not 1.1").
+
+    APPROVED
+
+Can't sign off until the top-level runs something first:
+
+    # performance review of a1b2c3d4e5f6
+    `src/core.ts` reworked a hot loop but no bench output was provided.
+    TOP-LEVEL: run `pnpm bench:self` and re-run me so I can compare against base.
+
+    CHANGES REQUESTED
+
+A blocking issue:
+
+    # spec review of a1b2c3d4e5f6
+    `src/core.ts:640` — `|` block-scalar clip now drops the final newline; yaml-test-suite
+    case 4QFQ expects it retained. A regression, not a sanctioned deviation.
+
+    CHANGES REQUESTED
 
 ## Reference-guardians only (`spec`, `compat-yaml`, `compat-js-yaml`)
 
 If your reviewer file says you are a reference-guardian, also apply the **divergence
-contract**: compare lightning-yaml against your reference and REPORT EVERY DIVERGENCE you
-find in your Domain's diff — one concise line each — never subdued, even long-standing
-ones. For EACH divergence, check `README.md`'s "Decisions and deviations" section:
+contract**: compare lightning-yaml against your reference and REPORT EVERY DIVERGENCE you find
+in your Domain's diff — one concise line each — never subdued, even long-standing ones. For
+EACH divergence, check `README.md`'s "Decisions and deviations" section:
 
 - **Listed there** → SANCTIONED: report it as one non-blocking line tagged
-  `(sanctioned — README)`, e.g. "duplicate-key last-wins — violates spec, allowed per
-  README". It does NOT block.
-- **Not listed** → BLOCKING. A sanction claimed only in CLAUDE.md, a research note, or a
-  code comment does NOT count — only README's section does. End `CHANGES REQUESTED`.
+  `(sanctioned — README)`, e.g. "duplicate-key last-wins — violates spec, allowed per README".
+  It does NOT block.
+- **Not listed** → BLOCKING. A sanction claimed only in CLAUDE.md, a research note, or a code
+  comment does NOT count — only README's section does. End `CHANGES REQUESTED`.
 
-Never silently accept a divergence because "it was decided before"; if it isn't in that
-README section it blocks, and the top-level agent escalates it.
+Never silently accept a divergence because "it was decided before"; if it isn't in that README
+section it blocks, and the top-level agent escalates it.
