@@ -12,8 +12,9 @@ from the YAML 1.2 specification** — then minimise it, verify it is genuinely o
 bug, capture it as a regression test, and open a PR. If a clean, low-risk fix
 exists, include it; if it doesn't, report the reproduction and hand the decision
 to a human. If after honest effort you find nothing real, **say so and open no
-PR** — `lightning-yaml` already passes ≈97.6% of the official yaml-test-suite, so
-a fabricated or marginal "finding" is worse than none.
+PR** — `lightning-yaml` already passes the vast majority of the official
+yaml-test-suite (run `pnpm test:suite` for the live rate), so a fabricated or
+marginal "finding" is worse than none.
 
 If the invoker passed a focus area, concentrate your hunt there: **$ARGUMENTS**
 
@@ -21,9 +22,10 @@ If the invoker passed a focus area, concentrate your hunt there: **$ARGUMENTS**
 
 `lightning-yaml` is a from-scratch YAML 1.2 parser/stringifier aiming at
 `JSON.parse` speed. The whole parser is one file: `src/core.ts`. Read
-`CLAUDE.md` and `PROGRESS.md` first — `PROGRESS.md` records the current pass rate
-and the known-weak failure buckets, your best starting map. `README.md` is the
-adopter-facing contract you're testing against.
+`CLAUDE.md` first, then run `pnpm test:suite` — its output is the live pass rate
+plus the exact yaml-test-suite cases that currently fail, your best starting map
+to the known-weak areas. `README.md` is the adopter-facing contract you're
+testing against.
 
 ### The attack surface — every entry point a user can import, you can too
 
@@ -90,7 +92,8 @@ test to manufacture a pass. Accuracy outranks activity.
 
 ## Process
 
-1. **Orient.** Skim `CLAUDE.md` + `PROGRESS.md`; `pnpm install` if deps are missing.
+1. **Orient.** Skim `CLAUDE.md`, run `pnpm test:suite` for the current failing
+   cases; `pnpm install` if deps are missing.
 2. **Generate candidates.** Small, weird, spec-legal-and-illegal inputs. Mutate
    seeds from the yaml-test-suite, `test/corpus/currencycloud-reference.yaml`, and
    the fixtures; and target the fragile constructs below (including their malformed
@@ -115,7 +118,7 @@ test to manufacture a pass. Accuracy outranks activity.
 8. **Verify** the full gate and include the real output in the PR.
 9. **Open the PR** (format below).
 
-## Fragile by history (see PROGRESS.md buckets)
+## Fragile by history
 
 Plain-scalar typing (`y`/`no`/`.inf`/`.nan`/`0o`/`0x`/timestamps/numeric-looking
 strings) · document boundaries (`---`/`...`, bare/empty docs, trailing junk,

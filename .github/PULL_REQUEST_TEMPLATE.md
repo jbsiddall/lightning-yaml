@@ -18,6 +18,20 @@ Please confirm the relevant checks pass locally (see CONTRIBUTING.md):
 - [ ] `pnpm test:suite` — yaml-test-suite pass rate did **not** drop (parser changes)
 - [ ] `pnpm bench:self` shows no perf regression (hot-path changes)
 
+## Code review
+
+<!--
+Run /code-review as a FRESH sub-agent, never a fork: a forked reviewer inherits the
+author's context and rationalises the change, so a clean one is what keeps the review
+unbiased. See .claude/commands/code-review.md.
+-->
+
+- [ ] Ran `/code-review` as a fresh sub-agent (**not** a fork) and addressed every
+      issue it raised.
+- [ ] Any pushback on its feedback was fed back into `/code-review` and it was re-run
+      until it returned **✅ Satisfied** — the loop ends on the reviewer being
+      satisfied, not on the author insisting.
+
 ## Changeset
 
 - [ ] This PR touches `src/` and includes a changeset (`pnpm changeset`, or
