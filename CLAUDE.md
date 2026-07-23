@@ -6,9 +6,10 @@ Guidance for Claude Code (and humans) working in this repo.
 
 `lightning-yaml` is a **YAML 1.2.2-compliant parser and serializer**
 ([`src/core.ts`](src/core.ts) implements `parse`/`parseAll`/`stringify`). The
-project goal: performance approaching the browser's native
-`JSON.parse`/`JSON.stringify` in both browser and server environments, while
-maintaining full 1.2.2 compliance (YAML 1.1 is explicitly a non-goal). It
+project's **goals are the north star, and their authoritative statement lives in
+[README.md](README.md#project-priorities)** — spec compliance first, then
+performance approaching the browser's native `JSON.parse`/`JSON.stringify` —
+read them from there rather than redefine them here (YAML 1.1 is a non-goal). It
 targets high conformance to the official yaml-test-suite; the live pass rate
 comes from `pnpm test:suite`, not pinned here. Around the parser the repo carries two things, each detailed in
 its own section below: a **benchmark harness** (speed + peak memory, every
@@ -92,9 +93,15 @@ and lightning-yaml deliberately matches the spec against it — e.g. we reject a
 implicit flow collection key (`{[1,2]: v}`), a spec error (yaml-test-suite SBG9/X38W)
 that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof of
 correctness, and "differs from the oracle" is never on its own a bug: check the spec.
-Trust an implementation only where it agrees with the spec. The one sanctioned
-deviation *from* the spec is explicit and documented — duplicate-key last-wins, for
-`JSON.parse` parity (see `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`).
+Trust an implementation only where it agrees with the spec. **Sanctioned deviations
+from the spec or the goals live in exactly one place — the [Decisions and
+deviations](README.md#decisions-and-deviations) section of `README.md` — and nowhere
+else counts: a deviation asserted in this file, a research note, or a code comment but
+*absent* from that README section is not approved, so flag/escalate it rather than wave
+it through.** Keeping the registry in the one doc everyone reads is deliberate — it
+keeps every standing exception (e.g. duplicate-key last-wins, for `JSON.parse` parity;
+the rationale is in `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`)
+visible instead of buried.
 
 Code can still carry bugs — behavior that contradicts the spec (or a stated design
 goal) is a bug to fix, not intent to enshrine.
