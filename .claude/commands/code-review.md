@@ -38,6 +38,7 @@ reviewer approves the latest commit before you hand the PR back.
 | `code-review-compat-yaml`    | Sonnet · max | `src/yaml-compat.ts`, `src/core.ts`, `src/index.ts` |
 | `code-review-compat-js-yaml` | Sonnet · max | `src/js-yaml-compat.ts`, `src/core.ts`, `src/index.ts` |
 | `code-review-performance`    | Sonnet · max | `src/**` |
+| `code-review-newcomer`       | Sonnet · max | `README.md`, `site/**`, `src/index.ts`, `src/*-compat.ts`, `CHANGELOG.md`, `.changeset/**`, or user-visible behavior |
 
 ## Step 1 — set up
 
@@ -91,7 +92,7 @@ its result is available next pass. Combine with the gate result (a red gate bloc
 contradicts a higher one is not blocking — mirrors CLAUDE.md's source-of-truth order):
 
 1. `spec` — YAML 1.2.2 correctness.
-2. CLAUDE.md policy — `comments`, plus integrity/audience-voice.
+2. CLAUDE.md policy — `comments` and `newcomer` (docs honesty, integrity & audience-voice).
 3. `compat-yaml` / `compat-js-yaml` — drop-in parity (their asks yield to `spec`).
 4. `performance` — no speed/memory regression.
 5. `consistency` — structure/naming/reuse (yields to policy — so `comments` beats
