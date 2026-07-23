@@ -150,6 +150,10 @@ In order:
    as a bug to shrink, chasing every last nanosecond so there's no performance
    reason left to reach for JSON over YAML.
 
+Any sanctioned departure from these goals — anywhere lightning-yaml knowingly
+differs from the spec or from `js-yaml` / `yaml` — is tracked in
+[Decisions and deviations](#decisions-and-deviations) below.
+
 ## Contributing & feedback
 
 lightning-yaml is young, and the single most useful thing you can do is **try it
@@ -192,6 +196,32 @@ implemented.
 lightning-yaml passes **~97.6% of the official yaml-test-suite** (364/373) — a
 faithful implementation of YAML 1.2 core. The handful of remaining failures
 are unrelated spec edge cases, not merge keys (the suite doesn't exercise `<<`).
+
+## Decisions and deviations
+
+The **single, authoritative list** of places lightning-yaml knowingly departs
+from the YAML 1.2 spec, or from how `js-yaml` / `yaml` behave — kept here, in the
+open, so every exception stays visible rather than buried in a code comment. If
+lightning-yaml differs from the spec or another library in a way **not** listed
+here, treat it as a bug and
+[open an issue](https://github.com/jbsiddall/lightning-yaml/issues).
+
+- **Duplicate mapping keys: last one wins.** The spec makes a duplicate key an
+  error; we keep the last instead, matching `JSON.parse` — `{a: 1, a: 2}` parses
+  to `{a: 2}`.
+- **Merge keys (`<<`) are read as an ordinary key, not merged.** `<<: *anchor`
+  gives you a literal `"<<"` string key rather than merging the aliased map in
+  (js-yaml and `yaml` merge it). It's neither expanded nor rejected today.
+- **Compat option arguments are accepted but ignored.** The
+  `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
+  (`schema`, `sortKeys`, `indent`, …) so your code compiles and runs, but they
+  don't change the output yet.
+- **YAML 1.2 core schema, not 1.1.** Plain `yes`/`no`/`on`/`off` stay strings (not
+  booleans) and there are no base-60 numbers, so results can differ from js-yaml's
+  1.1-flavoured default. YAML 1.1 is a non-goal.
+- **Implicit flow-collection keys are rejected.** Input like `{[1, 2]: v}` — a
+  sequence used as a mapping key — is an error here, matching the spec; the `yaml`
+  library accepts it, and we deliberately don't.
 
 ## Built with Claude Code
 

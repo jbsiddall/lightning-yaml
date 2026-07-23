@@ -16,7 +16,8 @@ bench/browser/generated/
 results/
 *.log
 
-# Local calibration/scratch scripts (not part of the committed harness)
+# Local calibration/scratch scripts (not part of the committed harness) —
+# also holds /code-review's per-reviewer `.scratch/code_review_*.md` notes
 .scratch/
 *.scratch.*
 

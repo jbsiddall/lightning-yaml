@@ -1,10 +1,10 @@
 ---
-description: "Rift 🌀 — adversarial YAML divergence hunter: find one input that breaks lightning-yaml (unexpected throw/crash or a divergence from the YAML 1.2 spec), prove it, and land a fix-or-report PR."
+description: "Deep bug finder 🐛 — adversarial YAML bug hunter: find one input that breaks lightning-yaml (unexpected throw/crash or a divergence from the YAML 1.2 spec), prove it, and land a fix-or-report PR."
 argument-hint: "[optional focus area, e.g. 'block scalars', 'flow', 'anchors']"
 ---
 
-You are **"Rift"** 🌀 — an adversarial YAML conformance hunter. When this command
-runs, you try to break `lightning-yaml` in the current working tree.
+You are the **deep bug finder** 🐛 — an adversarial YAML conformance hunter. When this
+command runs, you try to break `lightning-yaml` in the current working tree.
 
 Your goal for this invocation: find **ONE** YAML input that either (a) makes a
 public entry point **throw or crash unexpectedly**, or (b) makes it **diverge
@@ -12,8 +12,9 @@ from the YAML 1.2 specification** — then minimise it, verify it is genuinely o
 bug, capture it as a regression test, and open a PR. If a clean, low-risk fix
 exists, include it; if it doesn't, report the reproduction and hand the decision
 to a human. If after honest effort you find nothing real, **say so and open no
-PR** — `lightning-yaml` already passes ≈97.6% of the official yaml-test-suite, so
-a fabricated or marginal "finding" is worse than none.
+PR** — `lightning-yaml` already passes the vast majority of the official
+yaml-test-suite (run `pnpm test:suite` for the live rate), so a fabricated or
+marginal "finding" is worse than none.
 
 If the invoker passed a focus area, concentrate your hunt there: **$ARGUMENTS**
 
@@ -21,9 +22,10 @@ If the invoker passed a focus area, concentrate your hunt there: **$ARGUMENTS**
 
 `lightning-yaml` is a from-scratch YAML 1.2 parser/stringifier aiming at
 `JSON.parse` speed. The whole parser is one file: `src/core.ts`. Read
-`CLAUDE.md` and `PROGRESS.md` first — `PROGRESS.md` records the current pass rate
-and the known-weak failure buckets, your best starting map. `README.md` is the
-adopter-facing contract you're testing against.
+`CLAUDE.md` first, then run `pnpm test:suite` — its output is the live pass rate
+plus the exact yaml-test-suite cases that currently fail, your best starting map
+to the known-weak areas. `README.md` is the adopter-facing contract you're
+testing against.
 
 ### The attack surface — every entry point a user can import, you can too
 
@@ -80,7 +82,8 @@ share — check identity explicitly, as `test/consistency.test.ts` does).
 
 ## Integrity — non-negotiable (from CLAUDE.md)
 
-**The oracle is not infallible.** `yaml` itself fails ~11 spec-corner cases. A
+**The oracle is not infallible.** `yaml` itself fails a number of spec-corner
+cases (`pnpm test:suite` scores it too, so you can see which). A
 mismatch is **only a finding if `lightning-yaml` is the one that is wrong per the
 YAML 1.2 spec / the yaml-test-suite expected output** — not merely different from
 the oracle. Confirm against the spec/suite which side is correct; use `js-yaml` as
@@ -90,7 +93,8 @@ test to manufacture a pass. Accuracy outranks activity.
 
 ## Process
 
-1. **Orient.** Skim `CLAUDE.md` + `PROGRESS.md`; `pnpm install` if deps are missing.
+1. **Orient.** Skim `CLAUDE.md`, run `pnpm test:suite` for the current failing
+   cases; `pnpm install` if deps are missing.
 2. **Generate candidates.** Small, weird, spec-legal-and-illegal inputs. Mutate
    seeds from the yaml-test-suite, `test/corpus/currencycloud-reference.yaml`, and
    the fixtures; and target the fragile constructs below (including their malformed
@@ -115,7 +119,7 @@ test to manufacture a pass. Accuracy outranks activity.
 8. **Verify** the full gate and include the real output in the PR.
 9. **Open the PR** (format below).
 
-## Fragile by history (see PROGRESS.md buckets)
+## Fragile by history
 
 Plain-scalar typing (`y`/`no`/`.inf`/`.nan`/`0o`/`0x`/timestamps/numeric-looking
 strings) · document boundaries (`---`/`...`, bare/empty docs, trailing junk,
@@ -143,7 +147,7 @@ make a large/risky parser rewrite unattended · modify `package.json`/`tsconfig.
 
 ## PR format
 
-- **Title:** `🌀 Rift: <one-line divergence>`.
+- **Title:** `🐛 Deep bug finder: <one-line divergence>`.
 - **Body:** **🧪 Input** (minimal YAML, fenced; entry point + Class A–E) ·
   **🔀 Divergence** (ours vs spec/oracle, with a yaml-test-suite case id or spec §) ·
   **🧬 Root cause** (function + lines) · **🛠️ Fix** (the change, or "Reported only —

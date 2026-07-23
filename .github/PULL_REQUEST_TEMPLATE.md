@@ -18,6 +18,22 @@ Please confirm the relevant checks pass locally (see CONTRIBUTING.md):
 - [ ] `pnpm test:suite` — yaml-test-suite pass rate did **not** drop (parser changes)
 - [ ] `pnpm bench:self` shows no perf regression (hot-path changes)
 
+## Code review
+
+<!--
+Run /code-review from the top-level assistant when the PR looks ready for the user to
+review (it fans out its own read-only reviewer subagents in parallel; it is NOT itself
+run as a subagent). Re-run it each time the PR is updated and again ready, looping until
+all reviewers approve that commit. Record the commit they approved below — a later push
+makes it != HEAD, the signal to re-run and update the hash. See
+.claude/commands/code-review.md.
+-->
+
+- [ ] `/code-review` passed — every reviewer approved at commit `_______________` (the
+      HEAD it ran on). Pushing new commits invalidates this: when the PR is again ready
+      for review, re-run `/code-review` and update the hash until all reviewers approve
+      the new HEAD.
+
 ## Changeset
 
 - [ ] This PR touches `src/` and includes a changeset (`pnpm changeset`, or

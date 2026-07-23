@@ -6,9 +6,10 @@ Guidance for Claude Code (and humans) working in this repo.
 
 `lightning-yaml` is a **YAML 1.2.2-compliant parser and serializer**
 ([`src/core.ts`](src/core.ts) implements `parse`/`parseAll`/`stringify`). The
-project goal: performance approaching the browser's native
-`JSON.parse`/`JSON.stringify` in both browser and server environments, while
-maintaining full 1.2.2 compliance (YAML 1.1 is explicitly a non-goal). It
+project's **goals are the north star, and their authoritative statement lives in
+[README.md](README.md#project-priorities)** — spec compliance first, then
+performance approaching the browser's native `JSON.parse`/`JSON.stringify` —
+read them from there rather than redefine them here (YAML 1.1 is a non-goal). It
 targets high conformance to the official yaml-test-suite; the live pass rate
 comes from `pnpm test:suite`, not pinned here. Around the parser the repo carries two things, each detailed in
 its own section below: a **benchmark harness** (speed + peak memory, every
@@ -92,9 +93,15 @@ and lightning-yaml deliberately matches the spec against it — e.g. we reject a
 implicit flow collection key (`{[1,2]: v}`), a spec error (yaml-test-suite SBG9/X38W)
 that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof of
 correctness, and "differs from the oracle" is never on its own a bug: check the spec.
-Trust an implementation only where it agrees with the spec. The one sanctioned
-deviation *from* the spec is explicit and documented — duplicate-key last-wins, for
-`JSON.parse` parity (see `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`).
+Trust an implementation only where it agrees with the spec. **Sanctioned deviations
+from the spec or the goals live in exactly one place — the [Decisions and
+deviations](README.md#decisions-and-deviations) section of `README.md` — and nowhere
+else counts: a deviation asserted in this file, a research note, or a code comment but
+*absent* from that README section is not approved, so flag/escalate it rather than wave
+it through.** Keeping the registry in the one doc everyone reads is deliberate — it
+keeps every standing exception (e.g. duplicate-key last-wins, for `JSON.parse` parity;
+the rationale is in `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`)
+visible instead of buried.
 
 Code can still carry bugs — behavior that contradicts the spec (or a stated design
 goal) is a bug to fix, not intent to enshrine.
@@ -121,17 +128,34 @@ its own context lean. Follow this loop for any non-trivial request.
 2. **PLAN** (if the chunk is non-trivial) — spawn an **opus** subagent to produce a
    concrete plan: root cause, exact files/lines, minimal diff, verification, risks.
    Skip only when the implementation is obvious.
-3. **IMPLEMENT** — spawn a subagent to do the work. **Default to Sonnet to save token
-   budget**; use **opus only** when the implementation is genuinely complex / needs
-   deep reasoning. It implements, adds/updates tests, runs the gate, writes its result
-   to a scratch file.
-4. **CRITIQUE (adversarial)** — spawn an **opus** subagent to *try to break* the change:
-   hunt oracle/spec divergences, edge-case regressions, and confirm the gate really
-   passes and the chunk is *actually* done. Fix confirmed findings (loop back to 3 if
-   needed). Never accept "looks fine."
-5. **COMMIT** — only once the gate is green and the critic confirms done. Commit the
-   chunk (push per milestone).
-6. **REPEAT** from 1.
+3. **IMPLEMENT + gate + commit — each chunk is its own commit.** Spawn a subagent
+   (**default Sonnet**; **opus only** when genuinely complex) to implement, add/update
+   tests, and run the gate. As soon as the gate is green, **commit the chunk as its own
+   commit** — don't wait for the review. PRs squash-merge, so intermediate commits
+   collapse; committing now hands the reviewers an **immutable git hash** to review.
+4. **REVIEW the chunk in parallel — don't block on it.** Instead of a bespoke critic, spawn
+   the `/code-review` reviewers whose Domain the chunk touches (`.claude/commands/code-review-*`),
+   **scoped to the just-committed hash** (they diff `<hash>^..<hash>`) — mostly Sonnet, fast —
+   *in the background*, then go **straight back to step 1 for the next chunk** while they run.
+   Each reviewer reads the change off the **commit hash** (a static, immutable view), never the
+   live tree, so the review of chunk N and the implementation of chunk N+1 overlap without
+   racing. When findings come back, fold confirmed ones in as a **follow-up commit**. Overlapping
+   the review with the next chunk is the main latency win — never serialize it in front. Pick
+   chunk boundaries so the next chunk rarely has to unwind; if a finding forces a real change,
+   fix it forward as a new commit.
+5. **REPEAT** from 1 until every chunk is committed and every background review has
+   landed (findings folded in). Push per milestone.
+6. **Comprehensive review at hand-off.** When the whole change is ready for the user, run
+   **`/code-review`** — the multi-reviewer panel that runs its reviewers in parallel,
+   read-only, over the committed diff (see `.claude/commands/code-review.md`). Loop it
+   until every reviewer approves the current commit, then hand back.
+
+**One review mechanism, two scopes.** It's the same `/code-review` panel throughout — no
+separate adversarial pass to maintain. During the loop it runs **scoped to each commit**
+(step 4, pipelined so it never blocks the next chunk; only the reviewers whose Domain the
+commit touched run, so it stays fast); at hand-off it runs **over the whole PR** (step 6).
+Same reviewers, same files, same read-only-off-a-git-hash rule — just a per-commit scope
+versus the full `BASE..HEAD` scope.
 
 ### PRs squash-merge — keep the title & description accurate
 
@@ -185,6 +209,13 @@ Run independent chunks in parallel (multiple subagents in one message). But only
 file-writing/committing subagent at a time per shared working tree — concurrent writers
 corrupt each other's typecheck/test runs and race the git index. Read-only agents may
 overlap freely. (For true parallel writers, isolate with a git worktree.)
+
+This is what makes the pipelined per-commit review (loop step 4) safe: the single writer is the
+top-level's current implement/fix subagent, and every reviewer is a **reader that works off a
+committed git hash** (`git show` / `git diff <hash>`, the immutable object DB) rather than the
+live tree — so the review of chunk N and the implementation of chunk N+1 overlap without racing.
+A reviewer that must *run* something (tests, a repro) checks the hash out into its own
+`.scratch/code-review-<name>-playground/` copy or a git worktree, never the shared tree.
 
 ### The correctness gate (this repo)
 
