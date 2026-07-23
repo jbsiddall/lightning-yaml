@@ -28,6 +28,27 @@ source-of-truth precedence governs disputes. The project's goals live in `README
   to read — you never run the gate yourself. So "if the gate ran" just means "if the change
   touched code": a docs-only change has no `.scratch/gate/`, and you reason from the diff.
 
+## First move: gather your context in parallel
+
+Before you start reasoning, pull everything you'll need in **one parallel batch** — issue all the
+independent reads and commands in a single step instead of trickling them out one at a time. The
+sequential "read a file, think, read the next" pattern is the slow, expensive path, and it's easy
+to waste it re-reading the same files; a little over-fetching is fine here, because the round-trips
+cost more than the extra context. You've already read this preamble and your own reviewer file, so
+in that first batch fetch at least:
+
+- **The diff you'll review** (see _What to review_ below) — `git diff BASE..HEAD`, plus
+  `git diff PREV..HEAD` when the orchestrator handed you a `PREV`, and `git diff --name-only
+  BASE..HEAD` for the changed-file list.
+- **The full text of every changed file in your Domain** — read them whole in this same batch, so
+  you're not fetching them one at a time mid-review.
+- **`CLAUDE.md` and `README.md`** — the latter for the project-priorities and, if you're a
+  reference-guardian, the "Decisions and deviations" section you check divergences against.
+- **Anything your own reviewer file points you at** (e.g. a compat guardian's `src/*-compat.ts`)
+  and the gate output under `.scratch/gate/` when it's present.
+
+Only once that batch is back do you start reasoning and appending findings.
+
 ## You are READ-ONLY
 
 Do not run a mutating command (`git checkout`, a build, applying a fix) or edit any tracked
