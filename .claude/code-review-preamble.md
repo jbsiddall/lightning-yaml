@@ -44,20 +44,28 @@ since your last review), otherwise `git diff BASE..HEAD` — with the full `BASE
 context. Stay in your lane (your Domain). If the diff touches nothing in your Domain, do not
 invent work — record a neutral pass.
 
-## Output — write your review file, and nothing else
+## Output — append to your review file as you go (a log, not a batch write)
 
-Write `.scratch/code_review_<name>_<HEAD>.md` as:
+Your review file is `.scratch/code_review_<name>_<HEAD>.md`. Do NOT save it all for the end —
+**append each finding the moment you're sure of it.** The orchestrator caps each review round
+at ~5 minutes and may stop you mid-flight; appending as you go means your work so far survives.
+
+This is a review **log, not a scratchpad** — only things you'd stand behind go in: a concrete
+issue (file:line + WHY it matters — context is mandatory, never "do X" without the reason), a
+labelled non-blocking suggestion, a note for the PR description, or a command/edit you need the
+top-level to run. No musings, progress chatter, or half-formed thoughts.
+
+Start with a header line, then append findings as you confirm them:
 
     # <name> review of <HEAD>
-    <findings. Each: a concrete issue, file:line, and WHY it matters. Context is mandatory —
-     never "do X" without the reason. Label non-blocking suggestions, anything you want in the
-     PR description, and any command/edit you need the top-level to run. Be concise.>
+    <finding 1 …>
+    <finding 2 …>
 
-    APPROVED
-
-The final non-empty line MUST be exactly `APPROVED` (no blocking findings — a clean pass, a
-neutral pass, and non-blocking suggestions all end here) or `CHANGES REQUESTED` (>=1 blocking
-finding), alone on its own line, nothing after it.
+When you finish, append the **verdict** as the final line — exactly `APPROVED` (no blocking
+findings — a clean pass, a neutral pass, and non-blocking suggestions all end here) or
+`CHANGES REQUESTED` (>=1 blocking finding), alone on its own line, nothing after it. A file
+with no such final line means you were stopped before finishing: the orchestrator treats it as
+incomplete, acts on whatever findings you logged, and does not count it as `APPROVED`.
 
 ### Example review files
 

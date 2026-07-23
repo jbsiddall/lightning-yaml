@@ -131,30 +131,31 @@ its own context lean. Follow this loop for any non-trivial request.
 3. **IMPLEMENT + gate + commit — each chunk is its own commit.** Spawn a subagent
    (**default Sonnet**; **opus only** when genuinely complex) to implement, add/update
    tests, and run the gate. As soon as the gate is green, **commit the chunk as its own
-   commit** — don't wait for the critique. PRs squash-merge, so intermediate commits
-   collapse; committing now hands the reviewer an **immutable git hash** to review.
-4. **CRITIQUE in parallel — don't block on it.** Spawn an **opus** adversarial critic of
-   the just-committed chunk *in the background*, giving it the **commit hash**: it reads
-   the change with `git show <hash>` / `git diff <hash>^..<hash>` — a static, immutable
-   view — never the live working tree. Then go **straight back to step 1 for the next
-   chunk** while the critic runs. The critic tries to *break* the chunk (oracle/spec
-   divergences, edge-case regressions, "is it *actually* done?"); when it returns, fold
-   confirmed findings in as a **follow-up commit**. Overlapping the critique with the
-   next chunk is the main latency win — never serialize it in front of the next chunk.
-   Pick chunk boundaries so the next chunk rarely has to unwind if a critique bounces
-   back; if one does force a real change, fix it forward as a new commit.
-5. **REPEAT** from 1 until every chunk is committed and every background critique has
+   commit** — don't wait for the review. PRs squash-merge, so intermediate commits
+   collapse; committing now hands the reviewers an **immutable git hash** to review.
+4. **REVIEW the chunk in parallel — don't block on it.** Instead of a bespoke critic, spawn
+   the `/code-review` reviewers whose Domain the chunk touches (`.claude/commands/code-review-*`),
+   **scoped to the just-committed hash** (they diff `<hash>^..<hash>`) — mostly Sonnet, fast —
+   *in the background*, then go **straight back to step 1 for the next chunk** while they run.
+   Each reviewer reads the change off the **commit hash** (a static, immutable view), never the
+   live tree, so the review of chunk N and the implementation of chunk N+1 overlap without
+   racing. When findings come back, fold confirmed ones in as a **follow-up commit**. Overlapping
+   the review with the next chunk is the main latency win — never serialize it in front. Pick
+   chunk boundaries so the next chunk rarely has to unwind; if a finding forces a real change,
+   fix it forward as a new commit.
+5. **REPEAT** from 1 until every chunk is committed and every background review has
    landed (findings folded in). Push per milestone.
 6. **Comprehensive review at hand-off.** When the whole change is ready for the user, run
    **`/code-review`** — the multi-reviewer panel that runs its reviewers in parallel,
    read-only, over the committed diff (see `.claude/commands/code-review.md`). Loop it
    until every reviewer approves the current commit, then hand back.
 
-**Two review layers, on purpose.** The per-chunk **critique** (step 4) is a fast,
-correctness-only bug hunt on one commit, pipelined so it never blocks the next chunk. The
-**`/code-review` panel** (step 6) is the broad, per-PR gate — spec, compat, performance,
-comments, complexity, consistency, and newcomer-clarity — run once the PR is ready. They
-overlap on correctness but differ in scope and timing; keep both.
+**One review mechanism, two scopes.** It's the same `/code-review` panel throughout — no
+separate adversarial pass to maintain. During the loop it runs **scoped to each commit**
+(step 4, pipelined so it never blocks the next chunk; only the reviewers whose Domain the
+commit touched run, so it stays fast); at hand-off it runs **over the whole PR** (step 6).
+Same reviewers, same files, same read-only-off-a-git-hash rule — just a per-commit scope
+versus the full `BASE..HEAD` scope.
 
 ### PRs squash-merge — keep the title & description accurate
 
@@ -209,12 +210,12 @@ file-writing/committing subagent at a time per shared working tree — concurren
 corrupt each other's typecheck/test runs and race the git index. Read-only agents may
 overlap freely. (For true parallel writers, isolate with a git worktree.)
 
-This is what makes the pipelined critique (loop step 4) safe: the single writer is the
-top-level's current implement/fix subagent, and every reviewer is a **reader that works
-off a committed git hash** (`git show` / `git diff <hash>`, the immutable object DB) rather
-than the live tree — so the critique of chunk N and the implementation of chunk N+1 overlap
-without racing. A reviewer that must *run* something (tests, a repro) checks the hash out
-into its own `/tmp/<uuid>/` copy or a git worktree, never the shared tree.
+This is what makes the pipelined per-commit review (loop step 4) safe: the single writer is the
+top-level's current implement/fix subagent, and every reviewer is a **reader that works off a
+committed git hash** (`git show` / `git diff <hash>`, the immutable object DB) rather than the
+live tree — so the review of chunk N and the implementation of chunk N+1 overlap without racing.
+A reviewer that must *run* something (tests, a repro) checks the hash out into its own
+`.scratch/code-review-<name>-playground/` copy or a git worktree, never the shared tree.
 
 ### The correctness gate (this repo)
 

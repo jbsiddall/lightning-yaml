@@ -67,6 +67,12 @@ the panel wait on it. In one message:
   > HEAD=`<sha>` (add PREV=`<sha>` on a re-review). Write your review to
   > `.scratch/code_review_<name>_<HEAD>.md`. Gate output (if any) is under `.scratch/gate/`;
   > any repro goes in `.scratch/code-review-<name>-playground/`. Work strictly read-only.
+- **Cap this round at ~5 minutes.** Spawn the reviewers as background tasks and record each
+  one's task ID against **this `HEAD_SHA`**. Set a ~5-minute timer for the round; when it fires,
+  `TaskStop` any of THIS round's reviewers still running and harvest their partial review files
+  (the append-as-you-go review log means a stopped reviewer still leaves its findings behind).
+  Never touch a different round's reviewers — a later commit's reviewers carry a different
+  `HEAD_SHA` and their own timer. `complexity` (Opus) is the usual straggler.
 - **Start the gate** (only if the diff touches `src/` or `bench/`) as parallel Bash calls,
   after generating fixtures/suite once so they don't race:
 
@@ -87,11 +93,14 @@ the panel wait on it. In one message:
 
 ## Step 3 — collect, adjudicate, loop
 
-Read each `.scratch/code_review_<name>_<HEAD_SHA>.md` and take its verdict (the final line). A
-reviewer with no file for the current `HEAD_SHA` is stale → re-run it if its Domain was touched,
-passing its previously-reviewed sha as `PREV`. Run any in-file **instruction to the top-level**
-a reviewer left (a fix to apply, a command to run) so its result is available next pass. Combine
-with the gate result (a red gate blocks).
+Read each `.scratch/code_review_<name>_<HEAD_SHA>.md` and take its verdict — the final
+`APPROVED` / `CHANGES REQUESTED` line. Two special cases: a reviewer with **no file** for the
+current `HEAD_SHA` is stale → re-run it if its Domain was touched, passing its
+previously-reviewed sha as `PREV`; a file with findings but **no verdict line** was stopped at
+the round cap → act on the findings it logged and re-run it if you still need its verdict (it
+does not count as `APPROVED`). Run any in-file **instruction to the top-level** a reviewer left
+(a fix to apply, a command to run) so its result is available next pass. Combine with the gate
+result (a red gate blocks).
 
 **Precedence when champions conflict** (higher wins; a lower reviewer's finding that
 contradicts a higher one is not blocking — mirrors CLAUDE.md's source-of-truth order):
