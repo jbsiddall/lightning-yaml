@@ -307,7 +307,7 @@ export function parseDocument(src: string, opts?: Record<string, unknown>): Comp
 export function stringify(value: unknown, replacerOrOptions?: unknown, options?: unknown): string {
   const hasReplacer = typeof replacerOrOptions === "function" || Array.isArray(replacerOrOptions);
   // Real `yaml` promotes the 2nd arg to options only in the 2-arg form (no 3rd arg) AND only when it's
-  // TRUTHY — a falsy 2nd arg (`false`/`0`/`""`, e.g. a conditional `cond && opts`) means "no options",
+  // TRUTHY — a falsy 2nd arg (`false`/`0`/`""`, e.g. a conditional `cond && replacer`) means "no options",
   // like `null`/omitted. A present 3rd arg always wins. (Matches real yaml's `options === undefined && replacer`.)
   const optionsSlot = options === undefined && !hasReplacer && replacerOrOptions ? replacerOrOptions : options;
   // After the truthy gate above, a falsy 2nd arg already fell through as "no options", so a non-object

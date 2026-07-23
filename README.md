@@ -221,10 +221,10 @@ here, treat it as a bug and
   can't yet honour throws a clear error naming it — rather than silently leaving
   the output unchanged. A boolean flag left at the value lightning-yaml already
   produces (e.g. `mapAsMap: false`) still works; any other value throws. This
-  covers `yaml`'s positional indent shorthand too — `stringify(value, 4)` or
-  `stringify(value, replacer, 4)` — where a number or string throws even for a
-  width real `yaml` would quietly clamp to its own default rather than honour —
-  e.g. a negative number.
+  covers `yaml`'s `JSON.stringify`-style positional indent shorthand too —
+  `stringify(value, 4)` or `stringify(value, replacer, 4)` — where a number or
+  string throws even for a width real `yaml` would quietly clamp to its own
+  default rather than honour — e.g. a negative number.
 - **YAML 1.2 core schema, not 1.1.** Plain `yes`/`no`/`on`/`off` stay strings (not
   booleans) and there are no base-60 numbers, so results can differ from js-yaml's
   1.1-flavoured default. YAML 1.1 is a non-goal.
