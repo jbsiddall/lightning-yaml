@@ -9,7 +9,8 @@ on what they find, and re-run them until they all sign off on the current commit
 
 Run this **when you judge the PR is ready for the user to review** — the panel catches what
 a careful reviewer would, so the user's own time goes to a change that's already been
-vetted, not to issues a reviewer subagent could have caught. **Re-run it every time the PR
+vetted, not to issues a reviewer subagent could have caught. The panel is expensive, so run
+it **once per PR at that ready point — not after every commit**. **Re-run it every time the PR
 is updated and again reaches that ready-for-review point**, looping (Step 3) until every
 reviewer approves the latest commit before you hand the PR back.
 
