@@ -74,11 +74,7 @@ export interface RunningServer {
   close: () => Promise<void>;
 }
 
-/**
- * `bundlePath` defaults to the speed harness's BUNDLE_PATH. The memory-ratios
- * harness (bench/browser/memory/) builds one bundle per library and passes
- * each one's path here in turn, one fresh server per library — see its driver.
- */
+/** `bundlePath` defaults to the speed harness's single bundle; the memory harness starts one server per library-specific bundle. */
 export async function startServer(bundlePath: string = BUNDLE_PATH): Promise<RunningServer> {
   const server = createServer((req, res) => {
     handle(req, res, bundlePath).catch((err: unknown) => {

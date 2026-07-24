@@ -79,19 +79,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm bench:browser webkit     # -> results/benchmarks/browser-speed-webkit.yaml
 
-      # Browser memory RATIOS (issue #107 Phase 3) — same two engines, a
-      # different metric: in-page retained-heap delta for chromium, kernel
-      # peak-RSS of the WebKitWebProcess child for webkit (bench/browser/memory/).
-      # Ratios only, never absolute bytes — see bench/schemas.ts's
-      # MemoryRatiosDocSchema doc comment for why the two methods aren't
-      # directly comparable. webkit's leg needs ptrace-equivalent access to
-      # its own child process's /proc entries for the peak-RSS reset/read
-      # (bench/browser/memory/proc.ts) — the default `ubuntu-latest` runner
-      # permits that for a same-user child, same as any other process reading
-      # its own descendants' /proc files.
       - name: Browser memory ratios (chromium)
         if: ${{ !cancelled() }}
         run: pnpm bench:browser:memory chromium   # -> results/benchmarks/memory-ratios-chromium.yaml
+      # Reads peak RSS from its own browser child's /proc entries — permitted for a same-user child on ubuntu-latest.
       - name: Browser memory ratios (webkit)
         if: ${{ !cancelled() }}
         run: pnpm bench:browser:memory webkit     # -> results/benchmarks/memory-ratios-webkit.yaml
@@ -137,11 +128,7 @@ jobs:
           for engine in chromium webkit; do
             append_doc "speed.yaml" "../results/benchmarks/browser-speed-$engine.yaml" "browser-speed-$engine"
           done
-          # Same pattern for the memory-ratios legs: chromium and webkit each
-          # produce their own `suite: memory-ratios` document, both appended
-          # onto one shared memory-ratios.yaml stream (never memory.yaml —
-          # that stream is absolute MB/KB, this one is unitless ratios; see
-          # bench/schemas.ts's MemoryRatiosDocSchema doc comment).
+          # Its own stream, never memory.yaml: that one is absolute MB, this one is unitless ratios.
           for engine in chromium webkit; do
             append_doc "memory-ratios.yaml" "../results/benchmarks/memory-ratios-$engine.yaml" "memory-ratios-$engine"
           done

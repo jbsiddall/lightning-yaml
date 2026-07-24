@@ -21,10 +21,9 @@ export interface BuildResult {
   bundleBytes: number;
 }
 
+/** Both default to the speed harness's single bundle; the memory harness overrides them to build one isolated bundle per library. */
 export interface BuildOptions {
-  /** Defaults to entry.ts (the speed harness). The memory-ratios harness (bench/browser/memory/) points this at its own, per-library entries. */
   entryPoint?: string;
-  /** Defaults to BUNDLE_PATH. Override so a caller building more than one bundle per process (one per library, see bench/browser/memory/) doesn't overwrite the previous one before it's served. */
   outFile?: string;
 }
 
@@ -52,9 +51,7 @@ export async function buildBrowserBundle(opts: BuildOptions = {}): Promise<Build
     // wrapped in a try/catch (or an `if (globalThis.Bun)` guard) upstream, so
     // it degrades gracefully at runtime once these fail to resolve; without
     // `external` esbuild tries to resolve them at BUILD time instead (none
-    // exist for a browser target) and the bundle fails outright. Harmless (a
-    // no-op external) for the memory harness's entries, which never import
-    // mitata at all.
+    // exist for a browser target) and the bundle fails outright.
     external: ["bun:jsc", "node:v8", "node:os", "os", "@mitata/counters"],
     // Not minified: this bundle is measured for parse/stringify *speed*, not
     // shipped to users — bundle-size honesty lives in bench/bundlesize

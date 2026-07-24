@@ -85,24 +85,13 @@ export const MemoryDocSchema = ProvenanceBase.extend({
 });
 
 /**
- * Browser in-page memory measurements, published as RATIOS ONLY (never
- * absolute bytes — see CLAUDE.md's benchmark-integrity rule and issue #107
- * Phase 3): a separate suite from `memory` above rather than folded into it,
- * because the two `method`s measure genuinely different things and mixing
- * unitless ratios into an MB/KB-denominated stream would blur that. Two
- * methods, one per engine, both legitimate but not equivalent in confidence:
- *  - "heap-delta" (Chromium, in-page): `performance.memory.usedJSHeapSize`
- *    growth while retaining K parsed results, gc()'d before/after — measures
- *    the JS engine's own retained-object heap.
- *  - "peak-rss" (webkit, out-of-process): kernel-reported VmHWM peak of the
- *    WebKitWebProcess child during the same retained-parse batch — measures
- *    whole-process resident memory (JS heap + engine/allocator overhead), so
- *    it isn't apples-to-apples with heap-delta even for the same library;
- *    it's the only measurement webkit exposes without an in-page memory API,
- *    which is why it's labelled lower-confidence everywhere it's shown.
- * `workloads` (not `operations.parse`/`.stringify`, unlike the schemas above)
- * because this suite only ever measures parse — there is no stringify
- * variant to nest alongside it.
+ * Browser parse-memory as RATIOS to lightning-yaml — never absolute bytes
+ * (CLAUDE.md's benchmark-integrity rule), and a suite of its own rather than
+ * part of `memory` above, whose stream is absolute MB. `method` names two
+ * measurements that are NOT comparable with each other: Chromium's in-page
+ * JS-heap growth ("heap-delta") vs. WebKit's whole-process peak RSS
+ * ("peak-rss", lower confidence — it counts engine overhead too). `workloads`
+ * rather than `operations`, because this suite only ever measures parse.
  */
 export const MemoryRatiosDocSchema = ProvenanceBase.extend({
   suite: z.literal("memory-ratios"),
