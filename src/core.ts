@@ -299,13 +299,7 @@ let nextNewline = -1;
  */
 let keyCache: Map<string, string> = new Map();
 
-/**
- * Default cap for `keyCacheMaxBytes`, in KB (4 MB). Comfortably exceeds the
- * distinct-key set of any real record shape (even a wide, deeply-nested
- * document rarely has more than a few thousand distinct key strings) while
- * still bounding a pathological all-distinct-key document (e.g. a flat map
- * keyed by UUID) to a fixed, small memory footprint.
- */
+/** Default `keyCacheMaxBytes`, in KB (4 MB); see `keyCacheMaxBytes` for the cap's rationale. */
 const DEFAULT_KEY_CACHE_MAX_KB = 4096;
 
 /**
@@ -603,12 +597,10 @@ export interface ParseOptimizations {
    * around, so more mapping keys across the document share one heap string
    * (more cross-record dedup) at the cost of more retained memory; lowering it
    * bounds memory tighter but gives up some of that dedup once the document's
-   * distinct-key set exceeds the cap (correctness is unaffected either way —
-   * an evicted-from-cache key still parses to the right value, it's just not
-   * `===`-shared with other occurrences). Default: `4096` (4 MB), which
-   * comfortably covers any real record's distinct-key set while still
-   * bounding a pathological all-distinct-key document (e.g. a UUID-keyed
-   * lookup table).
+   * distinct-key set exceeds the cap. Correctness is unaffected either way — a
+   * key seen after the cap is reached is simply left un-interned (still parsed
+   * to the right value, just not `===`-shared with its other occurrences);
+   * nothing already cached is dropped. Default: `4096` (4 MB).
    */
   keyCacheMaxKb?: number;
 }
@@ -662,7 +654,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
-    keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024; // restore the default cap
+    keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
 
@@ -703,7 +695,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
-    keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024; // restore the default cap
+    keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
 
@@ -4396,7 +4388,7 @@ function parseTagDirectiveArgs(): void {
     fail("malformed %TAG directive: expected a handle and a prefix");
   }
   if (tagHandles === null) tagHandles = new Map();
-  else if (tagHandles.has(handle)) fail(`duplicate %TAG directive for handle "${handle}"`);
+  else if (tagHandles.has(handle)) fail(`duplicate %TAG directive for handle '${handle}'`);
   tagHandles.set(handle, prefix);
 }
 

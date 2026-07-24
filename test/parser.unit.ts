@@ -1807,10 +1807,10 @@ test("mostly-distinct mapping keys all parse to the right key/value pairs", () =
   for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
 });
 
-// keyCacheMaxKb (PR #142 review): a caller-supplied cap far below the default
-// still yields every correct key/value pair — the cap only stops the cache
-// from growing further, it never drops or corrupts a key that's already
-// being parsed (see `internKey`'s "still returns `s` either way" contract).
+// A caller-supplied `keyCacheMaxKb` far below the default still yields every
+// correct key/value pair — the cap only stops the cache from growing, it never
+// drops or corrupts a key already being parsed (`internKey` returns `s` either
+// way). Regression guard for the cap in #136.
 test("a low keyCacheMaxKb still parses every key/value pair correctly", () => {
   const n = 2000;
   let doc = "";
