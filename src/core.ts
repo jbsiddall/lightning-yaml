@@ -300,13 +300,34 @@ let nextNewline = -1;
 let keyCache: Map<string, string> = new Map();
 
 /**
- * Entry cap for `keyCache`, mirroring `MAX_VALUE_CACHE` below: past this many
- * distinct keys we stop inserting and return the fresh (uncached) string —
+ * Default cap for `keyCacheMaxBytes`, in KB (4 MB). Comfortably exceeds the
+ * distinct-key set of any real record shape (even a wide, deeply-nested
+ * document rarely has more than a few thousand distinct key strings) while
+ * still bounding a pathological all-distinct-key document (e.g. a flat map
+ * keyed by UUID) to a fixed, small memory footprint.
+ */
+const DEFAULT_KEY_CACHE_MAX_KB = 4096;
+
+/**
+ * Cumulative-bytes cap for `keyCache`: past this many UTF-16 bytes of distinct
+ * interned keys we stop inserting and return the fresh (uncached) string —
  * still correct (a map's own keys are unique regardless of interning; only
  * cross-record key-string sharing is lost past the cap) — so an all-distinct-keys
  * document (UUID/hostname/timestamp lookup tables) can't grow this map unbounded.
+ * Byte-based rather than entry-count-based so a document with a handful of very
+ * long distinct keys is bounded the same as one with many short ones. Defaults
+ * to `DEFAULT_KEY_CACHE_MAX_KB` and can be widened or narrowed per call via
+ * `parse`/`parseAll`'s `options.optimizations.keyCacheMaxKb` (see
+ * `ParseOptimizations`); reset to the default in each call's `finally`.
  */
-const MAX_KEY_CACHE = 1_000_000;
+let keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
+
+/**
+ * Running total of UTF-16 bytes (`string.length * 2`) held in `keyCache`.
+ * Tracked incrementally so `internKey` can compare against `keyCacheMaxBytes`
+ * in O(1) instead of summing key lengths on every call. Reset per stream.
+ */
+let keyCacheBytes = 0;
 
 /**
  * Per-parse VALUE-intern cache — the value-side analogue of `keyCache`. `null`
@@ -526,6 +547,7 @@ function resetForStream(text: string): void {
   nextNewline = -1;
   lineStart = 0;
   keyCache = new Map();
+  keyCacheBytes = 0;
   lastRecordKeys = null;
   tagHandles = null;
   anchorMap = null;
@@ -549,8 +571,9 @@ function resetForStream(text: string): void {
  * IMPORTANT DESIGN RULE: only optimizations that carry a real COST as well as a
  * benefit belong under `optimizations`. They are OFF by default so the caller
  * consciously opts in and accepts the tradeoff. Optimizations that are ~free
- * wins are ALWAYS enabled and never appear here (e.g. the existing key cache and
- * block-scalar accumulation).
+ * wins are ALWAYS enabled and never appear here (e.g. block-scalar
+ * accumulation, and key interning itself — only its memory cap is tunable,
+ * via `keyCacheMaxKb` below).
  */
 export interface ParseOptimizations {
   /**
@@ -573,6 +596,21 @@ export interface ParseOptimizations {
    * Default: `false` (spec-strict).
    */
   skipStrictValidation?: boolean;
+
+  /**
+   * Memory/CPU tradeoff for the per-parse key-intern cache (`keyCache`), in KB
+   * of cumulative distinct-key bytes. Raising it keeps more interned keys
+   * around, so more mapping keys across the document share one heap string
+   * (more cross-record dedup) at the cost of more retained memory; lowering it
+   * bounds memory tighter but gives up some of that dedup once the document's
+   * distinct-key set exceeds the cap (correctness is unaffected either way —
+   * an evicted-from-cache key still parses to the right value, it's just not
+   * `===`-shared with other occurrences). Default: `4096` (4 MB), which
+   * comfortably covers any real record's distinct-key set while still
+   * bounding a pathological all-distinct-key document (e.g. a UUID-keyed
+   * lookup table).
+   */
+  keyCacheMaxKb?: number;
 }
 
 /** Options for {@link parse} / {@link parseAll}. Every field is optional; an omitted or `undefined` value leaves the parse behaviour byte-for-byte the default. */
@@ -609,6 +647,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
+  keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const value = parseNextDocument();
     if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
@@ -623,6 +662,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
+    keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024; // restore the default cap
   }
 }
 
@@ -651,6 +691,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
+  keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const docs: unknown[] = [];
     for (;;) {
@@ -662,6 +703,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
+    keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024; // restore the default cap
   }
 }
 
@@ -1892,7 +1934,11 @@ function parseTaggedFlowKeyRaw(tag: string, c: number): unknown {
 function internKey(s: string): string {
   const hit = keyCache.get(s);
   if (hit !== undefined) return hit;
-  if (keyCache.size < MAX_KEY_CACHE) keyCache.set(s, s);
+  const bytes = s.length * 2; // UTF-16 code units, 2 bytes each
+  if (keyCacheBytes + bytes <= keyCacheMaxBytes) {
+    keyCache.set(s, s);
+    keyCacheBytes += bytes;
+  }
   return s;
 }
 
@@ -4541,7 +4587,7 @@ let dumpRefCounts: Map<object, number> | null = null;
 let dumpAnchors: Map<object, string> | null = null;
 let dumpAnchorSeq = 0;
 let dumpDepth = 0;
-/** Per-call cache of a rendered `writeStringScalar(key) + ":"` prefix, keyed by the raw key string — real records repeat the same keys across every row (see `writeCollectionBody`), so a repeat collapses to one Map lookup instead of re-classifying and re-concatenating. Capped defensively (mirroring the parser's own per-parse `keyCache`/`MAX_KEY_CACHE`) so a document of millions of distinct keys can't grow it unbounded; past the cap we just stop memoizing new keys and recompute them, still correct, just uncached. */
+/** Per-call cache of a rendered `writeStringScalar(key) + ":"` prefix, keyed by the raw key string — real records repeat the same keys across every row (see `writeCollectionBody`), so a repeat collapses to one Map lookup instead of re-classifying and re-concatenating. Capped defensively (mirroring the parser's own per-parse `keyCache` cap) so a document of millions of distinct keys can't grow it unbounded; past the cap we just stop memoizing new keys and recompute them, still correct, just uncached. */
 let dumpKeyCache: Map<string, string> | null = null;
 const MAX_DUMP_KEY_CACHE = 10_000;
 

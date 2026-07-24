@@ -1793,7 +1793,7 @@ for (const ds of datasets.filter((d) => d.category === "yaml-plain")) {
 
 // --------------------------------------------------------------------------
 // keyCache cap (#136): mostly-distinct mapping keys must still parse correctly
-// once the per-parse key-intern cache stops growing past MAX_KEY_CACHE. This
+// once the per-parse key-intern cache stops growing past its byte cap. This
 // pins correctness only — the cap's memory behaviour mirrors the already-proven
 // sibling caches (valueCache/dumpKeyCache), so no multi-million-key test here.
 // --------------------------------------------------------------------------
@@ -1803,6 +1803,19 @@ test("mostly-distinct mapping keys all parse to the right key/value pairs", () =
   let doc = "";
   for (let i = 0; i < n; i++) doc += `key-${i}: value-${i}\n`;
   const result = parse(doc) as Record<string, string>;
+  strictEqual(Object.keys(result).length, n);
+  for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
+});
+
+// keyCacheMaxKb (PR #142 review): a caller-supplied cap far below the default
+// still yields every correct key/value pair — the cap only stops the cache
+// from growing further, it never drops or corrupts a key that's already
+// being parsed (see `internKey`'s "still returns `s` either way" contract).
+test("a low keyCacheMaxKb still parses every key/value pair correctly", () => {
+  const n = 2000;
+  let doc = "";
+  for (let i = 0; i < n; i++) doc += `key-${i}: value-${i}\n`;
+  const result = parse(doc, { optimizations: { keyCacheMaxKb: 1 } }) as Record<string, string>;
   strictEqual(Object.keys(result).length, n);
   for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
 });
