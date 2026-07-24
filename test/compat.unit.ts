@@ -7,9 +7,9 @@
  *                        see below)
  *
  * Named `*.unit.ts` (not `*.test.ts`) so vitest's glob (test/**\/*.test.ts)
- * ignores it, matching test/parser.unit.ts's convention. It is NOT part of
- * `pnpm test:unit` either (that command targets only test/parser.unit.ts by
- * name) — run this file directly, as above.
+ * ignores it, matching test/parser.unit.ts's convention. It now runs as part of
+ * `pnpm test:unit` (alongside test/parser.unit.ts and test/adversarial.unit.ts),
+ * and can also be run directly as above.
  *
  * Scope: this file asserts things that SHOULD PASS TODAY — the shim's API
  * surface is wired correctly and the constructs our parser already handles
@@ -35,6 +35,8 @@ import jsYamlCompatDefault, {
   CORE_SCHEMA,
   JSON_SCHEMA,
   FAILSAFE_SCHEMA,
+  type LoadOptions,
+  type DumpOptions,
 } from "../src/js-yaml-compat.ts";
 import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify } from "../src/yaml-compat.ts";
 
@@ -184,4 +186,303 @@ test("yaml-compat.stringify emits YAML the real yaml reads back", () => {
   const text = stringify(DUMP_VALUE);
   strictEqual(typeof text, "string");
   deepStrictEqual(yamlReal.parse(text), DUMP_VALUE);
+});
+
+// --------------------------------------------------------------------------
+// Options: fail loud on anything not yet honoured (#91). The shims validate
+// their option bag and THROW rather than silently ignoring an option they
+// can't honour yet — so a relied-upon option surfaces at the call site instead
+// of producing silently-wrong output. Each future option sub-task moves its key
+// from this throw-list onto the honoured allowlist.
+// --------------------------------------------------------------------------
+
+test("js-yaml-compat.load/dump accept honoured no-op options", () => {
+  deepStrictEqual(load("a: 1\n", { filename: "x.yaml" }), { a: 1 });
+  deepStrictEqual(load("a: 1\n", { schema: CORE_SCHEMA }), { a: 1 });
+  deepStrictEqual(load("a: 1\n", { json: true }), { a: 1 });
+  // An explicit `undefined` value is treated as absent, like the real libraries.
+  deepStrictEqual(load("a: 1\n", { schema: undefined, maxDepth: undefined }), { a: 1 });
+  strictEqual(typeof dump(DUMP_VALUE, { schema: CORE_SCHEMA }), "string");
+});
+
+const LOAD_THROWS: ReadonlyArray<readonly [string, LoadOptions]> = [
+  ["json:false", { json: false }],
+  ["schema:JSON_SCHEMA", { schema: JSON_SCHEMA }],
+  ["schema:YAML11_SCHEMA", { schema: YAML11_SCHEMA }],
+  ["maxAliases", { maxAliases: 100 }],
+  ["maxDepth", { maxDepth: 10 }],
+  ["maxTotalMergeKeys", { maxTotalMergeKeys: 1 }],
+];
+for (const [label, opts] of LOAD_THROWS) {
+  test(`js-yaml-compat.load throws YAMLException · ${label}`, () => {
+    throws(() => load("a: 1\n", opts), (err: unknown) => err instanceof YAMLException);
+  });
+  test(`js-yaml-compat.loadAll throws YAMLException · ${label}`, () => {
+    throws(() => loadAll("a: 1\n", null, opts), (err: unknown) => err instanceof YAMLException);
+  });
+}
+
+test("js-yaml-compat.load throws on an unknown option key", () => {
+  throws(
+    () => load("a: 1\n", { nope: true } as unknown as LoadOptions),
+    (err: unknown) => err instanceof YAMLException,
+  );
+});
+
+test("js-yaml-compat.dump throws YAMLException on any real dump option", () => {
+  for (const opts of [{ indent: 4 }, { sortKeys: true }, { noRefs: true }, { skipInvalid: true }] as DumpOptions[]) {
+    throws(() => dump(DUMP_VALUE, opts), (err: unknown) => err instanceof YAMLException);
+  }
+});
+
+test("js-yaml-compat: unsupported-option error names the option", () => {
+  try {
+    load("a: 1\n", { json: false });
+    throw new Error("expected load() to throw");
+  } catch (err) {
+    ok(err instanceof YAMLException);
+    ok((err as YAMLException).message.includes("json"));
+  }
+});
+
+test("yaml-compat.parse/stringify accept honoured no-op options and the reviver", () => {
+  deepStrictEqual(parse("a: 1\n", { schema: "core" }), { a: 1 });
+  deepStrictEqual(parse("a: 1\n", { version: "1.2" }), { a: 1 });
+  // The positional reviver still runs (it's honoured, not an option-bag key).
+  deepStrictEqual(parse("a: 1\nb: 2\n", (k, v) => (k === "b" ? undefined : v)), { a: 1 });
+  strictEqual(typeof stringify(DUMP_VALUE, { schema: "core" }), "string");
+});
+
+const PARSE_THROWS: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
+  ["mapAsMap", { mapAsMap: true }],
+  ["intAsBigInt", { intAsBigInt: true }],
+  ["maxAliasCount", { maxAliasCount: 10 }],
+  ["merge", { merge: true }],
+  ["schema:json", { schema: "json" }],
+  ["version:1.1", { version: "1.1" }],
+  ["unknown key", { nope: 1 }],
+];
+for (const [label, opts] of PARSE_THROWS) {
+  test(`yaml-compat.parse throws · ${label}`, () => {
+    throws(() => parse("a: 1\n", opts));
+  });
+  test(`yaml-compat.parseAllDocuments throws · ${label}`, () => {
+    throws(() => parseAllDocuments("a: 1\n", opts));
+  });
+  test(`yaml-compat.parseDocument throws · ${label}`, () => {
+    throws(() => parseDocument("a: 1\n", opts));
+  });
+}
+
+test("yaml-compat.stringify throws on options and on a replacer", () => {
+  throws(() => stringify(DUMP_VALUE, { indent: 4 }));
+  throws(() => stringify(DUMP_VALUE, { singleQuote: true }));
+  // A JSON.stringify-style replacer (function or array) is not honoured yet.
+  throws(() => stringify(DUMP_VALUE, (_k: string, v: unknown) => v));
+  throws(() => stringify(DUMP_VALUE, ["name"]));
+});
+
+test("yaml-compat.stringify fails loud on the JSON.stringify-style indent shorthand (2- and 3-arg)", () => {
+  // The indent-shorthand mechanism (a bare number/string = the JSON.stringify-style indent width/unit)
+  // is spelled out in stringify's impl comment (src/yaml-compat.ts). What THIS test locks: every such
+  // call fails loud — 2-arg AND 3-arg, and even indent 2 (== our default) — with a message naming the
+  // indent shorthand, NOT a nonsensical `option "0"` (the index Object.keys("  ") would yield).
+  for (const call of [
+    () => stringify(DUMP_VALUE, null, 4),
+    () => stringify(DUMP_VALUE, null, "  "),
+    () => stringify(DUMP_VALUE, 4), // 2-arg numeric shorthand — real yaml reads it as indent 4
+    () => stringify(DUMP_VALUE, "  "), // 2-arg string shorthand — real yaml reads it as indent = length
+    () => stringify(DUMP_VALUE, 2),
+  ]) {
+    throws(call, (err: unknown) => err instanceof Error && err.message.includes("indent") && !err.message.includes('option "0"'));
+  }
+});
+
+test("yaml-compat.stringify fails loud on a truthy sub-1 indent shorthand real yaml clamps to default", () => {
+  // Real yaml's indent clamp rounds anything to < 1 down to its own default (confirmed live against real
+  // yaml@2.9.0: `stringify(V, null, -3)`, `-0.5`, and `0.4` — Math.round(0.4) is 0 — all equal the
+  // no-options output below) — so for real yaml a sub-1 width (negative or fractional) is a silent no-op,
+  // not a throw. We don't replicate that clamp table (see the residual note in stringify's impl comment,
+  // src/yaml-compat.ts) — every truthy numeric indent shorthand fails loud here, clamped-to-default or not,
+  // in both the 2-arg and 3-arg forms.
+  const nested = { a: { b: 1 } };
+  strictEqual(yamlReal.stringify(nested, null, -3), yamlReal.stringify(nested));
+  strictEqual(yamlReal.stringify(nested, null, -0.5), yamlReal.stringify(nested));
+  strictEqual(yamlReal.stringify(nested, null, 0.4), yamlReal.stringify(nested));
+  for (const call of [
+    () => stringify(nested, -3),
+    () => stringify(nested, -0.5),
+    () => stringify(nested, 0.4),
+    () => stringify(nested, null, -3),
+    () => stringify(nested, null, -0.5),
+    () => stringify(nested, null, 0.4),
+  ]) {
+    throws(call, (err: unknown) => err instanceof Error && err.message.includes("indent"));
+  }
+});
+
+test("yaml-compat.stringify rejects a non-object options arg (boolean/symbol), matching real yaml's throw", () => {
+  // Real yaml@2.9.0 throws a TypeError (`'indent' in <primitive>`) on a TRUTHY non-object promoted into
+  // the options slot, and on any non-object handed directly as the 3rd arg — so `stringify(V, true)` and
+  // `stringify(V, null, true|false|Symbol())` all throw. validateOptions tolerates a scalar (right for
+  // parse/load/dump), so stringify rejects one at its own call site. A FALSY 2nd arg is NOT promoted —
+  // it's tolerated as "no options" (see the falsy-tolerance test below).
+  throws(() => stringify(DUMP_VALUE, true));
+  throws(() => stringify(DUMP_VALUE, null, true));
+  throws(() => stringify(DUMP_VALUE, null, false));
+  throws(() => stringify(DUMP_VALUE, null, Symbol()));
+});
+
+test("yaml-compat.stringify tolerates a falsy 2nd-arg options slot (matches real yaml)", () => {
+  // Real yaml promotes the 2nd arg to options only when TRUTHY (`options === undefined && replacer`), so a
+  // falsy 2nd arg (`false`/`0`/`""`/`NaN` — e.g. a conditional `cond && replacer` with `cond` false) means "no
+  // options" and yields DEFAULT output, not an error. Verified live against real yaml@2.9.0. Locks the
+  // reachable `stringify(value, cond && replacer)` idiom (falsy `cond`).
+  const def = stringify(DUMP_VALUE);
+  for (const falsy of [false, 0, "", NaN] as unknown[]) {
+    strictEqual(stringify(DUMP_VALUE, falsy), def);
+    deepStrictEqual(yamlReal.parse(stringify(DUMP_VALUE, falsy)), DUMP_VALUE);
+  }
+});
+
+test("yaml-compat.stringify tolerates an array in the 3rd-arg options slot (matches real yaml)", () => {
+  // A 3-arg array in the options slot is spread-into-`{}`-and-ignored by real yaml (default output);
+  // only a 2-arg array is a replacer (`stringify(v, [k])`), caught by the replacer guard above.
+  strictEqual(stringify(DUMP_VALUE, null, [1, 2, 3]), stringify(DUMP_VALUE));
+  deepStrictEqual(yamlReal.parse(stringify(DUMP_VALUE, null, [1, 2, 3])), DUMP_VALUE);
+});
+
+// --------------------------------------------------------------------------
+// A bare scalar / array in the OPTIONS position is TOLERATED (no throw, default
+// output) by parse/load/loadAll/dump — matching real yaml/js-yaml, which spread
+// it into `{}` and proceed with defaults. (yaml.stringify is the sole exception:
+// a scalar there is the indent shorthand it honours, so ours fails loud — see the
+// indent-shorthand test above.) Regression guard: the shared options guard must
+// not throw on a scalar, nor enumerate an array's indices as bogus option keys.
+// --------------------------------------------------------------------------
+
+test("yaml-compat.parse tolerates a scalar/array options arg (matches real yaml)", () => {
+  deepStrictEqual(parse("a: 1\n", 4 as unknown as Record<string, unknown>), yamlReal.parse("a: 1\n", 4 as never));
+  deepStrictEqual(parse("a: 1\n", [1, 2, 3] as unknown as Record<string, unknown>), yamlReal.parse("a: 1\n", [1, 2, 3] as never));
+  // A falsy 2nd arg is "no options" too — the same truthy gate as stringify (behaviour-neutral for parse).
+  deepStrictEqual(parse("a: 1\n", false as unknown as Record<string, unknown>), yamlReal.parse("a: 1\n", false as never));
+  deepStrictEqual(parse("a: 1\n", 0 as unknown as Record<string, unknown>), yamlReal.parse("a: 1\n", 0 as never));
+});
+
+test("js-yaml-compat.load/loadAll/dump tolerate a scalar/array options arg (matches real js-yaml)", () => {
+  deepStrictEqual(load("a: 1\n", 4 as unknown as LoadOptions), jsyamlReal.load("a: 1\n", 4 as never));
+  deepStrictEqual(load("a: 1\n", [1] as unknown as LoadOptions), jsyamlReal.load("a: 1\n", [1] as never));
+  // loadAll's 2-arg scalar form (scalar in the iterator slot) and its 3-arg options slot both tolerate it.
+  deepStrictEqual(loadAll("a: 1\n", 4 as unknown as LoadOptions), jsyamlReal.loadAll("a: 1\n", 4 as never));
+  deepStrictEqual(loadAll("a: 1\n", null, 4 as unknown as LoadOptions), jsyamlReal.loadAll("a: 1\n", null, 4 as never));
+  deepStrictEqual(loadAll("a: 1\n", null, [1] as unknown as LoadOptions), jsyamlReal.loadAll("a: 1\n", null, [1] as never));
+  // A nested value would expose a wrongly-honoured indent; js-yaml ignores the scalar/array, so each
+  // tolerated call must equal the no-options call (both our hardcoded indent 2).
+  const nested = { a: { b: 1 } };
+  strictEqual(dump(nested, 4 as unknown as DumpOptions), dump(nested));
+  strictEqual(dump(nested, [1] as unknown as DumpOptions), dump(nested));
+  strictEqual(dump(nested, true as unknown as DumpOptions), dump(nested));
+  strictEqual(dump(nested, "xy" as unknown as DumpOptions), dump(nested));
+});
+
+test("yaml-compat.stringify throws on singleQuote at either value (our output already prefers single quotes)", () => {
+  // We can't faithfully honour `false` (real yaml's double-quote default) any more than `true`,
+  // so both fail loud rather than silently emit whichever quoting we happen to produce.
+  throws(() => stringify(DUMP_VALUE, { singleQuote: false }));
+  throws(() => stringify(DUMP_VALUE, { singleQuote: true }));
+});
+
+test("yaml-compat: unsupported-option error names the option", () => {
+  try {
+    parse("a: 1\n", { mapAsMap: true });
+    throw new Error("expected parse() to throw");
+  } catch (err) {
+    ok(err instanceof Error);
+    ok((err as Error).message.includes("mapAsMap"));
+  }
+});
+
+// --------------------------------------------------------------------------
+// Options: overload / arg-shape coverage. The option bag must be validated
+// whichever legal positional shape the caller uses — an options bag passed in a
+// middle/omitted slot slipping past validation would silently reintroduce the
+// exact divergence this feature exists to prevent.
+// --------------------------------------------------------------------------
+
+test("yaml-compat.parse validates options in every call shape", () => {
+  // reviver omitted as undefined/null, options in the 3rd slot
+  throws(() => parse("a: 1\n", undefined, { mapAsMap: true }));
+  throws(() => parse("a: 1\n", null, { mapAsMap: true }));
+  // options as the 2nd arg (no reviver)
+  throws(() => parse("a: 1\n", { mapAsMap: true }));
+  // an honoured no-op still passes in the 3rd slot
+  deepStrictEqual(parse("a: 1\n", undefined, { version: "1.2" }), { a: 1 });
+});
+
+test("yaml-compat.stringify validates options in every call shape", () => {
+  // replacer omitted as null/undefined, options in the 3rd slot
+  throws(() => stringify(DUMP_VALUE, null, { indent: 4 }));
+  throws(() => stringify(DUMP_VALUE, undefined, { sortMapEntries: true }));
+  // options as the 2nd arg
+  throws(() => stringify(DUMP_VALUE, { indent: 4 }));
+});
+
+test("yaml-compat.parse/stringify a present 3rd-arg options bag wins over a no-op 2nd arg", () => {
+  // Real yaml adopts the 2nd arg as options only in the 2-arg form; a present 3rd arg wins (confirmed:
+  // real `stringify(V, {indent:4}, {indent:2})` emits indent 2, and `parse("99", {intAsBigInt:true}, {})`
+  // yields a Number, not a BigInt). So a no-op 2nd arg must NOT mask an unsupported 3rd-arg option —
+  // otherwise a relied-upon option is silently dropped.
+  throws(() => stringify(DUMP_VALUE, { sortMapEntries: false }, { indent: 4 }));
+  throws(() => parse("a: 1\n", { mapAsMap: false }, { intAsBigInt: true }));
+});
+
+test("js-yaml-compat.loadAll validates options passed as the 2nd argument", () => {
+  // js-yaml's own loadAll(input, options) overload — no iterator
+  throws(() => loadAll("a: 1\n", { maxDepth: 5 }), (err: unknown) => err instanceof YAMLException);
+  // iterator + options (3rd slot) still validates
+  throws(() => loadAll("a: 1\n", () => {}, { maxDepth: 5 }), (err: unknown) => err instanceof YAMLException);
+  // the plain iterator form still works
+  const seen: unknown[] = [];
+  loadAll("---\na: 1\n---\nb: 2\n", (d) => seen.push(d));
+  deepStrictEqual(seen, [{ a: 1 }, { b: 2 }]);
+});
+
+test("js-yaml-compat.loadAll resolves its options overload 2nd-arg-wins (opposite of yaml parse/stringify)", () => {
+  // loadAll's 2ND-ARG-WINS overload resolution (the opposite of yaml-compat.ts's 3rd-arg-wins) is spelled
+  // out in loadAll's own comment (src/js-yaml-compat.ts). What THIS test locks: a valid object 2nd arg
+  // silently discards an unsupported 3rd-arg option — `loadAll("a: 1", {json:true}, {maxDepth:1})` does
+  // NOT throw — so a "DRY" refactor toward 3rd-arg-wins would make `maxDepth:1` win and throw, failing here.
+  deepStrictEqual(loadAll("a: 1", { json: true }, { maxDepth: 1 }), [{ a: 1 }]);
+  deepStrictEqual(loadAll("a: 1", { json: true }, { maxDepth: 1 }), jsyamlReal.loadAll("a: 1", { json: true } as never, { maxDepth: 1 } as never));
+});
+
+// --------------------------------------------------------------------------
+// Options: an option's genuine no-op default value is accepted ("accept only
+// true no-op values"), while the feature-activating value throws.
+// --------------------------------------------------------------------------
+
+test("yaml-compat accepts no-op default option values, rejects the active value", () => {
+  // prettyErrors is a no-op — our errors already carry line/column
+  deepStrictEqual(parse("a: 1\n", { prettyErrors: true }), { a: 1 });
+  // the falsy default of each boolean feature-flag is a genuine no-op
+  for (const opts of [{ mapAsMap: false }, { intAsBigInt: false }, { merge: false }, { uniqueKeys: false }] as Record<string, unknown>[]) {
+    deepStrictEqual(parse("a: 1\n", opts), { a: 1 });
+  }
+  strictEqual(typeof stringify(DUMP_VALUE, { sortMapEntries: false }), "string");
+  // ...but turning the feature on throws
+  throws(() => parse("a: 1\n", { mapAsMap: true }));
+  throws(() => parse("a: 1\n", { merge: true }));
+});
+
+test("js-yaml-compat.dump accepts a boolean option's no-op default, rejects the active value", () => {
+  strictEqual(typeof dump(DUMP_VALUE, { sortKeys: false }), "string");
+  strictEqual(typeof dump(DUMP_VALUE, { noRefs: false }), "string");
+  throws(() => dump(DUMP_VALUE, { sortKeys: true }), (err: unknown) => err instanceof YAMLException);
+});
+
+test("js-yaml-compat.dump throws on skipInvalid at either value (we neither drop nor throw on unrepresentable values)", () => {
+  // Real js-yaml's `skipInvalid: false` THROWS on a function/Symbol; our stringify would
+  // silently serialize it — so `false` is NOT a genuine no-op. Both values fail loud.
+  throws(() => dump(DUMP_VALUE, { skipInvalid: false }), (err: unknown) => err instanceof YAMLException);
+  throws(() => dump(DUMP_VALUE, { skipInvalid: true }), (err: unknown) => err instanceof YAMLException);
 });

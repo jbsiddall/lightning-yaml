@@ -21,10 +21,10 @@ const features = [
 
   <p class="features__note">
     <b>Drop-in is API-level today.</b> Imports and call signatures match
-    <code>js-yaml</code> and <code>yaml</code>, so existing code runs — but their
-    option arguments (<code>schema</code>, <code>sortKeys</code>, <code>indent</code>, …)
-    are still <b>accepted&nbsp;but&nbsp;ignored</b>. Useful for migrating now; not
-    yet a 1:1 behavioural match.
+    <code>js-yaml</code> and <code>yaml</code>, so existing code runs — but an
+    option argument we don't yet honour (<code>schema</code>, <code>sortKeys</code>, <code>indent</code>, …)
+    <b>throws</b> rather than silently changing your output. Useful for migrating
+    now; not yet a 1:1 behavioural match.
   </p>
 </section>
 
