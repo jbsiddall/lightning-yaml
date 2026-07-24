@@ -2,8 +2,8 @@
 
 **Spec-compliant YAML parsing, out to give `JSON.parse` a run for its money.**
 
-⚡ **~4× faster** and **~1.0–2.8× lighter** than js-yaml (bigger file, bigger gap) — with **near-`JSON.parse` memory** even at 10 MB. [See the benchmarks ↓](#benchmarks-at-a-glance)
-<!-- bench:6b0c56e js-yaml:5.2.1 --><!-- bench:f1ffba6 -->
+⚡ **~4× faster** and **~1–3× lighter** than js-yaml (bigger file, bigger gap) — with **near-`JSON.parse` memory** even at 10 MB. [See the benchmarks ↓](#benchmarks-at-a-glance)
+<!-- bench:4ca6140 js-yaml:5.2.1 yaml:2.9.0 -->
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/jbsiddall/lightning-yaml/actions/workflows/ci.yml/badge.svg)](https://github.com/jbsiddall/lightning-yaml/actions/workflows/ci.yml)
@@ -21,9 +21,9 @@ runtime dependencies**. No more trading YAML's readability for JSON's performanc
 Everything else is secondary to those two.
 
 - **Fast.** Parses and stringifies at speeds approaching native
-  `JSON.parse`/`JSON.stringify` — **~4× faster than js-yaml** on parse (2.9–5.4×
-  across workloads).
-  <!-- bench:6b0c56e js-yaml:5.2.1 -->
+  `JSON.parse`/`JSON.stringify` — **~4× faster than js-yaml** on parse across our
+  benchmark workloads.
+  <!-- bench:4ca6140 js-yaml:5.2.1 -->
 - **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~97.6% (364/373) of
   the official yaml-test-suite.
 - **Drop-in (API-level).** Same exports and signatures as `yaml` and `js-yaml` —
@@ -45,13 +45,15 @@ runs from the orphan `benchmark-data` branch.
 
 | Representative metric      | `JSON.parse` | **lightning-yaml** |  js-yaml |    yaml |
 | -------------------------- | -----------: | -----------------: | -------: | ------: |
-| Parse — large records      |       8.6 ms |        **19.2 ms** |   104 ms |  964 ms |
-| Peak RSS — 10 MB document  |       389 MB |         **534 MB** |  1.12 GB | 2.65 GB |
+| Parse — large records (× `JSON.parse`) |     1.0× |           **2.1×** |     8.9× |     107× |
+| Peak RSS — 10 MB doc (× `JSON.parse`)   |     1.0× |           **1.4×** |     2.9× |     6.9× |
 | Bundle — minified / gzip   |     _native_ |  **40 KB / 12 KB** | 52/16 KB | 96/29 KB |
-<!-- bench:f1ffba6 js-yaml:5.2.1 yaml:2.9.0 --><!-- bench:6b0c56e -->
 
-That's roughly **2× `JSON.parse`'s parse time** and **~1.4× its peak memory** on
-large inputs — versus ~12× / ~2.9× for js-yaml and ~110× / ~6.8× for `yaml`.
+<sub>Speed and memory are shown as ratios to `JSON.parse` — absolute ms/MB drift with the machine, but the relative cost doesn't (and peak memory is the stable figure). Numbers are from the newest run on the [`benchmark-data`](https://github.com/jbsiddall/lightning-yaml/tree/benchmark-data) branch — commit [`4ca6140`](https://github.com/jbsiddall/lightning-yaml/commit/4ca6140) (2026-07-23); js-yaml 5.2.1, `yaml` 2.9.0. Bundle sizes are deterministic.</sub>
+<!-- bench:4ca6140 js-yaml:5.2.1 yaml:2.9.0 -->
+
+So lightning-yaml stays within a small multiple of `JSON.parse`, where js-yaml and
+`yaml` cost several to a hundred times more.
 
 Full benchmarks (all datasets, every parser) →
 [lightning-yaml.dev](https://lightning-yaml.dev)
@@ -234,6 +236,13 @@ here, treat it as a bug and
 - **Implicit flow-collection keys are rejected.** Input like `{[1, 2]: v}` — a
   sequence used as a mapping key — is an error here, matching the spec; the `yaml`
   library accepts it, and we deliberately don't.
+- **Malformed directives are rejected, where `yaml` is lenient.** A repeated
+  `%TAG` for the same handle, and a `%YAML` directive with a higher major version
+  (e.g. `%YAML 2.0`), are errors here — matching the spec
+  ([§6.8.2](https://yaml.org/spec/1.2.2/#682-tag-directives) /
+  [§6.8.1](https://yaml.org/spec/1.2.2/#681-yaml-directives)) and js-yaml. The
+  `yaml` library instead keeps the last `%TAG` and only warns on the version
+  (still parsing); we deliberately reject both.
 
 ## Built with Claude Code
 
