@@ -889,8 +889,9 @@ test("a trailing document prefix (BOM after a final '...') is not reported as a 
   deepStrictEqual(parseAll("a\n...\n﻿"), ["a"]);
 });
 
-// [202] `l-document-prefix` is `c-byte-order-mark? l-comment*`, so a comment is a
-// prefix too — `parse` used to reject one here while `parseAll` accepted it.
+// [202] `l-document-prefix` is `c-byte-order-mark? l-comment*`, so a comment after
+// the closing `...` belongs to the prefix, not to a second document — which both
+// entry points have to agree on, hence asserting each.
 test("a trailing comment after a final '...' is a document prefix, not a second document", () => {
   strictEqual(parse("a\n...\n# a trailing comment\n"), "a");
   deepStrictEqual(parseAll("a\n...\n# a trailing comment\n"), ["a"]);
