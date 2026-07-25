@@ -7,8 +7,12 @@
  *
  * Methodology, and why each part is there:
  *   - One bundle and one browser per library, so a measured page has never loaded a competitor's code.
- *   - chromium reads its own JS heap ("heap-delta"); webkit has no in-page memory API, so it reads
- *     the kernel's peak RSS for the process running page JS ("peak-rss") — weaker, and labelled so.
+ *   - chromium reads its own JS heap ("heap-delta") — how much the retained results still hold,
+ *     narrower; webkit has no in-page memory API, so it reads the kernel's peak RSS for the process
+ *     running page JS ("peak-rss") — broader and noisier. Two questions, not one metric.
+ *   - An untimed warm-up batch per page before anything is measured: a library pays one-time costs
+ *     (schema tables, compiled regexes, JIT tier-up, feedback vectors) on its first parses, and
+ *     measured they land entirely on fixture #1 — which inflated the smallest workload's ratio 2-5×.
  *   - Two gc() passes with a settle gap per reading: one pass can leave the previous fixture's
  *     sweep work in flight and skew the next. Fixtures run smallest-first for the same reason.
  *   - K=60 retained parses: K=40 left the ~1 KB fixture inside the noise floor, and a larger K
@@ -33,13 +37,19 @@ import { MemoryRatiosDocSchema } from "../schemas.ts";
 import { buildBrowserBundle } from "./build.ts";
 import { assertFixturesGenerated, startServer } from "./server.ts";
 import { isEngineName, launchEngineWithProcess, type EngineName, type LaunchedEngineWithProcess } from "./engines.ts";
-import { findUniqueDescendant, readVmHwmBytes, resetPeakRss, waitForRssStabilization } from "./memory/proc.ts";
+import { matchingDescendants, readVmHwmBytes, resetPeakRss, selectPageProcess, waitForRssStabilization } from "./memory/proc.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
 const GENERATED_DIR = join(ROOT, "bench", "browser", "generated");
 
-const ITERS = Number(process.env.BENCH_MEM_ITERS) || 60;
+// Validated here, not trusted: a fractional or negative K reaches the page as `new Array(K)` and
+// surfaces as an opaque page-evaluate rejection instead of a usage error.
+const REQUESTED_ITERS = Number(process.env.BENCH_MEM_ITERS);
+const ITERS = Number.isInteger(REQUESTED_ITERS) && REQUESTED_ITERS > 0 ? REQUESTED_ITERS : 60;
+if (process.env.BENCH_MEM_ITERS && REQUESTED_ITERS !== ITERS) {
+  console.warn(`BENCH_MEM_ITERS="${process.env.BENCH_MEM_ITERS}" is not a positive integer — using K=${ITERS}`);
+}
 
 // Smallest-first (see above). No JSON category — no YAML parser reads it — and no 10 MB
 // xlarge fixture, which is over the browser fixture budget (bench/browser/manifest.ts).
@@ -78,12 +88,12 @@ declare const window: {
 interface Leg {
   method: "heap-delta" | "peak-rss";
   chromiumArgs: string[];
-  /** Opens one library's page(s) and returns how to read them: bytes for one batch, plus the same protocol with nothing parsed. */
+  /** Opens one library's page(s) and returns how to read them: bytes for one batch, plus — where the leg has a meaningful one — the same protocol with nothing parsed. */
   open: (
     engine: LaunchedEngineWithProcess,
     serverUrl: string,
     probeFixture: MemoryFixture,
-  ) => Promise<{ measure: (fx: MemoryFixture, iters: number) => Promise<number>; noiseFloor: () => Promise<number> }>;
+  ) => Promise<{ measure: (fx: MemoryFixture, iters: number) => Promise<number>; noiseFloor?: () => Promise<number> }>;
 }
 
 async function parseAndRetain(page: Page, fx: MemoryFixture, iters: number): Promise<void> {
@@ -94,19 +104,42 @@ async function parseAndRetain(page: Page, fx: MemoryFixture, iters: number): Pro
 }
 
 async function assertBatchSurvived(page: Page, iters: number): Promise<void> {
-  const dropped = await page.evaluate(() => window.__memDropRetained!());
-  if (dropped !== iters) {
-    throw new Error(`only ${dropped}/${iters} retained results survived to the drop — page reloaded or crashed mid-batch, reading invalid`);
+  // The harness check rides along in the same round-trip because the count alone is vacuous at
+  // iters=0 (the webkit floor): a page that reloaded and lost its batch also reports 0.
+  const state = await page.evaluate(() => ({
+    installed: typeof window.__memParseAndRetain === "function",
+    dropped: window.__memDropRetained?.() ?? -1,
+  }));
+  if (!state.installed || state.dropped !== iters) {
+    throw new Error(
+      `batch integrity check failed (harness ${state.installed ? "installed" : "MISSING"}, ${state.dropped}/${iters} retained results survived to the drop) — page reloaded or crashed mid-batch, reading invalid`,
+    );
   }
 }
 
-const openChromiumPage: Leg["open"] = async (engine, serverUrl) => {
+/**
+ * A full untimed batch, thrown away — see the warm-up note in this file's header. It has to be K
+ * parses, not one: measured on chromium, a single warm-up parse still left fixture #1 reading
+ * ~2.5× its steady state, because the cost is not only first-parse init but the JIT tier-up and
+ * feedback vectors a hot loop accumulates over the whole batch.
+ */
+async function warmUp(page: Page, probeFixture: MemoryFixture): Promise<void> {
+  await parseAndRetain(page, probeFixture, ITERS);
+  await assertBatchSurvived(page, ITERS);
+}
+
+const openChromiumPage: Leg["open"] = async (engine, serverUrl, probeFixture) => {
   const page = await engine.browser.newPage();
   page.on("pageerror", (err) => console.error(`  [page error] ${err}`));
   await page.goto(serverUrl, { waitUntil: "load" });
   const readHeap = (): Promise<number> => page.evaluate(() => window.__memReadHeap!());
-  await readHeap(); // settle the post-load heap before it becomes anything's baseline
+  await warmUp(page, probeFixture);
+  await readHeap(); // collects the warm-up and settles the post-load heap before it becomes anything's baseline
 
+  // No noise floor: two gc'd reads with nothing in between are equal by construction, so
+  // subtracting them corrects for nothing. A real zero-parse floor is wrong here too — measured on
+  // this long-lived page it captures per-library page warm-up (16-32 KB, differing per library),
+  // so subtracting it would bias the small fixtures rather than clean them.
   return {
     measure: async (fx, iters) => {
       const before = await readHeap();
@@ -115,24 +148,23 @@ const openChromiumPage: Leg["open"] = async (engine, serverUrl) => {
       await assertBatchSurvived(page, iters);
       return after - before;
     },
-    // Two readings, nothing in between. Deliberately excludes the fixture fetch: on one
-    // long-lived page that residue is warm-up noise that varies per library, so subtracting
-    // it would bias the small fixtures by more than it removes.
-    noiseFloor: async () => {
-      const before = await readHeap();
-      return (await readHeap()) - before;
-    },
   };
 };
 
-// A fresh page per batch: resetting the peak counter only means anything on a process that
-// hasn't already parsed something — which lets the noise floor be a real zero-parse run.
+const WEBKIT_PAGE_PROCESS = "WebKitWebProcess";
+
+// A fresh page per batch, so every fixture's peak is read off a counter reset on a process that
+// has done nothing but the warm-up — which is also what lets the noise floor be a real zero-parse
+// run. The warm-up always uses the SMALLEST fixture, so the batch it leaves behind uncollected
+// (webkit has no gc() to force) stays negligible against what the measured batch allocates.
 const openWebkitPages: Leg["open"] = (engine, serverUrl, probeFixture) => {
   const measure = async (fx: MemoryFixture, iters: number): Promise<number> => {
+    const before = matchingDescendants(engine.pid, WEBKIT_PAGE_PROCESS); // snapshot BEFORE the page exists, so the new content process is identifiable
     const page = await engine.browser.newPage();
     try {
       await page.goto(serverUrl, { waitUntil: "load" });
-      const webProcessPid = findUniqueDescendant(engine.pid, "WebKitWebProcess");
+      const webProcessPid = selectPageProcess(engine.pid, WEBKIT_PAGE_PROCESS, before);
+      await warmUp(page, probeFixture); // before the reset, so init memory sits under the baseline rather than in the peak
       await waitForRssStabilization(webProcessPid);
       resetPeakRss(webProcessPid);
       const baseline = readVmHwmBytes(webProcessPid);
@@ -176,14 +208,15 @@ async function runLeg(engineName: EngineName, leg: Leg): Promise<{ runtime: stri
 
     try {
       const { measure, noiseFloor } = await leg.open(engine, server.url, FIXTURES[0]);
-      const noise = await noiseFloor();
+      const noise = noiseFloor ? await noiseFloor() : 0;
+      const floorNote = noiseFloor ? `, noise floor ${(noise / 1024).toFixed(1)} KB` : "";
 
       deltas[lib.id] = {};
       for (const fx of FIXTURES) {
         const raw = await measure(fx, ITERS);
         const net = raw - noise;
         deltas[lib.id][fx.name] = net;
-        console.log(`  ${lib.id} / ${fx.name}: ${(net / 1024).toFixed(1)} KB (raw ${(raw / 1024).toFixed(1)} KB, noise floor ${(noise / 1024).toFixed(1)} KB)`);
+        console.log(`  ${lib.id} / ${fx.name}: ${(net / 1024).toFixed(1)} KB (raw ${(raw / 1024).toFixed(1)} KB${floorNote})`);
       }
     } finally {
       await engine.close();
@@ -218,7 +251,14 @@ function ratioWorkloads(deltas: LibraryFixtureDeltas): { workload: string; value
         console.warn(`  ! ${libId}/${fx.name}: net delta non-positive (${d} B) — omitting its ratio for this workload`);
         continue;
       }
-      values[libId] = +(d / selfDelta).toFixed(3);
+      // Re-guard AFTER rounding: a ratio under 0.0005 becomes 0.000, which the schema's
+      // `.positive()` then rejects — losing the whole run instead of one library's cell.
+      const ratio = +(d / selfDelta).toFixed(3);
+      if (ratio <= 0) {
+        console.warn(`  ! ${libId}/${fx.name}: ratio ${d}/${selfDelta} rounds to ${ratio} — below what 3 decimal places can express, omitting it`);
+        continue;
+      }
+      values[libId] = ratio;
     }
     rows.push({ workload: fx.name, values });
   }

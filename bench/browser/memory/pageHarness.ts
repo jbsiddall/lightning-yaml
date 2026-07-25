@@ -23,8 +23,10 @@ export function installMemoryHarness(parseFn: (text: string, category: string) =
   };
 
   // The driver checks this count against K to catch a page that reloaded or crashed mid-batch.
+  // -1 rather than 0 when no batch is outstanding: at K=0 (the webkit noise floor) a genuinely
+  // empty batch and a reloaded page that lost its batch would otherwise both report 0.
   window.__memDropRetained = () => {
-    const dropped = retained?.length ?? 0;
+    const dropped = retained?.length ?? -1;
     retained = null;
     return dropped;
   };

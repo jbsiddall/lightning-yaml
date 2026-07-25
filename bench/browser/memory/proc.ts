@@ -42,14 +42,26 @@ function cmdlineOf(pid: number): string {
   }
 }
 
-/** Throws unless exactly one descendant matches — an ambiguous match would silently measure the wrong process. */
-export function findUniqueDescendant(rootPid: number, needle: string): number {
-  const matches = descendantPids(rootPid).filter((pid) => cmdlineOf(pid).includes(needle));
-  if (matches.length !== 1) {
-    const found = matches.length > 0 ? ` (${matches.join(", ")})` : "";
-    throw new Error(`expected exactly one descendant of pid ${rootPid} with "${needle}" in its cmdline, found ${matches.length}${found}`);
-  }
-  return matches[0];
+/** Descendants of `rootPid` whose cmdline contains `needle`. Snapshot this before opening a page, then pass it to `selectPageProcess`. */
+export function matchingDescendants(rootPid: number, needle: string): number[] {
+  return descendantPids(rootPid).filter((pid) => cmdlineOf(pid).includes(needle));
+}
+
+/**
+ * The content process serving a page that was opened after `before` was snapshotted.
+ * Uniqueness is NOT a safe assumption to select on: both engines keep spare/prewarmed
+ * content processes alive alongside the active one, persistently — measured on chromium,
+ * two `--type=renderer` children for every sample of a single open page's lifetime. So
+ * prefer a pid that appeared since the snapshot, and fall back to the heaviest match when
+ * the engine reused an existing process instead of spawning one.
+ */
+export function selectPageProcess(rootPid: number, needle: string, before: readonly number[]): number {
+  const matches = matchingDescendants(rootPid, needle);
+  if (matches.length === 0) throw new Error(`no descendant of pid ${rootPid} has "${needle}" in its cmdline`);
+  const seen = new Set(before);
+  const appeared = matches.filter((pid) => !seen.has(pid));
+  const pool = appeared.length > 0 ? appeared : matches;
+  return pool.reduce((a, b) => (readVmFieldBytes(a, "VmRSS") >= readVmFieldBytes(b, "VmRSS") ? a : b));
 }
 
 function readVmFieldBytes(pid: number, field: "VmRSS" | "VmHWM"): number {
