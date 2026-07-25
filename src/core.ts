@@ -528,9 +528,11 @@ function fail(message: string): never {
 // ---------------------------------------------------------------------------
 
 /**
- * Reset all per-stream parser state and position `pos` past a leading BOM, if
- * any. Shared by `parse`/`parseAll` — the two differ only in how many
- * documents they read off the same document loop (`parseNextDocument`).
+ * Reset all per-stream parser state. Shared by `parse`/`parseAll` — the two
+ * differ only in how many documents they read off the same document loop
+ * (`parseNextDocument`). A leading BOM is one of the stream's document-prefix
+ * positions and is skipped by `skipDocumentPrefix`, called from
+ * `parseNextDocument` itself — not here.
  */
 function resetForStream(text: string): void {
   src = text;
@@ -551,12 +553,6 @@ function resetForStream(text: string): void {
   colOverride = -1;
   bareDocAllowed = true;
   flowIndentFloor = -1;
-
-  // Skip a leading BOM without copying the input.
-  if (len > 0 && src.charCodeAt(0) === BOM) {
-    pos = 1;
-    lineStart = 1; // so the first line's content column is measured from here
-  }
 }
 
 /**
@@ -644,6 +640,11 @@ export function parse(text: string, options?: ParseOptions): unknown {
     const value = parseNextDocument();
     if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
 
+    // A trailing document prefix — comments and/or a re-declared BOM after a final
+    // `...` — is a well-formed stream with no further document ([211]); skip it so it
+    // isn't reported as a second document. A real second document still fails below.
+    skipDocumentPrefix();
+
     // Single-document contract (like js-yaml's `load`): a second document —
     // another marker, more directives, or any other trailing content — is an
     // error here; use `parseAll` for multi-document streams.
@@ -703,14 +704,17 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
  * Serialize a JavaScript value into a YAML document string (always ending in a
  * trailing newline).
  *
- * Emits block-style collections; strings, numbers, booleans and `null` become
- * scalars, and a `Uint8Array` becomes a `!!binary` scalar. Values that share a
+ * Emits block-style collections; strings, numbers, booleans, `null` and `bigint`
+ * become scalars (a `bigint` as a plain integer — YAML's `!!int` is arbitrary-
+ * precision), and a `Uint8Array` becomes a `!!binary` scalar. Values that share a
  * reference — or form a cycle — are emitted once with an anchor (`&`) and
  * referenced by alias (`*`) rather than duplicated, so `parse(stringify(x))`
  * reconstructs the same shared-reference graph rather than a deep copy.
  *
  * @param value - The value to serialize.
  * @returns The YAML document text.
+ * @throws {@link YAMLParseError} if the value contains something YAML 1.2 can't
+ * represent — a `Map`, `Set`, `Date`, `RegExp`, function or symbol.
  *
  * @example
  * ```ts
@@ -4435,6 +4439,28 @@ function parseDirectives(): boolean {
 }
 
 /**
+ * Skip a document PREFIX: byte order mark(s) sitting at the start of a line, plus
+ * blank/comment lines. Per [202] `l-document-prefix` (`c-byte-order-mark? l-comment*`,
+ * repeatable) and the standalone `c-byte-order-mark` alternative of [211]
+ * `l-yaml-stream`, a BOM may re-declare the encoding at the start of ANY document
+ * (§9.1.1) — not only the stream's first — so it is legal before a `---`, after a
+ * `...`, and interleaved with comment lines, and must be skipped rather than read as
+ * content (`nb-char` [27] excludes it, so it can never belong to a node).
+ *
+ * Cold: called once per document boundary. Deliberately NOT folded into
+ * `skipBlankLines`, which every `nextLine` goes through — the hot line-advance path
+ * must stay BOM-free.
+ */
+function skipDocumentPrefix(): void {
+  skipBlankLines();
+  while (pos < len && pos === lineStart && src.charCodeAt(pos) === BOM) {
+    pos++;
+    lineStart = pos; // a BOM is an encoding artifact, not content: the next char is column 0
+    skipBlankLines();
+  }
+}
+
+/**
  * Parse one document from the current stream position: an optional
  * directives block (which then requires an explicit `---`), an optional
  * `---`/`...` marker, the document's root node (or `null` for an empty
@@ -4444,7 +4470,7 @@ function parseDirectives(): boolean {
  * every rule above is enforced identically for single- and multi-document use.
  */
 function parseNextDocument(): unknown {
-  skipBlankLines();
+  skipDocumentPrefix();
   if (pos >= len) return NO_DOCUMENT;
 
   const sawDirectives = parseDirectives();
@@ -4471,6 +4497,10 @@ function parseNextDocument(): unknown {
   let value: unknown;
   if (isDash) {
     const inline = consumeDocStartMarker();
+    // §5.2: "A BOM must not appear inside a document" (Example 5.2). A prefix BOM
+    // belongs BEFORE the `---`; `nb-char` [27] excludes it from node content, so one
+    // here is an error rather than something to strip. Cold: once per document.
+    if (pos < len && src.charCodeAt(pos) === BOM) fail("a byte order mark must not appear inside a document");
     // A bare '---' immediately followed by EOF or another marker is an empty
     // document; otherwise the node begins right where the marker left `pos`
     // (same line if there was inline content — collections forbidden there —
@@ -4892,6 +4922,19 @@ function formatNumber(v: number): string {
 }
 
 /**
+ * Reject a value with no YAML 1.2 core-schema representation. Only ever reached
+ * from the cold tails below (a non-scalar `typeof`, or an object with no own
+ * enumerable keys), so the JSON-shaped path never touches it. Same convention as
+ * the dumper's depth guards: a `YAMLParseError` prefixed `stringify:`.
+ */
+function failStringify(what: string): never {
+  throw new YAMLParseError(
+    `stringify: cannot serialize ${what} — YAML 1.2 has no representation for it ` +
+      `(supported: string, number, bigint, boolean, null, plain object, array, Uint8Array)`,
+  );
+}
+
+/**
  * Render any scalar-shaped value (including `null`/`undefined`, though only
  * `null` is in the tested data model — `undefined` is mapped the same way as
  * a defensive fallback rather than crashing on a plausible-but-untested input)
@@ -4903,7 +4946,13 @@ function writeScalar(value: unknown): string {
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return formatNumber(value);
   if (typeof value === "string") return writeStringScalar(value);
-  return writeStringScalar(String(value)); // not in the tested data model (e.g. bigint/symbol) — best effort
+  // Cold tail — everything that isn't a core scalar. `!!int` is arbitrary-precision
+  // in YAML (§10.3.2), so a bigint's decimal is exactly representable and, like a
+  // number, always safe BARE (`-?[0-9]+` holds no indicator, space or `:`); note it
+  // must NOT go through writeStringScalar, which would quote it as a numeric-looking
+  // string and read back as one. A function/symbol has no representation at all.
+  if (typeof value === "bigint") return String(value);
+  return failStringify(`a ${typeof value} value`);
 }
 
 // ---------------------------------------------------------------------------
@@ -4962,6 +5011,32 @@ function writeBinaryScalar(bytes: Uint8Array): string {
 
 function isEmptyContainer(obj: object, isArr: boolean): boolean {
   return isArr ? (obj as unknown[]).length === 0 : Object.keys(obj as Record<string, unknown>).length === 0;
+}
+
+const OBJECT_PROTOTYPE = Object.prototype;
+
+/**
+ * Guard for the "object with no own enumerable string keys" case: `{}` is a
+ * legitimate empty mapping, but an exotic built-in (`Map`/`Set`/`Date`/`RegExp`/
+ * `Promise`/…) keeps its payload in internal slots `Object.keys` can't see, so
+ * emitting `{}` for one silently discards the data (#127/#20). YAML 1.2 core has no
+ * type for any of them — `!!timestamp`/`!!set` are 1.1, a non-goal here — so they
+ * throw instead.
+ *
+ * WHY HERE: this is the one branch an exotic can reach (its key list is empty by
+ * construction), and it is already cold — a test on every value would tax the
+ * JSON-shaped hot path for nothing.
+ *
+ * The prototype compare accepts the overwhelmingly common `{}` / `Object.create(null)`
+ * with no allocation; only the rarer case pays the realm-safe builtin tag, which
+ * catches a cross-realm or subclassed `Map` that `instanceof` would miss while still
+ * letting a genuinely empty class instance emit `{}`.
+ */
+function checkDumpableObject(obj: object): void {
+  const proto = Object.getPrototypeOf(obj);
+  if (proto === OBJECT_PROTOTYPE || proto === null) return;
+  const tag = Object.prototype.toString.call(obj); // e.g. "[object Map]"
+  if (tag !== "[object Object]") failStringify(`a ${tag.slice(8, -1)}`);
 }
 
 /**
@@ -5033,6 +5108,7 @@ function writeEntryValue(value: unknown, indent: number): void {
   const isArr = Array.isArray(obj);
   const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
   if (isEmptyContainer(obj, isArr)) {
+    if (!isArr) checkDumpableObject(obj);
     out += " " + (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
     return;
   }
@@ -5064,11 +5140,20 @@ function writeDocumentValue(value: unknown): void {
   const isArr = Array.isArray(obj);
   const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
   if (isEmptyContainer(obj, isArr)) {
+    if (!isArr) checkDumpableObject(obj);
     out += (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
     return;
   }
   if (name !== null) out += "&" + name + "\n";
   writeCollectionBody(obj, isArr, 0);
+}
+
+/** Drop every per-call reference so a large dumped graph isn't kept alive past this call. */
+function dumpRelease(): void {
+  out = ""; // also drops the module-level rope reference before the flatten read below
+  dumpRefCounts = null;
+  dumpAnchors = null;
+  dumpKeyCache = null;
 }
 
 /**
@@ -5081,15 +5166,12 @@ function writeDocumentValue(value: unknown): void {
  */
 function dumpFinish(): string {
   const result = out;
-  out = ""; // drop the module-level reference so the rope isn't pinned past this call
+  dumpRelease();
   // `charCodeAt` triggers the flatten; the module-level sink defeats dead-code
   // elimination of the otherwise-unused read (`|=` both reads and writes it, so
   // neither V8 nor tsc can treat it as dead) — the same O(n) flatten a consumer
   // would pay on first access, made eager so stringify's own cost is honest.
   if (result.length !== 0) dumpFlattenSink |= result.charCodeAt(0);
-  dumpRefCounts = null;
-  dumpAnchors = null;
-  dumpKeyCache = null;
   return result;
 }
 
@@ -5117,6 +5199,11 @@ function dumpValue(value: unknown): string {
   dumpAnchorSeq = 0;
   out = "";
   dumpDepth = 0;
-  writeDocumentValue(value);
+  try {
+    writeDocumentValue(value);
+  } catch (err) {
+    dumpRelease();
+    throw err;
+  }
   return dumpFinish();
 }
