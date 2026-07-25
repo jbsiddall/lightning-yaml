@@ -500,6 +500,16 @@ test("exotic object throws · subclass of a builtin with an own field (tag-based
   throws(() => stringify(new TrackedMap<string, number>([["a", 1]])), /cannot serialize a Map/);
 });
 
+// The prototype guard classifies by tag, but `Uint8Array` is ACCEPTED via
+// `instanceof`, which is realm-local — so bytes from a vm/iframe reach the guard
+// and must not be told YAML can't represent them, when same-realm bytes dump fine.
+test("a cross-realm Uint8Array reports the realm, not a bogus 'no representation'", async () => {
+  const vm = await import("node:vm");
+  const foreign = vm.runInNewContext("new Uint8Array([1, 2, 3])") as Uint8Array;
+  strictEqual(stringify(new Uint8Array([1, 2, 3])), "!!binary AQID\n"); // same realm still works
+  throws(() => stringify(foreign), /Uint8Array from another realm/);
+});
+
 test("exotic object throws · shared reference can't hide behind an alias", () => {
   const m = new Map([["a", 1]]);
   throws(() => stringify({ x: m, y: m }), /cannot serialize a Map/);

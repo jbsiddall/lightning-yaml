@@ -5045,6 +5045,12 @@ function checkDumpableObject(obj: object): void {
   const tag = Object.prototype.toString.call(obj); // e.g. "[object Map]"
   if (tag === "[object Object]") return;
   const kind = tag.slice(8, -1);
+  // Only a cross-realm one gets here — the writers' `instanceof Uint8Array` fast
+  // path claims same-realm bytes long before this. Saying "no representation"
+  // would be a lie, since the very next realm over dumps it as `!!binary`.
+  if (kind === "Uint8Array") {
+    failStringify("a Uint8Array from another realm", "dumping bytes as !!binary needs one created in this realm (an iframe/vm copy isn't recognised)");
+  }
   if (kind === "Map" || kind === "Set") {
     failStringify(`a ${kind}`, `parse already reads !!${kind === "Map" ? "omap" : "set"} back into a ${kind} — stringify just doesn't emit one yet (#101)`);
   }
@@ -5176,7 +5182,7 @@ function writeDocumentValue(value: unknown): void {
 
 /** Drop every per-call reference so a large dumped graph isn't kept alive past this call. */
 function dumpRelease(): void {
-  out = ""; // also drops the module-level rope reference before the flatten read below
+  out = ""; // the caller has already captured the flattened result, so drop the rope
   dumpRefCounts = null;
   dumpAnchors = null;
   dumpKeyCache = null;

@@ -252,7 +252,13 @@ here, treat it as a bug and
   back into a `Map`/`Set` — writing one back out just isn't built yet. A
   `bigint` throws for a third reason: its decimal is legal YAML, but `parse`
   reads integers back as `number`, so a value past 2^53 would come back
-  rounded — writing it waits for a `bigint`-aware read side.
+  rounded — writing it waits for a `bigint`-aware read side. The same rule
+  catches anything else whose payload isn't plain properties: a typed array
+  other than `Uint8Array` (`Int32Array`, …) and a boxed primitive
+  (`new String("ab")`) throw rather than emitting the indexed-property mapping
+  (`'0': 1`) they used to. The `yaml` library serializes both — a typed array as
+  a sequence, a boxed primitive unwrapped — so this is a divergence, and a
+  deliberate one: an indexed mapping is not what you passed in.
 
   Neither library we track matches this cleanly. js-yaml's `dump()` throws by
   default for `Map`/`RegExp`/function/symbol/`bigint`, same as us — but not for
