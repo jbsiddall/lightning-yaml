@@ -449,15 +449,20 @@ test("Uint8Array: nested inside maps/sequences, alongside other scalars", () => 
 });
 
 // ---------------------------------------------------------------------------
-// 5. Values with no YAML 1.2 core representation throw (no silent data loss).
-// `Map`/`Set`/`Date`/`RegExp`/etc. keep their payload in internal slots that
-// `Object.keys` can't see, so they used to be indistinguishable from `{}` and
-// silently serialized as an empty mapping (#127/#20); a function/symbol used
-// to be stringified into bare, often-invalid text (#128). Both now throw
-// instead. `bigint` throws too: `!!int` is arbitrary-precision in YAML, so its
-// decimal would be legal text, but our parser reads `!!int` back as a JS number,
-// so a value past 2^53 would return silently rounded. Emitting it waits for the
-// bigint-aware read side (#98) that makes the round trip faithful.
+// 5. Values stringify can't emit throw, instead of silently losing data.
+// `Map`/`Set`/`Date`/`RegExp`/etc. keep their real payload in internal slots
+// that `Object.keys` can't see, so without this guard they're indistinguishable
+// from `{}` — or, if one carries an own property, from just that property —
+// and silently serialize as the wrong thing, losing data (#127/#20); a
+// function/symbol would similarly serialize as bare, often-invalid text
+// (#128). `Date`/`RegExp`/function/symbol have no YAML 1.2 core type at all;
+// `Map`/`Set` are narrower — YAML CAN represent them (`!!omap`/`!!set`, and
+// `parse` already reads those tags back into a `Map`/`Set`), emitting one back
+// out just isn't built yet (#101). `bigint` throws for a different reason:
+// `!!int` is arbitrary-precision in YAML, so its decimal would be legal text,
+// but our parser reads `!!int` back as a JS number, so a value past 2^53 would
+// return silently rounded. Emitting it waits for the bigint-aware read side
+// (#98) that makes the round trip faithful.
 // ---------------------------------------------------------------------------
 
 const exoticObjects: Array<[string, unknown]> = [
@@ -472,6 +477,8 @@ const exoticObjects: Array<[string, unknown]> = [
   ["WeakMap", new WeakMap()],
   ["ArrayBuffer", new ArrayBuffer(4)],
   ["boxed Number", new Number(5)],
+  ["boxed String", new String("ab")],
+  ["Int32Array", new Int32Array([1, 2, 3])],
 ];
 
 for (const [label, value] of exoticObjects) {
@@ -486,14 +493,46 @@ for (const [label, value] of exoticObjects) {
   });
 }
 
-test("exotic object throws · subclass of a builtin (tag-based catch, not instanceof)", () => {
-  class TrackedMap<K, V> extends Map<K, V> {}
+test("exotic object throws · subclass of a builtin with an own field (tag-based catch, not instanceof)", () => {
+  class TrackedMap<K, V> extends Map<K, V> {
+    hits = 0;
+  }
   throws(() => stringify(new TrackedMap<string, number>([["a", 1]])), /cannot serialize a Map/);
 });
 
 test("exotic object throws · shared reference can't hide behind an alias", () => {
   const m = new Map([["a", 1]]);
   throws(() => stringify({ x: m, y: m }), /cannot serialize a Map/);
+});
+
+// An own enumerable property on an exotic object used to bypass the guard entirely
+// (it only ran when Object.keys(obj).length === 0): writeCollectionBody would then
+// walk that one stray property and silently emit it in place of the real payload,
+// with no throw at all (#144). checkDumpableObject now runs for any non-plain-
+// prototype object bound for mapping treatment, empty or not, so this can't happen.
+test("exotic object throws · an own enumerable property doesn't hide the real payload behind it (#144)", () => {
+  const mapWithProp = Object.assign(new Map([["a", 1], ["b", 2]]), { extra: "hi" });
+  throws(() => stringify(mapWithProp), /cannot serialize a Map/);
+  throws(() => stringify({ k: mapWithProp }), /cannot serialize a Map/);
+  throws(() => stringify([mapWithProp]), /cannot serialize a Map/);
+
+  const setWithProp = Object.assign(new Set([1, 2]), { extra: "hi" });
+  throws(() => stringify(setWithProp), /cannot serialize a Set/);
+
+  const dateWithProp = Object.assign(new Date(0), { extra: "hi" });
+  throws(() => stringify(dateWithProp), /cannot serialize a Date/);
+});
+
+test("exotic object throws · a shared/aliased reference with an own property still can't hide behind an alias", () => {
+  const m = Object.assign(new Map([["a", 1]]), { extra: "hi" });
+  throws(() => stringify({ x: m, y: m }), /cannot serialize a Map/);
+});
+
+test("Map/Set throw a 'not yet emitted' message, distinct from types with no YAML representation at all (#101)", () => {
+  throws(() => stringify(new Map()), /parse already reads !!omap back into a Map/);
+  throws(() => stringify(new Set()), /parse already reads !!set back into a Set/);
+  throws(() => stringify(new Date(0)), /YAML 1\.2 has no representation for it/);
+  throws(() => stringify(/x/), /YAML 1\.2 has no representation for it/);
 });
 
 test("function/symbol throws instead of being stringified as text", () => {
