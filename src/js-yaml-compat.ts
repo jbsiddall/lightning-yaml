@@ -317,8 +317,13 @@ const LOAD_OPTION_RULES: Record<string, OptionRule> = {
 const DUMP_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   sortKeys: activatesFeature("would sort map keys on output — not supported yet"),
-  // `false` (js-yaml's default) is a genuine no-op now that our stringify throws on a
-  // function/symbol/exotic object too; only `true` — dropping them instead — is unbuilt.
+  // `false` (js-yaml's default) is a genuine no-op — but only a real match for
+  // Map/RegExp/function/symbol/bigint, where real js-yaml's own dump() default
+  // already throws too. For Set/Date it isn't a match at all: js-yaml's actual
+  // default dump schema is YAML-1.1-flavored, not core, so it happily emits
+  // `!!set`/an ISO string for those, while ours still throws — a sanctioned
+  // divergence, see README's "Decisions and deviations". Only `true` (dropping
+  // the value instead of throwing) is unbuilt.
   skipInvalid: activatesFeature("would drop unrepresentable values instead of throwing — not supported yet"),
   noRefs: activatesFeature("would expand shared refs instead of using `&`/`*` — not supported yet"),
   forceQuotes: activatesFeature("would always quote strings — not supported yet"),
