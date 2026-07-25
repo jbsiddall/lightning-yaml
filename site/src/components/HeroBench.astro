@@ -14,13 +14,13 @@
 // "Ratio queries" section for why it's never blended across environments.
 // The Speed suite (Parse/Dump) and the Memory suite pick their canonical run
 // independently, so they can point at different environments — the footer
-// below states each tab's own runtime rather than one shared label. Memory can
-// additionally headline either of two measurement methods (see queries.ts's
-// heroMemorySource), so its popover labels each environment's method too.
-// Click a ratio to open its native-Popover-API breakdown: every environment's
-// own ratio, listed separately, built at BUILD TIME, zero client JS. Each row
-// still scales to its own largest bar, clipping an outlier that runs away from
-// the field (>3× the runner-up, "off-scale" ↗) so the rest stay legible.
+// below states each tab's own runtime rather than one shared label. Click a
+// ratio to open its native-Popover-API breakdown: every environment's own
+// ratio, listed separately, built at BUILD TIME, zero client JS. Each row
+// still scales to its own largest bar, clipping an outlier that runs away
+// from the field (>3× the runner-up, "off-scale" ↗) so the rest stay
+// legible. Memory can headline either of two measurement methods, so its
+// popover labels each environment's method too (see queries.ts).
 import speedRaw from '../data/benchmarks/speed.yaml?raw';
 import memoryRaw from '../data/benchmarks/memory.yaml?raw';
 import memoryRatiosRaw from '../data/benchmarks/memory-ratios.yaml?raw';
@@ -53,12 +53,11 @@ const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
 const HERO_ORDER: LibraryId[] = ['JSON', 'lightning-yaml', 'js-yaml', 'yaml'];
 
-// Every tab charts the same block-YAML config trio: real-world YAML is
-// overwhelmingly block-style config (see the 2026-07-16 target-workload
-// research note), and the JSON-text fixtures — where our lead over js-yaml
-// happens to be larger — would flatter us. Memory used to chart the JSON trio;
-// it can't any more, because the browser suite never measures JSON (the 10 MB
-// JSON tail case stays on /benchmarks).
+// Every tab charts the block-YAML config fixtures: real-world YAML is
+// overwhelmingly block-style config (see the 2026-07-16 target-workload research
+// note), and the JSON-text fixtures — where our lead over js-yaml happens to be
+// larger — would flatter us. Memory used to keep the JSON trio, but the browser
+// suite never measures JSON (the 10 MB tail case stays on /benchmarks).
 const speedNames = ['yaml-plain-small-records', 'yaml-plain-medium-records', 'yaml-plain-large-records'];
 const memoryNames = speedNames;
 const WORKLOAD_LABEL: Record<string, string> = {

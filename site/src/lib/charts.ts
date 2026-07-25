@@ -42,12 +42,9 @@ export function withVersion(label: string, version?: string): string {
 }
 
 /**
- * One /benchmarks section's own provenance line — each section names the run it
- * actually shows, since a single page-wide line would misattribute every
- * section fed by a different stream. Browser docs record cpu/clk as "unknown"
- * (a page can't read the host's hardware), so they say "Measured in <runtime>"
- * instead of printing "unknown" like a bug; a doc with no `env` at all gets
- * date and source only.
+ * One section's own provenance line — a page-wide line would misattribute every section fed
+ * by a different stream. Browser docs record cpu/clk as "unknown" (a page can't read the
+ * host's hardware) so they say "Measured in <runtime>"; a doc with no `env` gets date+source.
  */
 export function sourceLine(doc: { generated?: unknown; source?: unknown; env?: { cpu: string; clk: string; runtime: string } }): string {
   const generated = String(doc.generated ?? '');

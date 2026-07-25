@@ -1,7 +1,6 @@
 /**
- * Linux /proc plumbing for the webkit peak-RSS leg (bench/browser/memoryRun.ts):
- * find the browser child process that runs page JS, reset the kernel's peak-RSS
- * counter before a measured batch, read it back after.
+ * Linux /proc plumbing for the webkit peak-RSS leg (bench/browser/memoryRun.ts): find the
+ * browser child running page JS, reset the kernel's peak-RSS counter, read it back after.
  */
 
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -76,9 +75,8 @@ const SETTLE_INTERVAL_MS = 200;
 const SETTLE_TIMEOUT_MS = 10_000;
 
 /**
- * Waits out a freshly-loaded page process's startup and JIT churn so it doesn't
- * get counted as parse memory. Gives up at the timeout instead of failing the
- * run: a noisier baseline still beats no measurement.
+ * Waits out a fresh page process's startup and JIT churn so it isn't counted as parse memory.
+ * Gives up at the timeout rather than failing the run — a noisier baseline beats no measurement.
  */
 export async function waitForRssStabilization(pid: number): Promise<void> {
   const deadline = Date.now() + SETTLE_TIMEOUT_MS;

@@ -1,7 +1,4 @@
-/**
- * Page-side hooks the driver (bench/browser/memoryRun.ts) calls; one bundle per
- * library, so the page only ever holds the library it is measuring.
- */
+/** Page-side hooks the driver (bench/browser/memoryRun.ts) calls; one bundle per library, so a page only holds what it measures. */
 
 declare global {
   interface Window {
@@ -25,18 +22,14 @@ export function installMemoryHarness(parseFn: (text: string, category: string) =
     retained = arr; // holding these IS the allocation being measured
   };
 
-  // The driver checks this count against K: a short count means the page
-  // reloaded or crashed mid-batch, which invalidates the reading.
+  // The driver checks this count against K to catch a page that reloaded or crashed mid-batch.
   window.__memDropRetained = () => {
     const dropped = retained?.length ?? 0;
     retained = null;
     return dropped;
   };
 
-  // Chromium only — webkit has no performance.memory and measures via /proc.
-  // Two gc() passes with a gap between: one pass can leave the previous
-  // fixture's sweep work in flight, which showed up as a negative delta on the
-  // next (smaller) fixture.
+  // Chromium only — webkit has no performance.memory and measures via /proc. See memoryRun.ts for why two gc() passes.
   window.__memReadHeap = async () => {
     const gc = (globalThis as { gc?: () => void }).gc;
     if (!gc) throw new Error("gc() unavailable — launch chromium with --js-flags=--expose-gc");

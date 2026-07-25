@@ -308,12 +308,10 @@ export function combinedMemoryRatioPoints(
 }
 
 /**
- * The one run the Hero's memory tab headlines — number, runtime label and
- * library names all from the same document, so a label can't drift away from
- * the figure it names. Chromium's own in-page ratio wins once CI publishes one
- * (the browser is this library's primary target, and heap-delta is the
- * higher-confidence method), else the Node peak-RSS figure. WebKit's
- * lower-confidence number never headlines; it appears only in the popover.
+ * The one run the Hero's memory tab headlines — number, runtime label and library names all
+ * from the same document, so a label can't drift from the figure it names. Chromium's own
+ * ratio wins once CI publishes one (the browser is the primary target, and heap-delta is the
+ * stronger method), else Node's. WebKit's weaker number shows only in the popover.
  */
 export function heroMemorySource(
   memoryRuns: readonly MemoryDoc[],

@@ -87,14 +87,9 @@ const WEBKIT_INSTALL_HINT =
   "the browser-legs workflow — failing here locally is expected, not a bug in this harness.";
 
 /**
- * Two resolution paths: this environment pre-fetches a chromium cache at a
- * fixed, non-standard location (see DEFAULT_CHROMIUM_PATH) that playwright-core
- * doesn't know about on its own, so resolveChromiumExecutable() finds it
- * explicitly. CI instead runs a normal `playwright install chromium`, which
- * playwright-core resolves itself via PLAYWRIGHT_BROWSERS_PATH (or its own
- * default cache dir) — same as the webkit path below already relies on. When
- * the fixed local path isn't there, fall through to that standard resolution
- * instead of failing, so one code path covers both environments.
+ * `undefined` where CI runs a normal `playwright install chromium` and
+ * playwright-core resolves the binary itself; an explicit path where this
+ * environment pre-fetches a cache it doesn't know about (DEFAULT_CHROMIUM_PATH).
  */
 function chromiumExecutablePath(): string | undefined {
   const configuredPath = process.env[CHROMIUM_PATH_ENV] ?? DEFAULT_CHROMIUM_PATH;
@@ -129,10 +124,8 @@ export interface LaunchedEngineWithProcess extends LaunchedEngine {
 }
 
 /**
- * `launchEngine` plus the browser's OS pid, which the memory harness needs to
- * find the child process running page JS (bench/browser/memory/proc.ts), and
- * `chromiumArgs` for the flags its Chromium leg launches with. A separate
- * function rather than a flag on `launchEngine`, because only playwright's
+ * `launchEngine` plus the browser's OS pid, which the memory harness walks /proc
+ * under. Separate from `launchEngine` because only playwright's
  * launchServer()+connect() pairing exposes a pid at all.
  */
 export async function launchEngineWithProcess(
