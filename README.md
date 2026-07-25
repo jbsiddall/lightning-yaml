@@ -243,6 +243,14 @@ here, treat it as a bug and
   [§6.8.1](https://yaml.org/spec/1.2.2/#681-yaml-directives)) and js-yaml. The
   `yaml` library instead keeps the last `%TAG` and only warns on the version
   (still parsing); we deliberately reject both.
+- **`stringify` throws on values YAML 1.2 core can't represent, instead of
+  silently emitting `{}`.** A `Map`, `Set`, `Date`, `RegExp`, function or symbol
+  has no core-schema type, so serializing one throws rather than writing an
+  empty mapping or bare text and quietly losing the data — matching js-yaml's
+  CORE/JSON schemas, where the `yaml` library instead emits a Map as a mapping,
+  a Set as a sequence, and a Date as an ISO string. `bigint` is the exception:
+  YAML's `!!int` is arbitrary-precision, so it's emitted as a plain integer
+  (`10n` → `10`) rather than rejected, where js-yaml throws.
 
 ## Built with Claude Code
 
