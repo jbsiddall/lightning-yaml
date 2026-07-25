@@ -712,8 +712,11 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
  *
  * @param value - The value to serialize.
  * @returns The YAML document text.
- * @throws {@link YAMLParseError} if the value contains something YAML 1.2 can't
- * represent — a `Map`, `Set`, `Date`, `RegExp`, function, symbol, or `bigint`.
+ * @throws {@link YAMLParseError} if the value contains something this serializer
+ * won't write: a `Date`, `RegExp`, function or symbol (YAML 1.2 core has no type
+ * for them), a `Map` or `Set` (`!!omap`/`!!set` exist and `parse` reads them, but
+ * emitting one isn't built yet), or a `bigint` (its decimal is legal YAML, but
+ * `parse` reads integers back as `number`, so large values would return rounded).
  *
  * @example
  * ```ts

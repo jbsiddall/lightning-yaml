@@ -29,7 +29,7 @@ stringify({ id: 9007199254740993n });
 // now:    throws
 ```
 
-The obvious fix is to drop the quotes, and that really would be valid YAML. The spec defines an integer as an *"arbitrary sized finite mathematical integer"* ([§10.2.1.3](https://yaml.org/spec/1.2.2/#10213-integer)) — YAML has no 64-bit ceiling, and a bare `9007199254740993` is exactly the canonical form it prescribes.
+The obvious fix is to drop the quotes, and that really would be valid YAML. The spec says integers represent *"arbitrary sized finite mathematical integers"* ([§10.2.1.3](https://yaml.org/spec/1.2.2/#10213-integer)) — YAML has no 64-bit ceiling, and a bare `9007199254740993` is exactly the canonical form it prescribes.
 
 The catch is the trip back. YAML has only one integer type, and nothing in the file marks a value as "big": a plain `10` already resolves to the same `!!int` as writing `!!int 10` ([§10.3.2](https://yaml.org/spec/1.2.2/#1032-tag-resolution)), and there's no standard `!bigint` tag to reach for. So a reader has to choose one JavaScript type for *every* integer it meets, and ours chooses `number`. Write that value out unquoted and read it back and you get `9007199254740992` — off by one, silently. That's the exact condition the spec attaches to this: a processor may use a general number type for integers *"as long as they round-trip properly."*
 

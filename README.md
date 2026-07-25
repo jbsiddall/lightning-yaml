@@ -267,9 +267,9 @@ here, treat it as a bug and
   core/JSON schema makes it throw there too). The `yaml` library goes the other
   way on several of these — `Map`, `Set`, `Date`, and `bigint` (as a bare
   decimal, which reads back rounded — the exact risk we're refusing to take)
-  all serialize without error. Its one bug we share rather than fix: `RegExp`
-  collapses to the same silent, data-losing `{}` in `yaml` that this entry
-  closes for lightning-yaml.
+  all serialize without error. One of these is a bug rather than a design choice,
+  and it's still open on their side: `yaml` collapses a `RegExp` to the same
+  silent, data-losing `{}` that lightning-yaml used to write before this change.
 
 ## Built with Claude Code
 

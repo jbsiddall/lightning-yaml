@@ -889,6 +889,13 @@ test("a trailing document prefix (BOM after a final '...') is not reported as a 
   deepStrictEqual(parseAll("a\n...\n﻿"), ["a"]);
 });
 
+// [202] `l-document-prefix` is `c-byte-order-mark? l-comment*`, so a comment is a
+// prefix too — `parse` used to reject one here while `parseAll` accepted it.
+test("a trailing comment after a final '...' is a document prefix, not a second document", () => {
+  strictEqual(parse("a\n...\n# a trailing comment\n"), "a");
+  deepStrictEqual(parseAll("a\n...\n# a trailing comment\n"), ["a"]);
+});
+
 test("BOM rejected where the spec forbids it: immediately after '---' (§5.2 Example 5.2 — inside a document)", () => {
   throws(() => parse("---\n﻿a\n"), /byte order mark/);
   throws(() => parse("--- ﻿a\n"), /byte order mark/);
