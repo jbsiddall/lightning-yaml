@@ -42,26 +42,49 @@ function cmdlineOf(pid: number): string {
   }
 }
 
-/** Descendants of `rootPid` whose cmdline contains `needle`. Snapshot this before opening a page, then pass it to `selectPageProcess`. */
-export function matchingDescendants(rootPid: number, needle: string): number[] {
-  return descendantPids(rootPid).filter((pid) => cmdlineOf(pid).includes(needle));
+/** Descendants of `rootPid` whose cmdline contains any of `needles`. Snapshot this before opening a page, then pass it to `selectPageProcess`. */
+export function matchingDescendants(rootPid: number, needles: readonly string[]): number[] {
+  return descendantPids(rootPid).filter((pid) => needles.some((n) => cmdlineOf(pid).includes(n)));
 }
 
 /**
- * The content process serving a page that was opened after `before` was snapshotted.
- * Uniqueness is NOT a safe assumption to select on: both engines keep spare/prewarmed
- * content processes alive alongside the active one, persistently — measured on chromium,
- * two `--type=renderer` children for every sample of a single open page's lifetime. So
- * prefer a pid that appeared since the snapshot, and fall back to the heaviest match when
- * the engine reused an existing process instead of spawning one.
+ * Peak-RSS growth of the browser's busiest content process while `body` runs.
+ *
+ * Every candidate is reset and read rather than one being picked, because picking is
+ * unreliable and fails silently: WebKit keeps a prewarmed content process alive beside the
+ * one serving the page (measured locally: two WPEWebProcess children, where the idle one
+ * grew 0 KB while the active one grew 174 MB), and neither "the newest" nor "the heaviest
+ * right now" reliably tells them apart. The process that served the page is simply the one
+ * that grew, so take the largest growth and let the idle ones contribute their ~0.
  */
-export function selectPageProcess(rootPid: number, needle: string, before: readonly number[]): number {
-  const matches = matchingDescendants(rootPid, needle);
-  if (matches.length === 0) throw new Error(`no descendant of pid ${rootPid} has "${needle}" in its cmdline`);
-  const seen = new Set(before);
-  const appeared = matches.filter((pid) => !seen.has(pid));
-  const pool = appeared.length > 0 ? appeared : matches;
-  return pool.reduce((a, b) => (readVmFieldBytes(a, "VmRSS") >= readVmFieldBytes(b, "VmRSS") ? a : b));
+export async function peakRssGrowthDuring(rootPid: number, needles: readonly string[], body: () => Promise<void>): Promise<number> {
+  const pids = matchingDescendants(rootPid, needles);
+  if (pids.length === 0) {
+    // Print the tree: the one time this fired, the needle was just the wrong name for the
+    // port in use (Linux runs WPE, not GTK), and a bare "not found" said nothing useful.
+    const tree = descendantPids(rootPid).map((pid) => `    ${pid}  ${cmdlineOf(pid).trim().slice(0, 120)}`);
+    throw new Error(
+      `no descendant of pid ${rootPid} matches ${needles.map((n) => `"${n}"`).join(" or ")}. Descendants:\n${tree.join("\n") || "    (none)"}`,
+    );
+  }
+
+  await waitForRssStabilization(pids.reduce((a, b) => (readVmFieldBytes(a, "VmRSS") >= readVmFieldBytes(b, "VmRSS") ? a : b)));
+  const baselines = pids.map((pid) => {
+    resetPeakRss(pid);
+    return [pid, readVmHwmBytes(pid)] as const;
+  });
+
+  await body();
+
+  return Math.max(
+    ...baselines.map(([pid, baseline]) => {
+      try {
+        return readVmHwmBytes(pid) - baseline;
+      } catch {
+        return 0; // a content process that exited mid-batch measured nothing
+      }
+    }),
+  );
 }
 
 function readVmFieldBytes(pid: number, field: "VmRSS" | "VmHWM"): number {
