@@ -321,11 +321,11 @@ export function combinedMemoryRatioPoints(
 export function heroMemorySource(
   memoryRuns: readonly MemoryDoc[],
 ): { runtime: string; libraries: MemoryDoc['libraries']; ratio: (workload: string, id: LibraryId) => number | undefined } {
-  const node = newestOf(memoryRuns);
+  const node = newestRunFor(memoryRuns, 'node');
   return {
     runtime: node.env.runtime,
     libraries: node.libraries,
-    ratio: (workload, id) => canonicalMemoryRatio(memoryRuns, 'parse', workload, id, 'lightning-yaml'),
+    ratio: (workload, id) => memoryRatioIn(node, 'parse', workload, id, 'lightning-yaml'),
   };
 }
 

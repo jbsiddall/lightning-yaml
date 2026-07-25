@@ -1,11 +1,9 @@
 /** Page-side hooks the driver (bench/browser/memoryRun.ts) calls; one bundle per library, so a page only holds what it measures. */
 
+import type { MemoryPageHooks } from "./hooks.ts";
+
 declare global {
-  interface Window {
-    __memParseAndRetain?: (url: string, category: string, iters: number) => Promise<void>;
-    __memDropRetained?: () => number;
-    __memReadHeap?: () => Promise<number>;
-  }
+  interface Window extends MemoryPageHooks {}
 }
 
 /** `parseFn` is the one thing that differs per library — each entries/*.ts supplies its own. */

@@ -37,6 +37,7 @@ import { MemoryRatiosDocSchema } from "../schemas.ts";
 import { buildBrowserBundle } from "./build.ts";
 import { assertFixturesGenerated, startServer } from "./server.ts";
 import { isEngineName, launchEngineWithProcess, type EngineName, type LaunchedEngineWithProcess } from "./engines.ts";
+import type { MemoryPageHooks } from "./memory/hooks.ts";
 import { matchingDescendants, readVmHwmBytes, resetPeakRss, selectPageProcess, waitForRssStabilization } from "./memory/proc.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -79,15 +80,11 @@ const LIBRARIES = candidates
   .filter((c) => candidateSupports(c, "parse") && FIXTURES.every((f) => candidateApplies(c, f.category, "parse")))
   .map((c) => ({ id: c.name, entryPoint: join(HERE, "memory", "entries", `${c.name}.ts`), meta: libraryMeta(c) }));
 
-declare const window: {
-  __memParseAndRetain?: (url: string, category: string, iters: number) => Promise<void>;
-  __memDropRetained?: () => number;
-  __memReadHeap?: () => Promise<number>;
-};
+declare const window: MemoryPageHooks;
 
 interface Leg {
   method: "heap-delta" | "peak-rss";
-  chromiumArgs: string[];
+  chromiumArgs?: string[];
   /** Opens one library's page(s) and returns how to read them: bytes for one batch, plus — where the leg has a meaningful one — the same protocol with nothing parsed. */
   open: (
     engine: LaunchedEngineWithProcess,
@@ -185,7 +182,7 @@ const LEGS: Record<EngineName, Leg> = {
     chromiumArgs: ["--enable-precise-memory-info", "--js-flags=--expose-gc"],
     open: openChromiumPage,
   },
-  webkit: { method: "peak-rss", chromiumArgs: [], open: openWebkitPages },
+  webkit: { method: "peak-rss", open: openWebkitPages },
 };
 
 interface LibraryFixtureDeltas {

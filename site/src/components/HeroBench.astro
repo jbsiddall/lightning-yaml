@@ -56,8 +56,8 @@ const HERO_ORDER: LibraryId[] = ['JSON', 'lightning-yaml', 'js-yaml', 'yaml'];
 // Every tab charts the block-YAML config fixtures: real-world YAML is
 // overwhelmingly block-style config (see the 2026-07-16 target-workload research
 // note), and the JSON-text fixtures — where our lead over js-yaml happens to be
-// larger — would flatter us. Memory used to keep the JSON trio, but the browser
-// suite never measures JSON (the 10 MB tail case stays on /benchmarks).
+// larger — would flatter us. The browser suite never measures JSON either (the
+// 10 MB tail case stays on /benchmarks).
 const speedNames = ['yaml-plain-small-records', 'yaml-plain-medium-records', 'yaml-plain-large-records'];
 const memoryNames = speedNames;
 const WORKLOAD_LABEL: Record<string, string> = {
