@@ -19,6 +19,7 @@ import {
   parseRuns,
   pickWorkloads,
   bundleSizeItems,
+  memoryMethodLabel,
   LIBRARY_ORDER,
   SpeedDocSchema,
   MemoryDocSchema,
@@ -41,7 +42,7 @@ import {
   bundleSizeTrend,
   trendLegend,
   memoryBreakdownHtml,
-  groupedBreakdownTableHtml,
+  ratioBreakdownHtml,
   conformanceItems,
   conformanceTableHtml,
   bundleSizeTableHtml,
@@ -49,7 +50,6 @@ import {
   formatMB,
   formatPercent,
   formatKB,
-  formatRatioCell,
   presentIn,
   sourceLine,
 } from '../../lib/charts'
@@ -69,10 +69,8 @@ export const memoryTicks = xTicks(runDates(memoryRuns))
 
 export const memoryRatiosRuns = parseRuns(memoryRatiosRaw, MemoryRatiosDocSchema)
 export const memoryRatiosEnvs = availableRuntimes(memoryRatiosRuns)
-export const memRatioOrder = presentIn(
-  LIBRARY_ORDER.filter((id) => id !== 'js-yaml-tuned' && id !== 'JSON'),
-  memoryRatiosEnvs.flatMap((e) => e.doc.workloads),
-)
+export const memRatioOrder = presentIn(LIBRARY_ORDER, memoryRatiosEnvs.flatMap((e) => e.doc.workloads))
+export const provStyle = 'color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem'
 
 export const conformanceRuns = parseRuns(conformanceRaw, ConformanceDocSchema)
 export const conformance = newestOf(conformanceRuns)
@@ -242,10 +240,7 @@ Turning YAML text into JavaScript values — the hot path for most consumers.
 ### Parse speed
 
 {speedRuntimes.map((r) => (
-  <p
-    style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem"
-    data-runtime={speedRuntimes.length > 1 ? r.family : undefined}
-  >{sourceLine(r.doc)}</p>
+  <p style={provStyle} data-runtime={speedRuntimes.length > 1 ? r.family : undefined}>{sourceLine(r.doc)}</p>
 ))}
 
 {speedSections.map((s) => (
@@ -280,7 +275,7 @@ Turning YAML text into JavaScript values — the hot path for most consumers.
 
 ### Parse memory
 
-<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem">{sourceLine(memory)}</p>
+<p style={provStyle}>{sourceLine(memory)}</p>
 
 <ChartCard
   heading="Peak memory by workload (parse)"
@@ -320,14 +315,9 @@ comparable to each other or to the Node figures above:
 
 {memoryRatiosEnvs.map((e) => (
   <>
-    <p style="font-family:var(--sl-font-mono);font-weight:600;margin:1.2rem 0 0.2rem">
-      {e.family === 'chromium' ? "Chrome's engine (Chromium)" : e.family === 'webkit' ? "Safari's engine (WebKit)" : e.runtime} · {e.doc.method === 'heap-delta' ? 'retained-heap ratio' : 'peak-RSS ratio, lower confidence'}
-    </p>
-    <p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 0.6rem">{sourceLine(e.doc)}</p>
-    <div
-      style="overflow-x:auto;margin:0 0 1.5rem"
-      set:html={groupedBreakdownTableHtml(e.doc.workloads, e.doc.libraries, memRatioOrder, formatRatioCell)}
-    />
+    <p style="font-family:var(--sl-font-mono);font-weight:600;margin:1.2rem 0 0.2rem">{memoryMethodLabel(e.family, e.doc.method)}</p>
+    <p style={provStyle}>{sourceLine(e.doc)}</p>
+    <div style="overflow-x:auto;margin:0 0 1.5rem" set:html={ratioBreakdownHtml(e.doc.workloads, e.doc.libraries, memRatioOrder)} />
   </>
 ))}
 
@@ -338,10 +328,7 @@ Serializing JavaScript values back to YAML text.
 ### Stringify speed
 
 {speedRuntimes.map((r) => (
-  <p
-    style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem"
-    data-runtime={speedRuntimes.length > 1 ? r.family : undefined}
-  >{sourceLine(r.doc)}</p>
+  <p style={provStyle} data-runtime={speedRuntimes.length > 1 ? r.family : undefined}>{sourceLine(r.doc)}</p>
 ))}
 
 {speedSections.map((s) => (
@@ -383,7 +370,7 @@ config would be identical to the default.
 
 ### Stringify memory
 
-<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem">{sourceLine(memory)}</p>
+<p style={provStyle}>{sourceLine(memory)}</p>
 
 <ChartCard
   heading="Peak memory by workload (stringify)"
@@ -409,7 +396,7 @@ Pass rate across the official [yaml-test-suite](https://github.com/yaml/yaml-tes
 YAML 1.2 spec operationalized as executable cases — a property of the parser, not a per-workload
 measurement. Higher is better.
 
-<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem">{sourceLine(conformance)}</p>
+<p style={provStyle}>{sourceLine(conformance)}</p>
 
 <ChartCard
   heading="YAML test-suite conformance"
@@ -439,7 +426,7 @@ How many kilobytes each library adds to a browser bundle when an app imports onl
 with `js-yaml`, `yaml` (eemeli), and `lightning-yaml`, tree-shaken and gzipped the same way a
 real app would ship them. Sizes are deterministic (not machine-dependent). Lower is better.
 
-<p style="color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem">{sourceLine({ generated: bundleSize.generated, source: bundleSize.source })}</p>
+<p style={provStyle}>{sourceLine({ generated: bundleSize.generated, source: bundleSize.source })}</p>
 
 <ChartCard
   heading="Bundle size (browser)"

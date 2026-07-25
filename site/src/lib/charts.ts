@@ -20,6 +20,7 @@ import type {
   MemoryDoc,
   MemoryStat,
   MemoryWorkload,
+  MemoryRatiosWorkload,
   ConformanceDoc,
   ConformanceResult,
   BundleSizeDoc,
@@ -41,18 +42,12 @@ export function withVersion(label: string, version?: string): string {
 }
 
 /**
- * A section-scoped provenance line for /benchmarks. Three shapes, keyed to
- * what the doc actually knows: "Measured on <cpu> (<clk>) · <runtime> · …"
- * for a doc with full environment info (Node runs); "Measured in
- * <runtime> · …" for browser docs, which record cpu/clk as "unknown" (a page
- * can't read the host's hardware — see bench/browser/run.ts) and would
- * otherwise print that verbatim like a bug; and the leaner "Generated <date>
- * · source <sha>" for a doc with no `env` at all (conformance — a parser
- * property, not a runtime measurement; bundle size's `env` is bundler
- * versions, not a CPU/runtime). Each section states its OWN doc's provenance
- * — a page-wide line reading one suite's data above sections fed by other
- * streams would misattribute them, the same shape #120 fixed for the hero's
- * per-tab "Measured in" line.
+ * One /benchmarks section's own provenance line — each section names the run it
+ * actually shows, since a single page-wide line would misattribute every
+ * section fed by a different stream. Browser docs record cpu/clk as "unknown"
+ * (a page can't read the host's hardware), so they say "Measured in <runtime>"
+ * instead of printing "unknown" like a bug; a doc with no `env` at all gets
+ * date and source only.
  */
 export function sourceLine(doc: { generated?: unknown; source?: unknown; env?: { cpu: string; clk: string; runtime: string } }): string {
   const generated = String(doc.generated ?? '');
@@ -297,6 +292,11 @@ export function memoryBreakdownHtml(workloads: MemoryWorkload[], libraries: Libr
   return groupedBreakdownTableHtml(workloads, libraries, order, (s) => formatMB((s as MemoryStat).peak_rss));
 }
 
+/** Grouped breakdown for a browser memory-ratios document — each library relative to lightning-yaml. */
+export function ratioBreakdownHtml(workloads: MemoryRatiosWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
+  return groupedBreakdownTableHtml(workloads, libraries, order, (s) => formatRatio(s as number));
+}
+
 // ---------------------------------------------------------------------------
 // Brand palette — one color per library, reused identically across every
 // chart on the page so identity ("violet = lightning-yaml") only has to be
@@ -383,16 +383,6 @@ export function formatKB(bytes: number): string {
 /** Ratio -> data label, normalized to the fastest/best in a row, e.g. `1.0×`, `9.8×`, `101×`. */
 export function formatRatio(r: number): string {
   return `${r < 10 ? r.toFixed(1) : Math.round(r)}×`;
-}
-
-/**
- * `formatRatio` typed to take groupedBreakdownTableHtml's `cell: (stat: unknown) => string`
- * shape directly — MDX's expression parser (oxc) rejects a TS `as` cast written
- * inline in a .mdx file's `{}` JSX expressions, so this exists purely so
- * benchmarks.mdx can pass it as a plain function reference instead.
- */
-export function formatRatioCell(stat: unknown): string {
-  return formatRatio(stat as number);
 }
 
 /** Labels are untrusted-shaped data (come from YAML, not literals) — escape for XML. */
