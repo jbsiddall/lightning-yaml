@@ -505,11 +505,11 @@ test("exotic object throws · shared reference can't hide behind an alias", () =
   throws(() => stringify({ x: m, y: m }), /cannot serialize a Map/);
 });
 
-// An own enumerable property on an exotic object used to bypass the guard entirely
-// (it only ran when Object.keys(obj).length === 0): writeCollectionBody would then
-// walk that one stray property and silently emit it in place of the real payload,
-// with no throw at all (#144). checkDumpableObject now runs for any non-plain-
-// prototype object bound for mapping treatment, empty or not, so this can't happen.
+// An own enumerable property is the dangerous case: it gives an exotic object
+// something for writeCollectionBody to walk, so a guard keyed on "no own keys"
+// lets the object through and emits that one stray property in place of the real
+// payload — silent loss with none of the `{}` tell. Hence the guard keys on the
+// prototype, not on emptiness (#144).
 test("exotic object throws · an own enumerable property doesn't hide the real payload behind it (#144)", () => {
   const mapWithProp = Object.assign(new Map([["a", 1], ["b", 2]]), { extra: "hi" });
   throws(() => stringify(mapWithProp), /cannot serialize a Map/);
