@@ -14,7 +14,9 @@ stringify({ users: new Map([["ada", 1]]) });
 
 Functions and symbols used to be written out as bare text (`a: function foo() {}`), which isn't the value you passed in and often isn't valid YAML to read back either. They throw now too.
 
-A `BigInt` used to be written out *quoted*, so it read back as text rather than a number. It now throws as well:
+**`BigInt` also throws now — and that one deserves an explanation.**
+
+Before, it was written out *quoted*, which is the worst of the available options — not an error, but the quotes make it a string, so you got text back instead of a number:
 
 ```js
 stringify({ id: 9007199254740993n });
@@ -22,7 +24,18 @@ stringify({ id: 9007199254740993n });
 // now:    throws
 ```
 
-Writing it unquoted would be legal YAML — integers have no size limit ([§10.2.1.3](https://yaml.org/spec/1.2.2/#10213-integer)) — but `parse` currently reads every integer back as a JavaScript number, so anything past 2^53 would return silently rounded. Rather than emit a value we can't read back, `stringify` refuses for now; writing `BigInt` will land together with the option to read integers back as `BigInt`.
+The obvious fix is to drop the quotes, and that really would be valid YAML. The spec defines an integer as an *"arbitrary sized finite mathematical integer"* ([§10.2.1.3](https://yaml.org/spec/1.2.2/#10213-integer)) — YAML has no 64-bit ceiling, and a bare `9007199254740993` is exactly the canonical form it prescribes.
+
+The catch is the trip back. YAML has only one integer type, and nothing in the file marks a value as "big": a plain `10` already resolves to the same `!!int` as writing `!!int 10` ([§10.3.2](https://yaml.org/spec/1.2.2/#1032-tag-resolution)), and there's no standard `!bigint` tag to reach for. So a reader has to choose one JavaScript type for *every* integer it meets, and ours chooses `number`. Write that value out unquoted and read it back and you get `9007199254740992` — off by one, silently. That's the exact condition the spec attaches to this: a processor may use a general number type for integers *"as long as they round-trip properly."*
+
+The two libraries we track split on it:
+
+- **js-yaml** refuses a `BigInt` outright — under every schema it ships (failsafe, JSON, core, YAML 1.1) and by default. (`skipInvalid: true` drops the key rather than writing it.)
+- **`yaml`** writes it as a plain integer, then reads it back as a rounded `number` — unless you pass `intAsBigInt: true`, which switches *every* integer in the document to `BigInt`, not just the ones that need it.
+
+`JSON.stringify`, the benchmark this library measures itself against, throws too.
+
+So refusing it is the honest position while our reader still returns `number`: better a clear error than a value that quietly comes back different. It's also the reversible half of the choice — starting to write `BigInt` later is a feature, whereas taking it away would be a break. That's tracked as the read side and the write side together, so the round trip works when it arrives.
 
 Everything `stringify` accepted before still works unchanged: strings, numbers, booleans, `null`, arrays, plain objects (including empty `{}` and `[]`), class instances with ordinary properties, and `Uint8Array` (as `!!binary`).
 
