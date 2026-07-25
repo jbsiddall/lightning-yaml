@@ -454,8 +454,10 @@ test("Uint8Array: nested inside maps/sequences, alongside other scalars", () => 
 // `Object.keys` can't see, so they used to be indistinguishable from `{}` and
 // silently serialized as an empty mapping (#127/#20); a function/symbol used
 // to be stringified into bare, often-invalid text (#128). Both now throw
-// instead. `bigint` goes the other way — YAML's `!!int` is arbitrary-precision
-// (§10.3.2), so it is emitted as a plain integer rather than rejected.
+// instead. `bigint` throws too: `!!int` is arbitrary-precision in YAML, so its
+// decimal would be legal text, but our parser reads `!!int` back as a JS number,
+// so a value past 2^53 would return silently rounded. Emitting it waits for the
+// bigint-aware read side (#98) that makes the round trip faithful.
 // ---------------------------------------------------------------------------
 
 const exoticObjects: Array<[string, unknown]> = [
@@ -505,18 +507,14 @@ test("function/symbol throws instead of being stringified as text", () => {
   throws(() => stringify([Symbol()]), /cannot serialize a symbol value/);
 });
 
-test("bigint emits as a bare integer, not a quoted string", () => {
-  strictEqual(stringify(10n), "10\n");
-  strictEqual(stringify({ a: 10n }), "a: 10\n");
-  strictEqual(stringify({ a: -7n }), "a: -7\n");
-  strictEqual(stringify([1n, 2n]), "- 1\n- 2\n");
-  strictEqual(stringify({ a: 9007199254740993n }), "a: 9007199254740993\n");
-
-  const parsed = parse(stringify({ a: 10n })) as { a: unknown };
-  strictEqual(parsed.a, 10);
-  strictEqual(typeof parsed.a, "number", "must decode as a number, not a string — a quoted '10' would corrupt the type");
-  const oracleParsed = oracleParse(stringify({ a: 10n })) as { a: unknown };
-  strictEqual(oracleParsed.a, 10);
+test("bigint throws rather than emitting a value that reads back rounded", () => {
+  throws(() => stringify(10n), /cannot serialize a bigint value/);
+  throws(() => stringify({ a: 10n }), /cannot serialize a bigint value/);
+  throws(() => stringify({ a: -7n }), /cannot serialize a bigint value/);
+  throws(() => stringify([1n, 2n]), /cannot serialize a bigint value/);
+  // The value that motivates the throw: past 2^53 the decimal is legal YAML but
+  // our own parser hands it back rounded, so emitting it would lose data.
+  throws(() => stringify({ a: 9007199254740993n }), /cannot serialize a bigint value/);
 });
 
 test("regression: values stringify accepted before are still unaffected", () => {

@@ -704,9 +704,8 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
  * Serialize a JavaScript value into a YAML document string (always ending in a
  * trailing newline).
  *
- * Emits block-style collections; strings, numbers, booleans, `null` and `bigint`
- * become scalars (a `bigint` as a plain integer — YAML's `!!int` is arbitrary-
- * precision), and a `Uint8Array` becomes a `!!binary` scalar. Values that share a
+ * Emits block-style collections; strings, numbers, booleans and `null` become
+ * scalars, and a `Uint8Array` becomes a `!!binary` scalar. Values that share a
  * reference — or form a cycle — are emitted once with an anchor (`&`) and
  * referenced by alias (`*`) rather than duplicated, so `parse(stringify(x))`
  * reconstructs the same shared-reference graph rather than a deep copy.
@@ -4930,7 +4929,7 @@ function formatNumber(v: number): string {
 function failStringify(what: string): never {
   throw new YAMLParseError(
     `stringify: cannot serialize ${what} — YAML 1.2 has no representation for it ` +
-      `(supported: string, number, bigint, boolean, null, plain object, array, Uint8Array)`,
+      `(supported: string, number, boolean, null, plain object, array, Uint8Array)`,
   );
 }
 
@@ -4946,12 +4945,12 @@ function writeScalar(value: unknown): string {
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return formatNumber(value);
   if (typeof value === "string") return writeStringScalar(value);
-  // Cold tail — everything that isn't a core scalar. `!!int` is arbitrary-precision
-  // in YAML (§10.3.2), so a bigint's decimal is exactly representable and, like a
-  // number, always safe BARE (`-?[0-9]+` holds no indicator, space or `:`); note it
-  // must NOT go through writeStringScalar, which would quote it as a numeric-looking
-  // string and read back as one. A function/symbol has no representation at all.
-  if (typeof value === "bigint") return String(value);
+  // Cold tail — everything that isn't a core scalar, including `bigint`. YAML's
+  // `!!int` IS arbitrary-precision (§10.3.2), so emitting a bigint's decimal would
+  // be spec-legal text; we still refuse, because our own parser reads `!!int` back
+  // as a JS number — so anything past 2^53 would come back silently rounded, which
+  // is precisely the round-trip the spec conditions that binding on. Emitting is
+  // deferred to #98, which adds the bigint-aware read side that makes it faithful.
   return failStringify(`a ${typeof value} value`);
 }
 

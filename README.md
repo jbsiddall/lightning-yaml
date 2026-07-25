@@ -248,9 +248,10 @@ here, treat it as a bug and
   has no core-schema type, so serializing one throws rather than writing an
   empty mapping or bare text and quietly losing the data — matching js-yaml's
   CORE/JSON schemas, where the `yaml` library instead emits a Map as a mapping,
-  a Set as a sequence, and a Date as an ISO string. `bigint` is the exception:
-  YAML's `!!int` is arbitrary-precision, so it's emitted as a plain integer
-  (`10n` → `10`) rather than rejected, where js-yaml throws.
+  a Set as a sequence, and a Date as an ISO string. A `bigint` throws too (as in
+  js-yaml): its decimal would be legal YAML, but `parse` reads integers back as
+  numbers, so a value past 2^53 would return rounded — writing it waits for the
+  option to read integers back as `bigint`.
 
 ## Built with Claude Code
 

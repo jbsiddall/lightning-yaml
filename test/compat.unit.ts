@@ -493,8 +493,10 @@ test("js-yaml-compat.dump wraps a stringify failure in YAMLException, like real 
   throws(() => dump(new Map([["a", 1]])), (err: unknown) => err instanceof YAMLException);
 });
 
-test("js-yaml-compat.dump emits bigint as a plain integer", () => {
-  strictEqual(dump({ a: 10n }), "a: 10\n");
+test("js-yaml-compat.dump throws on bigint, matching real js-yaml", () => {
+  // Real js-yaml refuses a bigint under every schema it ships (failsafe/json/core/
+  // yaml11) and by default, so throwing here is exact parity rather than a divergence.
+  throws(() => dump({ a: 10n }), (err: unknown) => err instanceof YAMLException);
 });
 
 test("yaml-compat.stringify throws our own YAMLParseError, unwrapped, on an unrepresentable value", () => {
