@@ -244,14 +244,26 @@ here, treat it as a bug and
   `yaml` library instead keeps the last `%TAG` and only warns on the version
   (still parsing); we deliberately reject both.
 - **`stringify` throws on values YAML 1.2 core can't represent, instead of
-  silently emitting `{}`.** A `Map`, `Set`, `Date`, `RegExp`, function or symbol
-  has no core-schema type, so serializing one throws rather than writing an
-  empty mapping or bare text and quietly losing the data — matching js-yaml's
-  CORE/JSON schemas, where the `yaml` library instead emits a Map as a mapping,
-  a Set as a sequence, and a Date as an ISO string. A `bigint` throws too (as in
-  js-yaml): its decimal would be legal YAML, but `parse` reads integers back as
-  numbers, so a value past 2^53 would return rounded — writing it waits for the
-  option to read integers back as `bigint`.
+  silently emitting `{}`.** `Date`, `RegExp`, a function, or a symbol have no
+  YAML 1.2 core type at all, so serializing one throws rather than writing an
+  empty mapping or bare, often-invalid text and quietly losing the data.
+  `Map`/`Set` throw too, but for a narrower reason: YAML *can* represent them
+  (`!!omap`/`!!set`), and lightning-yaml's own `parse` already reads those tags
+  back into a `Map`/`Set` — writing one back out just isn't built yet. A
+  `bigint` throws for a third reason: its decimal is legal YAML, but `parse`
+  reads integers back as `number`, so a value past 2^53 would come back
+  rounded — writing it waits for a `bigint`-aware read side.
+
+  Neither library we track matches this cleanly. js-yaml's `dump()` throws by
+  default for `Map`/`RegExp`/function/symbol/`bigint`, same as us — but not for
+  `Set`/`Date`: its real default schema is YAML-1.1-flavoured, not core, so it
+  emits `!!set`/an ISO string for those without complaint (only an explicit
+  core/JSON schema makes it throw there too). The `yaml` library goes the other
+  way on several of these — `Map`, `Set`, `Date`, and `bigint` (as a bare
+  decimal, which reads back rounded — the exact risk we're refusing to take)
+  all serialize without error. Its one bug we share rather than fix: `RegExp`
+  collapses to the same silent, data-losing `{}` in `yaml` that this entry
+  closes for lightning-yaml.
 
 ## Built with Claude Code
 
