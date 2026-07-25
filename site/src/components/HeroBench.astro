@@ -117,7 +117,7 @@ const tabs = [
   {
     id: 'memory',
     label: 'Parse memory',
-    caption: 'Peak memory of the Node process while parsing, relative to Lightning YAML (always 1.0×) — lower is better. Click a ratio for every environment’s own number, browser engines included — those measure the narrower question of what the parsed result still holds, so they read differently on purpose.',
+    caption: 'Peak memory of the Node process while parsing, relative to Lightning YAML (always 1.0×) — lower is better. Click a ratio for every environment’s own number, browser engines included — each measures what its engine exposes (Chrome: memory the parsed result retains; WebKit: its page process’s peak), so they read differently on purpose.',
     chart: memoryChart,
   },
   {

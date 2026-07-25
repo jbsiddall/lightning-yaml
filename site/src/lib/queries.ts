@@ -313,9 +313,9 @@ export function combinedMemoryRatioPoints(
 /**
  * The one run the Hero's memory tab headlines: Node's peak RSS. That is the only published
  * metric that answers the tab's own claim — memory used *while* parsing — so it headlines
- * regardless of which browser runs exist. Browser engines measure the narrower retained-result
- * question; those stay in the click-through popover (`combinedMemoryRatioPoints`) and on
- * /benchmarks, labelled for what they are. Number, runtime label and library names all come
+ * regardless of which browser runs exist. Browser readings answer different questions (see
+ * MEMORY_METHOD_LABEL above); they stay in the click-through popover (`combinedMemoryRatioPoints`)
+ * and on /benchmarks, labelled per method. Number, runtime label and library names all come
  * from this one document, so a label can't drift from the figure it names.
  */
 export function heroMemorySource(
