@@ -15,6 +15,8 @@ stringify({ users: new Map([["ada", 1]]) });
 
 This throw is now unconditional — it no longer matters whether the value happens to carry an extra own property of its own (`Object.assign(new Map(...), { note: "x" })`, a `Map` subclass with a field, …); before, that was enough to slip past the guard and silently serialize just the stray property instead of the real payload, which is the exact same data loss with none of the `{}` tell.
 
+A few less common shapes are caught by the same change, where they used to come out as a mapping of array indices: a typed array other than `Uint8Array` (`Int32Array`, …) and a boxed primitive (`new String("ab")`) now throw rather than writing `'0': 1`. `Uint8Array` itself still writes as `!!binary` — provided it was created in the same realm; a copy handed over from an iframe or a `vm` context isn't recognised as bytes and throws too.
+
 `Map`/`Set` are a narrower case than the rest of this list: YAML *can* represent them (`!!omap`/`!!set`), and lightning-yaml's own `parse` already reads those tags back into a `Map`/`Set`. Emitting one back out just isn't built yet (tracked in #101), so for now `stringify(parse("!!set {a, b}"))` throws instead of round-tripping. `Date`/`RegExp`/function/symbol are refused on principle — YAML 1.2 core has no type for any of them at all, so there's no round-trip to eventually build.
 
 Functions and symbols used to be written out as bare text (`a: function foo() {}`), which isn't the value you passed in and often isn't valid YAML to read back either. They throw now too.
