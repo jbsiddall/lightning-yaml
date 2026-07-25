@@ -1,5 +1,5 @@
 /**
- * Browser-engine registry for the driver (run.ts): resolving a real
+ * Browser-engine registry for the drivers (run.ts, memoryRun.ts): resolving a real
  * executable for chromium (the pre-fetched cache may point at a file OR a
  * directory — see resolveChromiumExecutable) and launching either engine via
  * playwright-core, which is used purely as a launcher/CDP bridge here —
@@ -8,7 +8,7 @@
 
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { chromium, webkit, type Browser } from "playwright-core";
+import { chromium, webkit, type Browser, type BrowserServer } from "playwright-core";
 
 export type EngineName = "chromium" | "webkit";
 
@@ -86,19 +86,19 @@ const WEBKIT_INSTALL_HINT =
   "that already has it. CI installs webkit via `playwright install --with-deps webkit` as part of " +
   "the browser-legs workflow — failing here locally is expected, not a bug in this harness.";
 
+/**
+ * `undefined` where CI runs a normal `playwright install chromium` and
+ * playwright-core resolves the binary itself; an explicit path where this
+ * environment pre-fetches a cache it doesn't know about (DEFAULT_CHROMIUM_PATH).
+ */
+function chromiumExecutablePath(): string | undefined {
+  const configuredPath = process.env[CHROMIUM_PATH_ENV] ?? DEFAULT_CHROMIUM_PATH;
+  return existsSync(configuredPath) ? resolveChromiumExecutable(configuredPath) : undefined;
+}
+
 export async function launchEngine(name: EngineName): Promise<LaunchedEngine> {
   if (name === "chromium") {
-    // Two resolution paths: this environment pre-fetches a chromium cache at a
-    // fixed, non-standard location (see DEFAULT_CHROMIUM_PATH) that playwright-core
-    // doesn't know about on its own, so resolveChromiumExecutable() finds it
-    // explicitly. CI instead runs a normal `playwright install chromium`, which
-    // playwright-core resolves itself via PLAYWRIGHT_BROWSERS_PATH (or its own
-    // default cache dir) — same as the webkit path below already relies on. When
-    // the fixed local path isn't there, fall through to that standard resolution
-    // instead of failing, so one code path covers both environments.
-    const configuredPath = process.env[CHROMIUM_PATH_ENV] ?? DEFAULT_CHROMIUM_PATH;
-    const executablePath = existsSync(configuredPath) ? resolveChromiumExecutable(configuredPath) : undefined;
-    const browser = await chromium.launch({ executablePath, headless: true });
+    const browser = await chromium.launch({ executablePath: chromiumExecutablePath(), headless: true });
     return { browser, family: "chromium" };
   }
 
@@ -111,6 +111,51 @@ export async function launchEngine(name: EngineName): Promise<LaunchedEngine> {
   try {
     const browser = await webkit.launch({ headless: true });
     return { browser, family: "webkit" };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`${WEBKIT_INSTALL_HINT}\n\nOriginal error: ${detail}`);
+  }
+}
+
+export interface LaunchedEngineWithProcess extends LaunchedEngine {
+  /** The browser's own top-level pid — the root to walk /proc under for its child processes. */
+  pid: number;
+  close: () => Promise<void>;
+}
+
+/**
+ * `launchEngine` plus the browser's OS pid, which the memory harness walks /proc
+ * under. Separate from `launchEngine` because only playwright's
+ * launchServer()+connect() pairing exposes a pid at all.
+ */
+export async function launchEngineWithProcess(
+  name: EngineName,
+  chromiumArgs: string[] = [],
+): Promise<LaunchedEngineWithProcess> {
+  const launch = async (server: BrowserServer, family: EngineName): Promise<LaunchedEngineWithProcess> => {
+    const proc = server.process();
+    if (proc.pid === undefined) throw new Error(`${family} browser process has no pid (failed to spawn or already exited)`);
+    const pid = proc.pid;
+    const browser = await (family === "chromium" ? chromium : webkit).connect(server.wsEndpoint());
+    return {
+      browser,
+      family,
+      pid,
+      close: async () => {
+        await browser.close();
+        await server.close();
+      },
+    };
+  };
+
+  if (name === "chromium") {
+    const server = await chromium.launchServer({ executablePath: chromiumExecutablePath(), headless: true, args: chromiumArgs });
+    return launch(server, "chromium");
+  }
+
+  try {
+    const server = await webkit.launchServer({ headless: true });
+    return launch(server, "webkit");
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     throw new Error(`${WEBKIT_INSTALL_HINT}\n\nOriginal error: ${detail}`);

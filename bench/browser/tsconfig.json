@@ -3,6 +3,6 @@
   "compilerOptions": {
     "lib": ["ES2023", "DOM"]
   },
-  "include": ["entry.ts"],
+  "include": ["entry.ts", "memory/pageHarness.ts", "memory/entries/**/*.ts"],
   "exclude": []
 }

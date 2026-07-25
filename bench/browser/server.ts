@@ -60,10 +60,10 @@ async function serveFixture(res: ServerResponse, requestPath: string): Promise<v
   await serveFile(res, resolved);
 }
 
-async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handle(req: IncomingMessage, res: ServerResponse, bundlePath: string): Promise<void> {
   const url = req.url ?? "/";
   if (url === "/" || url === "/index.html") return serveFile(res, HARNESS_HTML);
-  if (url === "/bundle.js") return serveFile(res, BUNDLE_PATH);
+  if (url === "/bundle.js") return serveFile(res, bundlePath);
   if (url.startsWith("/fixtures/")) return serveFixture(res, url);
   res.writeHead(404, { ...CROSS_ORIGIN_ISOLATION_HEADERS, "content-type": "text/plain" });
   res.end("not found");
@@ -74,9 +74,10 @@ export interface RunningServer {
   close: () => Promise<void>;
 }
 
-export async function startServer(): Promise<RunningServer> {
+/** `bundlePath` defaults to the speed harness's single bundle; the memory harness starts one server per library-specific bundle. */
+export async function startServer(bundlePath: string = BUNDLE_PATH): Promise<RunningServer> {
   const server = createServer((req, res) => {
-    handle(req, res).catch((err: unknown) => {
+    handle(req, res, bundlePath).catch((err: unknown) => {
       // text/plain so error text (which can echo the request path) is never
       // sniffed as HTML by the browser (CodeQL js/reflected-xss).
       res.writeHead(500, { ...CROSS_ORIGIN_ISOLATION_HEADERS, "content-type": "text/plain" });

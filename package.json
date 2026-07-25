@@ -83,6 +83,7 @@
     "bench:competition": "node --expose-gc --import tsx bench/report.ts competition",
     "bench:bundlesize": "node bench/bundlesize/run.mjs",
     "bench:browser": "node --import tsx bench/browser/run.ts",
+    "bench:browser:memory": "node --import tsx bench/browser/memoryRun.ts",
     "bench": "pnpm gen:fixtures && pnpm bench:competition && pnpm bench:self",
     "build": "tsup",
     "prepublishOnly": "pnpm build",
@@ -92,7 +93,7 @@
     "test:watch": "vitest",
     "test:suite": "pnpm gen:suite && node --import tsx bench/conformance/run.ts",
     "test:compat": "node --import tsx bench/conformance/compat.ts",
-    "validate:benchmarks": "node --import tsx bench/validate.ts site/src/data/benchmarks/speed.yaml site/src/data/benchmarks/memory.yaml site/src/data/benchmarks/conformance.yaml site/src/data/benchmarks/bundle-size.yaml",
+    "validate:benchmarks": "node --import tsx bench/validate.ts site/src/data/benchmarks/speed.yaml site/src/data/benchmarks/memory.yaml site/src/data/benchmarks/memory-ratios.yaml site/src/data/benchmarks/conformance.yaml site/src/data/benchmarks/bundle-size.yaml",
     "typecheck": "tsc --noEmit && tsc --noEmit -p bench/browser/tsconfig.json",
     "changeset": "changeset",
     "version-packages": "changeset version"

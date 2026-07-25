@@ -85,6 +85,28 @@ export const MemoryDocSchema = ProvenanceBase.extend({
 });
 
 /**
+ * Browser parse-memory as RATIOS to lightning-yaml, never absolute bytes — its own suite
+ * because `memory` above is absolute MB. `method` names two measurements that answer different
+ * questions and are NOT comparable: Chromium's in-page JS-heap growth ("heap-delta") is the
+ * narrower one — only what the parsed result still retains, blind to whatever the parse
+ * allocated and handed back — while WebKit's whole-process peak RSS ("peak-rss") is broader and
+ * noisier, counting parse-time allocation and engine overhead alike.
+ */
+export const MemoryRatiosDocSchema = ProvenanceBase.extend({
+  suite: z.literal("memory-ratios"),
+  method: z.enum(["heap-delta", "peak-rss"]),
+  unit: z.literal("ratio"),
+  lower_is_better: z.boolean(),
+  env: RuntimeEnvSchema,
+  iterations: z.number().positive(),
+  libraries: z.array(LibraryMetaSchema).min(1),
+  workloads: z.array(workloadSchema(z.number().positive())),
+}).refine(
+  (d) => d.workloads.every((w) => w.values["lightning-yaml"] == null || w.values["lightning-yaml"] === 1),
+  { message: "lightning-yaml's own ratio must be exactly 1.0 in every workload row" },
+);
+
+/**
  * A conformance result IS a LibraryMeta plus its scores — the site's interface
  * declares them as separate shapes, but the real docs inline id/label/self/version
  * onto each row, so making the reuse explicit keeps them from drifting apart.
@@ -127,17 +149,19 @@ export const BundleSizeDocSchema = ProvenanceBase.extend({
   results: z.array(BundleSizeResultSchema).min(1),
 });
 
-export type SuiteName = "speed" | "memory" | "conformance" | "bundle-size";
+export type SuiteName = "speed" | "memory" | "memory-ratios" | "conformance" | "bundle-size";
 
 /** Schema per suite — key the doc's own `suite` field into this to validate it. */
 export const SUITE_SCHEMAS = {
   speed: SpeedDocSchema,
   memory: MemoryDocSchema,
+  "memory-ratios": MemoryRatiosDocSchema,
   conformance: ConformanceDocSchema,
   "bundle-size": BundleSizeDocSchema,
 } satisfies Record<SuiteName, z.ZodType>;
 
 export type SpeedDoc = z.infer<typeof SpeedDocSchema>;
 export type MemoryDoc = z.infer<typeof MemoryDocSchema>;
+export type MemoryRatiosDoc = z.infer<typeof MemoryRatiosDocSchema>;
 export type ConformanceDoc = z.infer<typeof ConformanceDocSchema>;
 export type BundleSizeDoc = z.infer<typeof BundleSizeDocSchema>;

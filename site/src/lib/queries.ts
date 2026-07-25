@@ -19,6 +19,7 @@ import {
   RuntimeEnvSchema,
   SpeedDocSchema,
   MemoryDocSchema,
+  MemoryRatiosDocSchema,
   ConformanceDocSchema,
   BundleSizeDocSchema,
 } from '../../../bench/schemas.ts';
@@ -28,7 +29,7 @@ import {
 // exception to this file's "queries only, no rendering" rule.
 import { LIBRARY_COLOR, libraryLabel } from './charts';
 
-export { SpeedDocSchema, MemoryDocSchema, ConformanceDocSchema, BundleSizeDocSchema };
+export { SpeedDocSchema, MemoryDocSchema, MemoryRatiosDocSchema, ConformanceDocSchema, BundleSizeDocSchema };
 
 // ---------------------------------------------------------------------------
 // Doc types — every one inferred from bench/schemas.ts, not hand-declared, so
@@ -48,6 +49,10 @@ export type SpeedStat = NonNullable<SpeedWorkload['values'][LibraryId]>;
 export type MemoryDoc = z.infer<typeof MemoryDocSchema>;
 export type MemoryWorkload = MemoryDoc['operations']['parse'][number];
 export type MemoryStat = NonNullable<MemoryWorkload['values'][LibraryId]>;
+
+/** Browser parse-memory ratios — see MemoryRatiosDocSchema for what `method` distinguishes. */
+export type MemoryRatiosDoc = z.infer<typeof MemoryRatiosDocSchema>;
+export type MemoryRatiosWorkload = MemoryRatiosDoc['workloads'][number];
 
 export type ConformanceDoc = z.infer<typeof ConformanceDocSchema>;
 export type ConformanceResult = ConformanceDoc['results'][number];
@@ -93,12 +98,12 @@ export function newestRun<S extends z.ZodType>(raw: string, schema: S): z.infer<
 }
 
 // ---------------------------------------------------------------------------
-// Runtime dimension — CI will publish `speed.yaml` runs from more than one
-// execution environment (node, chromium, webkit, bun), distinguished by each
-// document's `env.runtime` string (e.g. "node 24.18.0 (x64-linux)"). Only the
-// speed suite records `env.runtime` today; memory, conformance, and
-// bundle-size stay single-environment (see each doc's schema above), so
-// `newestOf` remains the right loader for those. These helpers all take an
+// Runtime dimension — CI publishes `speed.yaml` and `memory-ratios.yaml` runs
+// from more than one execution environment (node, chromium, webkit),
+// distinguished by each document's `env.runtime` string (e.g. "node 24.18.0
+// (x64-linux)"). The `memory` stream records `env.runtime` too but is
+// node-only; conformance and bundle-size have no runtime at all, so
+// `newestOf` remains the right loader for those two. These helpers all take an
 // already-loaded run array (from `parseRuns`), not a raw string, so a caller
 // juggling both a run history and a family selection never parses twice.
 // ---------------------------------------------------------------------------
@@ -161,8 +166,8 @@ export function canonicalRun<T extends WithRuntime>(runs: readonly T[]): T {
 // blends one across environments into a single number — a browser engine and
 // Node are different machines with different results, and combining them
 // would hide that. Every ratio shown anywhere on the site is one real
-// measurement in one named environment (see `canonicalSpeedRatio` /
-// `canonicalMemoryRatio`, which read straight off `canonicalRun`). What this
+// measurement in one named environment (see `canonicalSpeedRatio`, which
+// reads straight off `canonicalRun`, and `heroMemorySource`). What this
 // section DOES provide is the per-environment ratio COLLECTION — every
 // family's own ratio, unblended — for two honest uses: a popover breakdown
 // listing each engine's own number, and a data-derived "up to N×" range
@@ -179,6 +184,8 @@ export interface RatioPoint {
   /** Full `env.runtime` string of this family's newest run (e.g. "node 24.18.0 (x64-linux)"). */
   runtime: string;
   ratio: number;
+  /** How this point was measured, shown beside its runtime — set only where a suite mixes methods, as memory does. */
+  methodLabel?: string;
 }
 
 /** Shared plumbing: one ratio per family's newest doc, for the families where both libraries in the pair have a value. */
@@ -247,15 +254,68 @@ export function canonicalSpeedRatio(
   return speedRatioIn(canonicalRun(runs), op, workload, numerator, denominator);
 }
 
-/** THE headline number for memory: see `canonicalSpeedRatio` — same contract, `peak_rss` instead of `avg`. */
-export function canonicalMemoryRatio(
-  runs: readonly MemoryDoc[],
-  op: 'parse' | 'stringify',
+// ---------------------------------------------------------------------------
+// Memory ratios (browser). A `memory-ratios` document already stores each
+// library's ratio to lightning-yaml, and — unlike the Node-only `memory` suite
+// — can publish from more than one engine, each with its own `method`.
+// ---------------------------------------------------------------------------
+
+// Not two grades of the same measurement — two different questions. A retained-heap reading is
+// narrower (only what the parsed result still holds, blind to what the parse allocated and gave
+// back); a peak-RSS reading is broader and noisier (the whole process at its high-water mark).
+const MEMORY_METHOD_LABEL: Record<string, string> = {
+  node: 'Node · peak memory of the whole process',
+  'chromium:heap-delta': "Chrome's engine · memory retained by the parsed result",
+  'webkit:peak-rss': "Safari's engine (WebKit) · peak memory of the page process",
+};
+
+/** How a memory number was measured, in the reader's words — shown wherever memory ratios from different methods sit together. */
+export function memoryMethodLabel(family: string, method?: string): string {
+  const key = method ? `${family}:${method}` : family;
+  return MEMORY_METHOD_LABEL[key] ?? (method ? `${family} · ${method}` : family);
+}
+
+function memoryRatioValueIn(doc: MemoryRatiosDoc, workload: string, id: LibraryId): number | undefined {
+  const v = doc.workloads.find((w) => w.workload === workload)?.values[id];
+  return typeof v === 'number' ? v : undefined;
+}
+
+/** Every environment's own ratio for one workload+library, method-labelled, merged from both streams — never blended into one number. */
+export function combinedMemoryRatioPoints(
+  memoryRuns: readonly MemoryDoc[],
+  memoryRatiosRuns: readonly MemoryRatiosDoc[],
   workload: string,
   numerator: LibraryId,
-  denominator: LibraryId,
-): number | undefined {
-  return memoryRatioIn(canonicalRun(runs), op, workload, numerator, denominator);
+): RatioPoint[] {
+  const nodePoints = memoryWorkloadRatio(memoryRuns, 'parse', workload, numerator, 'lightning-yaml').map((p) => ({
+    ...p,
+    methodLabel: memoryMethodLabel(p.family),
+  }));
+  const browserPoints = availableRuntimes(memoryRatiosRuns).flatMap(({ family, runtime, doc }): RatioPoint[] => {
+    const ratio = memoryRatioValueIn(doc, workload, numerator);
+    if (typeof ratio !== 'number' || !Number.isFinite(ratio) || ratio <= 0) return [];
+    return [{ family, runtime, ratio, methodLabel: memoryMethodLabel(family, doc.method) }];
+  });
+  return [...nodePoints, ...browserPoints];
+}
+
+/**
+ * The one run the Hero's memory tab headlines: Node's peak RSS. That is the only published
+ * metric that answers the tab's own claim — memory used *while* parsing — so it headlines
+ * regardless of which browser runs exist. Browser readings answer different questions (see
+ * MEMORY_METHOD_LABEL above); they stay in the click-through popover (`combinedMemoryRatioPoints`)
+ * and on /benchmarks, labelled per method. Number, runtime label and library names all come
+ * from this one document, so a label can't drift from the figure it names.
+ */
+export function heroMemorySource(
+  memoryRuns: readonly MemoryDoc[],
+): { runtime: string; libraries: MemoryDoc['libraries']; ratio: (workload: string, id: LibraryId) => number | undefined } {
+  const node = newestRunFor(memoryRuns, 'node');
+  return {
+    runtime: node.env.runtime,
+    libraries: node.libraries,
+    ratio: (workload, id) => memoryRatioIn(node, 'parse', workload, id, 'lightning-yaml'),
+  };
 }
 
 // ---------------------------------------------------------------------------
