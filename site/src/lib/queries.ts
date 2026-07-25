@@ -271,10 +271,13 @@ export function canonicalMemoryRatio(
 // — can publish from more than one engine, each with its own `method`.
 // ---------------------------------------------------------------------------
 
+// Not two grades of the same measurement — two different questions. A retained-heap reading is
+// narrower (only what the parsed result still holds, blind to what the parse allocated and gave
+// back); a peak-RSS reading is broader and noisier (the whole process at its high-water mark).
 const MEMORY_METHOD_LABEL: Record<string, string> = {
-  node: 'peak RSS · Node process',
-  'chromium:heap-delta': "Chrome's engine · retained-heap ratio",
-  'webkit:peak-rss': "Safari's engine (WebKit) · peak-RSS ratio, lower confidence",
+  node: 'Node · peak memory of the whole process',
+  'chromium:heap-delta': "Chrome's engine · memory retained by the parsed result",
+  'webkit:peak-rss': "Safari's engine (WebKit) · peak memory of the page process",
 };
 
 /** How a memory number was measured, in the reader's words — shown wherever memory ratios from different methods sit together. */
@@ -308,23 +311,16 @@ export function combinedMemoryRatioPoints(
 }
 
 /**
- * The one run the Hero's memory tab headlines — number, runtime label and library names all
- * from the same document, so a label can't drift from the figure it names. Chromium's own
- * ratio wins once CI publishes one (the browser is the primary target, and heap-delta is the
- * stronger method), else Node's. WebKit's weaker number shows only in the popover.
+ * The one run the Hero's memory tab headlines: Node's peak RSS. That is the only published
+ * metric that answers the tab's own claim — memory used *while* parsing — so it headlines
+ * regardless of which browser runs exist. Browser engines measure the narrower retained-result
+ * question; those stay in the click-through popover (`combinedMemoryRatioPoints`) and on
+ * /benchmarks, labelled for what they are. Number, runtime label and library names all come
+ * from this one document, so a label can't drift from the figure it names.
  */
 export function heroMemorySource(
   memoryRuns: readonly MemoryDoc[],
-  memoryRatiosRuns: readonly MemoryRatiosDoc[],
 ): { runtime: string; libraries: MemoryDoc['libraries']; ratio: (workload: string, id: LibraryId) => number | undefined } {
-  const chromium = availableRuntimes(memoryRatiosRuns).find((r) => r.family === 'chromium');
-  if (chromium) {
-    return {
-      runtime: chromium.runtime,
-      libraries: chromium.doc.libraries,
-      ratio: (workload, id) => memoryRatioValueIn(chromium.doc, workload, id),
-    };
-  }
   const node = newestOf(memoryRuns);
   return {
     runtime: node.env.runtime,

@@ -86,9 +86,11 @@ export const MemoryDocSchema = ProvenanceBase.extend({
 
 /**
  * Browser parse-memory as RATIOS to lightning-yaml, never absolute bytes — its own suite
- * because `memory` above is absolute MB. `method` names two measurements that are NOT
- * comparable: Chromium's in-page JS-heap growth ("heap-delta") vs. WebKit's whole-process
- * peak RSS ("peak-rss", lower confidence — it counts engine overhead too).
+ * because `memory` above is absolute MB. `method` names two measurements that answer different
+ * questions and are NOT comparable: Chromium's in-page JS-heap growth ("heap-delta") is the
+ * narrower one — only what the parsed result still retains, blind to whatever the parse
+ * allocated and handed back — while WebKit's whole-process peak RSS ("peak-rss") is broader and
+ * noisier, counting parse-time allocation and engine overhead alike.
  */
 export const MemoryRatiosDocSchema = ProvenanceBase.extend({
   suite: z.literal("memory-ratios"),

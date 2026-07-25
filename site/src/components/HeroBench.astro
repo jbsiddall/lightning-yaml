@@ -48,7 +48,7 @@ const speedRuns = parseRuns(speedRaw, SpeedDocSchema);
 const speed = canonicalRun(speedRuns);
 const memoryRuns = parseRuns(memoryRaw, MemoryDocSchema);
 const memoryRatiosRuns = parseRuns(memoryRatiosRaw, MemoryRatiosDocSchema);
-const memSource = heroMemorySource(memoryRuns, memoryRatiosRuns);
+const memSource = heroMemorySource(memoryRuns);
 const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
 const HERO_ORDER: LibraryId[] = ['JSON', 'lightning-yaml', 'js-yaml', 'yaml'];
@@ -117,7 +117,7 @@ const tabs = [
   {
     id: 'memory',
     label: 'Parse memory',
-    caption: 'Memory used while parsing, relative to Lightning YAML (always 1.0×) — lower is better. How it’s measured differs by environment (Node’s whole-process peak RSS vs. a browser’s own in-page or process reading) — click a ratio to see each engine’s own number and method.',
+    caption: 'Peak memory of the Node process while parsing, relative to Lightning YAML (always 1.0×) — lower is better. Click a ratio for every environment’s own number, browser engines included — those measure the narrower question of what the parsed result still holds, so they read differently on purpose.',
     chart: memoryChart,
   },
   {

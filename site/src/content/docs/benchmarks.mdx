@@ -299,15 +299,21 @@ Turning YAML text into JavaScript values — the hot path for most consumers.
 
 The chart above measures Node; a browser page can't read its own process's memory the same
 way, so this is a separate, ratio-only measurement taken inside real browser engines — always
-relative to Lightning YAML (1.0×), never absolute megabytes. Two methods, not directly
-comparable to each other or to the Node figures above:
+relative to Lightning YAML (1.0×), never absolute megabytes. Two methods that ask different
+questions, so they are not comparable to each other or to the Node figures above:
 
-- **Chrome's engine (Chromium)** — how much the page's own JS heap grows after parsing and
-  keeping the result, measured in-page and garbage-collected before each reading. Higher
-  confidence: it's reading the same engine doing the work.
+- **Chrome's engine (Chromium)** — how much of the page's own JS heap the parsed results still
+  hold, measured in-page and garbage-collected before each reading. This is the **narrower**
+  question: it counts what the result retains, and is blind to memory the parse allocated and
+  handed straight back.
 - **Safari's engine (WebKit)** — the operating system's peak memory reading for the browser's
-  page process during the same parse-and-keep step. Lower confidence: it also counts memory the
-  engine used and gave back, not just what's still held.
+  page process across the same parse-and-keep step. **Broader**, and noisier: it does catch
+  memory spent during the parse, but also engine overhead that has nothing to do with the parser.
+
+Read the Chromium table below expecting a tie on the bigger files, because that is what the
+narrower question is bound to answer: past a certain size the bytes still held are the parsed
+values themselves, and all three parsers build the same values from the same document. Where
+these libraries genuinely differ is the memory spent *during* the parse — the Node chart above.
 
 {memoryRatiosEnvs.length === 0 && (
   <p><em>No browser run has published yet.</em></p>
