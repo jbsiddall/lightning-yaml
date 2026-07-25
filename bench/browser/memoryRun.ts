@@ -38,7 +38,7 @@ import { buildBrowserBundle } from "./build.ts";
 import { assertFixturesGenerated, startServer } from "./server.ts";
 import { isEngineName, launchEngineWithProcess, type EngineName, type LaunchedEngineWithProcess } from "./engines.ts";
 import type { MemoryPageHooks } from "./memory/hooks.ts";
-import { matchingDescendants, readVmHwmBytes, resetPeakRss, selectPageProcess, waitForRssStabilization } from "./memory/proc.ts";
+import { peakRssGrowthDuring } from "./memory/proc.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -148,27 +148,25 @@ const openChromiumPage: Leg["open"] = async (engine, serverUrl, probeFixture) =>
   };
 };
 
-const WEBKIT_PAGE_PROCESS = "WebKitWebProcess";
+// Playwright ships BOTH WebKit ports and launches the WPE one on Linux, so the page process is
+// WPEWebProcess there and WebKitWebProcess on a GTK build. Neither name matches the sibling
+// *NetworkProcess, which must not be measured.
+const WEBKIT_PAGE_PROCESSES = ["WPEWebProcess", "WebKitWebProcess"];
 
-// A fresh page per batch, so every fixture's peak is read off a counter reset on a process that
-// has done nothing but the warm-up — which is also what lets the noise floor be a real zero-parse
-// run. The warm-up always uses the SMALLEST fixture, so the batch it leaves behind uncollected
-// (webkit has no gc() to force) stays negligible against what the measured batch allocates.
+// A fresh page per batch, so every fixture's peak is read off counters reset on a process that has
+// done nothing but the warm-up — which is also what lets the noise floor be a real zero-parse run.
+// The warm-up always uses the SMALLEST fixture, so the batch it leaves behind uncollected (webkit
+// has no gc() to force) stays negligible against what the measured batch allocates.
 const openWebkitPages: Leg["open"] = (engine, serverUrl, probeFixture) => {
   const measure = async (fx: MemoryFixture, iters: number): Promise<number> => {
-    const before = matchingDescendants(engine.pid, WEBKIT_PAGE_PROCESS); // snapshot BEFORE the page exists, so the new content process is identifiable
     const page = await engine.browser.newPage();
     try {
       await page.goto(serverUrl, { waitUntil: "load" });
-      const webProcessPid = selectPageProcess(engine.pid, WEBKIT_PAGE_PROCESS, before);
       await warmUp(page, probeFixture); // before the reset, so init memory sits under the baseline rather than in the peak
-      await waitForRssStabilization(webProcessPid);
-      resetPeakRss(webProcessPid);
-      const baseline = readVmHwmBytes(webProcessPid);
-      await parseAndRetain(page, fx, iters);
-      const peak = readVmHwmBytes(webProcessPid);
-      await assertBatchSurvived(page, iters);
-      return peak - baseline;
+      return await peakRssGrowthDuring(engine.pid, WEBKIT_PAGE_PROCESSES, async () => {
+        await parseAndRetain(page, fx, iters);
+        await assertBatchSurvived(page, iters);
+      });
     } finally {
       await page.close();
     }
