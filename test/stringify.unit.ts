@@ -449,7 +449,110 @@ test("Uint8Array: nested inside maps/sequences, alongside other scalars", () => 
 });
 
 // ---------------------------------------------------------------------------
-// 5. Shared references — the SAME object/array reachable from >= 2 places must
+// 5. Values with no YAML 1.2 core representation throw (no silent data loss).
+// `Map`/`Set`/`Date`/`RegExp`/etc. keep their payload in internal slots that
+// `Object.keys` can't see, so they used to be indistinguishable from `{}` and
+// silently serialized as an empty mapping (#127/#20); a function/symbol used
+// to be stringified into bare, often-invalid text (#128). Both now throw
+// instead. `bigint` goes the other way — YAML's `!!int` is arbitrary-precision
+// (§10.3.2), so it is emitted as a plain integer rather than rejected.
+// ---------------------------------------------------------------------------
+
+const exoticObjects: Array<[string, unknown]> = [
+  ["Map with entries", new Map([["a", 1]])],
+  ["empty Map", new Map()],
+  ["Set", new Set([1, 2, 3])],
+  ["Date", new Date("2020-01-01T00:00:00Z")],
+  ["Date (Invalid Date)", new Date(NaN)],
+  ["RegExp", /ab+c/g],
+  ["Error", new Error("x")],
+  ["Promise", Promise.resolve(1)],
+  ["WeakMap", new WeakMap()],
+  ["ArrayBuffer", new ArrayBuffer(4)],
+  ["boxed Number", new Number(5)],
+];
+
+for (const [label, value] of exoticObjects) {
+  test(`exotic object throws · ${label} (root)`, () => {
+    throws(() => stringify(value), /cannot serialize a \S+/, label);
+  });
+  test(`exotic object throws · ${label} (map value)`, () => {
+    throws(() => stringify({ k: value }), /cannot serialize a \S+/, label);
+  });
+  test(`exotic object throws · ${label} (seq item)`, () => {
+    throws(() => stringify([value]), /cannot serialize a \S+/, label);
+  });
+}
+
+test("exotic object throws · subclass of a builtin (tag-based catch, not instanceof)", () => {
+  class TrackedMap<K, V> extends Map<K, V> {}
+  throws(() => stringify(new TrackedMap<string, number>([["a", 1]])), /cannot serialize a Map/);
+});
+
+test("exotic object throws · shared reference can't hide behind an alias", () => {
+  const m = new Map([["a", 1]]);
+  throws(() => stringify({ x: m, y: m }), /cannot serialize a Map/);
+});
+
+test("function/symbol throws instead of being stringified as text", () => {
+  function foo(): number {
+    return 1;
+  }
+  throws(() => stringify({ a: foo }), /cannot serialize a function value/);
+  throws(() => stringify({ a: () => 1 }), /cannot serialize a function value/);
+  throws(() => stringify(() => 1), /cannot serialize a function value/);
+  throws(() => stringify({ a: Symbol("s") }), /cannot serialize a symbol value/);
+  throws(() => stringify([Symbol()]), /cannot serialize a symbol value/);
+});
+
+test("bigint emits as a bare integer, not a quoted string", () => {
+  strictEqual(stringify(10n), "10\n");
+  strictEqual(stringify({ a: 10n }), "a: 10\n");
+  strictEqual(stringify({ a: -7n }), "a: -7\n");
+  strictEqual(stringify([1n, 2n]), "- 1\n- 2\n");
+  strictEqual(stringify({ a: 9007199254740993n }), "a: 9007199254740993\n");
+
+  const parsed = parse(stringify({ a: 10n })) as { a: unknown };
+  strictEqual(parsed.a, 10);
+  strictEqual(typeof parsed.a, "number", "must decode as a number, not a string — a quoted '10' would corrupt the type");
+  const oracleParsed = oracleParse(stringify({ a: 10n })) as { a: unknown };
+  strictEqual(oracleParsed.a, 10);
+});
+
+test("regression: values stringify accepted before are still unaffected", () => {
+  strictEqual(stringify({ a: 1 }), "a: 1\n");
+  strictEqual(stringify([1, 2]), "- 1\n- 2\n");
+  strictEqual(stringify({}), "{}\n");
+  strictEqual(stringify([]), "[]\n");
+  strictEqual(stringify({ a: {}, b: [] }), "a: {}\nb: []\n");
+  strictEqual(stringify(new Uint8Array([1, 2, 3])), "!!binary AQID\n");
+  ok(typeof stringify(new Uint8Array(0)) === "string");
+  strictEqual(stringify(null), "null\n");
+
+  class Point {
+    x: number;
+    constructor() {
+      this.x = 1;
+    }
+  }
+  strictEqual(stringify(new Point()), "x: 1\n");
+
+  class E {}
+  strictEqual(stringify(new E()), "{}\n", "an empty class instance is an honest empty mapping, not an exotic");
+
+  strictEqual(stringify(Object.create(null)), "{}\n");
+  strictEqual(stringify({ [Symbol.toStringTag]: "Foo" }), "{}\n", "a plain object carrying Symbol.toStringTag is not mistaken for an exotic (prototype fast path)");
+  strictEqual(stringify({ a: undefined }), "a: null\n");
+  strictEqual(stringify({ get a() { return 1; } }), "a: 1\n");
+});
+
+test("state is released after a stringify throw (no leak into the next call)", () => {
+  throws(() => stringify({ k: { deep: new Map([["a", 1]]) } }));
+  strictEqual(stringify({ a: 1 }), "a: 1\n");
+});
+
+// ---------------------------------------------------------------------------
+// 6. Shared references — the SAME object/array reachable from >= 2 places must
 // round-trip deep-equal AND (checked directly, since deepEqual alone can't
 // distinguish a shared reference from an accidental deep-equal copy) must
 // resolve to the SAME reference after our own stringify -> parse round-trip.
@@ -543,7 +646,7 @@ test("nested sharing (diamond DAG): repeated re-sharing across levels stays boun
 });
 
 // ---------------------------------------------------------------------------
-// 6. Cycles — see the file header for the chosen spec (round-trip via anchors/
+// 7. Cycles — see the file header for the chosen spec (round-trip via anchors/
 // aliases, matching the oracle's own behavior) and why it was chosen.
 // ---------------------------------------------------------------------------
 
@@ -606,7 +709,7 @@ test("cycle: a cyclic field nested inside an otherwise-ordinary structure", () =
 });
 
 // ---------------------------------------------------------------------------
-// 7. Special keys — __proto__/constructor/prototype as map keys must round-trip
+// 8. Special keys — __proto__/constructor/prototype as map keys must round-trip
 // without ever polluting Object.prototype.
 // ---------------------------------------------------------------------------
 
