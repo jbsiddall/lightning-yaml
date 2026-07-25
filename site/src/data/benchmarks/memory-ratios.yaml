@@ -1,3 +1,5 @@
+# Schema: https://github.com/jbsiddall/lightning-yaml/blob/main/bench/schemas.ts
+---
 suite: memory-ratios
 scope: competition
 method: heap-delta

@@ -98,12 +98,12 @@ export function newestRun<S extends z.ZodType>(raw: string, schema: S): z.infer<
 }
 
 // ---------------------------------------------------------------------------
-// Runtime dimension — CI will publish `speed.yaml` runs from more than one
-// execution environment (node, chromium, webkit, bun), distinguished by each
-// document's `env.runtime` string (e.g. "node 24.18.0 (x64-linux)"). Only the
-// speed suite records `env.runtime` today; memory, conformance, and
-// bundle-size stay single-environment (see each doc's schema above), so
-// `newestOf` remains the right loader for those. These helpers all take an
+// Runtime dimension — CI publishes `speed.yaml` and `memory-ratios.yaml` runs
+// from more than one execution environment (node, chromium, webkit),
+// distinguished by each document's `env.runtime` string (e.g. "node 24.18.0
+// (x64-linux)"). The `memory` stream records `env.runtime` too but is
+// node-only; conformance and bundle-size have no runtime at all, so
+// `newestOf` remains the right loader for those two. These helpers all take an
 // already-loaded run array (from `parseRuns`), not a raw string, so a caller
 // juggling both a run history and a family selection never parses twice.
 // ---------------------------------------------------------------------------
@@ -166,8 +166,8 @@ export function canonicalRun<T extends WithRuntime>(runs: readonly T[]): T {
 // blends one across environments into a single number — a browser engine and
 // Node are different machines with different results, and combining them
 // would hide that. Every ratio shown anywhere on the site is one real
-// measurement in one named environment (see `canonicalSpeedRatio` /
-// `canonicalMemoryRatio`, which read straight off `canonicalRun`). What this
+// measurement in one named environment (see `canonicalSpeedRatio`, which
+// reads straight off `canonicalRun`, and `heroMemorySource`). What this
 // section DOES provide is the per-environment ratio COLLECTION — every
 // family's own ratio, unblended — for two honest uses: a popover breakdown
 // listing each engine's own number, and a data-derived "up to N×" range
@@ -252,17 +252,6 @@ export function canonicalSpeedRatio(
   denominator: LibraryId,
 ): number | undefined {
   return speedRatioIn(canonicalRun(runs), op, workload, numerator, denominator);
-}
-
-/** THE headline number for memory: see `canonicalSpeedRatio` — same contract, `peak_rss` instead of `avg`. */
-export function canonicalMemoryRatio(
-  runs: readonly MemoryDoc[],
-  op: 'parse' | 'stringify',
-  workload: string,
-  numerator: LibraryId,
-  denominator: LibraryId,
-): number | undefined {
-  return memoryRatioIn(canonicalRun(runs), op, workload, numerator, denominator);
 }
 
 // ---------------------------------------------------------------------------
