@@ -486,3 +486,54 @@ test("js-yaml-compat.dump throws on skipInvalid at either value (we neither drop
   throws(() => dump(DUMP_VALUE, { skipInvalid: false }), (err: unknown) => err instanceof YAMLException);
   throws(() => dump(DUMP_VALUE, { skipInvalid: true }), (err: unknown) => err instanceof YAMLException);
 });
+
+// ---------------------------------------------------------------------------
+// Custom Set and Map recursive reviver tests (yaml-compat.ts reviver support)
+// ---------------------------------------------------------------------------
+
+test("yaml-compat: applyReviver recursively traverses and revives custom Set collections", () => {
+  const seen: Array<[unknown, unknown, unknown]> = [];
+  const res = parse("!!set\na: null\nb: null", function(this: any, k, v) {
+    seen.push([this, k, v]);
+    return k === "a" ? "c" : v;
+  }) as Set<string>;
+
+  ok(res instanceof Set);
+  deepStrictEqual(Array.from(res.values()), ["b", "c"]);
+  // Verify correct parameters and 'this' context were passed to the reviver
+  deepStrictEqual(seen[0], [res, "a", "a"]);
+  deepStrictEqual(seen[1], [res, "b", "b"]);
+  deepStrictEqual(seen[2][1], "");
+  deepStrictEqual(seen[2][2], res);
+});
+
+test("yaml-compat: applyReviver recursively traverses and revives custom Map collections", () => {
+  const seen: Array<[unknown, unknown, unknown]> = [];
+  const res = parse("!!omap\n- a: [1, 2]\n- b: 3", function(this: any, k, v) {
+    seen.push([this, k, v]);
+    if (k === "0") return 10;
+    if (k === "a") return "mutated";
+    if (k === "b") return undefined; // delete it
+    return v;
+  }) as Map<string, unknown>;
+
+  ok(res instanceof Map);
+  deepStrictEqual(Array.from(res.entries()), [["a", "mutated"]]);
+
+  // Verify correct parameters, recursive calls, and 'this' context were passed
+  // Check the array element revival
+  const arrayRevived_0 = seen.find(x => x[1] === "0");
+  const arrayRevived_1 = seen.find(x => x[1] === "1");
+  ok(arrayRevived_0);
+  ok(arrayRevived_1);
+  deepStrictEqual(arrayRevived_0[2], 1);
+  deepStrictEqual(arrayRevived_1[2], 2);
+
+  // Check the Map entry revival
+  const mapRevived_a = seen.find(x => x[0] === res && x[1] === "a");
+  const mapRevived_b = seen.find(x => x[0] === res && x[1] === "b");
+  ok(mapRevived_a);
+  ok(mapRevived_b);
+  // 'a' was revived to 'mutated' from array, but when applying to 'a' itself it returned 'mutated'
+  deepStrictEqual(mapRevived_a[2], [10, 2]); // '0' element in array was mutated to 10 before 'a' itself is revived
+});

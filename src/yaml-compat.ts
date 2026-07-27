@@ -185,14 +185,37 @@ export type Reviver = (this: unknown, key: string, value: unknown) => unknown;
  * element / object property, deepest first, with string keys for array
  * indices, then once more for the synthetic root holder).
  */
-function applyReviver(holder: Record<string, unknown>, key: string, reviver: Reviver): unknown {
-  const value = holder[key];
+function applyReviver(holder: any, key: string, reviver: Reviver): unknown {
+  const value =
+    holder instanceof Map
+      ? holder.get(key)
+      : holder instanceof Set
+        ? key
+        : (holder as Record<string, unknown>)[key];
+
   if (value !== null && typeof value === "object") {
     if (Array.isArray(value)) {
       for (let i = 0; i < value.length; i++) {
-        const revived = applyReviver(value as unknown as Record<string, unknown>, String(i), reviver);
+        const revived = applyReviver(value, String(i), reviver);
         if (revived === undefined) delete value[i];
         else value[i] = revived;
+      }
+    } else if (value instanceof Map) {
+      for (const k of Array.from(value.keys())) {
+        const revived = applyReviver(value, k as any, reviver);
+        if (revived === undefined) value.delete(k);
+        else value.set(k, revived);
+      }
+    } else if (value instanceof Set) {
+      const items = Array.from(value);
+      for (const item of items) {
+        const revived = applyReviver(value, item as any, reviver);
+        if (revived === undefined) {
+          value.delete(item);
+        } else if (revived !== item) {
+          value.delete(item);
+          value.add(revived);
+        }
       }
     } else {
       const obj = value as Record<string, unknown>;
