@@ -193,11 +193,9 @@ test("merge key `<<` merges by default; `{ merge: false }` restores the literal-
 });
 
 test("merge: DarkForge four-parser payload merges the bare `<<` key without crashing", () => {
-  // Same adversarial payload as before merge was implemented; only the title's
-  // parenthetical is stale now. The payload's FIRST key is a bare, unquoted
-  // `<<` — a real merge site today (merge defaults on) — so its source's own
-  // key splices up to the top level instead of surviving as a literal
-  // `"<<": {...}` entry. The tagged (`!!merge :`) and aliased (`*morge :`)
+  // The payload's FIRST key is a bare, unquoted `<<` — a real merge site now
+  // that merge defaults on — so its source's own key splices up to the top
+  // level instead of surviving as a literal `"<<": {...}` entry. The tagged (`!!merge :`) and aliased (`*morge :`)
   // `<<`-lookalikes elsewhere in the payload are deliberately NOT
   // merge-eligible (see applyMerge's doc comment: only a bare, unquoted,
   // untagged, unaliased key merges) and still land as ordinary literal keys.

@@ -8,16 +8,9 @@
  * Named `*.unit.ts` (not `*.test.ts`) so vitest's glob (test/**\/*.test.ts)
  * ignores it, matching test/parser.unit.ts's and test/compat.unit.ts's convention.
  *
- * TEST-FIRST, the same way test/stringify.unit.ts was written before `stringify`
- * existed: `<<` is read today as an ordinary literal string key (README's
- * "Decisions and deviations" — `<<: *anchor` yields a literal `"<<"` key holding
- * the aliased map, neither expanded nor rejected). EVERY test below that exercises
- * actual merging is expected to FAIL against today's parser; a later task
- * implements the feature against this file as its spec. A handful of assertions
- * are NOT expected to fail today, because they lock behavior that's already
- * correct and must stay that way (an undefined-anchor alias already throws; the
- * "must NOT merge" cases in M6 already hold today, vacuously, since nothing merges
- * yet) — each is commented where it appears.
+ * This file is the SPEC for `<<` merge support: it was written before the parser
+ * could merge anything, and the implementation was written to satisfy it. Treat a
+ * failure here as a parser bug, not a test to adjust.
  *
  * SOURCE-OF-TRUTH EXCEPTION — read this before editing anything below. CLAUDE.md's
  * precedence rule normally ranks the YAML 1.2.2 spec above `js-yaml`/`yaml`, which
@@ -401,48 +394,88 @@ test("security: a merged `__proto__` key becomes an own property, does not pollu
 
 // --------------------------------------------------------------------------
 // M11 — merge-eligibility is a property of the key node's own STYLE, not of
-// the string it resolves to. Both forms below resolve to the same JS string
-// `"<<"`, so a check on the resolved key can't tell them apart — only the
-// source byte at the key's scan-start can. These two cases pin the boundary
-// from both sides, and neither was covered before (a stale comment claiming
-// the anchored form did NOT merge survived precisely because of that gap).
+// the string it resolves to: a quoted `"<<"` and a bare `<<` resolve to the
+// identical JS string, so the check has to look at the source, not the value.
+//
+// Every case is asserted at THREE positions — first key of a block mapping,
+// a later key of that same mapping, and inside a flow mapping — because those
+// are three different code paths in the parser, and an earlier revision of
+// this feature merged correctly only in the first one.
 // --------------------------------------------------------------------------
 
-test("eligibility: an ANCHORED `<<` still merges — an anchor is a node property, not a style change", () => {
-  const text = "a: &a {c: 3}\nx:\n  &k <<: *a\n  b: 2\n";
-  const expected = { c: 3, b: 2 };
-  deepStrictEqual((parse(text) as { x: unknown }).x, expected);
-  // Both peers agree here, so this is parity, not a house rule.
-  deepStrictEqual((yamlReal.parse(text, { merge: true }) as { x: unknown }).x, expected);
-  deepStrictEqual((jsyamlReal.load(text, { schema: jsyamlReal.YAML11_SCHEMA }) as { x: unknown }).x, expected);
-});
+/** The same mapping written three ways, so one case can be checked in all of them. */
+const AT_POSITIONS: ReadonlyArray<readonly [string, (entry: string) => string]> = [
+  ["block, first key", (e) => `a: &a {c: 3}\nx:\n  ${e}\n  b: 2\n`],
+  ["block, later key", (e) => `a: &a {c: 3}\nx:\n  b: 2\n  ${e}\n`],
+  ["flow", (e) => `a: &a {c: 3}\nx: {${e}, b: 2}\n`],
+] as const;
 
-test("eligibility: a TAGGED `!!str <<` does NOT merge — we match js-yaml; `yaml` merges it and is the outlier", () => {
+const ELIGIBLE: ReadonlyArray<readonly [string, string]> = [
+  ["bare `<<`", "<<: *a"],
+  ["anchored `&k <<` — an anchor is a node property, not a style change", "&k <<: *a"],
+] as const;
+
+const INELIGIBLE: ReadonlyArray<readonly [string, string]> = [
+  ['double-quoted `"<<"`', '"<<": *a'],
+  ["single-quoted `\'<<\'`", "'<<': *a"],
+  ["tagged `!!str <<` — an explicit !!str IS a string, so it cannot also be the merge tag", "!!str <<: *a"],
+] as const;
+
+for (const [entryLabel, entry] of ELIGIBLE) {
+  for (const [posLabel, build] of AT_POSITIONS) {
+    test(`eligibility · ${entryLabel} · ${posLabel} · merges`, () => {
+      const text = build(entry);
+      deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
+      // Both peers agree, so this is parity rather than a house rule.
+      deepStrictEqual(parse(text), yamlWithMerge(text));
+      deepStrictEqual(parse(text), jsyamlWithMerge(text));
+    });
+  }
+}
+
+for (const [entryLabel, entry] of INELIGIBLE) {
+  for (const [posLabel, build] of AT_POSITIONS) {
+    test(`eligibility · ${entryLabel} · ${posLabel} · does NOT merge`, () => {
+      const text = build(entry);
+      deepStrictEqual((parse(text) as { x: unknown }).x, { "<<": { c: 3 }, b: 2 });
+    });
+  }
+}
+
+// `yaml` merges a TAGGED `!!str <<` where js-yaml (and we) don't. Locked
+// deliberately so the divergence can't drift unnoticed: an explicit `!!str`
+// makes the key a string, so it cannot also resolve to the merge tag.
+test("eligibility · tagged `!!str <<` · js-yaml agrees with us; `yaml` is the outlier", () => {
   const text = "a: &a {c: 3}\nx:\n  !!str <<: *a\n  b: 2\n";
   const notMerged = { "<<": { c: 3 }, b: 2 };
   deepStrictEqual((parse(text) as { x: unknown }).x, notMerged);
-  deepStrictEqual((jsyamlReal.load(text, { schema: jsyamlReal.YAML11_SCHEMA }) as { x: unknown }).x, notMerged);
-  // Locked deliberately: an explicit `!!str` IS a string, so it cannot also
-  // resolve to the merge tag. `yaml` merges anyway; we don't follow it.
-  deepStrictEqual((yamlReal.parse(text, { merge: true }) as { x: unknown }).x, { c: 3, b: 2 });
+  deepStrictEqual((jsyamlWithMerge(text) as { x: unknown }).x, notMerged);
+  deepStrictEqual((yamlWithMerge(text) as { x: unknown }).x, { c: 3, b: 2 });
 });
 
-test("eligibility: an EXPLICIT `? <<` merges — the `?` indicator doesn't change the key's style", () => {
+// The explicit `? key` form, in both block and flow mappings.
+test("eligibility · explicit `? <<` · block · merges", () => {
   const text = "a: &a {c: 3}\nx:\n  ? <<\n  : *a\n  b: 2\n";
-  const expected = { c: 3, b: 2 };
-  deepStrictEqual((parse(text) as { x: unknown }).x, expected);
-  deepStrictEqual((yamlReal.parse(text, { merge: true }) as { x: unknown }).x, expected);
-  deepStrictEqual((jsyamlReal.load(text, { schema: jsyamlReal.YAML11_SCHEMA }) as { x: unknown }).x, expected);
+  deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
+  deepStrictEqual(parse(text), yamlWithMerge(text));
+  deepStrictEqual(parse(text), jsyamlWithMerge(text));
 });
 
-test('eligibility: an explicit `? "<<"` stays quoted, so it does NOT merge', () => {
+test("eligibility · explicit `? <<` · flow · merges", () => {
+  const text = "a: &a {c: 3}\nx: {? <<: *a, b: 2}\n";
+  deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
+  deepStrictEqual(parse(text), yamlWithMerge(text));
+  deepStrictEqual(parse(text), jsyamlWithMerge(text));
+});
+
+test('eligibility · explicit `? "<<"` stays quoted, so it does NOT merge', () => {
   const text = 'a: &a {c: 3}\nx:\n  ? "<<"\n  : *a\n  b: 2\n';
   deepStrictEqual((parse(text) as { x: unknown }).x, { "<<": { c: 3 }, b: 2 });
 });
 
-test("eligibility: a valueless `? <<` is an error (merging nothing isn't a mapping) — both peers throw too", () => {
+test("eligibility · a valueless `? <<` is an error (merging nothing isn't a mapping) — both peers throw too", () => {
   const text = "x:\n  ? <<\n  b: 2\n";
   throws(() => parse(text), (err: unknown) => err instanceof YAMLParseError);
-  throws(() => yamlReal.parse(text, { merge: true }));
-  throws(() => jsyamlReal.load(text, { schema: jsyamlReal.YAML11_SCHEMA }));
+  throws(() => yamlWithMerge(text));
+  throws(() => jsyamlWithMerge(text));
 });

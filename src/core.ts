@@ -118,15 +118,19 @@ let SKIP_STRICT_VALIDATION = true;
  * `merge: false` through by default to stay byte-faithful to the libraries
  * they stand in for.
  */
-/**
- * Out-param set by `parseExplicitKey`: the source position its key node was
- * scanned from. Only `parseBlockMap`'s merge check reads it, to tell a bare
- * `? <<` (merge-eligible — both peers merge it) from a `? "<<"` (not). Set on
- * the cold explicit-key path only, so ordinary keys never pay for it.
- */
-let explicitKeyStart = -1;
-
 let MERGE_KEYS = true;
+
+/**
+ * Out-param: where the key just parsed had its OWN scalar token, i.e. after any
+ * `&anchor`/`!tag` property the key carries. Only the `<<` merge check reads it,
+ * to tell a bare `<<` (merge-eligible) from a quoted or tagged one — both
+ * resolve to the same JS string `"<<"`, so the resolved key can't distinguish
+ * them and only the source byte can.
+ *
+ * It must be snapshotted into a local the moment the key is parsed: parsing the
+ * key's VALUE recurses into nested mappings, which overwrite this slot.
+ */
+let keyNodeStart = -1;
 
 /**
  * Running total of keys copied across every `<<` merge in the CURRENT
@@ -146,10 +150,15 @@ const MAX_DEPTH = 1000;
 /**
  * Cap on the total number of keys copied across every `<<` merge in one
  * parse — NOT per mapping. Merging COPIES keys, unlike aliasing (which shares
- * structure via one `Map.get`), so a chain of merges-of-merges can do far
- * more copying work than any single merge site suggests (`applyMerge`'s doc
- * comment has the attack shape). js-yaml's own merge implementation guards
- * the identical risk with `maxTotalMergeKeys`; we match its default (`1e4`).
+ * structure via one `Map.get`), so a chain of merges can do far more copying
+ * work than any single merge site suggests. The shape that actually
+ * amplifies is one where each level merges the whole accumulated level below
+ * it (`lvlN: {kN: v, <<: *lvlN-1}`), giving a quadratic total; a merge that
+ * simply repeats one source (`<<: [*a, *a]`) does NOT amplify, because
+ * `mergeOneSource`'s `hasOwn` check skips the second copy. js-yaml guards the
+ * identical risk with `maxTotalMergeKeys`; we match its default (`1e4`), and
+ * test/adversarial.unit.ts locks that a deep chain throws promptly rather
+ * than hanging or exhausting memory.
  */
 const MAX_TOTAL_MERGE_KEYS = 10000;
 
@@ -1727,20 +1736,19 @@ function parseFlowMap(): Record<string, unknown> {
     // rare match, so this hot loop pays only a cheap position snapshot per
     // key (confirmed against `pnpm bench:self`: eagerly resolving the
     // boolean here cost ~2-5% on multi-key fixtures; this lazy form did not).
-    // -1 marks "never eligible" (an explicit `? key` form) — safe because
-    // `"x".charCodeAt(-1)` is `NaN`, which is never `=== LT`.
     let keyStart: number;
     if (c === QUESTION && flowSeparatorAt(pos + 1)) {
       // Explicit `? key` (cold): the key is a full node up to ':'/','/'}'.
       pos++;
       skipFlowWs();
       c = src.charCodeAt(pos);
+      keyStart = pos; // a bare `? <<` is merge-eligible here, exactly as in a block mapping
       key = c === COLON || c === COMMA || c === RBRACE ? "" : keyToString(parseFlowValue());
-      keyStart = -1;
     } else {
-      keyStart = pos;
+      keyNodeStart = pos; // the fast-match path never re-sets it
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchFlowKey(c, ek) ? ek : parseFlowKey();
+      keyStart = keyNodeStart; // parseFlowKey advances past any &anchor/!tag first
     }
     // Record `key` into `produced` (see the entry comment): stay on the shared
     // `expected` array while it still matches, else fork a private copy.
@@ -1859,17 +1867,8 @@ function applyMerge(obj: Record<string, unknown>, value: unknown): void {
  * anything a tag turned into a `Set`/`Map`/`Uint8Array` — matching both
  * peers, which reject every one of those shapes too.
  *
- * The `totalMergeKeys` cap is a per-PARSE (not per-mapping) budget: merging
- * COPIES keys, unlike aliasing (which shares structure via one `Map.get`), so
- * a chain of merges-of-merges can rack up far more copying work than any
- * single merge site suggests — e.g. `b: {<<: [*a, *a]}` then `c: {<<: [*b,
- * *b]}`, each level built from the previous. js-yaml's own merge
- * implementation guards the identical risk with `maxTotalMergeKeys`
- * (`MAX_TOTAL_MERGE_KEYS` matches its default); test/adversarial.unit.ts
- * locks a regression that a nested merge chain throws promptly rather than
- * hanging or exhausting memory. Incrementing (and cap-checking) BEFORE the
- * `hasOwn` check — so a key skipped as already-present still counts — matches
- * js-yaml's own loop exactly.
+ * Counting against `MAX_TOTAL_MERGE_KEYS` BEFORE the `hasOwn` check — so a key
+ * skipped as already-present still costs budget — matches js-yaml's own loop.
  */
 function mergeOneSource(obj: Record<string, unknown>, source: unknown): void {
   if (!isPlainMapping(source)) fail("a merge key ('<<') value must be a mapping or a sequence of mappings");
@@ -1978,6 +1977,7 @@ function plainKey(start: number, end: number): string {
 
 /** A flow mapping key: an anchor/alias, tag, double-quoted, single-quoted, or a plain scalar. */
 function parseFlowKey(): string {
+  keyNodeStart = pos;
   const c = src.charCodeAt(pos);
   if (c === AMP) return parseFlowKeyAnchored();
   if (c === EXCLAIM) return parseFlowKeyTagged();
@@ -2028,6 +2028,7 @@ function parseFlowKeyAnchored(): string {
   else if (c === SQUOTE) key = internKey(keyToString(registerPendingAnchor(parseSingleQuoted())));
   else {
     const start = pos;
+    keyNodeStart = start; // past the '&', so an anchored bare `<<` stays merge-eligible
     const end = scanFlowPlainEnd();
     if (flowFolded !== null) key = internKey(keyToString(registerPendingAnchor(flowFolded)));
     else {
@@ -3823,11 +3824,12 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
       key = internKey(keyToString(parseExplicitKey(col)));
       hasValue = explicitValueFollows(col);
       isExplicit = true;
-      keyStart = explicitKeyStart; // a bare `? <<` IS merge-eligible; `? "<<"` isn't (see applyMerge)
+      keyStart = keyNodeStart; // a bare `? <<` IS merge-eligible; `? "<<"` isn't (see applyMerge)
     } else {
-      keyStart = pos;
+      keyNodeStart = pos; // the fast-match path never re-sets it
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchBlockKey(ek) ? ek : parseBlockMapKey();
+      keyStart = keyNodeStart; // parseBlockMapKey advances past any &anchor/!tag first
       hasValue = true;
       isExplicit = false;
     }
@@ -3867,7 +3869,7 @@ function explicitValueFollows(col: number): boolean {
 function parseBlockMapExplicit(col: number): Record<string, unknown> {
   pos++; // past '?'
   const key = internKey(keyToString(parseExplicitKey(col)));
-  const keyStart = explicitKeyStart; // captured before explicitValueFollows can reset it
+  const keyStart = keyNodeStart; // snapshot before explicitValueFollows can reset it
   return parseBlockMap(col, key, explicitValueFollows(col), true, keyStart);
 }
 
@@ -3992,10 +3994,10 @@ function parseExplicitKey(col: number): unknown {
   const c = pos < len ? src.charCodeAt(pos) : -1;
   if (c === -1 || c === LF || c === CR || c === HASH) {
     nextLine();
-    explicitKeyStart = pos;
+    keyNodeStart = pos;
     return parseDeferredBlockNode(col, true);
   }
-  explicitKeyStart = pos;
+  keyNodeStart = pos;
   const keyNode = parseBlockNode(col, false); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
   if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
   return keyNode;
@@ -4003,6 +4005,7 @@ function parseExplicitKey(col: number): unknown {
 
 /** Parse the next key of a block mapping, leaving `pos` at the `:` separator. */
 function parseBlockMapKey(): string {
+  keyNodeStart = pos; // re-set on the anchored path's recursion, past the '&'
   const c = src.charCodeAt(pos);
   if (c === AMP) return parseBlockMapKeyAnchored();
   if (c === EXCLAIM) return parseBlockMapKeyTagged();
