@@ -82,10 +82,10 @@ const TILDE = 126; // ~
 const BOM = 0xfeff;
 
 /**
- * Backing flag for the `skipStrictValidation` parse optimization — an umbrella
- * opt-out for STRICT-COMPLIANCE validations: spec checks that only REJECT
- * malformed input and never shape how a VALID document is interpreted. Today it
- * gates the space-then-tab block-collection indentation guards (spec 6.1:
+ * Backing flag for the lenient-by-default parse behaviour — an umbrella opt-out
+ * for STRICT-COMPLIANCE validations: spec checks that only REJECT malformed
+ * input and never shape how a VALID document is interpreted. Today it gates the
+ * space-then-tab block-collection indentation guards (spec 6.1:
  * `rejectBlockCollectionTabIndent` + the per-entry `checkNoTabIndent(col-1)` in
  * the block seq/map loops); future strict-only checks join it under this one flag.
  *
@@ -95,10 +95,11 @@ const BOM = 0xfeff;
  * are dropped), trading strictness for speed/memory and incidentally tolerating
  * some malformed input. A check that would alter a VALID parse does not belong here.
  *
- * Default `false` (fully strict). `parse`/`parseAll` set it per call from
- * `options.optimizations.skipStrictValidation` and restore it in `finally`.
+ * Default `true` (lenient — these guards are OFF by default). `parse`/`parseAll`
+ * set it per call from `options.strict` (`SKIP_STRICT_VALIDATION = options?.strict
+ * !== true`) and restore it to `true` in `finally`.
  */
-let SKIP_STRICT_VALIDATION = false;
+let SKIP_STRICT_VALIDATION = true;
 
 /**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
@@ -580,18 +581,6 @@ export interface ParseOptimizations {
   internStrings?: boolean;
 
   /**
-   * Umbrella opt-out for strict-compliance validations that only REJECT malformed
-   * input (today: the space-then-tab block-collection indentation guards, spec
-   * 6.1; more may be added behind this one flag). Skipping them is ~4-8% faster on
-   * medium/large block-YAML (more on deep, many-entry input) and does less work.
-   * It NEVER changes how a valid document is interpreted — VALID input parses
-   * identically either way; only rejection of malformed input is relaxed, so a
-   * parse with this ON tolerates some spec-invalid YAML the default REJECTS.
-   * Default: `false` (spec-strict).
-   */
-  skipStrictValidation?: boolean;
-
-  /**
    * Memory/CPU tradeoff for the per-parse key-intern cache (`keyCache`), in KB
    * of cumulative distinct-key bytes. Raising it keeps more interned keys
    * around, so more mapping keys across the document share one heap string
@@ -607,6 +596,17 @@ export interface ParseOptimizations {
 
 /** Options for {@link parse} / {@link parseAll}. Every field is optional; an omitted or `undefined` value leaves the parse behaviour byte-for-byte the default. */
 export interface ParseOptions {
+  /**
+   * By default (`false`, or omitted) lightning-yaml is LENIENT: it tolerates
+   * some spec-invalid block indentation — today, a tab used to indent a block
+   * sequence/mapping (spec [§6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces))
+   * — rather than rejecting it. Pass `true` to restore full YAML 1.2.2
+   * rejection of that input. Lenient parsing never changes how a *valid*
+   * document is interpreted — it only accepts some malformed input the spec
+   * calls an error; `strict: true` never accepts anything the default rejects.
+   * Default: `false` (lenient).
+   */
+  strict?: boolean;
   /** Opt-in performance tradeoffs — see {@link ParseOptimizations}. */
   optimizations?: ParseOptimizations;
 }
@@ -638,7 +638,7 @@ export interface ParseOptions {
 export function parse(text: string, options?: ParseOptions): unknown {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
+  SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const value = parseNextDocument();
@@ -653,7 +653,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     return value;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
-    SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
+    SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -682,7 +682,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
 export function parseAll(text: string, options?: ParseOptions): unknown[] {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
+  SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const docs: unknown[] = [];
@@ -694,7 +694,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     return docs;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
-    SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
+    SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }

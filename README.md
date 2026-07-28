@@ -152,7 +152,10 @@ In order:
    always — a fast parser that mis-reads your config is worthless. Where the spec
    itself is unclear, the [yaml-test-suite](https://github.com/yaml/yaml-test-suite)
    is our north star; where even that is ambiguous, we fall back to matching the
-   behaviour of the `yaml` and js-yaml libraries.
+   behaviour of the `yaml` and js-yaml libraries. By default `parse` is lenient
+   about a handful of spec-invalid inputs real-world YAML sometimes contains (see
+   [Decisions and deviations](#decisions-and-deviations)); pass `{ strict: true }`
+   for full YAML 1.2.2 rejection of those inputs too.
 2. **Speed and memory within reach of native `JSON.parse` / `JSON.stringify`.**
    We'll never match native byte-for-byte, and we know it — but we treat that gap
    as a bug to shrink, chasing every last nanosecond so there's no performance
@@ -214,6 +217,18 @@ lightning-yaml differs from the spec or another library in a way **not** listed
 here, treat it as a bug and
 [open an issue](https://github.com/jbsiddall/lightning-yaml/issues).
 
+- **Lenient by default: a tab used as block indentation is tolerated, not
+  rejected.** [YAML 1.2.2 §6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces)
+  forbids tabs in a block collection's indentation, but real-world YAML sometimes
+  has them, so `parse`/`parseAll` accept it by default. Pass `{ strict: true }`
+  to reject that input instead, matching the spec (and the `yaml`/js-yaml
+  libraries) exactly:
+  ```ts
+  const withTab = "a:\n\tb: 1\n"; // a tab indenting "b"
+
+  parse(withTab); // { a: { b: 1 } } — accepted by default
+  parse(withTab, { strict: true }); // throws: spec-invalid indentation
+  ```
 - **Duplicate mapping keys: last one wins.** The spec makes a duplicate key an
   error; we keep the last instead, matching `JSON.parse` — `{a: 1, a: 2}` parses
   to `{a: 2}`.
