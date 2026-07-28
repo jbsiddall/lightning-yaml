@@ -540,10 +540,24 @@ test("deviation: an anchor ON the merge key resolves to the string \"<<\"; both 
   strictEqual((parse(text) as { probe: unknown }).probe, "<<");
   // The merge itself is unaffected — only what `*k` points at differs.
   deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
-  // Both peers hand back the internal symbol they resolve `<<` to, which is an
-  // implementation detail leaking rather than a value anyone can use. Asserted
-  // via `typeof` because the two libraries use different symbols. Note this is
-  // invisible through JSON.stringify, which renders a symbol as undefined.
+  // Both peers hand back the internal symbol they resolve `<<` to. Asserted via
+  // `typeof` because there is no single value to assert against: the two symbols
+  // differ, neither is registered, and `yaml` exports none. Deliberately NOT
+  // matched — a symbol isn't JSON-representable and breaks round-tripping (both
+  // libraries throw when re-dumping their own output), whereas our string
+  // survives both. Note the difference is invisible through JSON.stringify,
+  // which renders a symbol as undefined — that artifact hid this once already.
   strictEqual(typeof (yamlWithMerge(text) as { probe: unknown }).probe, "symbol");
   strictEqual(typeof (jsyamlWithMerge(text) as { probe: unknown }).probe, "symbol");
+});
+
+test("deviation: our `\"<<\"` round-trips, where both peers' symbol breaks their own dumper", () => {
+  const text = "a: &a {c: 3}\nx:\n  &k <<: *a\n  b: 2\nprobe: *k\n";
+  // The point of keeping a plain string: it survives stringify and JSON alike.
+  const ours = parse(text);
+  deepStrictEqual(parse(stringify(ours)), ours);
+  strictEqual(JSON.stringify(ours as Record<string, unknown>).includes('"probe":"<<"'), true);
+  // Each peer's own output is un-dumpable by that same peer.
+  throws(() => yamlReal.stringify(yamlWithMerge(text)));
+  throws(() => jsyamlReal.dump(jsyamlWithMerge(text)));
 });
