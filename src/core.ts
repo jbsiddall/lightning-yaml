@@ -997,6 +997,7 @@ function parseAnchoredFlowValue(): unknown {
     if (c === AMP) fail("a node may carry at most one anchor");
   }
   if (c === STAR) fail("an alias node cannot carry an anchor property");
+  keyNodeStart = pos; // properties are consumed; the node's own token starts here
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
   const node = tag !== null ? parseTaggedFlowContent(tag) : parseFlowValue();
@@ -1742,8 +1743,9 @@ function parseFlowMap(): Record<string, unknown> {
       pos++;
       skipFlowWs();
       c = src.charCodeAt(pos);
-      keyStart = nodeTokenStart(pos); // a bare (optionally anchored) `? <<` is merge-eligible, as in a block mapping
+      keyNodeStart = pos; // an anchored key's own parser overrides this past the property
       key = c === COLON || c === COMMA || c === RBRACE ? "" : keyToString(parseFlowValue());
+      keyStart = keyNodeStart;
     } else {
       keyNodeStart = pos; // the fast-match path never re-sets it
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
@@ -3344,6 +3346,7 @@ function parseAnchoredBlockNode(parentCol: number, mapValue: boolean): unknown {
     if (c === AMP) fail("a node may carry at most one anchor");
   }
   if (c === STAR) fail("an alias node cannot carry an anchor property");
+  keyNodeStart = pos; // properties are consumed; the node's own token starts here
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
   let node: unknown;
@@ -3351,6 +3354,7 @@ function parseAnchoredBlockNode(parentCol: number, mapValue: boolean): unknown {
     // The property occupies the rest of its line; the node (if any) begins on
     // a following line, subject to the ordinary value-continuation rules.
     nextLine();
+    keyNodeStart = pos; // the node was deferred to a later line; re-record there
     // If that node begins with its OWN anchor and then resolves to a scalar or
     // non-mapping collection, both anchors decorate the SAME node — illegal
     // (`top: &a\n  &b val` — yaml-test-suite 4JVG). The one exception is a block
@@ -3988,38 +3992,16 @@ function parseExplicitValue(col: number): unknown {
  * collection restriction, like the value's, applies to that inline case only.
  * `pos` is already past the `?`.
  */
-/**
- * Where the node at `p` has its OWN token, looking past a leading `&anchor`
- * property. Non-consuming: `pos` is saved and restored, so this is a pure
- * lookahead that reuses the real anchor scanner rather than restating its
- * grammar.
- *
- * Only the `<<` merge check on the explicit-`? key` path calls this. The
- * implicit-key paths don't need it (their key parsers already leave
- * `keyNodeStart` past the anchor), and a `!tag` isn't skipped because a tagged
- * key is never merge-eligible anyway.
- */
-function nodeTokenStart(p: number): number {
-  if (src.charCodeAt(p) !== AMP) return p;
-  const savedPos = pos;
-  pos = p + 1;
-  scanAnchorOrAliasName();
-  skipInlineSpaces();
-  const start = pos;
-  pos = savedPos;
-  return start;
-}
-
 function parseExplicitKey(col: number): unknown {
   const tabRightAfterIndicator = src.charCodeAt(pos) === TAB;
   skipInlineSpaces();
   const c = pos < len ? src.charCodeAt(pos) : -1;
   if (c === -1 || c === LF || c === CR || c === HASH) {
     nextLine();
-    keyNodeStart = nodeTokenStart(pos);
+    keyNodeStart = pos;
     return parseDeferredBlockNode(col, true);
   }
-  keyNodeStart = nodeTokenStart(pos);
+  keyNodeStart = pos;
   const keyNode = parseBlockNode(col, false); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
   if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
   return keyNode;

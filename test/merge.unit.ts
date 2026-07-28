@@ -407,7 +407,8 @@ test("security: a merged `__proto__` key becomes an own property, does not pollu
 const AT_POSITIONS: ReadonlyArray<readonly [string, (entry: string) => string]> = [
   ["block, first key", (e) => `a: &a {c: 3}\nx:\n  ${e}\n  b: 2\n`],
   ["block, later key", (e) => `a: &a {c: 3}\nx:\n  b: 2\n  ${e}\n`],
-  ["flow", (e) => `a: &a {c: 3}\nx: {${e}, b: 2}\n`],
+  ["flow, first entry", (e) => `a: &a {c: 3}\nx: {${e}, b: 2}\n`],
+  ["flow, later entry", (e) => `a: &a {c: 3}\nx: {b: 2, ${e}}\n`],
 ] as const;
 
 const ELIGIBLE: ReadonlyArray<readonly [string, string]> = [
@@ -445,13 +446,16 @@ for (const [entryLabel, entry] of INELIGIBLE) {
 // `yaml` merges a TAGGED `!!str <<` where js-yaml (and we) don't. Locked
 // deliberately so the divergence can't drift unnoticed: an explicit `!!str`
 // makes the key a string, so it cannot also resolve to the merge tag.
-test("eligibility · tagged `!!str <<` · js-yaml agrees with us; `yaml` is the outlier", () => {
-  const text = "a: &a {c: 3}\nx:\n  !!str <<: *a\n  b: 2\n";
-  const notMerged = { "<<": { c: 3 }, b: 2 };
-  deepStrictEqual((parse(text) as { x: unknown }).x, notMerged);
-  deepStrictEqual((jsyamlWithMerge(text) as { x: unknown }).x, notMerged);
-  deepStrictEqual((yamlWithMerge(text) as { x: unknown }).x, { c: 3, b: 2 });
-});
+for (const [posLabel, build] of AT_POSITIONS) {
+  test(`eligibility · tagged \`!!str <<\` · ${posLabel} · js-yaml agrees with us; \`yaml\` is the outlier`, () => {
+    const text = build("!!str <<: *a");
+    deepStrictEqual((parse(text) as { x: unknown }).x, { "<<": { c: 3 }, b: 2 });
+    deepStrictEqual(parse(text), jsyamlWithMerge(text));
+    // `yaml` merges a tagged key; we don't, because an explicit !!str IS a
+    // string and so cannot also resolve to the merge tag.
+    deepStrictEqual((yamlWithMerge(text) as { x: unknown }).x, { c: 3, b: 2 });
+  });
+}
 
 // The explicit `? key` form, in both block and flow mappings.
 test("eligibility · explicit `? <<` · block · merges", () => {
@@ -470,6 +474,16 @@ test("eligibility · explicit `? &k <<` · block · merges (anchor + explicit ke
 
 test("eligibility · explicit `? &k <<` · flow · merges (anchor + explicit key together)", () => {
   const text = "a: &a {c: 3}\nx: {? &k <<: *a, b: 2}\n";
+  deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
+  deepStrictEqual(parse(text), yamlWithMerge(text));
+  deepStrictEqual(parse(text), jsyamlWithMerge(text));
+});
+
+// An anchor may sit alone on the `?` line with the key token deferred to a
+// further-indented line. The property is consumed across the break, so the key
+// is still a bare `<<` and still merges — both peers agree.
+test("eligibility · explicit `? &k` with `<<` on the next line · block · merges", () => {
+  const text = "a: &a {c: 3}\nx:\n  ? &k\n    <<\n  : *a\n  b: 2\n";
   deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
   deepStrictEqual(parse(text), yamlWithMerge(text));
   deepStrictEqual(parse(text), jsyamlWithMerge(text));
