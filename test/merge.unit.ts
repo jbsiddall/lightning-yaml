@@ -398,3 +398,51 @@ test("security: a merged `__proto__` key becomes an own property, does not pollu
   strictEqual((r as unknown as Record<string, unknown>).polluted, undefined, "the merge never reached the enclosing document's prototype");
   strictEqual(({} as Record<string, unknown>).polluted, undefined, "the global Object.prototype was never touched");
 });
+
+// --------------------------------------------------------------------------
+// M11 — merge-eligibility is a property of the key node's own STYLE, not of
+// the string it resolves to. Both forms below resolve to the same JS string
+// `"<<"`, so a check on the resolved key can't tell them apart — only the
+// source byte at the key's scan-start can. These two cases pin the boundary
+// from both sides, and neither was covered before (a stale comment claiming
+// the anchored form did NOT merge survived precisely because of that gap).
+// --------------------------------------------------------------------------
+
+test("eligibility: an ANCHORED `<<` still merges — an anchor is a node property, not a style change", () => {
+  const text = "a: &a {c: 3}\nx:\n  &k <<: *a\n  b: 2\n";
+  const expected = { c: 3, b: 2 };
+  deepStrictEqual((parse(text) as { x: unknown }).x, expected);
+  // Both peers agree here, so this is parity, not a house rule.
+  deepStrictEqual((yamlReal.parse(text, { merge: true }) as { x: unknown }).x, expected);
+  deepStrictEqual((jsyamlReal.load(text, { schema: jsyamlReal.YAML11_SCHEMA }) as { x: unknown }).x, expected);
+});
+
+test("eligibility: a TAGGED `!!str <<` does NOT merge — we match js-yaml; `yaml` merges it and is the outlier", () => {
+  const text = "a: &a {c: 3}\nx:\n  !!str <<: *a\n  b: 2\n";
+  const notMerged = { "<<": { c: 3 }, b: 2 };
+  deepStrictEqual((parse(text) as { x: unknown }).x, notMerged);
+  deepStrictEqual((jsyamlReal.load(text, { schema: jsyamlReal.YAML11_SCHEMA }) as { x: unknown }).x, notMerged);
+  // Locked deliberately: an explicit `!!str` IS a string, so it cannot also
+  // resolve to the merge tag. `yaml` merges anyway; we don't follow it.
+  deepStrictEqual((yamlReal.parse(text, { merge: true }) as { x: unknown }).x, { c: 3, b: 2 });
+});
+
+test("eligibility: an EXPLICIT `? <<` merges — the `?` indicator doesn't change the key's style", () => {
+  const text = "a: &a {c: 3}\nx:\n  ? <<\n  : *a\n  b: 2\n";
+  const expected = { c: 3, b: 2 };
+  deepStrictEqual((parse(text) as { x: unknown }).x, expected);
+  deepStrictEqual((yamlReal.parse(text, { merge: true }) as { x: unknown }).x, expected);
+  deepStrictEqual((jsyamlReal.load(text, { schema: jsyamlReal.YAML11_SCHEMA }) as { x: unknown }).x, expected);
+});
+
+test('eligibility: an explicit `? "<<"` stays quoted, so it does NOT merge', () => {
+  const text = 'a: &a {c: 3}\nx:\n  ? "<<"\n  : *a\n  b: 2\n';
+  deepStrictEqual((parse(text) as { x: unknown }).x, { "<<": { c: 3 }, b: 2 });
+});
+
+test("eligibility: a valueless `? <<` is an error (merging nothing isn't a mapping) — both peers throw too", () => {
+  const text = "x:\n  ? <<\n  b: 2\n";
+  throws(() => parse(text), (err: unknown) => err instanceof YAMLParseError);
+  throws(() => yamlReal.parse(text, { merge: true }));
+  throws(() => jsyamlReal.load(text, { schema: jsyamlReal.YAML11_SCHEMA }));
+});

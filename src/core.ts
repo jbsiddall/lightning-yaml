@@ -118,6 +118,14 @@ let SKIP_STRICT_VALIDATION = true;
  * `merge: false` through by default to stay byte-faithful to the libraries
  * they stand in for.
  */
+/**
+ * Out-param set by `parseExplicitKey`: the source position its key node was
+ * scanned from. Only `parseBlockMap`'s merge check reads it, to tell a bare
+ * `? <<` (merge-eligible — both peers merge it) from a `? "<<"` (not). Set on
+ * the cold explicit-key path only, so ordinary keys never pay for it.
+ */
+let explicitKeyStart = -1;
+
 let MERGE_KEYS = true;
 
 /**
@@ -1829,12 +1837,12 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
  * to (confirmed by reading js-yaml's `constructScalar` — implicit resolution
  * only runs when `event.style` is plain and no explicit tag was given — and
  * `yaml`'s `isMergeKey`, which requires `!key.type || key.type === PLAIN`).
- * An anchored merge key (`&x <<: *a`) is conservatively NOT treated as
- * eligible either — stricter than the letter of that rule, since an anchor
- * doesn't itself change a scalar's style — but anchoring the `<<` scalar
- * itself is not a construct either peer's test surface (or real-world YAML)
- * exercises, so this repo takes the simpler, cheaper-to-verify reading
- * rather than threading anchor-awareness through for an unobserved case.
+ * An ANCHORED `<<` (`&k <<: *a`) still merges: the anchor is a node property,
+ * not a style change, so `keyStart` lands on the `<<` itself. Both peers agree.
+ * A TAGGED one (`!!str <<`) does not — and there `yaml` disagrees, merging it
+ * anyway; we side with js-yaml, since an explicit `!!str` is by definition a
+ * string and so cannot resolve to the merge tag. Both cases are locked by
+ * test/merge.unit.ts's M11.
  */
 function applyMerge(obj: Record<string, unknown>, value: unknown): void {
   if (Array.isArray(value)) {
@@ -3787,8 +3795,12 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
       const value = isExplicit ? parseExplicitValue(col) : parseBlockValue(col, true); // a map value: same-col `-` is a compact seq
       if (MERGE_KEYS && key === "<<" && src.charCodeAt(keyStart) === LT) applyMerge(obj, value);
       else storeKey(obj, key, value);
+    } else if (MERGE_KEYS && key === "<<" && src.charCodeAt(keyStart) === LT) {
+      // `? <<` with no `: value` at all — merging nothing is not a mapping, so
+      // this is an error, not a literal `"<<": null` entry. Both peers throw.
+      applyMerge(obj, null);
     } else {
-      storeKey(obj, key, null); // explicit key with no ': value' at all (never merge-eligible: keyStart is always -1 here, see the `?` branch below)
+      storeKey(obj, key, null); // explicit key with no ': value' at all
     }
     if (pos >= len) break;
     const nc = pos - lineStart;
@@ -3811,7 +3823,7 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
       key = internKey(keyToString(parseExplicitKey(col)));
       hasValue = explicitValueFollows(col);
       isExplicit = true;
-      keyStart = -1; // explicit `? key` form — conservatively never merge-eligible (untested corner; see applyMerge)
+      keyStart = explicitKeyStart; // a bare `? <<` IS merge-eligible; `? "<<"` isn't (see applyMerge)
     } else {
       keyStart = pos;
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
@@ -3855,7 +3867,8 @@ function explicitValueFollows(col: number): boolean {
 function parseBlockMapExplicit(col: number): Record<string, unknown> {
   pos++; // past '?'
   const key = internKey(keyToString(parseExplicitKey(col)));
-  return parseBlockMap(col, key, explicitValueFollows(col), true);
+  const keyStart = explicitKeyStart; // captured before explicitValueFollows can reset it
+  return parseBlockMap(col, key, explicitValueFollows(col), true, keyStart);
 }
 
 /**
@@ -3979,8 +3992,10 @@ function parseExplicitKey(col: number): unknown {
   const c = pos < len ? src.charCodeAt(pos) : -1;
   if (c === -1 || c === LF || c === CR || c === HASH) {
     nextLine();
+    explicitKeyStart = pos;
     return parseDeferredBlockNode(col, true);
   }
+  explicitKeyStart = pos;
   const keyNode = parseBlockNode(col, false); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
   if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
   return keyNode;
