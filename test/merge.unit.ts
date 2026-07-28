@@ -404,26 +404,26 @@ test("security: a merged `__proto__` key becomes an own property, does not pollu
 // --------------------------------------------------------------------------
 
 /** The same mapping written three ways, so one case can be checked in all of them. */
-const AT_POSITIONS: ReadonlyArray<readonly [string, (entry: string) => string]> = [
-  ["block, first key", (e) => `a: &a {c: 3}\nx:\n  ${e}\n  b: 2\n`],
-  ["block, later key", (e) => `a: &a {c: 3}\nx:\n  b: 2\n  ${e}\n`],
-  ["flow, first entry", (e) => `a: &a {c: 3}\nx: {${e}, b: 2}\n`],
-  ["flow, later entry", (e) => `a: &a {c: 3}\nx: {b: 2, ${e}}\n`],
+const atPositions = [
+  ["block, first key", (e: string) => `a: &a {c: 3}\nx:\n  ${e}\n  b: 2\n`],
+  ["block, later key", (e: string) => `a: &a {c: 3}\nx:\n  b: 2\n  ${e}\n`],
+  ["flow, first entry", (e: string) => `a: &a {c: 3}\nx: {${e}, b: 2}\n`],
+  ["flow, later entry", (e: string) => `a: &a {c: 3}\nx: {b: 2, ${e}}\n`],
 ] as const;
 
-const ELIGIBLE: ReadonlyArray<readonly [string, string]> = [
+const eligibleKeyForms = [
   ["bare `<<`", "<<: *a"],
   ["anchored `&k <<` — an anchor is a node property, not a style change", "&k <<: *a"],
 ] as const;
 
-const INELIGIBLE: ReadonlyArray<readonly [string, string]> = [
+const ineligibleKeyForms = [
   ['double-quoted `"<<"`', '"<<": *a'],
   ["single-quoted `\'<<\'`", "'<<': *a"],
   ["tagged `!!str <<` — an explicit !!str IS a string, so it cannot also be the merge tag", "!!str <<: *a"],
 ] as const;
 
-for (const [entryLabel, entry] of ELIGIBLE) {
-  for (const [posLabel, build] of AT_POSITIONS) {
+for (const [entryLabel, entry] of eligibleKeyForms) {
+  for (const [posLabel, build] of atPositions) {
     test(`eligibility · ${entryLabel} · ${posLabel} · merges`, () => {
       const text = build(entry);
       deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
@@ -434,8 +434,8 @@ for (const [entryLabel, entry] of ELIGIBLE) {
   }
 }
 
-for (const [entryLabel, entry] of INELIGIBLE) {
-  for (const [posLabel, build] of AT_POSITIONS) {
+for (const [entryLabel, entry] of ineligibleKeyForms) {
+  for (const [posLabel, build] of atPositions) {
     test(`eligibility · ${entryLabel} · ${posLabel} · does NOT merge`, () => {
       const text = build(entry);
       deepStrictEqual((parse(text) as { x: unknown }).x, { "<<": { c: 3 }, b: 2 });
@@ -446,7 +446,7 @@ for (const [entryLabel, entry] of INELIGIBLE) {
 // `yaml` merges a TAGGED `!!str <<` where js-yaml (and we) don't. Locked
 // deliberately so the divergence can't drift unnoticed: an explicit `!!str`
 // makes the key a string, so it cannot also resolve to the merge tag.
-for (const [posLabel, build] of AT_POSITIONS) {
+for (const [posLabel, build] of atPositions) {
   test(`eligibility · tagged \`!!str <<\` · ${posLabel} · js-yaml agrees with us; \`yaml\` is the outlier`, () => {
     const text = build("!!str <<: *a");
     deepStrictEqual((parse(text) as { x: unknown }).x, { "<<": { c: 3 }, b: 2 });
