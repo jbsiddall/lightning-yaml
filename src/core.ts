@@ -1872,10 +1872,10 @@ function applyMerge(obj: Record<string, unknown>, value: unknown): void {
  */
 function mergeOneSource(obj: Record<string, unknown>, source: unknown): void {
   if (!isPlainMapping(source)) fail("a merge key ('<<') value must be a mapping or a sequence of mappings");
-  const src = source as Record<string, unknown>;
-  for (const k of Object.keys(src)) {
+  const from = source as Record<string, unknown>;
+  for (const k of Object.keys(from)) {
     if (++totalMergeKeys > MAX_TOTAL_MERGE_KEYS) fail(`merge keys exceeded the maximum of ${MAX_TOTAL_MERGE_KEYS} total merged keys in one parse`);
-    if (!Object.hasOwn(obj, k)) storeKey(obj, k, src[k]);
+    if (!Object.hasOwn(obj, k)) storeKey(obj, k, from[k]);
   }
 }
 
