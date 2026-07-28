@@ -76,6 +76,26 @@ try {
 }
 ```
 
+## Strict vs. lenient parsing
+
+By default, `parse` and `parseAll` are **lenient** about one spec-invalid
+construct: a tab used to indent a block sequence or mapping ([YAML 1.2.2
+§6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces) forbids it, but
+real-world YAML sometimes has it anyway). Pass `{ strict: true }` to reject
+that input instead:
+
+```ts
+import { parse } from "lightning-yaml";
+
+const withTab = "a:\n\tb: 1\n"; // a tab indenting "b"
+
+parse(withTab); // { a: { b: 1 } } — accepted by default
+parse(withTab, { strict: true }); // throws YAMLParseError
+```
+
+Lenient parsing never changes how a *valid* document is read — it only
+widens what's accepted; `strict: true` narrows it back to the spec.
+
 ## What's not supported yet
 
 Merge keys (`<<: *defaults`) are not implemented. lightning-yaml won't

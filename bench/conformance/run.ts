@@ -56,10 +56,16 @@ interface ParserCandidate {
  * single parse() call only if parseAll itself isn't exported (defensive —
  * today parseAll always delegates to parse, so this is a no-op fallback, not
  * an error-swallowing one: a genuine parse error still propagates either way).
+ *
+ * `strict: true` because lightning-yaml's default parse is deliberately
+ * LENIENT (tolerates some spec-invalid block indentation — see README's
+ * Decisions and deviations); the suite's negative cases expect full YAML
+ * 1.2.2 rejection, so conformance is scored under strict mode, matching what
+ * every other candidate here already enforces unconditionally.
  */
 function ourParseDocs(text: string): unknown[] {
-  if (typeof ourParseAll === "function") return ourParseAll(text);
-  return [ourParse(text)];
+  if (typeof ourParseAll === "function") return ourParseAll(text, { strict: true });
+  return [ourParse(text, { strict: true })];
 }
 
 function jsYamlParseDocs(text: string): unknown[] {
