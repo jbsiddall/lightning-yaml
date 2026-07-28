@@ -397,13 +397,12 @@ test("security: a merged `__proto__` key becomes an own property, does not pollu
 // the string it resolves to: a quoted `"<<"` and a bare `<<` resolve to the
 // identical JS string, so the check has to look at the source, not the value.
 //
-// Every case is asserted at THREE positions — first key of a block mapping,
-// a later key of that same mapping, and inside a flow mapping — because those
-// are three different code paths in the parser, and an earlier revision of
-// this feature merged correctly only in the first one.
+// Every case is asserted at each position in `atPositions` below, because they
+// reach different code paths in the parser — and successive revisions of this
+// feature each worked in only some of them.
 // --------------------------------------------------------------------------
 
-/** The same mapping written three ways, so one case can be checked in all of them. */
+/** The same mapping written every way that reaches a different parser path. */
 const atPositions = [
   ["block, first key", (e: string) => `a: &a {c: 3}\nx:\n  ${e}\n  b: 2\n`],
   ["block, later key", (e: string) => `a: &a {c: 3}\nx:\n  b: 2\n  ${e}\n`],
@@ -451,8 +450,6 @@ for (const [posLabel, build] of atPositions) {
     const text = build("!!str <<: *a");
     deepStrictEqual((parse(text) as { x: unknown }).x, { "<<": { c: 3 }, b: 2 });
     deepStrictEqual(parse(text), jsyamlWithMerge(text));
-    // `yaml` merges a tagged key; we don't, because an explicit !!str IS a
-    // string and so cannot also resolve to the merge tag.
     deepStrictEqual((yamlWithMerge(text) as { x: unknown }).x, { c: 3, b: 2 });
   });
 }
@@ -530,4 +527,23 @@ test("eligibility · a valueless `? <<` is an error (merging nothing isn't a map
   throws(() => parse(text), (err: unknown) => err instanceof YAMLParseError);
   throws(() => yamlWithMerge(text));
   throws(() => jsyamlWithMerge(text));
+});
+
+// --------------------------------------------------------------------------
+// MK12 — the two divergences recorded in README's "Decisions and deviations".
+// Locked here so neither can drift unnoticed, and so a future change that
+// removes one is forced to update the README entry with it.
+// --------------------------------------------------------------------------
+
+test("deviation: an anchor ON the merge key resolves to the string \"<<\"; both peers give an internal symbol", () => {
+  const text = "a: &a {c: 3}\nx:\n  &k <<: *a\n  b: 2\nprobe: *k\n";
+  strictEqual((parse(text) as { probe: unknown }).probe, "<<");
+  // The merge itself is unaffected — only what `*k` points at differs.
+  deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
+  // Both peers hand back the internal symbol they resolve `<<` to, which is an
+  // implementation detail leaking rather than a value anyone can use. Asserted
+  // via `typeof` because the two libraries use different symbols. Note this is
+  // invisible through JSON.stringify, which renders a symbol as undefined.
+  strictEqual(typeof (yamlWithMerge(text) as { probe: unknown }).probe, "symbol");
+  strictEqual(typeof (jsyamlWithMerge(text) as { probe: unknown }).probe, "symbol");
 });

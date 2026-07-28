@@ -263,6 +263,28 @@ here, treat it as a bug and
   mapping resolve in **declaration order** (earlier wins on an overlapping
   key) — the opposite of the last-wins duplicate-key rule just above, but
   what both peer libraries do, so we match them.
+- **A quoted or tagged merge key is an ordinary key.** Merging is decided by how
+  the key is *written*, not by what it resolves to — so `"<<"`, `'<<'` and
+  `!!str <<` all stay a literal `"<<"` key rather than merging, because an
+  explicit quote or `!!str` makes them strings, which cannot resolve to the
+  merge tag. An anchor is not a style, so `&k <<` still merges. js-yaml agrees
+  on all of these; the `yaml` library merges a tagged `!!str <<` anyway, and we
+  deliberately don't follow it there:
+  ```yaml
+  base: &b { host: localhost }
+  a:
+    <<: *b          # merged
+  b:
+    !!str <<: *b    # NOT merged — stays a literal "<<" key (yaml merges this)
+  ```
+- **An anchor on a merge key resolves to the literal `"<<"`.** Anchoring the
+  merge key itself and referring to it later — `&k <<: *defaults` then `*k`
+  somewhere else — gives you the string `"<<"` here. Both js-yaml and `yaml`
+  instead hand back the internal symbol they resolve `<<` to, which is an
+  implementation detail leaking rather than a value you can use. Ours is at
+  least a plain string, and matching either of them would mean un-registering
+  the anchor after the fact — real work on the hot path, for a construct with
+  no practical use.
 - **Compat options that aren't implemented yet throw.** The
   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
   (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we
