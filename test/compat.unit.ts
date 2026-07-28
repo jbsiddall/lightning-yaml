@@ -103,6 +103,45 @@ for (const [label, text] of basicDocs) {
 }
 
 // --------------------------------------------------------------------------
+// Merge keys (`<<`): our core (./core.ts) merges by default — a deliberate
+// divergence from both real libraries (see README's "Decisions and
+// deviations" and test/merge.unit.ts for the full spec). BOTH shims pin
+// `merge: false` through to core on every call unless a caller opts in, so
+// each shim's OWN default stays byte-faithful to the real library it stands
+// in for (js-yaml's own default schema has no merge tag at all; `yaml`
+// requires `{ merge: true }`) — only yaml-compat exposes an opt-in, because
+// js-yaml's sole opt-in (`YAML11_SCHEMA`) inseparably flips on YAML-1.1
+// scalar typing too (see js-yaml-compat.ts's module doc, footnote [4]).
+// --------------------------------------------------------------------------
+
+const MERGE_DOC = "base: &b\n  a: 1\n  b: 2\nderived:\n  <<: *b\n  b: 3\n";
+
+test("js-yaml-compat.load does NOT merge by default, matching real js-yaml's own default", () => {
+  deepStrictEqual(load(MERGE_DOC), jsyamlReal.load(MERGE_DOC));
+  deepStrictEqual(load(MERGE_DOC), { base: { a: 1, b: 2 }, derived: { "<<": { a: 1, b: 2 }, b: 3 } });
+});
+
+test("yaml-compat.parse does NOT merge by default, matching real yaml's own default", () => {
+  deepStrictEqual(parse(MERGE_DOC), yamlReal.parse(MERGE_DOC));
+  deepStrictEqual(parse(MERGE_DOC), { base: { a: 1, b: 2 }, derived: { "<<": { a: 1, b: 2 }, b: 3 } });
+});
+
+test("yaml-compat.parse({ merge: true }) DOES merge, matching real yaml's own opt-in", () => {
+  const ours = parse(MERGE_DOC, { merge: true });
+  deepStrictEqual(ours, { base: { a: 1, b: 2 }, derived: { a: 1, b: 3 } });
+  deepStrictEqual(ours, yamlReal.parse(MERGE_DOC, { merge: true }));
+});
+
+test("yaml-compat.parseAllDocuments/parseDocument also honour { merge: true }", () => {
+  const expanded = { base: { a: 1, b: 2 }, derived: { a: 1, b: 3 } };
+  deepStrictEqual(parseAllDocuments(MERGE_DOC, { merge: true })[0]!.toJS(), expanded);
+  deepStrictEqual(parseDocument(MERGE_DOC, { merge: true }).toJS(), expanded);
+  // ...and both still default OFF, matching parse's own default above.
+  deepStrictEqual(parseAllDocuments(MERGE_DOC)[0]!.toJS(), { base: { a: 1, b: 2 }, derived: { "<<": { a: 1, b: 2 }, b: 3 } });
+  deepStrictEqual(parseDocument(MERGE_DOC).toJS(), { base: { a: 1, b: 2 }, derived: { "<<": { a: 1, b: 2 }, b: 3 } });
+});
+
+// --------------------------------------------------------------------------
 // Multi-document streams.
 // --------------------------------------------------------------------------
 
@@ -257,7 +296,6 @@ const PARSE_THROWS: ReadonlyArray<readonly [string, Record<string, unknown>]> = 
   ["mapAsMap", { mapAsMap: true }],
   ["intAsBigInt", { intAsBigInt: true }],
   ["maxAliasCount", { maxAliasCount: 10 }],
-  ["merge", { merge: true }],
   ["schema:json", { schema: "json" }],
   ["version:1.1", { version: "1.1" }],
   ["unknown key", { nope: 1 }],
@@ -469,9 +507,9 @@ test("yaml-compat accepts no-op default option values, rejects the active value"
     deepStrictEqual(parse("a: 1\n", opts), { a: 1 });
   }
   strictEqual(typeof stringify(DUMP_VALUE, { sortMapEntries: false }), "string");
-  // ...but turning the feature on throws
+  // ...but turning the feature on throws (merge is the one EXCEPTION — see the
+  // merge-specific tests below: `merge: true` is fully honoured, not a throw).
   throws(() => parse("a: 1\n", { mapAsMap: true }));
-  throws(() => parse("a: 1\n", { merge: true }));
 });
 
 test("js-yaml-compat.dump accepts a boolean option's no-op default, rejects the active value", () => {

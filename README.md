@@ -199,14 +199,16 @@ bump; CI checks for it.
 
 ## Status & scope
 
-YAML 1.2 core, feature-complete but for one deliberate gap — **merge keys
-(`<<`)**. Today a `<<` key is read as an ordinary string key rather than being
-merged (it's neither expanded nor rejected); everything else in the 1.2 core is
-implemented.
+YAML 1.2 core, feature-complete. lightning-yaml also resolves `<<` merge keys
+([`tag:yaml.org,2002:merge`](https://yaml.org/type/merge.html)) by default — a
+YAML 1.1 construct outside the 1.2.2 core schema this project otherwise
+targets, implemented as a deliberate extension because real-world YAML
+depends on it so heavily (see "Decisions and deviations" below).
 
 lightning-yaml passes **~97.6% of the official yaml-test-suite** (364/373) — a
 faithful implementation of YAML 1.2 core. The handful of remaining failures
-are unrelated spec edge cases, not merge keys (the suite doesn't exercise `<<`).
+are unrelated spec edge cases (the suite doesn't exercise `<<`, so merge keys
+never move this number).
 
 ## Decisions and deviations
 
@@ -232,9 +234,35 @@ here, treat it as a bug and
 - **Duplicate mapping keys: last one wins.** The spec makes a duplicate key an
   error; we keep the last instead, matching `JSON.parse` — `{a: 1, a: 2}` parses
   to `{a: 2}`.
-- **Merge keys (`<<`) are read as an ordinary key, not merged.** `<<: *anchor`
-  gives you a literal `"<<"` string key rather than merging the aliased map in
-  (js-yaml and `yaml` merge it). It's neither expanded nor rejected today.
+- **Merge keys (`<<`) are implemented, and merge BY DEFAULT.** `<<` is a
+  [YAML 1.1 type](https://yaml.org/type/merge.html), not part of the 1.2.2
+  core schema this project otherwise targets — so supporting it at all is a
+  deliberate extension beyond that scope, made because real-world YAML leans
+  on it heavily:
+  ```yaml
+  defaults: &d
+    adapter: postgres
+    host: localhost
+  development:
+    <<: *d
+    database: dev_db
+  ```
+  ```ts
+  parse(theYamlAbove).development;
+  // { adapter: "postgres", host: "localhost", database: "dev_db" }
+  ```
+  Both js-yaml and `yaml` instead require an explicit opt-in and merge nothing
+  by default, so defaulting to on is a divergence from **both** peers, chosen
+  because the shape above is common enough in real-world YAML to be worth it.
+  Pass `{ merge: false }` to restore the pre-merge reading (`<<` becomes an
+  ordinary literal `"<<"` string key, neither expanded nor rejected) — the
+  `lightning-yaml/js-yaml` and `lightning-yaml/yaml` compat shims default to
+  exactly that, so they stay byte-faithful to the libraries they stand in for
+  (`lightning-yaml/yaml` accepts `{ merge: true }` to opt back in; the
+  js-yaml shim has no such opt-in — see its module doc). Two `<<` keys in one
+  mapping resolve in **declaration order** (earlier wins on an overlapping
+  key) — the opposite of the last-wins duplicate-key rule just above, but
+  what both peer libraries do, so we match them.
 - **Compat options that aren't implemented yet throw.** The
   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
   (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we

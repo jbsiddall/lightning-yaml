@@ -165,25 +165,75 @@ test("duplicate keys: last-wins (JSON.parse semantics), diverging from the oracl
 });
 
 // --------------------------------------------------------------------------
-// §4.4/§4.5/§4.9 Merge keys `<<`. Merge is UNIMPLEMENTED by design (a documented
-// non-goal; `<<` was removed from YAML 1.2 and is absent from the test corpus).
-// The behaviour is NOT a throw and NOT a merge: `<<` is read as a plain, literal
-// string key — which is exactly what the `yaml` oracle does by default (its
-// merge support is opt-in). We lock the literal-key reading so it can't silently
-// change, and confirm the flagship four-parser payload does not crash.
+// §4.4/§4.5/§4.9 Merge keys `<<`. IMPLEMENTED, and ON by default — a
+// deliberate divergence from both peers, which each require an explicit
+// opt-in at the versions this repo targets (js-yaml's `YAML11_SCHEMA`,
+// `yaml`'s `{ merge: true }`); see README's "Decisions and deviations" for
+// the rationale and test/merge.unit.ts for the full spec (precedence, key
+// order, the security cap on merge amplification — this file keeps only a
+// differential smoke test plus the flagship four-parser payload).
+// `{ merge: false }` restores the pre-merge reading: `<<` becomes an
+// ordinary literal string key, neither expanded nor rejected — matching the
+// oracle's own (non-merging) default exactly.
 // --------------------------------------------------------------------------
 
-test("merge key `<<` is read as a literal string key, not merged", () => {
-  deepStrictEqual(parse("<<: hello\nn: 1"), { "<<": "hello", n: 1 });
+test("merge key `<<` merges by default; `{ merge: false }` restores the literal-key reading", () => {
   const y = "base: &b {a: 1, b: 2}\nderived:\n  <<: *b\n  b: 3";
-  deepStrictEqual(parse(y), { base: { a: 1, b: 2 }, derived: { "<<": { a: 1, b: 2 }, b: 3 } });
-  deepStrictEqual(parse(y), oracleParse(y), "oracle also treats `<<` as a literal key by default");
+  deepStrictEqual(parse(y), { base: { a: 1, b: 2 }, derived: { a: 1, b: 3 } });
+  // The oracle (`yaml`) does NOT merge by default at the version this repo targets — a real
+  // divergence (see README's "Decisions and deviations"), not merely an option left off.
+  deepStrictEqual(oracleParse(y), { base: { a: 1, b: 2 }, derived: { "<<": { a: 1, b: 2 }, b: 3 } });
+  // `{ merge: false }` restores the pre-merge reading, matching the oracle's own default exactly.
+  deepStrictEqual(parse(y, { merge: false }), oracleParse(y), "merge: false matches the oracle's own (non-merging) default");
+
+  // A `<<` value that isn't a mapping (or sequence of mappings) is a spec error once merging
+  // is on; the pre-merge literal-key reading (today's behaviour under `merge: false`) never throws.
+  throwsBecause(() => parse("<<: hello\nn: 1"), /merge key/);
+  deepStrictEqual(parse("<<: hello\nn: 1", { merge: false }), { "<<": "hello", n: 1 });
 });
 
-test("merge: DarkForge four-parser payload does not crash (merge unimplemented)", () => {
+test("merge: DarkForge four-parser payload merges the bare `<<` key without crashing", () => {
+  // Same adversarial payload as before merge was implemented; only the title's
+  // parenthetical is stale now. The payload's FIRST key is a bare, unquoted
+  // `<<` — a real merge site today (merge defaults on) — so its source's own
+  // key splices up to the top level instead of surviving as a literal
+  // `"<<": {...}` entry. The tagged (`!!merge :`) and aliased (`*morge :`)
+  // `<<`-lookalikes elsewhere in the payload are deliberately NOT
+  // merge-eligible (see applyMerge's doc comment: only a bare, unquoted,
+  // untagged, unaliased key merges) and still land as ordinary literal keys.
   const y = `<<: {?"lang": Go, !!merge : {lang: NodeJS}}\ndfl: &morge "<<"\n*morge : {lang: RUBY}\n!!merge : {lang: PYTHON}`;
-  const r = parse(y);
+  const r = parse(y) as Record<string, unknown>;
   ok(r !== null && typeof r === "object", "parses to an object without throwing");
+  strictEqual(r['?"lang"'], "Go", "the bare `<<` merge site's own source key spliced up to the top level");
+});
+
+// --------------------------------------------------------------------------
+// §4.10-adjacent: merge amplification. Unlike aliasing (which SHARES
+// structure — one `Map.get`, see the "billion laughs" test above), merging
+// COPIES a source's keys at every `<<` site, so a CHAIN of merges-of-merges
+// can do far more copying work than any single merge site suggests. js-yaml
+// guards this with `maxTotalMergeKeys` (default 10000, matched by
+// MAX_TOTAL_MERGE_KEYS in src/core.ts); this locks that the cap actually
+// fires, promptly, rather than hanging or exhausting memory.
+//
+// A chain that each merges the SAME anchor twice (`<<: [*prev, *prev]`, the
+// shape a naive "billion laughs for merge" guess reaches for first) turns
+// out to grow only LINEARLY here: `hasOwn` dedupes the second copy of every
+// key, so each level's OWN key count stays constant and the total considered
+// count is just 4 × levels (verified: ~2500 levels needed to cross 10000,
+// not a handful). The chain below instead has EACH level merge the ENTIRE
+// PREVIOUS (already-accumulated) layer via a SINGLE `<<: *prev` — since
+// `hasOwn` can't dedupe against a strictly-growing key set, this genuinely
+// compounds: level i's merge considers i-1 keys, so the running total after
+// N levels is the triangular number (N-1)×N/2 — quadratic, not linear —
+// crossing 10000 by level ~142 off just ~150 lines of source.
+// --------------------------------------------------------------------------
+
+test("merge-amplification bomb: a chained nested merge throws promptly, never hangs or OOMs", () => {
+  const LEVELS = 150; // (LEVELS-1)*LEVELS/2 = 11175 total merged keys considered, > MAX_TOTAL_MERGE_KEYS (10000)
+  let src = "lvl1: &lvl1 {k1: v}\n";
+  for (let i = 2; i <= LEVELS; i++) src += `lvl${i}: &lvl${i} {k${i}: v, <<: *lvl${i - 1}}\n`;
+  throwsBecause(() => parse(src), /merge keys exceeded/);
 });
 
 // --------------------------------------------------------------------------
