@@ -48,7 +48,7 @@
  *   schema             FAILSAFE / JSON / CORE / YAML11 typing      core        [2]
  *   maxAliases         cap alias expansions (billion-laughs)      compat/core
  *   maxDepth           cap nesting depth                          compat/core  (core already tracks depth)
- *   maxTotalMergeKeys  cap `<<` merge expansion                   n/a          [4]
+ *   maxTotalMergeKeys  cap `<<` merge expansion                   compat/core  [4]
  *
  * dump (DumpOptions)
  *   sortKeys           sort map keys on output                    compat       <- easy win (pre-sort the graph)

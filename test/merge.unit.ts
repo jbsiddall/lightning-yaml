@@ -21,8 +21,8 @@
  * it at all — so neither the spec nor the yaml-test-suite (which doesn't exercise
  * `<<`) has an opinion here. js-yaml and `yaml` both implement it and real-world
  * YAML depends on it heavily, so for THIS ONE FEATURE the peer libraries ARE the
- * de-facto oracle, not just a candidate signal. M1 below is that differential
- * check; M2 is the one invariant that survives even if a peer's own behavior
+ * de-facto oracle, not just a candidate signal. MK1 below is that differential
+ * check; MK2 is the one invariant that survives even if a peer's own behavior
  * later changes.
  *
  * A GOTCHA uncovered while building the above: NEITHER peer merges by default.
@@ -56,9 +56,9 @@ function yamlWithMerge(text: string): unknown {
 }
 
 // --------------------------------------------------------------------------
-// M1 — differential against BOTH peers, the primary oracle for this feature
+// MK1 — differential against BOTH peers, the primary oracle for this feature
 // (see the file header's source-of-truth exception). A broad table of
-// representative merge documents in block form; M8 repeats the applicable
+// representative merge documents in block form; MK8 repeats the applicable
 // ones in flow form.
 // --------------------------------------------------------------------------
 
@@ -79,7 +79,7 @@ for (const [label, text] of differentialDocs) {
 }
 
 // --------------------------------------------------------------------------
-// M2 — expansion equivalence: parse(merge form) deep-equals parse(hand-expanded
+// MK2 — expansion equivalence: parse(merge form) deep-equals parse(hand-expanded
 // form). Deliberately PEER-INDEPENDENT (only our own parse(), called twice) —
 // this is the invariant that survives even if a peer's behavior changes later.
 // --------------------------------------------------------------------------
@@ -106,8 +106,8 @@ for (const [label, merged, expanded] of expansionPairs) {
 }
 
 // --------------------------------------------------------------------------
-// M3 — precedence, asserted against exact hardcoded expected values (a third,
-// independent way of pinning down "correct" alongside M1's peer diff and M2's
+// MK3 — precedence, asserted against exact hardcoded expected values (a third,
+// independent way of pinning down "correct" alongside MK1's peer diff and MK2's
 // hand-expansion — this feature is fiddly enough to earn the triangulation).
 // --------------------------------------------------------------------------
 
@@ -140,7 +140,7 @@ test("precedence: shallow merge — a nested map is taken WHOLE, never deep-merg
 });
 
 // --------------------------------------------------------------------------
-// M4 — key order (resolved empirically, not guessed). Both peers EXPAND merged
+// MK4 — key order (resolved empirically, not guessed). Both peers EXPAND merged
 // keys IN PLACE at the position where `<<` appears — not appended at the end —
 // so merged keys can land mid-object. `<<` itself never appears in the key list.
 // Verified live: node --import tsx against js-yaml@5 (YAML11_SCHEMA) and yaml@2
@@ -174,7 +174,7 @@ test("key order: flow form splices merged keys in place too (same rule as block)
 });
 
 // --------------------------------------------------------------------------
-// M5 — errors: a << value that is not a mapping (or a sequence of mappings) is
+// MK5 — errors: a << value that is not a mapping (or a sequence of mappings) is
 // a hard error. Verified live against both peers for every case below — no
 // leniency divergence found (both always throw), so there's no "peer is
 // lenient where we throw" case to record for this feature.
@@ -207,7 +207,7 @@ test("errors: << aliasing an undefined anchor already throws TODAY (regression g
 });
 
 // --------------------------------------------------------------------------
-// M6 — cases that must NOT merge. These already hold TODAY (vacuously — nothing
+// MK6 — cases that must NOT merge. These already hold TODAY (vacuously — nothing
 // merges yet), and must keep holding once merge is implemented: each is a
 // regression guard from day one, not a newly-red assertion.
 // --------------------------------------------------------------------------
@@ -255,7 +255,7 @@ for (const [label, text, expectedKey] of notMergeKeyNames) {
 }
 
 // --------------------------------------------------------------------------
-// M7 — round-trip: stringify never re-emits `<<` (we always dump the EXPANDED
+// MK7 — round-trip: stringify never re-emits `<<` (we always dump the EXPANDED
 // map — nothing recognizes `<<` as special on the way out), so re-parsing our
 // own output must reproduce the same value. Round-trip by VALUE, not by text,
 // per test/stringify.unit.ts's idiom (a dumper is free to reorder/requote).
@@ -280,7 +280,7 @@ for (const text of roundTripDocs) {
 }
 
 // --------------------------------------------------------------------------
-// M8 — flow mappings: the flow map parser is a separate code path from block
+// MK8 — flow mappings: the flow map parser is a separate code path from block
 // maps and needs its own fix. Repeats the load-bearing cases above in flow form.
 // --------------------------------------------------------------------------
 
@@ -312,7 +312,7 @@ test('flow mapping · a quoted "<<" key does not merge', () => {
 });
 
 // --------------------------------------------------------------------------
-// M9 — interaction with existing documented deviations.
+// MK9 — interaction with existing documented deviations.
 // --------------------------------------------------------------------------
 
 test("interaction: duplicate << keys with the SAME anchor are idempotent (no error)", () => {
@@ -374,7 +374,7 @@ test("interaction: a merge source defined AFTER the merge site fails (define-bef
 });
 
 // --------------------------------------------------------------------------
-// M10 — security: a merged `__proto__` key must not pollute the prototype
+// MK10 — security: a merged `__proto__` key must not pollute the prototype
 // chain, exactly like an ORDINARY `__proto__` key already doesn't
 // (test/parser.unit.ts's "__proto__ becomes an own property, does not
 // pollute the prototype"). `applyMerge` copies through `storeKey`, never raw
@@ -393,7 +393,7 @@ test("security: a merged `__proto__` key becomes an own property, does not pollu
 });
 
 // --------------------------------------------------------------------------
-// M11 — merge-eligibility is a property of the key node's own STYLE, not of
+// MK11 — merge-eligibility is a property of the key node's own STYLE, not of
 // the string it resolves to: a quoted `"<<"` and a bare `<<` resolve to the
 // identical JS string, so the check has to look at the source, not the value.
 //
@@ -456,6 +456,20 @@ test("eligibility · tagged `!!str <<` · js-yaml agrees with us; `yaml` is the 
 // The explicit `? key` form, in both block and flow mappings.
 test("eligibility · explicit `? <<` · block · merges", () => {
   const text = "a: &a {c: 3}\nx:\n  ? <<\n  : *a\n  b: 2\n";
+  deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
+  deepStrictEqual(parse(text), yamlWithMerge(text));
+  deepStrictEqual(parse(text), jsyamlWithMerge(text));
+});
+
+test("eligibility · explicit `? &k <<` · block · merges (anchor + explicit key together)", () => {
+  const text = "a: &a {c: 3}\nx:\n  ? &k <<\n  : *a\n  b: 2\n";
+  deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
+  deepStrictEqual(parse(text), yamlWithMerge(text));
+  deepStrictEqual(parse(text), jsyamlWithMerge(text));
+});
+
+test("eligibility · explicit `? &k <<` · flow · merges (anchor + explicit key together)", () => {
+  const text = "a: &a {c: 3}\nx: {? &k <<: *a, b: 2}\n";
   deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
   deepStrictEqual(parse(text), yamlWithMerge(text));
   deepStrictEqual(parse(text), jsyamlWithMerge(text));

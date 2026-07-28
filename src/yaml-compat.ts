@@ -126,11 +126,12 @@ const failOption = (message: string): never => {
 
 /**
  * The effective `merge` value for a core `parse`/`parseAll` call. Real `yaml`
- * defaults merging OFF (see the module doc's [4]), so this shim only turns it
- * on for an explicit `{ merge: true }` — anything else (omitted, `false`, or
- * validated-but-unexpected) stays `false`, matching real `yaml`'s own default.
+ * defaults merging OFF (see the module doc's [4]) and tests the option for
+ * plain truthiness rather than validating its type, so a non-boolean has to
+ * behave the same way here — `{ merge: 1 }` merges, `{ merge: 0 }` doesn't,
+ * and neither throws.
  */
-const mergeOptionOf = (opts: Record<string, unknown> | undefined): { merge: boolean } => ({ merge: opts?.merge === true });
+const mergeOptionOf = (opts: Record<string, unknown> | undefined): { merge: boolean } => ({ merge: Boolean(opts?.merge) });
 
 /** Only the default `core` schema is a no-op; others change scalar typing. */
 const schemaCoreOnly: OptionRule = (v) =>
@@ -154,7 +155,7 @@ const PARSE_OPTION_RULES: Record<string, OptionRule> = {
   stringKeys: activatesFeature("would require scalar string keys — not supported yet"),
   // Honoured, both directions: our core (./core.ts) merges `<<` by default, so `merge: true` here
   // just lets that default through instead of overriding it to `false` (see `parse`'s call below).
-  merge: (v) => (typeof v === "boolean" ? null : `"${String(v)}" must be a boolean`),
+  merge: () => null, // any value: real `yaml` just tests truthiness (see mergeOptionOf)
   maxAliasCount: notYetSupported,
   customTags: notYetSupported,
   resolveKnownTags: notYetSupported,

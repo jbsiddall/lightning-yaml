@@ -1742,7 +1742,7 @@ function parseFlowMap(): Record<string, unknown> {
       pos++;
       skipFlowWs();
       c = src.charCodeAt(pos);
-      keyStart = pos; // a bare `? <<` is merge-eligible here, exactly as in a block mapping
+      keyStart = nodeTokenStart(pos); // a bare (optionally anchored) `? <<` is merge-eligible, as in a block mapping
       key = c === COLON || c === COMMA || c === RBRACE ? "" : keyToString(parseFlowValue());
     } else {
       keyNodeStart = pos; // the fast-match path never re-sets it
@@ -1829,7 +1829,7 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
  * "implicit merge sequence in declaration order" behaviour (earlier
  * occurrence wins on an overlapping key) for free too — the opposite of this
  * repo's general last-wins duplicate-key rule, but verified against both
- * peers (see test/merge.unit.ts's M9) — each occurrence just merges
+ * peers (see test/merge.unit.ts's MK9) — each occurrence just merges
  * independently, in the order parsed, with no special-casing for "have we
  * seen `<<` before in this mapping."
  *
@@ -1850,7 +1850,7 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
  * A TAGGED one (`!!str <<`) does not — and there `yaml` disagrees, merging it
  * anyway; we side with js-yaml, since an explicit `!!str` is by definition a
  * string and so cannot resolve to the merge tag. Both cases are locked by
- * test/merge.unit.ts's M11.
+ * test/merge.unit.ts's MK11.
  */
 function applyMerge(obj: Record<string, unknown>, value: unknown): void {
   if (Array.isArray(value)) {
@@ -3988,16 +3988,38 @@ function parseExplicitValue(col: number): unknown {
  * collection restriction, like the value's, applies to that inline case only.
  * `pos` is already past the `?`.
  */
+/**
+ * Where the node at `p` has its OWN token, looking past a leading `&anchor`
+ * property. Non-consuming: `pos` is saved and restored, so this is a pure
+ * lookahead that reuses the real anchor scanner rather than restating its
+ * grammar.
+ *
+ * Only the `<<` merge check on the explicit-`? key` path calls this. The
+ * implicit-key paths don't need it (their key parsers already leave
+ * `keyNodeStart` past the anchor), and a `!tag` isn't skipped because a tagged
+ * key is never merge-eligible anyway.
+ */
+function nodeTokenStart(p: number): number {
+  if (src.charCodeAt(p) !== AMP) return p;
+  const savedPos = pos;
+  pos = p + 1;
+  scanAnchorOrAliasName();
+  skipInlineSpaces();
+  const start = pos;
+  pos = savedPos;
+  return start;
+}
+
 function parseExplicitKey(col: number): unknown {
   const tabRightAfterIndicator = src.charCodeAt(pos) === TAB;
   skipInlineSpaces();
   const c = pos < len ? src.charCodeAt(pos) : -1;
   if (c === -1 || c === LF || c === CR || c === HASH) {
     nextLine();
-    keyNodeStart = pos;
+    keyNodeStart = nodeTokenStart(pos);
     return parseDeferredBlockNode(col, true);
   }
-  keyNodeStart = pos;
+  keyNodeStart = nodeTokenStart(pos);
   const keyNode = parseBlockNode(col, false); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
   if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
   return keyNode;

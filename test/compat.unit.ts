@@ -132,6 +132,20 @@ test("yaml-compat.parse({ merge: true }) DOES merge, matching real yaml's own op
   deepStrictEqual(ours, yamlReal.parse(MERGE_DOC, { merge: true }));
 });
 
+// Real `yaml` treats `merge` as a plain truthy check and never validates its
+// type, so a non-boolean must behave the same here rather than throwing — the
+// shim's job is parity, and `merge` is a documented "done" option.
+test("yaml-compat.parse · merge accepts any value truthily, exactly as real yaml does", () => {
+  const truthy = [1, "yes", {}] as const;
+  const falsy = [0, "", null] as const;
+  for (const v of truthy) {
+    deepStrictEqual(parse(MERGE_DOC, { merge: v } as never), yamlReal.parse(MERGE_DOC, { merge: v } as never), `truthy ${String(v)}`);
+  }
+  for (const v of falsy) {
+    deepStrictEqual(parse(MERGE_DOC, { merge: v } as never), yamlReal.parse(MERGE_DOC, { merge: v } as never), `falsy ${String(v)}`);
+  }
+});
+
 test("yaml-compat.parseAllDocuments/parseDocument also honour { merge: true }", () => {
   const expanded = { base: { a: 1, b: 2 }, derived: { a: 1, b: 3 } };
   deepStrictEqual(parseAllDocuments(MERGE_DOC, { merge: true })[0]!.toJS(), expanded);
