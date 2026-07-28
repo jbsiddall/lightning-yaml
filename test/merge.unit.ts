@@ -482,12 +482,36 @@ test("eligibility · explicit `? &k <<` · flow · merges (anchor + explicit key
 // An anchor may sit alone on the `?` line with the key token deferred to a
 // further-indented line. The property is consumed across the break, so the key
 // is still a bare `<<` and still merges — both peers agree.
+test("eligibility · explicit `? &k` with `<<` on the next line · flow · merges", () => {
+  const text = "a: &a {c: 3}\nx: {? &k\n  <<: *a, b: 2}\n";
+  deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
+  deepStrictEqual(parse(text), yamlWithMerge(text));
+  deepStrictEqual(parse(text), jsyamlWithMerge(text));
+});
+
 test("eligibility · explicit `? &k` with `<<` on the next line · block · merges", () => {
   const text = "a: &a {c: 3}\nx:\n  ? &k\n    <<\n  : *a\n  b: 2\n";
   deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
   deepStrictEqual(parse(text), yamlWithMerge(text));
   deepStrictEqual(parse(text), jsyamlWithMerge(text));
 });
+
+// An anchor does NOT make a tagged key eligible again: `!!str` still makes it a
+// string, so `? &k !!str <<` must stay literal exactly like `? !!str <<`. These
+// pin the anchor+tag combination in every form, because an earlier revision
+// recorded the key position past BOTH properties and so let a tag slip through.
+const anchoredTaggedForms = [
+  ["block, same line", "a: &a {c: 3}\nx:\n  ? &k !!str <<\n  : *a\n  b: 2\n"],
+  ["block, key deferred to next line", "a: &a {c: 3}\nx:\n  ? &k !!str\n    <<\n  : *a\n  b: 2\n"],
+  ["flow", "a: &a {c: 3}\nx: {? &k !!str <<: *a, b: 2}\n"],
+] as const;
+
+for (const [label, text] of anchoredTaggedForms) {
+  test(`eligibility · anchored AND tagged \`? &k !!str <<\` · ${label} · does NOT merge`, () => {
+    deepStrictEqual((parse(text) as { x: unknown }).x, { "<<": { c: 3 }, b: 2 });
+    deepStrictEqual(parse(text), jsyamlWithMerge(text));
+  });
+}
 
 test("eligibility · explicit `? <<` · flow · merges", () => {
   const text = "a: &a {c: 3}\nx: {? <<: *a, b: 2}\n";

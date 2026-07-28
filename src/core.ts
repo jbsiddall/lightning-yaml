@@ -997,7 +997,11 @@ function parseAnchoredFlowValue(): unknown {
     if (c === AMP) fail("a node may carry at most one anchor");
   }
   if (c === STAR) fail("an alias node cannot carry an anchor property");
-  keyNodeStart = pos; // properties are consumed; the node's own token starts here
+  // Anchor consumed, so the node's own token starts here — but only record it
+  // when UNTAGGED: a tag makes a key a string, hence never merge-eligible, and
+  // leaving the slot on the property is what keeps it that way. Mirrors
+  // parseFlowKeyAnchored, which likewise only advances past a bare anchor.
+  if (tag === null) keyNodeStart = pos;
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
   const node = tag !== null ? parseTaggedFlowContent(tag) : parseFlowValue();
@@ -3346,7 +3350,8 @@ function parseAnchoredBlockNode(parentCol: number, mapValue: boolean): unknown {
     if (c === AMP) fail("a node may carry at most one anchor");
   }
   if (c === STAR) fail("an alias node cannot carry an anchor property");
-  keyNodeStart = pos; // properties are consumed; the node's own token starts here
+  // See parseAnchoredFlowValue: only an UNTAGGED anchored key stays merge-eligible.
+  if (tag === null) keyNodeStart = pos;
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
   let node: unknown;
@@ -3354,7 +3359,7 @@ function parseAnchoredBlockNode(parentCol: number, mapValue: boolean): unknown {
     // The property occupies the rest of its line; the node (if any) begins on
     // a following line, subject to the ordinary value-continuation rules.
     nextLine();
-    keyNodeStart = pos; // the node was deferred to a later line; re-record there
+    if (tag === null) keyNodeStart = pos; // node deferred to a later line; re-record there
     // If that node begins with its OWN anchor and then resolves to a scalar or
     // non-mapping collection, both anchors decorate the SAME node — illegal
     // (`top: &a\n  &b val` — yaml-test-suite 4JVG). The one exception is a block
