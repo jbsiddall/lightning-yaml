@@ -497,6 +497,21 @@ test("eligibility · explicit `? &k` with `<<` on the next line · block · merg
 // string, so `? &k !!str <<` must stay literal exactly like `? !!str <<`. These
 // pin the anchor+tag combination in every form, because an earlier revision
 // recorded the key position past BOTH properties and so let a tag slip through.
+// A tag and an anchor may be split across lines (YAML 1.2.2 §6.9), in either
+// order. The tag still wins: the key is a string, so it never merges.
+const splitTagAnchorForms = [
+  ["tag on the `?` line, anchor deferred", "a: &a {c: 3}\nx:\n  ? !!str\n    &k <<\n  : *a\n  b: 2\n"],
+  ["tag alone on the `?` line, key deferred", "a: &a {c: 3}\nx:\n  ? !!str\n    <<\n  : *a\n  b: 2\n"],
+  ["anchor on the `?` line, tag deferred", "a: &a {c: 3}\nx:\n  ? &k\n    !!str <<\n  : *a\n  b: 2\n"],
+] as const;
+
+for (const [label, text] of splitTagAnchorForms) {
+  test(`eligibility · tag and anchor split across lines · ${label} · does NOT merge`, () => {
+    deepStrictEqual((parse(text) as { x: unknown }).x, { "<<": { c: 3 }, b: 2 });
+    deepStrictEqual(parse(text), jsyamlWithMerge(text));
+  });
+}
+
 const anchoredTaggedForms = [
   ["block, same line", "a: &a {c: 3}\nx:\n  ? &k !!str <<\n  : *a\n  b: 2\n"],
   ["block, key deferred to next line", "a: &a {c: 3}\nx:\n  ? &k !!str\n    <<\n  : *a\n  b: 2\n"],
@@ -530,9 +545,10 @@ test("eligibility · a valueless `? <<` is an error (merging nothing isn't a map
 });
 
 // --------------------------------------------------------------------------
-// MK12 — the two divergences recorded in README's "Decisions and deviations".
-// Locked here so neither can drift unnoticed, and so a future change that
-// removes one is forced to update the README entry with it.
+// MK12 — the anchor-on-a-merge-key divergence recorded in README's "Decisions
+// and deviations". (The other entry there, about quoted and tagged keys, is
+// already locked by MK11's eligibility sweep above.) Pinned here so a future
+// change that removes the divergence is forced to update the README with it.
 // --------------------------------------------------------------------------
 
 test("deviation: an anchor ON the merge key resolves to the string \"<<\"; both peers give an internal symbol", () => {

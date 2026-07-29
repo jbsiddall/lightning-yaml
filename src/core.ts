@@ -121,11 +121,15 @@ let SKIP_STRICT_VALIDATION = true;
 let MERGE_KEYS = true;
 
 /**
- * Out-param: where the key just parsed had its OWN scalar token, i.e. after any
- * `&anchor`/`!tag` property the key carries. Only the `<<` merge check reads it,
- * to tell a bare `<<` (merge-eligible) from a quoted or tagged one — both
- * resolve to the same JS string `"<<"`, so the resolved key can't distinguish
- * them and only the source byte can.
+ * Out-param read only by the `<<` merge check, to tell a BARE `<<` (eligible)
+ * from a quoted or tagged one — all resolve to the same JS string `"<<"`, so
+ * only the source byte can distinguish them.
+ *
+ * It holds the position of the key's own scalar token past a leading `&anchor`,
+ * which is a node property rather than a style and so leaves the key eligible.
+ * A `!tag` is deliberately NOT skipped: a tagged key is a string and must never
+ * merge, and leaving this slot pointing at the property is exactly what keeps
+ * it ineligible. So "past the anchor, but never past a tag."
  *
  * It must be snapshotted into a local the moment the key is parsed: parsing the
  * key's VALUE recurses into nested mappings, which overwrite this slot.
@@ -1754,7 +1758,7 @@ function parseFlowMap(): Record<string, unknown> {
       keyNodeStart = pos; // the fast-match path never re-sets it
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchFlowKey(c, ek) ? ek : parseFlowKey();
-      keyStart = keyNodeStart; // parseFlowKey advances past any &anchor/!tag first
+      keyStart = keyNodeStart; // parseFlowKey advances it past a leading &anchor
     }
     // Record `key` into `produced` (see the entry comment): stay on the shared
     // `expected` array while it still matches, else fork a private copy.
@@ -3475,7 +3479,16 @@ function parseDeferredTaggedBlockNode(parentCol: number, tag: string, mapValue: 
   const nc = pos - lineStart;
   if (nc > parentCol) {
     const c = src.charCodeAt(pos);
-    if (c === AMP || c === EXCLAIM) return applyTagByRuntimeKind(tag, parseBlockNode(parentCol, mapValue));
+    if (c === AMP || c === EXCLAIM) {
+      // The node carries OUR tag, so as a mapping key it is a string and can
+      // never merge — but the nested parse below starts a fresh frame whose own
+      // `tag` is null, and an `&anchor` there would record a merge-eligible
+      // position blind to us. Restore the slot afterwards so the outer tag wins.
+      const outerKeyNodeStart = keyNodeStart;
+      const node = applyTagByRuntimeKind(tag, parseBlockNode(parentCol, mapValue));
+      keyNodeStart = outerKeyNodeStart;
+      return node;
+    }
     return parseTaggedBlockContent(parentCol, nc, tag, false);
   }
   // A block sequence at the SAME column is a valid (compact) value only under a
@@ -3838,7 +3851,7 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
       keyNodeStart = pos; // the fast-match path never re-sets it
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchBlockKey(ek) ? ek : parseBlockMapKey();
-      keyStart = keyNodeStart; // parseBlockMapKey advances past any &anchor/!tag first
+      keyStart = keyNodeStart; // parseBlockMapKey advances it past a leading &anchor
       hasValue = true;
       isExplicit = false;
     }
