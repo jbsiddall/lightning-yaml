@@ -558,11 +558,11 @@ test("deviation: an anchor ON the merge key resolves to the string \"<<\"; both 
   deepStrictEqual((parse(text) as { x: unknown }).x, { c: 3, b: 2 });
   // Both peers hand back the internal symbol they resolve `<<` to. Asserted via
   // `typeof` because there is no single value to assert against: the two symbols
-  // differ, neither is registered, and `yaml` exports none. Deliberately NOT
-  // matched — a symbol isn't JSON-representable and breaks round-tripping (both
-  // libraries throw when re-dumping their own output), whereas our string
-  // survives both. Note the difference is invisible through JSON.stringify,
-  // which renders a symbol as undefined — that artifact hid this once already.
+  // differ and neither is registered. Deliberately NOT matched — a symbol isn't
+  // JSON-representable and breaks round-tripping (both libraries throw when
+  // re-dumping their own output), whereas our string survives both. Note the
+  // difference is invisible through JSON.stringify, which renders a symbol as
+  // undefined — that artifact hid this once already.
   strictEqual(typeof (yamlWithMerge(text) as { probe: unknown }).probe, "symbol");
   strictEqual(typeof (jsyamlWithMerge(text) as { probe: unknown }).probe, "symbol");
 });
@@ -580,7 +580,8 @@ test("deviation: our `\"<<\"` round-trips, where both peers' symbol breaks their
 
 // --------------------------------------------------------------------------
 // MK13 — the eligibility rule as a single property, swept over every way a key
-// can be written × every place it can appear. Successive rounds of review each
+// can be written INLINE × every place it can appear (a key split across lines
+// carries its own cases just above). Successive rounds of review each
 // found one more shape where the rule leaked (a later key, a flow mapping, an
 // explicit `? key`, an anchor across a line break, a tag split from its
 // anchor), so this asserts the RULE rather than another list of cases:
@@ -591,7 +592,7 @@ test("deviation: our `\"<<\"` round-trips, where both peers' symbol breaks their
 // An anchor is a node property, not a style, so it doesn't disqualify.
 // --------------------------------------------------------------------------
 
-const keyWritings = [
+const eligibilityKeyForms = [
   ["<<", true],
   ["&k <<", true],
   ['"<<"', false],
@@ -602,7 +603,9 @@ const keyWritings = [
   ['&k "<<"', false],
 ] as const;
 
-const keyPlacements = [
+// Labels overlap `atPositions` above, deliberately: the shapes are the same, but
+// these take a whole KEY rather than a whole entry, so they can't be shared.
+const eligibilityPlacements = [
   ["block, first key", (k: string) => `a: &a {c: 3}\nx:\n  ${k}: *a\n  b: 2\n`],
   ["block, later key", (k: string) => `a: &a {c: 3}\nx:\n  b: 2\n  ${k}: *a\n`],
   ["block, explicit", (k: string) => `a: &a {c: 3}\nx:\n  ? ${k}\n  : *a\n  b: 2\n`],
@@ -611,14 +614,11 @@ const keyPlacements = [
   ["flow, explicit", (k: string) => `a: &a {c: 3}\nx: {? ${k}: *a, b: 2}\n`],
 ] as const;
 
-for (const [writing, shouldMerge] of keyWritings) {
-  for (const [placement, build] of keyPlacements) {
-    test(`eligibility rule · \`${writing}\` · ${placement} · ${shouldMerge ? "merges" : "stays literal"}`, () => {
+for (const [writing, shouldMerge] of eligibilityKeyForms) {
+  for (const [placement, build] of eligibilityPlacements) {
+    test(`eligibility rule · \`${writing}\` · ${placement} · ${shouldMerge ? "merges" : "does NOT merge"}`, () => {
       const text = build(writing);
-      deepStrictEqual(
-        (parse(text) as { x: unknown }).x,
-        shouldMerge ? { c: 3, b: 2 } : { "<<": { c: 3 }, b: 2 },
-      );
+      deepStrictEqual((parse(text) as { x: unknown }).x, shouldMerge ? { c: 3, b: 2 } : { "<<": { c: 3 }, b: 2 });
     });
   }
 }

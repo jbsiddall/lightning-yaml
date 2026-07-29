@@ -280,13 +280,14 @@ here, treat it as a bug and
 - **An anchor on a merge key resolves to the literal `"<<"`.** Anchoring the
   merge key itself and referring to it later — `&k <<: *defaults` then `*k`
   somewhere else — gives you the string `"<<"` here. Both js-yaml and `yaml`
-  instead hand back the internal symbol they resolve `<<` to, and there is no
-  way for us to match that even in principle: the two libraries use *different*
-  symbols, neither is registered (so neither is comparable across realms), and
-  `yaml` doesn't export its one at all. Their symbol also can't survive a
-  round-trip — feed either library's own output back to its own `stringify`
-  and it throws. A plain string keeps the value JSON-representable and
-  round-trippable, which matters more here than copying a leaked internal.
+  instead hand back the internal symbol they resolve `<<` to, and we could only
+  ever match one of them: they use *different* symbols, and neither is
+  registered, so there is no shared value to agree on. (js-yaml does export
+  its `MERGE_KEY`, so matching *that one* is possible — we choose not to;
+  `yaml` exports nothing comparable.) The deciding reason is round-tripping:
+  their symbol doesn't survive one, since feeding either library's own output
+  back to its own `stringify` throws. A plain string stays JSON-representable
+  and round-trips, which matters more than copying a leaked internal.
 - **Compat options that aren't implemented yet throw.** The
   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
   (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we
