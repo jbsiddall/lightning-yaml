@@ -577,3 +577,48 @@ test("deviation: our `\"<<\"` round-trips, where both peers' symbol breaks their
   throws(() => yamlReal.stringify(yamlWithMerge(text)));
   throws(() => jsyamlReal.dump(jsyamlWithMerge(text)));
 });
+
+// --------------------------------------------------------------------------
+// MK13 — the eligibility rule as a single property, swept over every way a key
+// can be written × every place it can appear. Successive rounds of review each
+// found one more shape where the rule leaked (a later key, a flow mapping, an
+// explicit `? key`, an anchor across a line break, a tag split from its
+// anchor), so this asserts the RULE rather than another list of cases:
+//
+//   a key merges  iff  its own scalar token is a bare, unquoted `<<`
+//                      AND it carries no tag.
+//
+// An anchor is a node property, not a style, so it doesn't disqualify.
+// --------------------------------------------------------------------------
+
+const keyWritings = [
+  ["<<", true],
+  ["&k <<", true],
+  ['"<<"', false],
+  ["'<<'", false],
+  ["!!str <<", false],
+  ["&k !!str <<", false],
+  ["!!str &k <<", false],
+  ['&k "<<"', false],
+] as const;
+
+const keyPlacements = [
+  ["block, first key", (k: string) => `a: &a {c: 3}\nx:\n  ${k}: *a\n  b: 2\n`],
+  ["block, later key", (k: string) => `a: &a {c: 3}\nx:\n  b: 2\n  ${k}: *a\n`],
+  ["block, explicit", (k: string) => `a: &a {c: 3}\nx:\n  ? ${k}\n  : *a\n  b: 2\n`],
+  ["flow, first entry", (k: string) => `a: &a {c: 3}\nx: {${k}: *a, b: 2}\n`],
+  ["flow, later entry", (k: string) => `a: &a {c: 3}\nx: {b: 2, ${k}: *a}\n`],
+  ["flow, explicit", (k: string) => `a: &a {c: 3}\nx: {? ${k}: *a, b: 2}\n`],
+] as const;
+
+for (const [writing, shouldMerge] of keyWritings) {
+  for (const [placement, build] of keyPlacements) {
+    test(`eligibility rule · \`${writing}\` · ${placement} · ${shouldMerge ? "merges" : "stays literal"}`, () => {
+      const text = build(writing);
+      deepStrictEqual(
+        (parse(text) as { x: unknown }).x,
+        shouldMerge ? { c: 3, b: 2 } : { "<<": { c: 3 }, b: 2 },
+      );
+    });
+  }
+}
