@@ -1648,19 +1648,21 @@ function parseFlowSeq(): unknown[] {
     if (c === COLON && flowSeparatorAt(pos + 1)) {
       // A leading *boundary* `:` is an empty-key single-pair entry ([:] → [{"": null}]).
       // A `:` followed by non-separator (`:ff`) is an ordinary plain scalar (falls through).
-      arr.push(makeSinglePair("")); // leaves pos whitespace-skipped
+      arr.push(makeSinglePair("", -1)); // leaves pos whitespace-skipped
     } else if (c === QUESTION && flowSeparatorAt(pos + 1)) {
       // Explicit-key single-pair entry ([? a: b] → [{a: b}]).
       arr.push(parseFlowExplicitEntry());
     } else {
+      keyNodeStart = pos; // an anchored key's own parser moves this past the property
       const node = parseFlowValue();
+      const nodeStart = keyNodeStart;
       skipFlowWs();
       if (src.charCodeAt(pos) === COLON) {
         // `node: value` inside a sequence → an implicit single-pair mapping entry.
         // Its implicit key must be on one line: a `:` that landed on a later line
         // than the key (`[ key\n : v ]`) is invalid (yaml-test-suite DK4H/ZXT5).
         if (flowWsCrossedLine) fail("an implicit key in a flow sequence must be on a single line");
-        arr.push(makeSinglePair(keyToString(node))); // leaves pos whitespace-skipped
+        arr.push(makeSinglePair(keyToString(node), nodeStart)); // leaves pos whitespace-skipped
       } else {
         // Common path: the skipFlowWs above already positioned us at ',' or ']'.
         arr.push(node);
@@ -1685,13 +1687,16 @@ function parseFlowSeq(): unknown[] {
  * Build a single-pair mapping from a sequence entry. Call with `pos` at the `:`;
  * consumes it, reads the value (empty → null), and returns `{ key: value }`.
  */
-function makeSinglePair(key: string): Record<string, unknown> {
+function makeSinglePair(key: string, keyStart: number): Record<string, unknown> {
   pos++; // past ':'
   skipFlowWs();
   const c = src.charCodeAt(pos);
+  // `keyStart` is passed in rather than read from `keyNodeStart` here: parsing
+  // the value below recurses and would overwrite that slot first.
   const value = c === COMMA || c === RBRACKET || c === RBRACE ? null : parseFlowValue();
   const pair: Record<string, unknown> = {};
-  storeKey(pair, key, value);
+  if (MERGE_KEYS && key === "<<" && src.charCodeAt(keyStart) === LT) applyMerge(pair, value);
+  else storeKey(pair, key, value);
   skipFlowWs(); // leave pos at the following ',' / ']' for the caller
   return pair;
 }
@@ -1701,9 +1706,11 @@ function parseFlowExplicitEntry(): Record<string, unknown> {
   pos++; // past '?'
   skipFlowWs();
   const c = src.charCodeAt(pos);
+  keyNodeStart = pos;
   const key = c === COLON || c === COMMA || c === RBRACKET || c === RBRACE ? "" : keyToString(parseFlowValue());
+  const keyStart = keyNodeStart;
   skipFlowWs();
-  if (src.charCodeAt(pos) === COLON) return makeSinglePair(key); // consumes ':' + value
+  if (src.charCodeAt(pos) === COLON) return makeSinglePair(key, keyStart); // consumes ':' + value
   const pair: Record<string, unknown> = {};
   storeKey(pair, key, null); // `? key` with no value
   return pair;

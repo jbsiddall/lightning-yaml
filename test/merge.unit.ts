@@ -622,3 +622,28 @@ for (const [writing, shouldMerge] of eligibilityKeyForms) {
     });
   }
 }
+
+// --------------------------------------------------------------------------
+// MK14 — a single-pair entry inside a FLOW SEQUENCE (`[k: v]`, `[? k: v]`) is
+// its own construct, built by makeSinglePair rather than either mapping loop,
+// so it needs the eligibility gate too. MK13 sweeps mappings only, which is
+// how this went unnoticed.
+// --------------------------------------------------------------------------
+
+const flowSeqPairForms = [
+  ["implicit single pair", "a: &a {c: 3}\nx: [<<: *a]\n", true],
+  ["explicit single pair", "a: &a {c: 3}\nx: [? <<: *a]\n", true],
+  ["anchored single pair", "a: &a {c: 3}\nx: [&k <<: *a]\n", true],
+  ["quoted, stays literal", "a: &a {c: 3}\nx: ['<<': *a]\n", false],
+  ["tagged, stays literal", "a: &a {c: 3}\nx: [!!str <<: *a]\n", false],
+] as const;
+
+for (const [label, text, shouldMerge] of flowSeqPairForms) {
+  test(`flow sequence single pair · ${label} · ${shouldMerge ? "merges" : "does NOT merge"}`, () => {
+    deepStrictEqual((parse(text) as { x: unknown }).x, [shouldMerge ? { c: 3 } : { "<<": { c: 3 } }]);
+    deepStrictEqual(parse(text), jsyamlWithMerge(text));
+    // `yaml` merges a TAGGED key — its documented outlier, see MK11 — so it
+    // agrees with us on every form here except that one.
+    if (!text.includes("!!str")) deepStrictEqual(parse(text), yamlWithMerge(text));
+  });
+}
