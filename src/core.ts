@@ -140,6 +140,15 @@ const NOT_NUMERIC: unique symbol = Symbol("not-numeric");
  */
 const NO_DOCUMENT: unique symbol = Symbol("no-document");
 
+const NOT_JSON: unique symbol = Symbol("not-json");
+// A failed native attempt has a fixed exception cost that dominates tiny YAML
+// flow documents; delegation starts where that downside is reasonably bounded.
+const NATIVE_JSON_MIN_LENGTH = 512;
+const NATIVE_JSON_PARSE = JSON.parse;
+const NATIVE_SYNTAX_ERROR = SyntaxError;
+const NATIVE_ARRAY_IS_ARRAY = Array.isArray;
+const NATIVE_OBJECT_PROTOTYPE = Object.prototype;
+
 // ---------------------------------------------------------------------------
 // Errors
 // ---------------------------------------------------------------------------
@@ -560,6 +569,80 @@ function resetForStream(text: string): void {
   }
 }
 
+/** Preserve the parser's recursion guard after `JSON.parse` takes the strict-JSON subset path. */
+function jsonWithinDepth(value: object, depth = 0): boolean {
+  if (depth >= MAX_DEPTH) return false;
+  if (NATIVE_ARRAY_IS_ARRAY(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const child: unknown = value[i];
+      if (child !== null && typeof child === "object" && !jsonWithinDepth(child, depth + 1)) return false;
+    }
+  } else {
+    const obj = value as Record<string, unknown>;
+    // JSON.parse creates ordinary data-only objects. The caller verifies that
+    // Object.prototype has no enumerable pollution, so this walk sees exactly
+    // the parsed object's own keys.
+    for (const key in obj) {
+      const child = obj[key];
+      if (child !== null && typeof child === "object" && !jsonWithinDepth(child, depth + 1)) return false;
+    }
+  }
+  return true;
+}
+
+/** Use the runtime only where strict JSON and YAML semantics coincide, retaining YAML fallback elsewhere. */
+function tryNativeJson(text: string): unknown | typeof NOT_JSON {
+  let i = 0;
+  let c = text.charCodeAt(i);
+  while (c === SPACE || c === TAB || c === LF || c === CR) c = text.charCodeAt(++i);
+  if (c !== LBRACKET && c !== LBRACE) return NOT_JSON;
+
+  let first = i + 1;
+  let firstChar = text.charCodeAt(first);
+  while (firstChar === SPACE || firstChar === TAB || firstChar === LF || firstChar === CR) firstChar = text.charCodeAt(++first);
+  if (c === LBRACE) {
+    if (firstChar !== DQUOTE && firstChar !== RBRACE) return NOT_JSON;
+  } else if (
+    firstChar !== DQUOTE &&
+    firstChar !== LBRACKET &&
+    firstChar !== LBRACE &&
+    firstChar !== RBRACKET &&
+    firstChar !== MINUS &&
+    (firstChar < ZERO || firstChar > NINE) &&
+    !(firstChar === 0x74 && text.startsWith("true", first)) &&
+    !(firstChar === 0x66 && text.startsWith("false", first)) &&
+    !(firstChar === 0x6e && text.startsWith("null", first))
+  ) {
+    return NOT_JSON;
+  }
+
+  let end = text.length - 1;
+  let tail = text.charCodeAt(end);
+  while (tail === SPACE || tail === TAB || tail === LF || tail === CR) tail = text.charCodeAt(--end);
+  if (tail !== (c === LBRACKET ? RBRACKET : RBRACE)) return NOT_JSON;
+
+  // V8's JSON shape feedback can reuse the wrong escaped object key when the
+  // same shape is parsed repeatedly. Keep escaped documents on our stable path.
+  if (text.indexOf("\\", i) !== -1) return NOT_JSON;
+
+  // A polluted prototype would make jsonWithinDepth's `for...in` see inherited
+  // keys, so fall back instead of traversing them as parsed data.
+  for (const enumerable in NATIVE_OBJECT_PROTOTYPE) {
+    void enumerable;
+    return NOT_JSON;
+  }
+
+  try {
+    const value: unknown = NATIVE_JSON_PARSE(text);
+    // More than MAX_DEPTH nested containers need at least two delimiters each.
+    // Smaller inputs cannot violate the guard and skip the result-tree walk.
+    if (text.length < (MAX_DEPTH + 1) * 2 || jsonWithinDepth(value as object)) return value;
+  } catch (error) {
+    if (!(error instanceof NATIVE_SYNTAX_ERROR)) throw error;
+  }
+  return NOT_JSON;
+}
+
 /**
  * Opt-in parse-time performance tradeoffs.
  *
@@ -636,6 +719,10 @@ export interface ParseOptions {
  * ```
  */
 export function parse(text: string, options?: ParseOptions): unknown {
+  if (options === undefined && text.length >= NATIVE_JSON_MIN_LENGTH) {
+    const json = tryNativeJson(text);
+    if (json !== NOT_JSON) return json;
+  }
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;

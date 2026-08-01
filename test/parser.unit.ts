@@ -112,13 +112,18 @@ test("negative zero is preserved", () => {
 // --------------------------------------------------------------------------
 
 test("__proto__ becomes an own property, does not pollute the prototype", () => {
-  const value = parse('{"__proto__": {"polluted": true}, "safe": 1}');
+  // Keep this above the native-JSON routing threshold so both that route and
+  // the hand-written fallback stay covered by the security contract.
+  const text = `{"__proto__":{"polluted":true},"safe":1,"padding":"${"x".repeat(512)}"}`;
+  const values = [parse(text), parse(text, {})];
   // No prototype pollution leaked to a fresh object.
   const probe = {} as Record<string, unknown>;
   strictEqual(probe.polluted, undefined);
   // And it matches JSON.parse (an own, enumerable __proto__ data property).
-  deepStrictEqual(value, JSON.parse('{"__proto__": {"polluted": true}, "safe": 1}'));
-  ok(Object.prototype.hasOwnProperty.call(value, "__proto__"));
+  for (const value of values) {
+    deepStrictEqual(value, JSON.parse(text));
+    ok(Object.prototype.hasOwnProperty.call(value, "__proto__"));
+  }
 });
 
 test("constructor / prototype keys are ordinary keys", () => {
@@ -126,6 +131,66 @@ test("constructor / prototype keys are ordinary keys", () => {
     parse('{"constructor": 1, "prototype": 2}'),
     JSON.parse('{"constructor": 1, "prototype": 2}'),
   );
+});
+
+test("escaped object keys stay stable across repeated parses", () => {
+  // V8's JSON shape feedback can confuse two escaped keys on the second parse
+  // of this document. Escaped JSON therefore stays on our parser path.
+  const text = String.raw`[{"0":{"":0,"\n":0,"a":0},"":0,"\\":0,"a":0}]` + " ".repeat(512);
+  for (let i = 0; i < 4; i++) {
+    const value = parse(text) as Array<Record<string, Record<string, unknown>>>;
+    deepStrictEqual(Object.keys(value[0]!["0"]!), ["", "\n", "a"]);
+  }
+});
+
+test("the native route is insulated from replaced intrinsics", () => {
+  const globals = globalThis as unknown as {
+    Array: ArrayConstructor;
+    JSON: JSON;
+    SyntaxError: typeof SyntaxError;
+  };
+  const originalIsArray = globals.Array.isArray;
+  const originalParse = globals.JSON.parse;
+  const originalSyntaxError = globals.SyntaxError;
+  try {
+    globals.JSON.parse = (() => ({ hijacked: true })) as JSON["parse"];
+    const strictJson = `[${Array.from({ length: 300 }, (_, i) => i).join(",")}]`;
+    deepStrictEqual(parse(strictJson), Array.from({ length: 300 }, (_, i) => i));
+
+    globals.SyntaxError = class ReplacedSyntaxError extends Error {} as typeof SyntaxError;
+    const yamlFlow = strictJson.slice(0, -1) + ", bare]";
+    deepStrictEqual(parse(yamlFlow), [...Array.from({ length: 300 }, (_, i) => i), "bare"]);
+
+    globals.Array.isArray = (_value: unknown): _value is unknown[] => true;
+    const overDeepObject = '{"x":'.repeat(1001) + "0" + "}".repeat(1001);
+    throws(
+      () => parse(overDeepObject),
+      (err: unknown) => err instanceof YAMLParseError && /depth/.test((err as Error).message),
+    );
+  } finally {
+    globals.Array.isArray = originalIsArray;
+    globals.JSON.parse = originalParse;
+    globals.SyntaxError = originalSyntaxError;
+  }
+});
+
+test("enumerable Object.prototype pollution keeps native JSON on the parser fallback", () => {
+  const inheritedKey = "__lightning_yaml_inherited__";
+  Object.defineProperty(Object.prototype, inheritedKey, {
+    configurable: true,
+    enumerable: true,
+    get() {
+      throw new Error("native result traversal observed an inherited property");
+    },
+  });
+  try {
+    const text = `{"values":[${Array.from({ length: 1100 }, (_, i) => i % 10).join(",")}]}`;
+    ok(text.length > 2002, "fixture must require the native result-tree depth check");
+    const value = parse(text) as { values: number[] };
+    strictEqual(value.values.length, 1100);
+  } finally {
+    delete (Object.prototype as Record<string, unknown>)[inheritedKey];
+  }
 });
 
 test("deeply nested input throws a controlled error, not a RangeError", () => {
@@ -137,7 +202,7 @@ test("deeply nested input throws a controlled error, not a RangeError", () => {
 });
 
 test("nesting up to the guard still parses", () => {
-  const n = 500;
+  const n = 1000;
   const deep = "[".repeat(n) + "]".repeat(n);
   const value = parse(deep);
   // Walk to the bottom to confirm the structure.
@@ -148,6 +213,35 @@ test("nesting up to the guard still parses", () => {
     d++;
   }
   strictEqual(d, n);
+
+  const deepObject = '{"x":'.repeat(n) + "0" + "}".repeat(n);
+  let objectCursor: unknown = parse(deepObject);
+  let objectDepth = 0;
+  while (objectCursor !== null && typeof objectCursor === "object") {
+    objectCursor = (objectCursor as Record<string, unknown>).x;
+    objectDepth++;
+  }
+  strictEqual(objectDepth, n);
+});
+
+test("one container beyond the nesting guard throws a controlled error", () => {
+  for (const deep of [
+    "[".repeat(1001) + "]".repeat(1001),
+    '{"x":'.repeat(1001) + "0" + "}".repeat(1001),
+  ]) {
+    throws(
+      () => parse(deep),
+      (err: unknown) => err instanceof YAMLParseError && /depth/.test((err as Error).message),
+    );
+  }
+});
+
+test("a late strict-JSON failure falls back to valid YAML flow syntax", () => {
+  const prefix = Array.from({ length: 200 }, (_, i) => String(i)).join(",");
+  const text = `[${prefix}, bare]`;
+  ok(text.length > 512, "fixture must exercise the native-JSON candidate route");
+  deepStrictEqual(parse(text), parse(text, {}));
+  deepStrictEqual(parse(text), [...Array.from({ length: 200 }, (_, i) => i), "bare"]);
 });
 
 // --------------------------------------------------------------------------
