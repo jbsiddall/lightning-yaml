@@ -631,3 +631,18 @@ test("special keys: constructor / prototype as ordinary map keys", () => {
   const value = { constructor: 1, prototype: 2 };
   assertRoundTrips(value, "constructor/prototype keys");
 });
+
+// ---------------------------------------------------------------------------
+// 8. Undefined property omission (Class E stringify divergence).
+// ---------------------------------------------------------------------------
+
+test("undefined properties: completely omitted from serialized maps, sequence items serialized as null", () => {
+  // A mapping with undefined values is completely omitted, resulting in an empty container/omit
+  deepStrictEqual(stringify({ a: undefined }), "{}\n");
+  deepStrictEqual(stringify({ a: undefined, b: 1 }), "b: 1\n");
+  deepStrictEqual(stringify({ a: 1, b: undefined, c: 2 }), "a: 1\nc: 2\n");
+
+  // Sequence items with undefined values are serialized as null
+  deepStrictEqual(stringify([undefined]), "- null\n");
+  deepStrictEqual(stringify([1, undefined, 2]), "- 1\n- null\n- 2\n");
+});
