@@ -24,13 +24,13 @@ jobs:
     # job runs. Left unset by default — pointing at an undefined environment
     # would block the job, so only add it once that environment is created.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Reads the `packageManager` field (pnpm@10.33.0) from package.json —
       # do not pin a version here, it would fight that field.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # Node 24 bundles npm >= 11.5.1, required for OIDC Trusted Publishing.
           # (Node 20/22 ship npm 10.x, which predates it.)
