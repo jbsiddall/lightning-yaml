@@ -258,6 +258,37 @@ here, treat it as a bug and
   [§6.8.1](https://yaml.org/spec/1.2.2/#681-yaml-directives)) and js-yaml. The
   `yaml` library instead keeps the last `%TAG` and only warns on the version
   (still parsing); we deliberately reject both.
+- **`stringify` throws on values YAML 1.2 core can't represent, instead of
+  silently emitting `{}`.** `Date`, `RegExp`, a function, or a symbol have no
+  YAML 1.2 core type at all, so serializing one throws rather than writing an
+  empty mapping or bare, often-invalid text and quietly losing the data.
+  `Map`/`Set` throw too, but for a narrower reason: YAML *can* represent them
+  (`!!omap`/`!!set`), and lightning-yaml's own `parse` already reads those tags
+  back into a `Map`/`Set` — writing one back out just isn't built yet. A
+  `bigint` throws for a third reason: its decimal is legal YAML, but `parse`
+  reads integers back as `number`, so a value past 2^53 would come back
+  rounded — writing it waits for a `bigint`-aware read side.
+
+  The first of those reasons — no core type — also covers anything else keeping
+  its payload outside ordinary properties: a typed array other than `Uint8Array`
+  (`Int32Array`, …) and a boxed primitive (`new String("ab")`) throw rather than
+  emitting the indexed-property mapping (`'0': 1`) they used to. `Uint8Array`
+  itself dumps as `!!binary` — but only one created in the same realm; a copy
+  from an iframe or `vm` context isn't recognised as bytes and throws too. The
+  `yaml` library serializes all of these (a typed array as a sequence whatever
+  realm it came from, a boxed primitive unwrapped), so each is a deliberate
+  divergence: an indexed mapping isn't what you passed in.
+
+  Neither library we track matches this cleanly. js-yaml's `dump()` throws by
+  default for `Map`/`RegExp`/function/symbol/`bigint`, same as us — but not for
+  `Set`/`Date`: its real default schema is YAML-1.1-flavoured, not core, so it
+  emits `!!set`/an ISO string for those without complaint (only an explicit
+  core/JSON schema makes it throw there too). The `yaml` library goes the other
+  way on several of these — `Map`, `Set`, `Date`, and `bigint` (as a bare
+  decimal, which reads back rounded — the exact risk we're refusing to take)
+  all serialize without error. One of these is a bug rather than a design choice,
+  and it's still open on their side: `yaml` collapses a `RegExp` to the same
+  silent, data-losing `{}` that lightning-yaml used to write before this change.
 
 ## Built with Claude Code
 

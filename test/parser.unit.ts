@@ -854,6 +854,67 @@ test("a leading BOM before directives/markers is ignored", () => {
 });
 
 // --------------------------------------------------------------------------
+// BOM per document (§5.2 / §9.1.1, grammar [202] `l-document-prefix` /
+// [211] `l-yaml-stream`) — no yaml-test-suite case covers a BOM at all, so
+// the spec (not the oracle) adjudicates here; `yaml` agrees on the
+// `...`-suffix cases below, `js-yaml` on none of them.
+// --------------------------------------------------------------------------
+
+test("BOM stripped where the grammar allows it: after a '...' document-end suffix", () => {
+  deepStrictEqual(parseAll("a\n...\n﻿b\n"), ["a", "b"]);
+});
+
+test("BOM stripped where the grammar allows it: after '...', the key must not carry the BOM", () => {
+  deepStrictEqual(parseAll("a: 1\n...\n﻿b: 2\n"), [{ a: 1 }, { b: 2 }]);
+});
+
+test("BOM stripped where the grammar allows it: standing alone before an explicit '---'", () => {
+  deepStrictEqual(parseAll("a\n...\n﻿---\nb\n"), ["a", "b"]);
+});
+
+test("BOM stripped where the grammar allows it: interleaved with comment lines ([202] repeated)", () => {
+  deepStrictEqual(parseAll("a\n...\n﻿# c\n﻿b\n"), ["a", "b"]);
+});
+
+test("BOM stripped where the grammar allows it: after a comment line at stream start", () => {
+  deepStrictEqual(parse("# c\n﻿a: 1\n"), { a: 1 });
+});
+
+test("BOM stripped where the grammar allows it: repeated document prefix ([202] is `l-comment*`, BOM optional first)", () => {
+  deepStrictEqual(parse("﻿﻿a: 1\n"), { a: 1 });
+});
+
+test("a trailing document prefix (BOM after a final '...') is not reported as a second document", () => {
+  strictEqual(parse("a\n...\n﻿"), "a");
+  deepStrictEqual(parseAll("a\n...\n﻿"), ["a"]);
+});
+
+// [202] `l-document-prefix` is `c-byte-order-mark? l-comment*`, so a comment after
+// the closing `...` belongs to the prefix, not to a second document — which both
+// entry points have to agree on, hence asserting each.
+test("a trailing comment after a final '...' is a document prefix, not a second document", () => {
+  strictEqual(parse("a\n...\n# a trailing comment\n"), "a");
+  deepStrictEqual(parseAll("a\n...\n# a trailing comment\n"), ["a"]);
+});
+
+test("BOM rejected where the spec forbids it: immediately after '---' (§5.2 Example 5.2 — inside a document)", () => {
+  throws(() => parse("---\n﻿a\n"), /byte order mark/);
+  throws(() => parse("--- ﻿a\n"), /byte order mark/);
+  throws(() => parseAll("﻿first\n---\n﻿second\n"), /byte order mark/); // #126's own repro
+});
+
+test("BOM regression guards: empty/comment-only/directive-only streams still resolve as before", () => {
+  strictEqual(parse("﻿"), null);
+  deepStrictEqual(parseAll("﻿"), []);
+  strictEqual(parse("﻿# comment only\n"), null);
+  strictEqual(parse("﻿%YAML 1.2\n---\nx\n"), "x");
+});
+
+test("a BOM inside a quoted scalar is still content, per §5.2's JSON-compat sentence", () => {
+  strictEqual(parse('"a﻿b"'), "a﻿b");
+});
+
+// --------------------------------------------------------------------------
 // M5 — anchors (`&name`) and aliases (`*name`). Every case is checked against
 // the `yaml` oracle (calibrated directly against it, per the task recipe —
 // several corners here are NOT obvious from prose alone: e.g. an anchor

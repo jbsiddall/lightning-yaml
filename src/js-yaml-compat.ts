@@ -52,7 +52,7 @@
  *
  * dump (DumpOptions)
  *   sortKeys           sort map keys on output                    compat       <- easy win (pre-sort the graph)
- *   skipInvalid        drop functions/undefined vs emit/throw     compat       <- easy win (pre-clean input)
+ *   skipInvalid        drop unrepresentable values vs throw       compat       <- easy win (pre-clean input)
  *   indent             block indent width (we hardcode 2)         core
  *   quoteStyle         prefer 'single' vs "double"                core
  *   forceQuotes        always quote strings                       core
@@ -317,9 +317,14 @@ const LOAD_OPTION_RULES: Record<string, OptionRule> = {
 const DUMP_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   sortKeys: activatesFeature("would sort map keys on output — not supported yet"),
-  // NOT activatesFeature: real js-yaml's `false` THROWS on unrepresentable values (functions/Symbols)
-  // where our stringify silently serializes them — so `false` isn't a no-op; every value must fail loud.
-  skipInvalid: notYetSupported,
+  // `false` (js-yaml's default) is a genuine no-op — but only a real match for
+  // Map/RegExp/function/symbol/bigint, where real js-yaml's own dump() default
+  // already throws too. For Set/Date it isn't a match at all: js-yaml's actual
+  // default dump schema is YAML-1.1-flavored, not core, so it happily emits
+  // `!!set`/an ISO string for those, while ours still throws — a sanctioned
+  // divergence, see README's "Decisions and deviations". Only `true` (dropping
+  // the value instead of throwing) is unbuilt.
+  skipInvalid: activatesFeature("would drop unrepresentable values instead of throwing — not supported yet"),
   noRefs: activatesFeature("would expand shared refs instead of using `&`/`*` — not supported yet"),
   forceQuotes: activatesFeature("would always quote strings — not supported yet"),
   seqNoIndent: activatesFeature("would stop indenting block sequences — not supported yet"),
@@ -390,7 +395,12 @@ export function loadAll(input: string, iteratorOrOpts?: ((doc: unknown) => void)
 /** Delegates to our `stringify`; dump options are validated and throw until honoured. */
 export function dump(obj: unknown, opts?: DumpOptions): string {
   validateOptions(opts, DUMP_OPTION_RULES, failOption);
-  return ourStringify(obj);
+  try {
+    return ourStringify(obj);
+  } catch (err) {
+    if (err instanceof NotImplementedError) throw err;
+    throw toYAMLException(err, undefined); // DumpOptions has no `filename`
+  }
 }
 
 const jsYamlCompat = {

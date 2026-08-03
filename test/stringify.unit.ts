@@ -449,7 +449,157 @@ test("Uint8Array: nested inside maps/sequences, alongside other scalars", () => 
 });
 
 // ---------------------------------------------------------------------------
-// 5. Shared references — the SAME object/array reachable from >= 2 places must
+// 5. Values stringify can't emit throw, instead of silently losing data.
+// `Map`/`Set`/`Date`/`RegExp`/etc. keep their real payload in internal slots
+// that `Object.keys` can't see, so without this guard they're indistinguishable
+// from `{}` — or, if one carries an own property, from just that property —
+// and silently serialize as the wrong thing, losing data (#127/#20); a
+// function/symbol would similarly serialize as bare, often-invalid text
+// (#128). `Date`/`RegExp`/function/symbol have no YAML 1.2 core type at all;
+// `Map`/`Set` are narrower — YAML CAN represent them (`!!omap`/`!!set`, and
+// `parse` already reads those tags back into a `Map`/`Set`), emitting one back
+// out just isn't built yet (#101). `bigint` throws for a different reason:
+// `!!int` is arbitrary-precision in YAML, so its decimal would be legal text,
+// but our parser reads `!!int` back as a JS number, so a value past 2^53 would
+// return silently rounded. Emitting it waits for the bigint-aware read side
+// (#98) that makes the round trip faithful.
+// ---------------------------------------------------------------------------
+
+const exoticObjects: Array<[string, unknown]> = [
+  ["Map with entries", new Map([["a", 1]])],
+  ["empty Map", new Map()],
+  ["Set", new Set([1, 2, 3])],
+  ["Date", new Date("2020-01-01T00:00:00Z")],
+  ["Date (Invalid Date)", new Date(NaN)],
+  ["RegExp", /ab+c/g],
+  ["Error", new Error("x")],
+  ["Promise", Promise.resolve(1)],
+  ["WeakMap", new WeakMap()],
+  ["ArrayBuffer", new ArrayBuffer(4)],
+  ["boxed Number", new Number(5)],
+  ["boxed String", new String("ab")],
+  ["Int32Array", new Int32Array([1, 2, 3])],
+];
+
+for (const [label, value] of exoticObjects) {
+  test(`exotic object throws · ${label} (root)`, () => {
+    throws(() => stringify(value), /cannot serialize a \S+/, label);
+  });
+  test(`exotic object throws · ${label} (map value)`, () => {
+    throws(() => stringify({ k: value }), /cannot serialize a \S+/, label);
+  });
+  test(`exotic object throws · ${label} (seq item)`, () => {
+    throws(() => stringify([value]), /cannot serialize a \S+/, label);
+  });
+}
+
+test("exotic object throws · subclass of a builtin with an own field (tag-based catch, not instanceof)", () => {
+  class TrackedMap<K, V> extends Map<K, V> {
+    hits = 0;
+  }
+  throws(() => stringify(new TrackedMap<string, number>([["a", 1]])), /cannot serialize a Map/);
+});
+
+// The prototype guard classifies by tag, but `Uint8Array` is ACCEPTED via
+// `instanceof`, which is realm-local — so bytes from a vm/iframe reach the guard
+// and must not be told YAML can't represent them, when same-realm bytes dump fine.
+test("a cross-realm Uint8Array reports the realm, not a bogus 'no representation'", async () => {
+  const vm = await import("node:vm");
+  const foreign = vm.runInNewContext("new Uint8Array([1, 2, 3])") as Uint8Array;
+  strictEqual(stringify(new Uint8Array([1, 2, 3])), "!!binary AQID\n"); // same realm still works
+  throws(() => stringify(foreign), /Uint8Array from another realm/);
+});
+
+test("exotic object throws · shared reference can't hide behind an alias", () => {
+  const m = new Map([["a", 1]]);
+  throws(() => stringify({ x: m, y: m }), /cannot serialize a Map/);
+});
+
+// An own enumerable property is the dangerous case: it gives an exotic object
+// something for writeCollectionBody to walk, so a guard keyed on "no own keys"
+// lets the object through and emits that one stray property in place of the real
+// payload — silent loss with none of the `{}` tell. Hence the guard keys on the
+// prototype, not on emptiness (#144).
+test("exotic object throws · an own enumerable property doesn't hide the real payload behind it (#144)", () => {
+  const mapWithProp = Object.assign(new Map([["a", 1], ["b", 2]]), { extra: "hi" });
+  throws(() => stringify(mapWithProp), /cannot serialize a Map/);
+  throws(() => stringify({ k: mapWithProp }), /cannot serialize a Map/);
+  throws(() => stringify([mapWithProp]), /cannot serialize a Map/);
+
+  const setWithProp = Object.assign(new Set([1, 2]), { extra: "hi" });
+  throws(() => stringify(setWithProp), /cannot serialize a Set/);
+
+  const dateWithProp = Object.assign(new Date(0), { extra: "hi" });
+  throws(() => stringify(dateWithProp), /cannot serialize a Date/);
+});
+
+test("exotic object throws · a shared/aliased reference with an own property still can't hide behind an alias", () => {
+  const m = Object.assign(new Map([["a", 1]]), { extra: "hi" });
+  throws(() => stringify({ x: m, y: m }), /cannot serialize a Map/);
+});
+
+test("Map/Set throw a 'not yet emitted' message, distinct from types with no YAML representation at all (#101)", () => {
+  throws(() => stringify(new Map()), /parse already reads !!omap back into a Map/);
+  throws(() => stringify(new Set()), /parse already reads !!set back into a Set/);
+  throws(() => stringify(new Date(0)), /YAML 1\.2 has no representation for it/);
+  throws(() => stringify(/x/), /YAML 1\.2 has no representation for it/);
+});
+
+test("function/symbol throws instead of being stringified as text", () => {
+  function foo(): number {
+    return 1;
+  }
+  throws(() => stringify({ a: foo }), /cannot serialize a function value/);
+  throws(() => stringify({ a: () => 1 }), /cannot serialize a function value/);
+  throws(() => stringify(() => 1), /cannot serialize a function value/);
+  throws(() => stringify({ a: Symbol("s") }), /cannot serialize a symbol value/);
+  throws(() => stringify([Symbol()]), /cannot serialize a symbol value/);
+});
+
+test("bigint throws rather than emitting a value that reads back rounded", () => {
+  throws(() => stringify(10n), /cannot serialize a bigint value/);
+  throws(() => stringify({ a: 10n }), /cannot serialize a bigint value/);
+  throws(() => stringify({ a: -7n }), /cannot serialize a bigint value/);
+  throws(() => stringify([1n, 2n]), /cannot serialize a bigint value/);
+  // The value that motivates the throw: past 2^53 the decimal is legal YAML but
+  // our own parser hands it back rounded, so emitting it would lose data.
+  throws(() => stringify({ a: 9007199254740993n }), /cannot serialize a bigint value/);
+});
+
+test("regression: values stringify accepted before are still unaffected", () => {
+  strictEqual(stringify({ a: 1 }), "a: 1\n");
+  strictEqual(stringify([1, 2]), "- 1\n- 2\n");
+  strictEqual(stringify({}), "{}\n");
+  strictEqual(stringify([]), "[]\n");
+  strictEqual(stringify({ a: {}, b: [] }), "a: {}\nb: []\n");
+  strictEqual(stringify(new Uint8Array([1, 2, 3])), "!!binary AQID\n");
+  ok(typeof stringify(new Uint8Array(0)) === "string");
+  strictEqual(stringify(null), "null\n");
+
+  class Point {
+    x: number;
+    constructor() {
+      this.x = 1;
+    }
+  }
+  strictEqual(stringify(new Point()), "x: 1\n");
+
+  class E {}
+  strictEqual(stringify(new E()), "{}\n", "an empty class instance is an honest empty mapping, not an exotic");
+
+  strictEqual(stringify(Object.create(null)), "{}\n");
+  strictEqual(stringify({ [Symbol.toStringTag]: "Foo" }), "{}\n", "a plain object carrying Symbol.toStringTag is not mistaken for an exotic (prototype fast path)");
+  strictEqual(stringify({ a: undefined }), "a: null\n");
+  strictEqual(stringify({ get a() { return 1; } }), "a: 1\n");
+});
+
+test("state is released after a stringify throw (no leak into the next call)", () => {
+  throws(() => stringify({ k: { deep: new Map([["a", 1]]) } }));
+  strictEqual(stringify({ a: 1 }), "a: 1\n");
+});
+
+// ---------------------------------------------------------------------------
+// 6. Shared references — the SAME object/array reachable from >= 2 places must
 // round-trip deep-equal AND (checked directly, since deepEqual alone can't
 // distinguish a shared reference from an accidental deep-equal copy) must
 // resolve to the SAME reference after our own stringify -> parse round-trip.
@@ -543,7 +693,7 @@ test("nested sharing (diamond DAG): repeated re-sharing across levels stays boun
 });
 
 // ---------------------------------------------------------------------------
-// 6. Cycles — see the file header for the chosen spec (round-trip via anchors/
+// 7. Cycles — see the file header for the chosen spec (round-trip via anchors/
 // aliases, matching the oracle's own behavior) and why it was chosen.
 // ---------------------------------------------------------------------------
 
@@ -606,7 +756,7 @@ test("cycle: a cyclic field nested inside an otherwise-ordinary structure", () =
 });
 
 // ---------------------------------------------------------------------------
-// 7. Special keys — __proto__/constructor/prototype as map keys must round-trip
+// 8. Special keys — __proto__/constructor/prototype as map keys must round-trip
 // without ever polluting Object.prototype.
 // ---------------------------------------------------------------------------
 

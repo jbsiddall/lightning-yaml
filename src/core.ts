@@ -529,9 +529,11 @@ function fail(message: string): never {
 // ---------------------------------------------------------------------------
 
 /**
- * Reset all per-stream parser state and position `pos` past a leading BOM, if
- * any. Shared by `parse`/`parseAll` — the two differ only in how many
- * documents they read off the same document loop (`parseNextDocument`).
+ * Reset all per-stream parser state. Shared by `parse`/`parseAll` — the two
+ * differ only in how many documents they read off the same document loop
+ * (`parseNextDocument`). A leading BOM is one of the stream's document-prefix
+ * positions and is skipped by `skipDocumentPrefix`, called from
+ * `parseNextDocument` itself — not here.
  */
 function resetForStream(text: string): void {
   src = text;
@@ -552,12 +554,6 @@ function resetForStream(text: string): void {
   colOverride = -1;
   bareDocAllowed = true;
   flowIndentFloor = -1;
-
-  // Skip a leading BOM without copying the input.
-  if (len > 0 && src.charCodeAt(0) === BOM) {
-    pos = 1;
-    lineStart = 1; // so the first line's content column is measured from here
-  }
 }
 
 /**
@@ -644,6 +640,11 @@ export function parse(text: string, options?: ParseOptions): unknown {
     const value = parseNextDocument();
     if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
 
+    // A trailing document prefix — comments and/or a re-declared BOM after a final
+    // `...` — is a well-formed stream with no further document ([211]); skip it so it
+    // isn't reported as a second document. A real second document still fails below.
+    skipDocumentPrefix();
+
     // Single-document contract (like js-yaml's `load`): a second document —
     // another marker, more directives, or any other trailing content — is an
     // error here; use `parseAll` for multi-document streams.
@@ -711,6 +712,11 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
  *
  * @param value - The value to serialize.
  * @returns The YAML document text.
+ * @throws {@link YAMLParseError} if the value contains something this serializer
+ * won't write: a `Date`, `RegExp`, function or symbol (YAML 1.2 core has no type
+ * for them), a `Map` or `Set` (`!!omap`/`!!set` exist and `parse` reads them, but
+ * emitting one isn't built yet), or a `bigint` (its decimal is legal YAML, but
+ * `parse` reads integers back as `number`, so large values would return rounded).
  *
  * @example
  * ```ts
@@ -4435,6 +4441,28 @@ function parseDirectives(): boolean {
 }
 
 /**
+ * Skip a document PREFIX: byte order mark(s) sitting at the start of a line, plus
+ * blank/comment lines. Per [202] `l-document-prefix` (`c-byte-order-mark? l-comment*`,
+ * repeatable) and the standalone `c-byte-order-mark` alternative of [211]
+ * `l-yaml-stream`, a BOM may re-declare the encoding at the start of ANY document
+ * (§9.1.1) — not only the stream's first — so it is legal before a `---`, after a
+ * `...`, and interleaved with comment lines, and must be skipped rather than read as
+ * content (`nb-char` [27] excludes it, so it can never belong to a node).
+ *
+ * Cold: called once per document boundary. Deliberately NOT folded into
+ * `skipBlankLines`, which every `nextLine` goes through — the hot line-advance path
+ * must stay BOM-free.
+ */
+function skipDocumentPrefix(): void {
+  skipBlankLines();
+  while (pos < len && pos === lineStart && src.charCodeAt(pos) === BOM) {
+    pos++;
+    lineStart = pos; // a BOM is an encoding artifact, not content: the next char is column 0
+    skipBlankLines();
+  }
+}
+
+/**
  * Parse one document from the current stream position: an optional
  * directives block (which then requires an explicit `---`), an optional
  * `---`/`...` marker, the document's root node (or `null` for an empty
@@ -4444,7 +4472,7 @@ function parseDirectives(): boolean {
  * every rule above is enforced identically for single- and multi-document use.
  */
 function parseNextDocument(): unknown {
-  skipBlankLines();
+  skipDocumentPrefix();
   if (pos >= len) return NO_DOCUMENT;
 
   const sawDirectives = parseDirectives();
@@ -4471,6 +4499,10 @@ function parseNextDocument(): unknown {
   let value: unknown;
   if (isDash) {
     const inline = consumeDocStartMarker();
+    // §5.2: "A BOM must not appear inside a document" (Example 5.2). A prefix BOM
+    // belongs BEFORE the `---`; `nb-char` [27] excludes it from node content, so one
+    // here is an error rather than something to strip. Cold: once per document.
+    if (pos < len && src.charCodeAt(pos) === BOM) fail("a byte order mark must not appear inside a document");
     // A bare '---' immediately followed by EOF or another marker is an empty
     // document; otherwise the node begins right where the marker left `pos`
     // (same line if there was inline content — collections forbidden there —
@@ -4892,6 +4924,21 @@ function formatNumber(v: number): string {
 }
 
 /**
+ * Reject a value stringify can't emit. Only ever reached from the cold tails
+ * below (a non-scalar `typeof`, or an object with a non-plain prototype), so the
+ * JSON-shaped path never touches it. Same convention as the dumper's depth
+ * guards: a `YAMLParseError` prefixed `stringify:`. `why` defaults to the
+ * "no representation at all" case; `checkDumpableObject` overrides it for
+ * `Map`/`Set`, which YAML CAN represent — stringify just doesn't emit them yet.
+ */
+function failStringify(what: string, why = "YAML 1.2 has no representation for it"): never {
+  throw new YAMLParseError(
+    `stringify: cannot serialize ${what} — ${why} ` +
+      `(supported: string, number, boolean, null, plain object, array, Uint8Array)`,
+  );
+}
+
+/**
  * Render any scalar-shaped value (including `null`/`undefined`, though only
  * `null` is in the tested data model — `undefined` is mapped the same way as
  * a defensive fallback rather than crashing on a plausible-but-untested input)
@@ -4903,7 +4950,14 @@ function writeScalar(value: unknown): string {
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return formatNumber(value);
   if (typeof value === "string") return writeStringScalar(value);
-  return writeStringScalar(String(value)); // not in the tested data model (e.g. bigint/symbol) — best effort
+  // Cold tail — everything that isn't a core scalar, including `bigint`. YAML's
+  // `!!int` IS arbitrary-precision (§10.3.2), so emitting a bigint's decimal would
+  // be spec-legal text; we still refuse, because our own parser reads `!!int` back
+  // as a JS number — so anything past 2^53 would come back silently rounded, exactly
+  // the round-trip failure the spec's own "as long as they round-trip properly"
+  // proviso for general-purpose number types is there to rule out. Emitting is
+  // deferred to #98, which adds the bigint-aware read side that makes it faithful.
+  return failStringify(`a ${typeof value} value`);
 }
 
 // ---------------------------------------------------------------------------
@@ -4962,6 +5016,48 @@ function writeBinaryScalar(bytes: Uint8Array): string {
 
 function isEmptyContainer(obj: object, isArr: boolean): boolean {
   return isArr ? (obj as unknown[]).length === 0 : Object.keys(obj as Record<string, unknown>).length === 0;
+}
+
+const OBJECT_PROTOTYPE = Object.prototype;
+
+/**
+ * Guard against exotic built-ins (`Map`/`Set`/`Date`/`RegExp`/`Promise`/…) whose
+ * real payload lives in internal slots `Object.keys` can't see. Called from every
+ * site below that's about to walk an object's OWN enumerable keys and write them
+ * as a mapping — not only when that key list is empty: an exotic with zero own
+ * properties would otherwise emit a lying `{}`, but one with even one own property
+ * (`Object.assign(new Map(...), { note: "x" })`, a `Map` subclass that tracks an
+ * extra field, …) would emit just that property and silently discard the rest —
+ * the same data loss either way (#127/#20). Callers only reach this once they've
+ * already confirmed a non-`Object.prototype`/non-null prototype, so a genuine
+ * plain object never pays for the tag check below.
+ *
+ * `Date`/`RegExp`/function/symbol have no YAML 1.2 core type at all, so refusing
+ * them is on principle. `Map`/`Set` are narrower: YAML CAN represent them
+ * (`!!omap`/`!!set`), and `parse` already reads those tags back into a real
+ * `Map`/`Set` — stringify just doesn't emit one back yet (#101, tracked
+ * separately from this fix), so the message says that instead of the generic
+ * "no representation."
+ *
+ * The realm-safe builtin tag (rather than `instanceof`) catches a cross-realm or
+ * subclassed `Map` that `instanceof` would miss, while still letting a genuinely
+ * plain-data class instance (whose tag is `[object Object]`) dump as an ordinary
+ * mapping.
+ */
+function checkDumpableObject(obj: object): void {
+  const tag = Object.prototype.toString.call(obj); // e.g. "[object Map]"
+  if (tag === "[object Object]") return;
+  const kind = tag.slice(8, -1);
+  // Only a cross-realm one gets here — the writers' `instanceof Uint8Array` fast
+  // path claims same-realm bytes long before this. Saying "no representation"
+  // would be a lie, since the very next realm over dumps it as `!!binary`.
+  if (kind === "Uint8Array") {
+    failStringify("a Uint8Array from another realm", "dumping bytes as !!binary needs one created in this realm (an iframe/vm copy isn't recognised)");
+  }
+  if (kind === "Map" || kind === "Set") {
+    failStringify(`a ${kind}`, `parse already reads !!${kind === "Map" ? "omap" : "set"} back into a ${kind} — stringify just doesn't emit one yet (#101)`);
+  }
+  failStringify(`a ${kind}`);
 }
 
 /**
@@ -5031,6 +5127,15 @@ function writeEntryValue(value: unknown, indent: number): void {
     return;
   }
   const isArr = Array.isArray(obj);
+  if (!isArr) {
+    // Fast-pathed here (not inside `checkDumpableObject`) so a genuine plain
+    // object — the overwhelmingly common JSON-shaped case — pays exactly one
+    // `getPrototypeOf` + one compare, with no function call; only a non-plain
+    // prototype (rare) falls through to the tag check, regardless of whether
+    // `obj` turns out empty or not (see `checkDumpableObject`'s doc comment).
+    const proto = Object.getPrototypeOf(obj);
+    if (proto !== OBJECT_PROTOTYPE && proto !== null) checkDumpableObject(obj);
+  }
   const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
   if (isEmptyContainer(obj, isArr)) {
     out += " " + (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
@@ -5062,6 +5167,13 @@ function writeDocumentValue(value: unknown): void {
     return;
   }
   const isArr = Array.isArray(obj);
+  if (!isArr) {
+    // See `writeEntryValue`'s matching check for why this runs here (inlined,
+    // no function call for the plain-object fast path) rather than inside
+    // `checkDumpableObject`, and why it isn't gated on emptiness.
+    const proto = Object.getPrototypeOf(obj);
+    if (proto !== OBJECT_PROTOTYPE && proto !== null) checkDumpableObject(obj);
+  }
   const name = dumpHasShared && dumpNeedsAnchor(obj) ? dumpAssignAnchor(obj) : null;
   if (isEmptyContainer(obj, isArr)) {
     out += (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
@@ -5071,25 +5183,29 @@ function writeDocumentValue(value: unknown): void {
   writeCollectionBody(obj, isArr, 0);
 }
 
+/** Drop every per-call reference so a large dumped graph isn't kept alive past this call. */
+function dumpRelease(): void {
+  out = ""; // the caller has already captured the flattened result, so drop the rope
+  dumpRefCounts = null;
+  dumpAnchors = null;
+  dumpKeyCache = null;
+}
+
 /**
- * Terminal flatten + per-call cleanup for `dumpValue`. Reads `out` once and
- * forces V8's single O(n) `String::Flatten` eagerly (see `out`'s doc comment
- * for the full rationale: the returned value must be an ordinary flat string,
- * not a rope pinning ~O(lines) cons nodes live until a later consumer first
- * touches it), then releases all per-call dump state so a large dumped graph
- * isn't kept alive past this call.
+ * Terminal flatten for `dumpValue`'s success path. Reads `out` once and forces
+ * V8's single O(n) `String::Flatten` eagerly (see `out`'s doc comment for the
+ * full rationale: the returned value must be an ordinary flat string, not a
+ * rope pinning ~O(lines) cons nodes live until a later consumer first touches
+ * it). Per-call state cleanup is `dumpValue`'s `finally` block, not here — this
+ * runs only on success, and the guard needs both paths covered.
  */
 function dumpFinish(): string {
   const result = out;
-  out = ""; // drop the module-level reference so the rope isn't pinned past this call
   // `charCodeAt` triggers the flatten; the module-level sink defeats dead-code
   // elimination of the otherwise-unused read (`|=` both reads and writes it, so
   // neither V8 nor tsc can treat it as dead) — the same O(n) flatten a consumer
   // would pay on first access, made eager so stringify's own cost is honest.
   if (result.length !== 0) dumpFlattenSink |= result.charCodeAt(0);
-  dumpRefCounts = null;
-  dumpAnchors = null;
-  dumpKeyCache = null;
   return result;
 }
 
@@ -5100,23 +5216,34 @@ function dumpFinish(): string {
  * the scan reached more than once (a shared reference or a cycle). When the scan
  * finds no sharing — the overwhelmingly common tree case — no anchor is ever
  * assigned and the write takes the anchor-free fast path (`dumpHasShared` false).
+ *
+ * The whole body runs under one `finally` → `dumpRelease()`, covering BOTH throw
+ * sites (`dumpScanRefs`'s own depth guard, and anything `writeDocumentValue`
+ * throws) with the same cleanup — a mid-dump failure must not leave
+ * `dumpKeyCache`/`dumpRefCounts`/`dumpAnchors` pinned at module scope until the
+ * next `stringify()` call. `return dumpFinish()` is fully evaluated (`out` read,
+ * flattened) before `finally` runs, so releasing state afterward is safe.
  */
 function dumpValue(value: unknown): string {
   dumpKeyCache = new Map();
   dumpRefCounts = new Map();
   dumpDepth = 0;
   dumpHasShared = false;
-  dumpScanRefs(value);
-  // No shared node or cycle anywhere ⇒ no anchor will ever be assigned, so the
-  // ref-count map has done its whole job and the write pass takes the anchor-free
-  // fast path. Release it now (one entry per object — sizable) rather than pinning
-  // it live through the heavy output build; this early release keeps peak RSS at
-  // the classic dumper's level when the value turns out alias-free.
-  if (!dumpHasShared) dumpRefCounts = null;
-  dumpAnchors = new Map();
-  dumpAnchorSeq = 0;
-  out = "";
-  dumpDepth = 0;
-  writeDocumentValue(value);
-  return dumpFinish();
+  try {
+    dumpScanRefs(value);
+    // No shared node or cycle anywhere ⇒ no anchor will ever be assigned, so the
+    // ref-count map has done its whole job and the write pass takes the anchor-free
+    // fast path. Release it now (one entry per object — sizable) rather than pinning
+    // it live through the heavy output build; this early release keeps peak RSS at
+    // the classic dumper's level when the value turns out alias-free.
+    if (!dumpHasShared) dumpRefCounts = null;
+    dumpAnchors = new Map();
+    dumpAnchorSeq = 0;
+    out = "";
+    dumpDepth = 0;
+    writeDocumentValue(value);
+    return dumpFinish();
+  } finally {
+    dumpRelease();
+  }
 }
