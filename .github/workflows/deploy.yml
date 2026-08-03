@@ -47,14 +47,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4 # site code (main / PR branch)
-      - uses: actions/checkout@v4 # benchmark data (orphan branch)
+      - uses: actions/checkout@v7 # site code (main / PR branch)
+      - uses: actions/checkout@v7 # benchmark data (orphan branch)
         with:
           ref: benchmark-data
           path: .benchmark-data
           fetch-depth: 1
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -77,14 +77,14 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           ref: benchmark-data
           path: .benchmark-data
           fetch-depth: 1
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -121,7 +121,7 @@ jobs:
       # Uses the first-party github-script action so the logic stays auditable in-repo.
       - name: Comment the preview link on the PR
         if: github.event_name == 'pull_request' && steps.deploy.outputs.url != ''
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.url }}
         with:
