@@ -56,7 +56,7 @@
  *   schema            failsafe / core / json / yaml-1.1          core         [3]
  *   customTags        plug in custom tag resolvers               core         (needs a tag registry)
  *   resolveKnownTags  !!omap/!!set/!!timestamp under core        core         (we resolve !!binary only)
- *   merge             enable `<<` merge keys                     feature      (merge keys unimplemented)
+ *   merge             enable `<<` merge keys                     done         [4]
  *   keepSourceTokens · lineCounter · onAnchor                    feature      (need CST / retained metadata)
  *
  * stringify (ToStringOptions·CreateNodeOptions·SchemaOptions)
@@ -79,6 +79,11 @@
  *     duplicate keys as VALID (see js-yaml-compat.ts note [1]).
  * [3] Default 1.2-core already matches `yaml`'s own default; only `version: 1.1`
  *     / a non-core schema changes typing (yes->true, sexagesimal, legacy octal).
+ * [4] Our core (./core.ts) merges `<<` BY DEFAULT — a deliberate divergence from
+ *     real `yaml`, which requires `{ merge: true }` (see README's "Decisions and
+ *     deviations"). This shim passes `merge: false` through on every parse path
+ *     unless the caller opts in, so its own default byte-matches real `yaml`'s;
+ *     `{ merge: true }` here does the same thing it does in real `yaml`.
  *
  * The remaining known simplifications, called out where they matter below:
  *
@@ -119,6 +124,15 @@ const failOption = (message: string): never => {
   throw new YAMLCompatError(`lightning-yaml yaml compat: ${message}`);
 };
 
+/**
+ * The effective `merge` value for a core `parse`/`parseAll` call. Real `yaml`
+ * defaults merging OFF (see the module doc's [4]) and tests the option for
+ * plain truthiness rather than validating its type, so a non-boolean has to
+ * behave the same way here — `{ merge: 1 }` merges, `{ merge: 0 }` doesn't,
+ * and neither throws.
+ */
+const mergeOptionOf = (opts: Record<string, unknown> | undefined): { merge: boolean } => ({ merge: Boolean(opts?.merge) });
+
 /** Only the default `core` schema is a no-op; others change scalar typing. */
 const schemaCoreOnly: OptionRule = (v) =>
   v === "core"
@@ -139,7 +153,9 @@ const PARSE_OPTION_RULES: Record<string, OptionRule> = {
   intAsBigInt: activatesFeature("would return large integers as exact `BigInt` — not supported yet"),
   uniqueKeys: activatesFeature("would throw on duplicate keys — not supported yet (lightning-yaml keeps last-wins)"),
   stringKeys: activatesFeature("would require scalar string keys — not supported yet"),
-  merge: activatesFeature("would enable `<<` merge keys, which are outside YAML 1.2 core"),
+  // Honoured, both directions: our core (./core.ts) merges `<<` by default, so `merge: true` here
+  // just lets that default through instead of overriding it to `false` (see `parse`'s call below).
+  merge: () => null, // any value: real `yaml` just tests truthiness (see mergeOptionOf)
   maxAliasCount: notYetSupported,
   customTags: notYetSupported,
   resolveKnownTags: notYetSupported,
@@ -224,7 +240,7 @@ export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unkn
   // as stringify below.)
   const optionBag = opts === undefined && typeof reviverOrOpts !== "function" && reviverOrOpts ? reviverOrOpts : opts;
   validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
-  const value = ourParse(src);
+  const value = ourParse(src, mergeOptionOf(optionBag as Record<string, unknown> | undefined));
   if (!reviver) return value;
   const holder: Record<string, unknown> = { "": value };
   return applyReviver(holder, "", reviver);
@@ -269,7 +285,7 @@ function makeDocument(contents: unknown, errors: Error[] = []): CompatDocument {
 export function parseAllDocuments(src: string, opts?: Record<string, unknown>): CompatDocument[] {
   validateOptions(opts, PARSE_OPTION_RULES, failOption);
   try {
-    return ourParseAll(src).map((v) => makeDocument(v));
+    return ourParseAll(src, mergeOptionOf(opts)).map((v) => makeDocument(v));
   } catch (err) {
     return [makeDocument(undefined, [toError(err)])];
   }
@@ -287,12 +303,13 @@ export function parseAllDocuments(src: string, opts?: Record<string, unknown>): 
  */
 export function parseDocument(src: string, opts?: Record<string, unknown>): CompatDocument {
   validateOptions(opts, PARSE_OPTION_RULES, failOption);
+  const mergeOpt = mergeOptionOf(opts);
   try {
-    return makeDocument(ourParse(src));
+    return makeDocument(ourParse(src, mergeOpt));
   } catch (err) {
     let contents: unknown;
     try {
-      contents = ourParseAll(src)[0];
+      contents = ourParseAll(src, mergeOpt)[0];
     } catch {
       contents = undefined;
     }

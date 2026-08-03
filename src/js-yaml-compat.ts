@@ -48,7 +48,7 @@
  *   schema             FAILSAFE / JSON / CORE / YAML11 typing      core        [2]
  *   maxAliases         cap alias expansions (billion-laughs)      compat/core
  *   maxDepth           cap nesting depth                          compat/core  (core already tracks depth)
- *   maxTotalMergeKeys  cap `<<` merge expansion                   feature      (merge keys unimplemented)
+ *   maxTotalMergeKeys  cap `<<` merge expansion                   compat/core  [4]
  *
  * dump (DumpOptions)
  *   sortKeys           sort map keys on output                    compat       <- easy win (pre-sort the graph)
@@ -72,16 +72,30 @@
  *     typing already agrees; only an explicitly non-default schema diverges.
  * [3] `noRefs` can't just skip anchoring: the shared-reference pre-scan is also
  *     the cycle guard, so it must first tell a shared DAG node from a cycle.
+ * [4] Merge keys ARE implemented in our core (./core.ts merges `<<` BY
+ *     DEFAULT — a deliberate divergence from real js-yaml, documented in
+ *     README's "Decisions and deviations"), but THIS SHIM has no way to turn
+ *     merging on: `load`/`loadAll` pass `merge: false` through on every call
+ *     so their own default byte-matches real js-yaml v5's (no merge unless
+ *     asked). Real js-yaml's only merge opt-in is `schema: YAML11_SCHEMA`,
+ *     which ALSO switches on the rest of YAML 1.1 scalar resolution
+ *     (`yes`/`no`/`on`/`off` → booleans, etc.) as an inseparable side effect —
+ *     honouring it would silently diverge on scalars, precisely what the
+ *     fail-loud option convention above exists to prevent — so `YAML11_SCHEMA`
+ *     keeps throwing via `schemaCoreOnly` (only the default `CORE_SCHEMA` is
+ *     accepted) and `maxTotalMergeKeys` stays unexposed alongside it.
  *
  * The construct-level gaps below are the current intentional simplifications
  * (a `NotImplementedError` here means "can't read this yet", not "malformed"):
  *
  *   - Parser coverage: the core is feature-complete for YAML 1.2 core — block
  *     scalars, anchors/aliases, and tags (incl. `!!binary`) all parse, so
- *     `load`/`loadAll` return values for them rather than rejecting. The one
- *     known gap is merge keys (`<<`): they are neither merged nor rejected —
- *     `<<` comes back as an ordinary key (e.g. `{ "<<": {...}, y: 2 }`), which
- *     diverges from js-yaml's merge semantics. (See the matrix above.)
+ *     `load`/`loadAll` return values for them rather than rejecting. Merge
+ *     keys (`<<`) ARE implemented (and on by default) in the core parser, but
+ *     this shim pins `merge: false` on every call so `load`/`loadAll` byte-
+ *     match real js-yaml v5's own default — `<<` still comes back as an
+ *     ordinary key (e.g. `{ "<<": {...}, y: 2 }`) here. There is no option
+ *     that turns merging on through this shim (see the matrix above, [4]).
  *   - Errors: a genuine syntax error surfaces as a `YAMLException` (see below),
  *     so a caller's `catch (e) { if (e instanceof YAMLException) ... }` gets the
  *     same "this document is broken" signal js-yaml gives. `load`/`loadAll` also
@@ -238,7 +252,16 @@ export const FAILSAFE_SCHEMA: Schema = new Schema();
 export const JSON_SCHEMA: Schema = new Schema();
 /** Stub — see {@link FAILSAFE_SCHEMA}. */
 export const CORE_SCHEMA: Schema = new Schema();
-/** Stub. Does NOT turn on YAML 1.1 typing; passing it as the `schema` option throws, because we always parse as YAML 1.2 core. See {@link FAILSAFE_SCHEMA}. */
+/**
+ * Stub. Does NOT turn on YAML 1.1 typing; passing it as the `schema` option
+ * throws, because we always parse as YAML 1.2 core. See {@link FAILSAFE_SCHEMA}.
+ *
+ * This is also real js-yaml's ONLY merge-key (`<<`) opt-in — and specifically
+ * why this shim has no way to turn merging on at all (see the module doc's
+ * option matrix, footnote [4]): honouring it would also have to switch on the
+ * rest of YAML 1.1 scalar resolution it inseparably carries, which we don't
+ * implement, so it keeps throwing rather than silently diverging on scalars.
+ */
 export const YAML11_SCHEMA: Schema = new Schema();
 
 // ---------------------------------------------------------------------------
@@ -311,7 +334,11 @@ const LOAD_OPTION_RULES: Record<string, OptionRule> = {
       : "= false (throw on duplicate keys) is not supported yet — lightning-yaml keeps last-wins for JSON.parse parity",
   maxAliases: notYetSupported,
   maxDepth: notYetSupported,
-  maxTotalMergeKeys: () => "is not supported — merge keys (`<<`) are outside YAML 1.2 core",
+  // Stale-message trap: merge keys ARE implemented in core now (see the module
+  // doc's [4]) — this is generic "not supported yet" rather than the old
+  // "outside YAML 1.2 core" wording specifically because this shim never
+  // enables merge at all, so a cap on it would have nothing to cap.
+  maxTotalMergeKeys: notYetSupported,
 };
 
 const DUMP_OPTION_RULES: Record<string, OptionRule> = {
@@ -355,7 +382,10 @@ const DUMP_OPTION_RULES: Record<string, OptionRule> = {
 export function load(input: string, opts?: LoadOptions): unknown {
   validateOptions(opts, LOAD_OPTION_RULES, failOption);
   try {
-    return ourParse(input);
+    // merge: false — our core (./core.ts) merges `<<` by default; real js-yaml
+    // does not (its only opt-in, YAML11_SCHEMA, always throws here — see the
+    // module doc's [4]), so this shim always pins the option off to match.
+    return ourParse(input, { merge: false });
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
     throw toYAMLException(err, opts?.filename);
@@ -375,7 +405,7 @@ export function loadAll(input: string, iteratorOrOpts?: ((doc: unknown) => void)
   validateOptions(options, LOAD_OPTION_RULES, failOption);
   let docs: unknown[];
   try {
-    docs = ourParseAll(input);
+    docs = ourParseAll(input, { merge: false }); // see load()'s identical note
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
     throw toYAMLException(err, options?.filename);

@@ -102,12 +102,69 @@ const BOM = 0xfeff;
 let SKIP_STRICT_VALIDATION = true;
 
 /**
+ * Backing flag for `<<` merge-key expansion (`tag:yaml.org,2002:merge`,
+ * https://yaml.org/type/merge.html — a YAML 1.1 type, not part of the 1.2.2
+ * core schema; see README's "Decisions and deviations"). UNLIKE
+ * `SKIP_STRICT_VALIDATION`, flipping this DOES change the structure a valid
+ * parse yields (a `<<` key disappears and its source's keys splice in at its
+ * position) — that's why it's its own flag rather than folded into strict
+ * mode: strict's contract is "reject-only," and merge expansion is not.
+ *
+ * Default `true` (merge ON) — a deliberate divergence from both js-yaml and
+ * `yaml`, which each require an explicit opt-in (see `applyMerge`'s doc
+ * comment). `parse`/`parseAll` set it per call from `options.merge`
+ * (`MERGE_KEYS = options?.merge !== false`) and restore it to `true` in
+ * `finally`. Both compat shims (yaml-compat.ts/js-yaml-compat.ts) pass
+ * `merge: false` through by default to stay byte-faithful to the libraries
+ * they stand in for.
+ */
+let MERGE_KEYS = true;
+
+/**
+ * Out-param read only by the `<<` merge check, to tell a BARE `<<` (eligible)
+ * from a quoted or tagged one — all resolve to the same JS string `"<<"`, so
+ * only the source byte can distinguish them.
+ *
+ * It holds the position of the key's own scalar token past a leading `&anchor`,
+ * which is a node property rather than a style and so leaves the key eligible.
+ * A `!tag` is deliberately NOT skipped: a tagged key is a string and must never
+ * merge, and leaving this slot pointing at the property is exactly what keeps
+ * it ineligible. So "past the anchor, but never past a tag."
+ *
+ * It must be snapshotted into a local the moment the key is parsed: parsing the
+ * key's VALUE recurses into nested mappings, which overwrite this slot.
+ */
+let keyNodeStart = -1;
+
+/**
+ * Running total of keys copied across every `<<` merge in the CURRENT
+ * parse (reset per stream in `resetForStream`, not per mapping) — see
+ * `MAX_TOTAL_MERGE_KEYS`.
+ */
+let totalMergeKeys = 0;
+
+/**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
  * `RangeError` on deeply nested input (an attack, not a use case) where
  * `JSON.parse` degrades to an iterative fallback. We turn it into a controlled
  * parse error well before the engine stack limit. js-yaml ships the same guard.
  */
 const MAX_DEPTH = 1000;
+
+/**
+ * Cap on the total number of keys copied across every `<<` merge in one
+ * parse — NOT per mapping. Merging COPIES keys, unlike aliasing (which shares
+ * structure via one `Map.get`), so a chain of merges can do far more copying
+ * work than any single merge site suggests. The shape that actually
+ * amplifies is one where each level merges the whole accumulated level below
+ * it (`lvlN: {kN: v, <<: *lvlN-1}`), giving a quadratic total; a merge that
+ * simply repeats one source (`<<: [*a, *a]`) does NOT amplify, because
+ * `mergeOneSource`'s `hasOwn` check skips the second copy. js-yaml guards the
+ * identical risk with `maxTotalMergeKeys`; we match its default (`1e4`), and
+ * test/adversarial.unit.ts locks that a deep chain throws promptly rather
+ * than hanging or exhausting memory.
+ */
+const MAX_TOTAL_MERGE_KEYS = 10000;
 
 // ---------------------------------------------------------------------------
 // Character-class flag table — the analog of V8's `character_json_scan_flags`
@@ -551,6 +608,7 @@ function resetForStream(text: string): void {
   inlineMapValue = false;
   colOverride = -1;
   bareDocAllowed = true;
+  totalMergeKeys = 0;
   flowIndentFloor = -1;
 
   // Skip a leading BOM without copying the input.
@@ -607,6 +665,20 @@ export interface ParseOptions {
    * Default: `false` (lenient).
    */
   strict?: boolean;
+  /**
+   * By default (`true`) lightning-yaml resolves `<<: *anchor` / `<<: [*a, *b]`
+   * merge keys ([`tag:yaml.org,2002:merge`](https://yaml.org/type/merge.html) —
+   * a YAML 1.1 type, not part of the 1.2.2 core schema), splicing the merge
+   * source's keys into the current mapping at the point `<<` appears. This is
+   * a deliberate divergence from both `js-yaml` and `yaml`, which each require
+   * an explicit opt-in to merge at all (see README's "Decisions and
+   * deviations") — real-world YAML leans on `<<` heavily enough that
+   * lightning-yaml treats it as on by default. Pass `false` to restore the
+   * pre-merge reading: `<<` becomes an ordinary literal string key, neither
+   * expanded nor rejected.
+   * Default: `true`.
+   */
+  merge?: boolean;
   /** Opt-in performance tradeoffs — see {@link ParseOptimizations}. */
   optimizations?: ParseOptimizations;
 }
@@ -639,6 +711,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
+  MERGE_KEYS = options?.merge !== false;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const value = parseNextDocument();
@@ -654,6 +727,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
+    MERGE_KEYS = true; // restore the merge-on-by-default default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -683,6 +757,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   resetForStream(text);
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
+  MERGE_KEYS = options?.merge !== false;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const docs: unknown[] = [];
@@ -695,6 +770,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
+    MERGE_KEYS = true; // restore the merge-on-by-default default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -925,6 +1001,11 @@ function parseAnchoredFlowValue(): unknown {
     if (c === AMP) fail("a node may carry at most one anchor");
   }
   if (c === STAR) fail("an alias node cannot carry an anchor property");
+  // Anchor consumed, so the node's own token starts here — but only record it
+  // when UNTAGGED: a tag makes a key a string, hence never merge-eligible, and
+  // leaving the slot on the property is what keeps it that way. Mirrors
+  // parseFlowKeyAnchored, which likewise only advances past a bare anchor.
+  if (tag === null) keyNodeStart = pos;
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
   const node = tag !== null ? parseTaggedFlowContent(tag) : parseFlowValue();
@@ -1567,19 +1648,21 @@ function parseFlowSeq(): unknown[] {
     if (c === COLON && flowSeparatorAt(pos + 1)) {
       // A leading *boundary* `:` is an empty-key single-pair entry ([:] → [{"": null}]).
       // A `:` followed by non-separator (`:ff`) is an ordinary plain scalar (falls through).
-      arr.push(makeSinglePair("")); // leaves pos whitespace-skipped
+      arr.push(makeSinglePair("", -1)); // leaves pos whitespace-skipped
     } else if (c === QUESTION && flowSeparatorAt(pos + 1)) {
       // Explicit-key single-pair entry ([? a: b] → [{a: b}]).
       arr.push(parseFlowExplicitEntry());
     } else {
+      keyNodeStart = pos; // an anchored key's own parser moves this past the property
       const node = parseFlowValue();
+      const nodeStart = keyNodeStart;
       skipFlowWs();
       if (src.charCodeAt(pos) === COLON) {
         // `node: value` inside a sequence → an implicit single-pair mapping entry.
         // Its implicit key must be on one line: a `:` that landed on a later line
         // than the key (`[ key\n : v ]`) is invalid (yaml-test-suite DK4H/ZXT5).
         if (flowWsCrossedLine) fail("an implicit key in a flow sequence must be on a single line");
-        arr.push(makeSinglePair(keyToString(node))); // leaves pos whitespace-skipped
+        arr.push(makeSinglePair(keyToString(node), nodeStart)); // leaves pos whitespace-skipped
       } else {
         // Common path: the skipFlowWs above already positioned us at ',' or ']'.
         arr.push(node);
@@ -1604,13 +1687,16 @@ function parseFlowSeq(): unknown[] {
  * Build a single-pair mapping from a sequence entry. Call with `pos` at the `:`;
  * consumes it, reads the value (empty → null), and returns `{ key: value }`.
  */
-function makeSinglePair(key: string): Record<string, unknown> {
+function makeSinglePair(key: string, keyStart: number): Record<string, unknown> {
   pos++; // past ':'
   skipFlowWs();
   const c = src.charCodeAt(pos);
+  // `keyStart` is passed in rather than read from `keyNodeStart` here: parsing
+  // the value below recurses and would overwrite that slot first.
   const value = c === COMMA || c === RBRACKET || c === RBRACE ? null : parseFlowValue();
   const pair: Record<string, unknown> = {};
-  storeKey(pair, key, value);
+  if (MERGE_KEYS && key === "<<" && src.charCodeAt(keyStart) === LT) applyMerge(pair, value);
+  else storeKey(pair, key, value);
   skipFlowWs(); // leave pos at the following ',' / ']' for the caller
   return pair;
 }
@@ -1620,9 +1706,11 @@ function parseFlowExplicitEntry(): Record<string, unknown> {
   pos++; // past '?'
   skipFlowWs();
   const c = src.charCodeAt(pos);
+  keyNodeStart = pos;
   const key = c === COLON || c === COMMA || c === RBRACKET || c === RBRACE ? "" : keyToString(parseFlowValue());
+  const keyStart = keyNodeStart;
   skipFlowWs();
-  if (src.charCodeAt(pos) === COLON) return makeSinglePair(key); // consumes ':' + value
+  if (src.charCodeAt(pos) === COLON) return makeSinglePair(key, keyStart); // consumes ':' + value
   const pair: Record<string, unknown> = {};
   storeKey(pair, key, null); // `? key` with no value
   return pair;
@@ -1653,15 +1741,31 @@ function parseFlowMap(): Record<string, unknown> {
       break;
     }
     let key: string;
+    // `keyStart`: the source position `key` was scanned from, kept ONLY to
+    // decide `<<` merge-eligibility below (see `applyMerge`'s doc comment for
+    // why only a bare, unquoted/untagged/unaliased scalar qualifies — every
+    // other key form begins with a different sigil than a plain scalar's).
+    // Deliberately NOT resolved into a "is this plain" boolean here: that
+    // would cost a `charCodeAt` on EVERY key, when almost no key is ever
+    // literally "<<" — `applyMerge`'s call site below checks `key === "<<"`
+    // FIRST and short-circuits into `src.charCodeAt(keyStart)` only on that
+    // rare match, so this hot loop pays only a cheap position snapshot per
+    // key (confirmed against `pnpm bench:self`: eagerly resolving the
+    // boolean here cost ~2-5% on multi-key fixtures; this lazy form did not).
+    let keyStart: number;
     if (c === QUESTION && flowSeparatorAt(pos + 1)) {
       // Explicit `? key` (cold): the key is a full node up to ':'/','/'}'.
       pos++;
       skipFlowWs();
       c = src.charCodeAt(pos);
+      keyNodeStart = pos; // an anchored key's own parser overrides this past the property
       key = c === COLON || c === COMMA || c === RBRACE ? "" : keyToString(parseFlowValue());
+      keyStart = keyNodeStart;
     } else {
+      keyNodeStart = pos; // the fast-match path never re-sets it
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchFlowKey(c, ek) ? ek : parseFlowKey();
+      keyStart = keyNodeStart; // parseFlowKey advances it past a leading &anchor
     }
     // Record `key` into `produced` (see the entry comment): stay on the shared
     // `expected` array while it still matches, else fork a private copy.
@@ -1683,7 +1787,8 @@ function parseFlowMap(): Record<string, unknown> {
       c = src.charCodeAt(pos);
       if (c !== COMMA && c !== RBRACE) value = parseFlowValue();
     }
-    storeKey(obj, key, value);
+    if (MERGE_KEYS && key === "<<" && src.charCodeAt(keyStart) === LT) applyMerge(obj, value);
+    else storeKey(obj, key, value);
     skipFlowWs();
     c = src.charCodeAt(pos);
     if (c === COMMA) {
@@ -1718,6 +1823,76 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
     });
   } else {
     obj[key] = value;
+  }
+}
+
+/**
+ * `<<` merge (`tag:yaml.org,2002:merge`, https://yaml.org/type/merge.html — a
+ * YAML 1.1 type, not part of the 1.2.2 core schema; see README's "Decisions
+ * and deviations"). Splices a merge source's keys into `obj` AT THE POINT
+ * `<<` appears, instead of storing a literal `"<<"` property — gated on
+ * `MERGE_KEYS` (default on in core `parse`/`parseAll`; both compat shims
+ * force it off to stay byte-faithful to the libraries they stand in for,
+ * neither of which merges by default either).
+ *
+ * Called INLINE at the `<<` site (not a post-loop pass) by `parseBlockMap`/
+ * `parseFlowMap`, which is what gives both peers' key ORDER for free (a
+ * merged key lands wherever `<<` was, via `mergeOneSource`'s ordinary
+ * `storeKey` insertion) and correct PRECEDENCE with no extra bookkeeping: an
+ * explicit key written BEFORE `<<` is already own-present by the time the
+ * merge runs, so `mergeOneSource`'s `hasOwn` check skips it; one written
+ * AFTER overwrites the merged value via ordinary last-wins `storeKey`. The
+ * same mechanism gives multiple `<<` occurrences in one mapping the peers'
+ * "implicit merge sequence in declaration order" behaviour (earlier
+ * occurrence wins on an overlapping key) for free too — the opposite of this
+ * repo's general last-wins duplicate-key rule, but verified against both
+ * peers (see test/merge.unit.ts's MK9) — each occurrence just merges
+ * independently, in the order parsed, with no special-casing for "have we
+ * seen `<<` before in this mapping."
+ *
+ * `value` is either a single mapping (merged directly) or a SEQUENCE of
+ * mappings (merged in declaration order — EARLIER source wins on an
+ * overlapping key, since `hasOwn` blocks anything a prior source already
+ * copied in). Anything else — a scalar, or a sequence containing a
+ * non-mapping — is a spec error (`mergeOneSource` below).
+ *
+ * Only a BARE key (unquoted, untagged, unaliased) named exactly `<<` is
+ * eligible: both peers resolve the merge tag from the key NODE'S OWN style
+ * (plain vs. quoted/tagged), never from what an alias/tag happens to resolve
+ * to (confirmed by reading js-yaml's `constructScalar` — implicit resolution
+ * only runs when `event.style` is plain and no explicit tag was given — and
+ * `yaml`'s `isMergeKey`, which requires `!key.type || key.type === PLAIN`).
+ * An ANCHORED `<<` (`&k <<: *a`) still merges: the anchor is a node property,
+ * not a style change, so `keyStart` lands on the `<<` itself. Both peers agree.
+ * A TAGGED one (`!!str <<`) does not — and there `yaml` disagrees, merging it
+ * anyway; we side with js-yaml, since an explicit `!!str` is by definition a
+ * string and so cannot resolve to the merge tag. Both cases are locked by
+ * test/merge.unit.ts's MK11.
+ */
+function applyMerge(obj: Record<string, unknown>, value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const source of value) mergeOneSource(obj, source);
+  } else {
+    mergeOneSource(obj, value);
+  }
+}
+
+/**
+ * One merge source: either the whole value of a single `<<: *x`, or one
+ * element of a `<<: [*a, *b]` sequence. `isPlainMapping` (below) rejects a
+ * scalar, an array (a nested sequence isn't a valid merge source), and
+ * anything a tag turned into a `Set`/`Map`/`Uint8Array` — matching both
+ * peers, which reject every one of those shapes too.
+ *
+ * Counting against `MAX_TOTAL_MERGE_KEYS` BEFORE the `hasOwn` check — so a key
+ * skipped as already-present still costs budget — matches js-yaml's own loop.
+ */
+function mergeOneSource(obj: Record<string, unknown>, source: unknown): void {
+  if (!isPlainMapping(source)) fail("a merge key ('<<') value must be a mapping or a sequence of mappings");
+  const from = source as Record<string, unknown>;
+  for (const k of Object.keys(from)) {
+    if (++totalMergeKeys > MAX_TOTAL_MERGE_KEYS) fail(`merge keys exceeded the maximum of ${MAX_TOTAL_MERGE_KEYS} total merged keys in one parse`);
+    if (!Object.hasOwn(obj, k)) storeKey(obj, k, from[k]);
   }
 }
 
@@ -1819,6 +1994,7 @@ function plainKey(start: number, end: number): string {
 
 /** A flow mapping key: an anchor/alias, tag, double-quoted, single-quoted, or a plain scalar. */
 function parseFlowKey(): string {
+  keyNodeStart = pos;
   const c = src.charCodeAt(pos);
   if (c === AMP) return parseFlowKeyAnchored();
   if (c === EXCLAIM) return parseFlowKeyTagged();
@@ -1869,6 +2045,7 @@ function parseFlowKeyAnchored(): string {
   else if (c === SQUOTE) key = internKey(keyToString(registerPendingAnchor(parseSingleQuoted())));
   else {
     const start = pos;
+    keyNodeStart = start; // past the '&', so an anchored bare `<<` stays merge-eligible
     const end = scanFlowPlainEnd();
     if (flowFolded !== null) key = internKey(keyToString(registerPendingAnchor(flowFolded)));
     else {
@@ -3131,7 +3308,7 @@ function parseBlockNode(parentCol: number, mapValue = false): unknown {
     // a plain-scalar key: `plainKey` itself calls `registerPendingAnchor`, so
     // bypass it (resolve without claiming) when the property was deferred.
     const key = inlineProp ? plainKey(start, end) : internKey(keyToString(resolvePlain(start, end)));
-    return parseBlockMap(col, key);
+    return parseBlockMap(col, key, true, false, start); // firstKeyStart: a bare plain scalar is merge-eligible (see applyMerge)
   }
   return registerPendingAnchor(resolveBlockPlain(start, end, parentCol));
 }
@@ -3184,6 +3361,8 @@ function parseAnchoredBlockNode(parentCol: number, mapValue: boolean): unknown {
     if (c === AMP) fail("a node may carry at most one anchor");
   }
   if (c === STAR) fail("an alias node cannot carry an anchor property");
+  // See parseAnchoredFlowValue: only an UNTAGGED anchored key stays merge-eligible.
+  if (tag === null) keyNodeStart = pos;
   const outerPending = pendingAnchorName;
   pendingAnchorName = name;
   let node: unknown;
@@ -3191,6 +3370,7 @@ function parseAnchoredBlockNode(parentCol: number, mapValue: boolean): unknown {
     // The property occupies the rest of its line; the node (if any) begins on
     // a following line, subject to the ordinary value-continuation rules.
     nextLine();
+    if (tag === null) keyNodeStart = pos; // node deferred to a later line; re-record there
     // If that node begins with its OWN anchor and then resolves to a scalar or
     // non-mapping collection, both anchors decorate the SAME node — illegal
     // (`top: &a\n  &b val` — yaml-test-suite 4JVG). The one exception is a block
@@ -3306,7 +3486,16 @@ function parseDeferredTaggedBlockNode(parentCol: number, tag: string, mapValue: 
   const nc = pos - lineStart;
   if (nc > parentCol) {
     const c = src.charCodeAt(pos);
-    if (c === AMP || c === EXCLAIM) return applyTagByRuntimeKind(tag, parseBlockNode(parentCol, mapValue));
+    if (c === AMP || c === EXCLAIM) {
+      // The node carries OUR tag, so as a mapping key it is a string and can
+      // never merge — but the nested parse below starts a fresh frame whose own
+      // `tag` is null, and an `&anchor` there would record a merge-eligible
+      // position blind to us. Restore the slot afterwards so the outer tag wins.
+      const outerKeyNodeStart = keyNodeStart;
+      const node = applyTagByRuntimeKind(tag, parseBlockNode(parentCol, mapValue));
+      keyNodeStart = outerKeyNodeStart;
+      return node;
+    }
     return parseTaggedBlockContent(parentCol, nc, tag, false);
   }
   // A block sequence at the SAME column is a valid (compact) value only under a
@@ -3597,13 +3786,18 @@ function parseBlockSeq(col: number): unknown[] {
  * values are not interchangeable (an inline compact sequence is legal after
  * an explicit ':' but not an implicit one, calibrated against both oracles).
  */
-function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firstIsExplicit = false): Record<string, unknown> {
+function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firstIsExplicit = false, firstKeyStart = -1): Record<string, unknown> {
   if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
   const obj: Record<string, unknown> = {};
   registerPendingAnchor(obj); // before children (see parseFlowMap's identical call)
   let key = firstKey;
   let hasValue = firstHasValue;
   let isExplicit = firstIsExplicit;
+  // The source position `key` was scanned from — see `parseFlowMap`'s
+  // identical `keyStart` for why this stays a lazy position (not an eagerly-
+  // resolved "is this plain" boolean): only `<<` merge-eligibility below
+  // reads it, and almost no key is ever literally "<<".
+  let keyStart = firstKeyStart;
   // FastKeyMatch (M7) — see parseFlowMap for the shared scheme. `firstKey` was
   // already parsed by the caller (block maps enter with their first key in
   // hand), so it is only RECORDED here, never byte-matched; the loop fast-paths
@@ -3628,7 +3822,13 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
     if (hasValue) {
       // pos is at the ':' separator for `key`.
       pos++; // past ':'
-      storeKey(obj, key, isExplicit ? parseExplicitValue(col) : parseBlockValue(col, true)); // a map value: same-col `-` is a compact seq
+      const value = isExplicit ? parseExplicitValue(col) : parseBlockValue(col, true); // a map value: same-col `-` is a compact seq
+      if (MERGE_KEYS && key === "<<" && src.charCodeAt(keyStart) === LT) applyMerge(obj, value);
+      else storeKey(obj, key, value);
+    } else if (MERGE_KEYS && key === "<<" && src.charCodeAt(keyStart) === LT) {
+      // `? <<` with no `: value` at all — merging nothing is not a mapping, so
+      // this is an error, not a literal `"<<": null` entry. Both peers throw.
+      applyMerge(obj, null);
     } else {
       storeKey(obj, key, null); // explicit key with no ': value' at all
     }
@@ -3653,9 +3853,12 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
       key = internKey(keyToString(parseExplicitKey(col)));
       hasValue = explicitValueFollows(col);
       isExplicit = true;
+      keyStart = keyNodeStart; // a bare `? <<` IS merge-eligible; `? "<<"` isn't (see applyMerge)
     } else {
+      keyNodeStart = pos; // the fast-match path never re-sets it
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchBlockKey(ek) ? ek : parseBlockMapKey();
+      keyStart = keyNodeStart; // parseBlockMapKey advances it past a leading &anchor
       hasValue = true;
       isExplicit = false;
     }
@@ -3695,7 +3898,8 @@ function explicitValueFollows(col: number): boolean {
 function parseBlockMapExplicit(col: number): Record<string, unknown> {
   pos++; // past '?'
   const key = internKey(keyToString(parseExplicitKey(col)));
-  return parseBlockMap(col, key, explicitValueFollows(col), true);
+  const keyStart = keyNodeStart; // snapshot before explicitValueFollows can reset it
+  return parseBlockMap(col, key, explicitValueFollows(col), true, keyStart);
 }
 
 /**
@@ -3819,8 +4023,10 @@ function parseExplicitKey(col: number): unknown {
   const c = pos < len ? src.charCodeAt(pos) : -1;
   if (c === -1 || c === LF || c === CR || c === HASH) {
     nextLine();
+    keyNodeStart = pos;
     return parseDeferredBlockNode(col, true);
   }
+  keyNodeStart = pos;
   const keyNode = parseBlockNode(col, false); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
   if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
   return keyNode;
@@ -3828,6 +4034,7 @@ function parseExplicitKey(col: number): unknown {
 
 /** Parse the next key of a block mapping, leaving `pos` at the `:` separator. */
 function parseBlockMapKey(): string {
+  keyNodeStart = pos; // re-set on the anchored path's recursion, past the '&'
   const c = src.charCodeAt(pos);
   if (c === AMP) return parseBlockMapKeyAnchored();
   if (c === EXCLAIM) return parseBlockMapKeyTagged();
