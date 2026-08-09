@@ -2070,6 +2070,10 @@ function trimTrailingWs(from: number, end: number): number {
  * `flowFolded` up front, so a single-line scalar (the hot path) leaves it null.
  */
 function scanFlowPlainEnd(): number {
+  const c = src.charCodeAt(pos);
+  if (c === PERCENT || c === AT || c === BACKTICK || c === PIPE || c === GT) {
+    fail("a plain scalar cannot start with a reserved indicator ('%', '@', or '`'), or a block scalar indicator ('|', '>')");
+  }
   flowFolded = null;
   const start = pos;
   const p = scanFlowPlainLine(start);

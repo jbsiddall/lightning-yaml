@@ -294,3 +294,19 @@ test("binary: invalid base64 characters (e.g. wide unicode or non-base64 charact
   throwsBecause(() => parse("!!binary \"\u0100\u0100\u0100\u0100\""), /invalid base64 character/);
   throwsBecause(() => parse("!!binary \"AAAA-A==\""), /invalid base64 character/);
 });
+
+test("flow: unquoted plain scalars cannot start with reserved indicators %/@/` or block scalar indicators |/>", () => {
+  throwsBecause(() => parse("[ %foo ]"), /plain scalar cannot start/);
+  throwsBecause(() => parse("[ @foo ]"), /plain scalar cannot start/);
+  throwsBecause(() => parse("[ `foo ]"), /plain scalar cannot start/);
+  throwsBecause(() => parse("[ |foo ]"), /plain scalar cannot start/);
+  throwsBecause(() => parse("[ >foo ]"), /plain scalar cannot start/);
+  throwsBecause(() => parse("{ %foo: 1 }"), /plain scalar cannot start/);
+  throwsBecause(() => parse("{ @foo: 1 }"), /plain scalar cannot start/);
+  throwsBecause(() => parse("{ `foo: 1 }"), /plain scalar cannot start/);
+  throwsBecause(() => parse("{ |foo: 1 }"), /plain scalar cannot start/);
+  throwsBecause(() => parse("{ >foo: 1 }"), /plain scalar cannot start/);
+  // Also tagged versions
+  throwsBecause(() => parse("[ !!str %foo ]"), /plain scalar cannot start/);
+  throwsBecause(() => parse("[ !!str |foo ]"), /plain scalar cannot start/);
+});
