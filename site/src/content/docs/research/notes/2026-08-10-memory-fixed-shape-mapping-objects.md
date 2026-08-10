@@ -3,7 +3,7 @@ title: "Building mapping objects with a fixed shape: how much memory does it act
 description: "A shape sweep of fixed-shape mapping construction: a modest win on regular records, a very large one on wide (20+ key) maps for an unrelated reason, and a 4.5x regression plus a key-order bug on optional-field documents"
 optimization:
   name: "Fixed-shape mapping-object construction (parse)"
-  conclusion: "Constructing mapping objects with a known key set saves only ~7% of a real parsed tree on regular records and regresses badly on optional-field documents; the durable finding is that maps with 20 or more keys fall into V8 dictionary mode today and cost roughly 7x what they should."
+  conclusion: "Constructing mapping objects with a known key set saves only ~7% of a real parsed tree on regular records and regresses badly on optional-field documents; the durable finding is that maps with 20 or more keys fall into V8 dictionary mode today and cost 4.5x what a fixed-shape object with the same keys costs."
   verdict: situational
 ---
 **Verdict: Worth pursuing, with a real tradeoff.** Handing the parser the key set
@@ -17,7 +17,7 @@ optional (sometimes-absent) keys it is both slower on memory and, as prototyped,
 mapping object**, which dilutes to about **−7% of the whole retained tree** —
 strings and arrays dominate a real document, so that ~7% is the number a user
 would actually feel. On records with **20 or more keys** the saving jumps to
-**−78% to −87% per object** and **−65% whole-document**, but for a different
+**−77.8% to −86.8% per object** and **−65% whole-document**, but for a different
 reason than the hypothesis predicted (see below). On a document where ~40% of
 declared keys are absent per record, retained heap goes **+349%**. This is a
 **memory** axis result; the same prototype measured as **noise** on speed.
@@ -29,8 +29,9 @@ sandbox-regenerated fixtures rather than the committed bytes.
 putting an object built by successive property stores into **dictionary (hash)
 mode at exactly 20 properties** on the build measured here. Every mapping
 lightning-yaml produces is built that way, so **any YAML mapping with 20 or more
-keys is in dictionary mode today** and costs roughly 7× what a fast-property
-object of the same size costs. That is a property of the shipped parser, needs no
+keys is in dictionary mode today** and costs roughly 7× what the same mapping
+costs just below the cutover (128 B at 10 keys → 864 B at 20) — against a
+fast-property object of the *same* 20-key size it is 4.5× (864.1 vs 192.2 B). That is a property of the shipped parser, needs no
 schema, no hint, and no new public API to address, and is the item most worth
 following up — with one measurement still missing: whether `JSON.parse`, the bar
 this project holds itself to, also lands in dictionary mode on the same 20+ key
@@ -57,7 +58,7 @@ negatively, and it is not this note's subject, so the short version:
   checking indentation. No schema can inform any of that.
 - The things a schema does know map onto small slices: property assignment 4.96%,
   key extraction 4.88% (already served at a ~100% hit rate by the existing
-  fast-key-match and key-cache machinery), and scalar type resolution 18.93% —
+  fast-key-match machinery), and scalar type resolution 18.93% —
   the last of which is off-limits, because skipping it is what turns `port: 8080`
   into `"8080"`, i.e. validation rather than a hint.
 - An end-to-end prototype of the best admissible lever came in at **0.99×
@@ -192,8 +193,9 @@ only "genuinely huge or pathologically heterogeneous" mappings would go dictiona
 mode, and that `JSON.parse` produces the same for the same input, so it is "not a
 competitive loss". This sweep refutes the first ground with a direct
 `%HasFastProperties` measurement — the cutover is at 20 keys, which is neither
-huge nor pathological — and the evidence now favours this note on that point,
-because the guide's claim was reasoned while this one is measured. The second
+huge nor pathological. Note what is and is not settled: the *threshold* is
+measured, whereas whether our target workloads cross it (the shapes listed above)
+is `[REASONED]`, not yet measured against a key-count distribution. The second
 ground is neither confirmed nor refuted here: nobody has checked what `JSON.parse`
 does at 20+ keys, which is why it heads the follow-up list below.
 
@@ -210,12 +212,12 @@ retained heap on a wide-record document.
 
 This is where the approach stops being a smaller win and becomes a loss.
 
-| shape (8 keys) | today B/obj | fixed-shape B/obj | delta |
+| shape | today B/obj | fixed-shape B/obj | delta |
 |---|---|---|---|
-| every record identical | 128.1 | 96.2 | −25.0% |
-| ~10% carry two extra keys | 128.2 | 100.1 | −21.9% |
-| keys arrive in a different order than declared | 128.2 | 96.2 | −25.0% |
-| **~40% of keys absent per record** | **88.8** | **96.2** | **+8.4%** |
+| 8 keys, every record identical | 128.1 | 96.2 | −25.0% |
+| 8 keys, ~10% carry two extra keys | 128.2 | 100.1 | −21.9% |
+| 8 keys, arriving in a different order than declared | 128.2 | 96.2 | −25.0% |
+| **8 keys, ~40% absent per record** | **88.8** | **96.2** | **+8.4%** |
 | same sparse shape, but 20 keys | 606.9 | 192.2 | −68.3% |
 
 The last row is not a counter-example: at 20 keys the baseline is already in
