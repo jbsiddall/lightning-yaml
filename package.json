@@ -1,6 +1,6 @@
 {
   "name": "lightning-yaml",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "description": "A fast, spec-compliant YAML 1.2 parser and stringifier for JavaScript — approaching JSON.parse speed.",
   "license": "Apache-2.0",
