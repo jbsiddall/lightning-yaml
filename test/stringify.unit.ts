@@ -631,3 +631,51 @@ test("special keys: constructor / prototype as ordinary map keys", () => {
   const value = { constructor: 1, prototype: 2 };
   assertRoundTrips(value, "constructor/prototype keys");
 });
+
+// ---------------------------------------------------------------------------
+// 8. JS undefined values — object properties with `undefined` values are
+// completely omitted, while sequence items with `undefined` values become `null`.
+// ---------------------------------------------------------------------------
+
+function normalizeUndefined(val: unknown): unknown {
+  if (val === undefined) return null;
+  if (val === null || typeof val !== "object") return val;
+  if (val instanceof Uint8Array) return val;
+  if (Array.isArray(val)) {
+    return val.map(normalizeUndefined);
+  }
+  const res: Record<string, unknown> = {};
+  for (const k of Object.keys(val)) {
+    const v = (val as Record<string, unknown>)[k];
+    if (v !== undefined) {
+      res[k] = normalizeUndefined(v);
+    }
+  }
+  return res;
+}
+
+function assertRoundTripsWithUndefined(value: unknown, label: string): void {
+  const normalized = normalizeUndefined(value);
+  ok(deepEqual(parse(stringify(value)), normalized), `roundTripSelf failed · ${label}`);
+  ok(deepEqual(oracleParse(stringify(value)), normalized), `roundTripOracle failed · ${label}`);
+}
+
+test("undefined values: object properties with undefined values are omitted", () => {
+  assertRoundTripsWithUndefined({ a: undefined }, "object with only undefined property");
+  assertRoundTripsWithUndefined({ a: undefined, b: 1 }, "object with undefined and normal property");
+  assertRoundTripsWithUndefined({ a: { b: undefined } }, "nested object with undefined property");
+});
+
+test("undefined values: array items with undefined values are serialized as null", () => {
+  assertRoundTripsWithUndefined([undefined], "array with only undefined item");
+  assertRoundTripsWithUndefined([1, undefined, 2], "array with undefined and normal items");
+});
+
+test("undefined values: mixed structures containing undefined round-trip correctly", () => {
+  const mixed = {
+    plain: "text",
+    undefProp: undefined,
+    list: [1, undefined, { a: undefined, b: 2 }],
+  };
+  assertRoundTripsWithUndefined(mixed, "mixed structure with undefined values");
+});
