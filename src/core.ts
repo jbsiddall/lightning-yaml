@@ -4652,7 +4652,10 @@ function dumpScanRefs(value: unknown): void {
     for (let i = 0; i < obj.length; i++) dumpScanRefs(obj[i]);
   } else {
     const keys = Object.keys(obj as Record<string, unknown>);
-    for (let i = 0; i < keys.length; i++) dumpScanRefs((obj as Record<string, unknown>)[keys[i]]);
+    for (let i = 0; i < keys.length; i++) {
+      const val = (obj as Record<string, unknown>)[keys[i]];
+      if (val !== undefined) dumpScanRefs(val);
+    }
   }
   dumpDepth--;
 }
@@ -4961,7 +4964,12 @@ function writeBinaryScalar(bytes: Uint8Array): string {
 // ---------------------------------------------------------------------------
 
 function isEmptyContainer(obj: object, isArr: boolean): boolean {
-  return isArr ? (obj as unknown[]).length === 0 : Object.keys(obj as Record<string, unknown>).length === 0;
+  if (isArr) return (obj as unknown[]).length === 0;
+  const keys = Object.keys(obj);
+  for (let i = 0; i < keys.length; i++) {
+    if ((obj as Record<string, unknown>)[keys[i]] !== undefined) return false;
+  }
+  return true;
 }
 
 /**
@@ -4983,13 +4991,15 @@ function writeCollectionBody(obj: object, isArr: boolean, indent: number): void 
     const keys = Object.keys(rec);
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
+      const val = rec[k];
+      if (val === undefined) continue;
       let keyColon = dumpKeyCache!.get(k);
       if (keyColon === undefined) {
         keyColon = writeStringScalar(k) + ":";
         if (dumpKeyCache!.size < MAX_DUMP_KEY_CACHE) dumpKeyCache!.set(k, keyColon);
       }
       out += ind + keyColon;
-      writeEntryValue(rec[k], indent);
+      writeEntryValue(val, indent);
     }
   }
   dumpDepth--;
