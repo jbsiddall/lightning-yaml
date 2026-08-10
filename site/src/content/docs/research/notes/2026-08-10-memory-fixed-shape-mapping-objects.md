@@ -13,7 +13,7 @@ whole parsed tree than a single-fixture measurement suggested. On documents with
 optional (sometimes-absent) keys it is both slower on memory and, as prototyped,
 *wrong*.
 
-**Estimated benefit:** on regular records of 19 keys or fewer, **−12% to −31% per
+**Estimated benefit:** on regular records of 19 keys or fewer, **−12.5% to −30.7% per
 mapping object**, which dilutes to about **−7% of the whole retained tree** —
 strings and arrays dominate a real document, so that ~7% is the number a user
 would actually feel. On records with **20 or more keys** the saving jumps to
@@ -21,6 +21,9 @@ would actually feel. On records with **20 or more keys** the saving jumps to
 reason than the hypothesis predicted (see below). On a document where ~40% of
 declared keys are absent per record, retained heap goes **+349%**. This is a
 **memory** axis result; the same prototype measured as **noise** on speed.
+Confidence: high on the direction of every result and on the cutover's existence,
+medium on the exact whole-document percentages, which come from
+sandbox-regenerated fixtures rather than the committed bytes.
 
 **The headline finding is not the hypothesis.** The wide-record win comes from V8
 putting an object built by successive property stores into **dictionary (hash)
@@ -29,7 +32,10 @@ lightning-yaml produces is built that way, so **any YAML mapping with 20 or more
 keys is in dictionary mode today** and costs roughly 7× what a fast-property
 object of the same size costs. That is a property of the shipped parser, needs no
 schema, no hint, and no new public API to address, and is the item most worth
-following up.
+following up — with one measurement still missing: whether `JSON.parse`, the bar
+this project holds itself to, also lands in dictionary mode on the same 20+ key
+data. That was not measured here (see the follow-up list), and it decides whether
+this is a defect relative to `JSON.parse` or a cost the built-in pays too.
 
 **Rigor:** thorough experiment on the sweep axes (multiple document shapes, fresh
 processes per configuration, medians, run-to-run spread of exactly 0 on the
@@ -113,12 +119,18 @@ sparse-record regression reproduces.
 | 20 | 864.1 | 192.2 | **−77.8%** | **no** |
 | 50 | 3168.1 | 432.2 | **−86.4%** | **no** |
 | 100 | 6240.1 | 832.3 | **−86.7%** | **no** |
+| 128 | 6240.1 | 1056.4 | **−83.1%** | **no** |
 | 200 | 12384.1 | 1632.5 | **−86.8%** | **no** |
 
 Below the cutover the win is a sawtooth, not a curve — −12.5% at 3 keys, −30.7%
 at 5, −12.5% again at 10 — because both allocators quantise to size buckets.
 Quoting any single number from that band as "the" saving is exactly the mistake
 the original −33% figure made.
+
+The quantisation does not stop at the cutover: 100 and 128 keys cost the baseline
+the same 6240.1 B/obj, so the 128-key row's −83.1% breaks the otherwise tidy climb
+toward −86.8%. Above the cutover the saving is large and shape-dependent, not a
+smooth function of key count either.
 
 Scale is not a variable of interest: the per-object figure converges by ~10,000
 objects and holds to 500,000 (−24.9% at 10k, −25.0% at 100k and 500k).
@@ -173,14 +185,24 @@ env:
   VAR_20: t
 ```
 
-This is worth noting against prior art rather than presented as brand-new: the
+This **contradicts** standing prior art rather than refining it. The
 [V8 optimization guide note](/research/notes/2026-07-12-v8-optimization-guide/)
-already anticipated that "genuinely huge" mappings would go dictionary mode, and
-the [value-interning note](/research/notes/2026-07-14-memory-value-interning/)
+judged the dictionary-mode risk "overstated for our data" on two grounds: that
+only "genuinely huge or pathologically heterogeneous" mappings would go dictionary
+mode, and that `JSON.parse` produces the same for the same input, so it is "not a
+competitive loss". This sweep refutes the first ground with a direct
+`%HasFastProperties` measurement — the cutover is at 20 keys, which is neither
+huge nor pathological — and the evidence now favours this note on that point,
+because the guide's claim was reasoned while this one is measured. The second
+ground is neither confirmed nor refuted here: nobody has checked what `JSON.parse`
+does at 20+ keys, which is why it heads the follow-up list below.
+
+Two other notes are consistent with this sweep. The
+[value-interning note](/research/notes/2026-07-14-memory-value-interning/)
 ran the `%HasFastProperties` check that the
 [other-parsers survey](/research/notes/2026-07-14-techniques-from-other-parsers/)
-called for and found `true`. Both are consistent with this sweep — those checks
-used medium records well under 20 keys. What is new here is the **measured
+called for and found `true` — those checks used medium records well under 20 keys.
+What is new here is the **measured
 location of the cutover** and its **cost in whole-document terms**: −64.9% of
 retained heap on a wide-record document.
 
@@ -194,6 +216,11 @@ This is where the approach stops being a smaller win and becomes a loss.
 | ~10% carry two extra keys | 128.2 | 100.1 | −21.9% |
 | keys arrive in a different order than declared | 128.2 | 96.2 | −25.0% |
 | **~40% of keys absent per record** | **88.8** | **96.2** | **+8.4%** |
+| same sparse shape, but 20 keys | 606.9 | 192.2 | −68.3% |
+
+The last row is not a counter-example: at 20 keys the baseline is already in
+dictionary mode, so the −68.3% is the cutover effect from the previous section
+leaking in, not a win for fixed-shape construction on sparse data.
 
 Two compounding causes, both measured:
 
@@ -227,10 +254,14 @@ Values were all correct; **key order was not**. Today's parser yields document
 order (`{"uuid":…,"name":…,"tags":…}`); the prototype yields constructor-slot
 order (`{"uuid":…,"created":…,"region":…,"name":…}`). Key order is observable
 through `Object.keys`, `JSON.stringify`, and our own `stringify` round-trip, so
-this is a silent wrong-answer bug rather than a cosmetic one — and YAML mappings
-preserve the document's entry order
-([§3.2.1.1](https://yaml.org/spec/1.2.2/#3211-nodes)) in the representation our
-API hands back.
+this is a silent wrong-answer bug rather than a cosmetic one. The spec does not
+forbid it: a mapping's content is an *unordered* set of key/value pairs
+([§3.2.1.1](https://yaml.org/spec/1.2.2/#3211-nodes)), and key order is a
+serialization detail ([§3.2.2.1](https://yaml.org/spec/1.2.2/#3221-mapping-key-order)).
+What forbids it is the bar this project sets for itself: `JSON.parse` hands back
+document order for the same input, and our API hands back plain objects whose
+property order the caller can see, so document order is the ordering we
+deliberately commit to.
 
 The lesson generalises past this prototype: **the single-fixture validation
 passed only because the fixture never exposed the divergence.** Output-equivalence
@@ -246,8 +277,9 @@ sharply divided:
   the retained tree**. Not nothing, not worth a new public API, and not the −33%
   the first measurement suggested.
 - **Records of 20 or more keys:** a very large win (**−65% whole-document**) that
-  is really a *bug fix*, not an optimization. Today's parser is paying a
-  dictionary-mode penalty on wide mappings.
+  looks like a *bug fix* rather than an optimization — today's parser is paying a
+  dictionary-mode penalty on wide mappings. Calling it a bug outright waits on the
+  unmeasured `JSON.parse` comparison below.
 - **Optional-field records:** a loss on memory (**+349%**) and, as prototyped,
   incorrect.
 
@@ -258,15 +290,19 @@ mapping's key list, which is enough to size a wide mapping's property storage up
 front. Before any code change lands, a follow-up would have to measure, on the
 canonical committed fixtures:
 
-1. That the whole-document saving on wide mappings reproduces outside this
+1. **Whether `JSON.parse` also goes dictionary mode at 20+ keys** — unmeasured
+   here, and a precondition for calling this a bug rather than a parity-neutral
+   cost the built-in pays too. It is a one-line check
+   (`%HasFastProperties(JSON.parse(json25)[0])`) that this sandbox could not run.
+2. That the whole-document saving on wide mappings reproduces outside this
    sandbox, with the standard benchmark harness and `pnpm bench:self`.
-2. **Output equivalence including key order**, across regular, wide, rich, and
+3. **Output equivalence including key order**, across regular, wide, rich, and
    optional-field documents — the check this sweep showed a single fixture cannot
    deliver — with the yaml-test-suite pass rate unchanged.
-3. That narrow and sparse mappings do not regress: any presizing scheme must
+4. That narrow and sparse mappings do not regress: any presizing scheme must
    leave a 3-key or a mostly-absent-key mapping no worse than it is today, since
    both are common and both are where this technique fails.
-4. Whether the cutover exists at all on the other engines we benchmark. The
+5. Whether the cutover exists at all on the other engines we benchmark. The
    threshold measured here is a V8 internal; a fix that helps V8 must at minimum
    not hurt JavaScriptCore or SpiderMonkey.
 
@@ -277,16 +313,13 @@ survives scrutiny is reachable from information the parser already has.
 ## Code references
 
 - Block mapping construction (`{}` allocation + fill loop) — `src/core.ts:3602`
-- Flow mapping construction — `src/core.ts:1638`
 - Dynamic keyed property store — `storeKey`, `src/core.ts:1711`
 - Previous-sibling key list (fast key match) — `lastRecordKeys`, `src/core.ts:371`
-- Key intern cache and its byte cap — `internKey` `src/core.ts:1926`, `keyCacheMaxBytes` `src/core.ts:318`
 - Plain-scalar resolution and the numeric fast path — `resolvePlain` `src/core.ts:2178`, `tryNumber` `src/core.ts:2416`
-- Block sequence accumulation — `parseBlockSeq`, `src/core.ts:3574`
 
 ## Related notes
 
-- [V8 optimization guide](/research/notes/2026-07-12-v8-optimization-guide/) — anticipated dictionary mode for huge mappings; this note locates the threshold.
+- [V8 optimization guide](/research/notes/2026-07-12-v8-optimization-guide/) — judged the dictionary-mode risk overstated; this note's measured 20-key cutover contradicts that.
 - [String value interning](/research/notes/2026-07-14-memory-value-interning/) — the `%HasFastProperties` check on medium records, consistent with this sweep.
 - [Techniques from other parsers](/research/notes/2026-07-14-techniques-from-other-parsers/) — asked for exactly this dictionary-mode check as the one memory-relevant lead.
 - [Columnar store + proxy facade](/research/notes/2026-07-14-memory-columnar-store-and-proxy-facade/) and [Object.freeze on parsed output](/research/notes/2026-07-14-memory-object-freeze-effects/) — the other two parse-memory studies; both are rejected, this one is not.
