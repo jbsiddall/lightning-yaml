@@ -15,7 +15,7 @@
     "@fontsource/ibm-plex-mono": "5.3.0",
     "@fontsource/inter": "5.3.0",
     "astro": "7.1.2",
-    "js-yaml": "4.1.0",
+    "js-yaml": "4.3.1",
     "lightning-yaml": "^0.1.1",
     "starlight-typedoc": "0.23.0",
     "typedoc": "0.28.20",
@@ -24,7 +24,7 @@
   },
   "pnpm": {
     "overrides": {
-      "js-yaml": "4.1.0"
+      "js-yaml": "4.3.1"
     }
   }
 }
