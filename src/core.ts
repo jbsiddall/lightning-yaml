@@ -2072,6 +2072,12 @@ function trimTrailingWs(from: number, end: number): number {
 function scanFlowPlainEnd(): number {
   flowFolded = null;
   const start = pos;
+  if (start < len) {
+    const c0 = src.charCodeAt(start);
+    if (c0 === PERCENT || c0 === AT || c0 === BACKTICK || c0 === PIPE || c0 === GT) {
+      fail("a plain scalar cannot start with a reserved indicator ('%', '@', '`', '|', or '>')");
+    }
+  }
   const p = scanFlowPlainLine(start);
   const e = trimTrailingWs(start, p);
   // Stopped at a line break → the scalar MAY fold onto following lines.

@@ -294,3 +294,19 @@ test("binary: invalid base64 characters (e.g. wide unicode or non-base64 charact
   throwsBecause(() => parse("!!binary \"\u0100\u0100\u0100\u0100\""), /invalid base64 character/);
   throwsBecause(() => parse("!!binary \"AAAA-A==\""), /invalid base64 character/);
 });
+
+// --------------------------------------------------------------------------
+// §7.3.3 Plain scalars starting with reserved indicators (%, @, `, |, >)
+// Unquoted plain scalars in flow collections must not start with reserved
+// indicator characters (YAML 1.2 §7.3.3).
+// --------------------------------------------------------------------------
+
+test("plain scalars: starting with reserved indicators in flow collections throw YAMLParseError", () => {
+  const reservedStarters = ["%", "@", "`", "|", ">"];
+  for (const ch of reservedStarters) {
+    throwsBecause(() => parse(`[ ${ch} ]`), /a plain scalar cannot start with a reserved indicator/);
+    throwsBecause(() => parse(`{ a: ${ch} }`), /a plain scalar cannot start with a reserved indicator/);
+    throwsBecause(() => parse(`[ ${ch}foo ]`), /a plain scalar cannot start with a reserved indicator/);
+    throwsBecause(() => parse(`{ ${ch}foo: 1 }`), /a plain scalar cannot start with a reserved indicator/);
+  }
+});

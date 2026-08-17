@@ -1,0 +1,3 @@
+## 2026-08-17 - Reserved Indicators in Flow Plain Scalars
+**Learning:** Under YAML 1.2 specifications (§7.3.3 c-ns-plain-char), unquoted plain scalars must not start with reserved indicators ('%', '@', '`') or block scalar indicators ('|', '>'). While block-context plain scalars and keys were already checking `PERCENT`, `AT`, and `BACKTICK`, `scanFlowPlainEnd` was allowing unquoted flow plain scalars starting with these indicator characters (e.g. `[ % ]`, `{ a: @ }`, `[ | ]`, `[ > ]`).
+**Action:** When auditing or fuzzing plain scalar scanning, always ensure both block-context and flow-context plain scalar entry points (`parseBlockNode`, `scanFlowPlainEnd`) consistently enforce reserved indicator first-character checks.
