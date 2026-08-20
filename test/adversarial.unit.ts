@@ -294,3 +294,20 @@ test("binary: invalid base64 characters (e.g. wide unicode or non-base64 charact
   throwsBecause(() => parse("!!binary \"\u0100\u0100\u0100\u0100\""), /invalid base64 character/);
   throwsBecause(() => parse("!!binary \"AAAA-A==\""), /invalid base64 character/);
 });
+
+// --------------------------------------------------------------------------
+// §8.1.1.1 Block scalar explicit indentation indicators at root level
+// --------------------------------------------------------------------------
+
+test("block scalars: explicit indentation indicator at root level strips correct indentation (§8.1.1.1)", () => {
+  const cases = [
+    ["|1\n a\n b\n", "a\nb\n"],
+    ["|2\n  a\n  b\n", "a\nb\n"],
+    [">2\n  a\n  b\n", "a b\n"],
+    ["|3\n   line1\n   line2\n", "line1\nline2\n"],
+  ];
+  for (const [input, expected] of cases) {
+    deepStrictEqual(parse(input), expected, `parse(${JSON.stringify(input)})`);
+    deepStrictEqual(parse(input), oracleParse(input), `oracle agrees on ${JSON.stringify(input)}`);
+  }
+});
