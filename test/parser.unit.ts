@@ -483,6 +483,15 @@ test("block scalar: leading blank lines more indented than the auto-detected con
   deepStrictEqual(parse("k: |2\n       \n  content\n"), { k: "     \ncontent\n" });
 });
 
+test("block scalar: root-level explicit indentation indicator calculates indentation relative to column 0", () => {
+  deepStrictEqual(parse("|1\n text\n"), "text\n");
+  deepStrictEqual(parse("|2\n  text\n"), "text\n");
+  deepStrictEqual(parse("--- |1\n text\n"), "text\n");
+  deepStrictEqual(parse("|1\n text\n"), oracleParse("|1\n text\n"));
+  deepStrictEqual(parse("|2\n  text\n"), oracleParse("|2\n  text\n"));
+  deepStrictEqual(parse("--- |1\n text\n"), oracleParse("--- |1\n text\n"));
+});
+
 test("block scalar: as a map value, content must be deeper than the key's own column — column 0 for both is an error, unlike at the document root", () => {
   // Contrast with "--- >\nline1\n...\n" (in blockScalarOracle above), which
   // succeeds: there the parent column is the document root's implicit -1, so
