@@ -71,7 +71,7 @@ console.log(doc);
 ```
 
 `stringify` is the inverse of `parse`: a JS value in, block-style YAML text
-out. See [Stringifying](/guides/stringifying/) for the formatting options.
+out. See [Stringifying](/guides/stringifying/) for more details.
 
 ## Typing the result
 
@@ -99,6 +99,6 @@ trusting the cast alone.
 
 - [Parsing](/guides/parsing/) — `parse` vs `parseAll`, scalar typing, and
   error handling.
-- [Stringifying](/guides/stringifying/) — formatting options and round-tripping.
+- [Stringifying](/guides/stringifying/) — round-tripping and performance.
 - [API reference](/api/) — the full exported surface.
 - [Benchmarks](/benchmarks/) — speed and memory versus `JSON`, `js-yaml`, and `yaml`.
