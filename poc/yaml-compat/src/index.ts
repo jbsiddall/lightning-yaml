@@ -19,6 +19,7 @@ import { validateOptions, type ParseOptions, type CustomTag } from './options.ts
 import { CSTParser } from './cst-parser.ts';
 import { Composer } from './cst-composer.ts';
 import * as CST from './cst.ts';
+import { stringify } from './stringify.ts';
 
 // ---- Public API functions --------------------------------------------------
 
@@ -116,11 +117,14 @@ export {
   // Errors
   YAMLParseError,
   YAMLWarning,
+
+  // AST-level stringify
+  stringify,
 };
 
 // CST utility re-exports
 export { createScalarToken, resolveAsScalar, setScalarValue } from './cst-scalar.ts';
-export { stringify } from './cst-stringify.ts';
+export { stringify as stringifyCST } from './cst-stringify.ts';
 export type { Visitor as CSTVisitor, VisitPath } from './cst-visit.ts';
 export { visit as visitCST } from './cst-visit.ts';
 

@@ -10,6 +10,8 @@ import {
 } from './nodes.ts';
 import type { YAMLParseError, YAMLWarning } from './errors.ts';
 import type { ParseOptions, CustomTag } from './options.ts';
+import { stringify as astStringify } from './stringify.ts';
+import type { StringifyOptions } from './stringify.ts';
 
 export interface Directives {
   yaml: { explicit?: boolean; version: string };
@@ -107,22 +109,9 @@ export class Document {
     return node;
   }
 
-  /** Minimal toString — renders the document back to YAML (best-effort, even with errors). */
-  toString(): string {
-    const lines: string[] = [];
-    if (this.directives.yaml.explicit) {
-      lines.push(`%YAML ${this.directives.yaml.version}`);
-    }
-    if (this.directives.docStart) {
-      lines.push('---');
-    }
-    if (this.contents) {
-      lines.push(nodeToString(this.contents, 0));
-    }
-    if (this.directives.docEnd) {
-      lines.push('...');
-    }
-    return lines.join('\n') + '\n';
+  /** Render the document back to YAML, preserving comments and directives. */
+  toString(opts?: StringifyOptions): string {
+    return astStringify(this, opts);
   }
 }
 
@@ -231,78 +220,3 @@ function nodeToJS(
   return null;
 }
 
-// ---- Simple toString (minimal rendering) -----------------------------------
-
-function nodeToString(node: Node, indent: number): string {
-  const pad = '  '.repeat(indent);
-
-  if (isScalar(node)) {
-    return scalarToString(node);
-  }
-
-  if (isAlias(node)) {
-    return `*${node.source}`;
-  }
-
-  if (isSeq(node)) {
-    if (node.items.length === 0) return '[]';
-    const lines: string[] = [];
-    for (const item of node.items) {
-      if (isMap(item) || isSeq(item)) {
-        lines.push(`${pad}- ${nodeToString(item, indent + 1).trimStart()}`);
-      } else {
-        lines.push(`${pad}- ${nodeToString(item, indent + 1)}`);
-      }
-    }
-    return lines.join('\n');
-  }
-
-  if (isMap(node)) {
-    if (node.items.length === 0) return '{}';
-    const lines: string[] = [];
-    for (const pair of node.items) {
-      const keyStr = pair.key ? nodeToString(pair.key, 0) : 'null';
-      if (pair.value === null) {
-        lines.push(`${pad}${keyStr}:`);
-      } else if (isMap(pair.value) || isSeq(pair.value)) {
-        const valStr = nodeToString(pair.value, indent + 1);
-        if (valStr.includes('\n')) {
-          lines.push(`${pad}${keyStr}:\n${valStr}`);
-        } else {
-          lines.push(`${pad}${keyStr}: ${valStr}`);
-        }
-      } else {
-        lines.push(`${pad}${keyStr}: ${nodeToString(pair.value, 0)}`);
-      }
-    }
-    return lines.join('\n');
-  }
-
-  return 'null';
-}
-
-function scalarToString(node: Scalar): string {
-  const v = node.value;
-  if (v === null) return 'null';
-  if (v === undefined) return 'null';
-  if (typeof v === 'boolean') return v ? 'true' : 'false';
-  if (typeof v === 'number') {
-    if (v === Infinity) return '.inf';
-    if (v === -Infinity) return '-.inf';
-    if (Number.isNaN(v)) return '.nan';
-    return String(v);
-  }
-  const s = String(v);
-  // Check if the string needs quoting
-  if (s === '' || s === 'null' || s === 'true' || s === 'false' ||
-      s === '~' || /^[0-9]/.test(s) || s.includes(':') || s.includes('#') ||
-      s.includes('\n') || s.includes('{') || s.includes('}') ||
-      s.includes('[') || s.includes(']') || s.includes(',') ||
-      s.includes('&') || s.includes('*') || s.includes('!') ||
-      s.includes('|') || s.includes('>') || s.includes("'") ||
-      s.includes('"') || s.includes('%') || s.includes('@') ||
-      s.includes('`') || /^\s|\s$/.test(s)) {
-    return JSON.stringify(s);
-  }
-  return s;
-}
