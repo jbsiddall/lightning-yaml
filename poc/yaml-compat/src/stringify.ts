@@ -285,13 +285,15 @@ function renderBlockScalar(text: string, indicator: '|' | '>', ctx: Ctx, level: 
   const hasTrailingNewline = text.endsWith('\n');
   if (hasTrailingNewline && lines[lines.length - 1] === '') lines.pop();
 
+  // Chomping: strip if no trailing newline, keep if trailing blank lines or all-blank content
   let chomp = '';
   if (!hasTrailingNewline) chomp = '-';
-  else if (text.endsWith('\n\n')) chomp = '+';
+  else if (text.endsWith('\n\n') || lines.every(l => l === '')) chomp = '+';
 
-  const firstContentLine = lines.length > 0 ? lines[0] : '';
+  // Indent indicator: check first NON-EMPTY line for leading space
+  const firstNonEmpty = lines.find(l => l.length > 0);
   let indentIndicator = '';
-  if (firstContentLine.length > 0 && firstContentLine[0] === ' ') {
+  if (firstNonEmpty && firstNonEmpty[0] === ' ') {
     indentIndicator = String(ctx.indent);
   }
 
@@ -303,23 +305,30 @@ function renderBlockScalar(text: string, indicator: '|' | '>', ctx: Ctx, level: 
   const blockPad = ctx.indentStr.repeat(level);
 
   if (indicator === '|') {
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
       ctx.out.push('\n');
-      if (line.length > 0) ctx.out.push(blockPad + line);
+      if (lines[i].length > 0) {
+        ctx.out.push(blockPad + lines[i]);
+      } else if (i === 0) {
+        // eemeli indents only the first blank line in a block scalar body
+        ctx.out.push(blockPad);
+      }
     }
   } else {
     let i = 0;
     while (i < lines.length) {
       ctx.out.push('\n');
-      if (lines[i].length === 0) { i++; continue; }
+      if (lines[i].length === 0) {
+        if (i === 0) ctx.out.push(blockPad);
+        i++;
+        continue;
+      }
       ctx.out.push(blockPad);
       const parts: string[] = [];
       while (i < lines.length && lines[i].length > 0) { parts.push(lines[i]); i++; }
       ctx.out.push(parts.join(' '));
     }
   }
-
-  if (chomp === '+') ctx.out.push('\n');
 }
 
 // ---- Map -------------------------------------------------------------------
