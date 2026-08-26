@@ -1,5 +1,5 @@
 # CST compat pipeline benchmark — Parser→tokens→Composer vs real yaml
-# <!-- bench:poc/yaml-cst-compat ly:f033d7d -->
+# <!-- bench:poc/yaml-cst-compat ly:cbb2f04 -->
 # Pipeline: CSTParser → tokens → Composer → Document[]
 # Compared: yaml v2 Parser → tokens → Composer → Document[]
 # Methodology: warmup=3, iters=50 (>1MB: 15), median, sequential
