@@ -13,10 +13,13 @@ const CORPUS = join(HERE, '..', 'bench', 'corpus');
 
 describe('corpus differential round-trip', () => {
   const BYTE_IDENTICAL = new Set([
+    'block-config',
+    'comments-docker-compose',
+    'comments-k8s-deployment',
     'json-records-small',
     'json-records-medium',
     'json-records-large',
-    'comments-k8s-deployment',
+    'large-block',
   ]);
 
   const MULTIDOC = new Set(['multidoc-k8s']);
@@ -287,6 +290,44 @@ describe('multiline block scalar choice (M3)', () => {
     const result = stringify({ a: 'line1\nline2' });
     const expected = yaml.stringify({ a: 'line1\nline2' });
     assert.equal(result, expected);
+  });
+});
+
+// ---- M-new-1: all-newline and leading-newline strings ----------------------
+
+describe('block scalar edge cases (M-new-1)', () => {
+  const cases: [string, string][] = [
+    ['single newline', '\n'],
+    ['two newlines', '\n\n'],
+    ['three newlines', '\n\n\n'],
+    ['leading newline + content', '\nhello\n'],
+    ['content + trailing blank', 'hello\n\n'],
+    ['content + two trailing blanks', 'hello\n\n\n'],
+    ['two leading newlines + content', '\n\nhello\n'],
+    ['content around blank', 'a\n\nb\n'],
+    ['leading space content', ' hello\n'],
+    ['leading blank then space content', '\n hello\n'],
+  ];
+
+  for (const [name, value] of cases) {
+    it(`byte-matches eemeli and round-trips: ${name}`, () => {
+      const ours = stringify({ a: value });
+      const eemeli = yaml.stringify({ a: value });
+      assert.equal(ours, eemeli);
+      const reparsed = yaml.parse(ours);
+      assert.equal(reparsed.a, value);
+    });
+  }
+});
+
+// ---- m-new-2: blank-line indent in parsed block scalar ---------------------
+
+describe('blank-line indent in block scalar (m-new-2)', () => {
+  it('byte-matches eemeli for block scalar with blank line', () => {
+    const text = 'a: |\n  \n  hello\n';
+    const ourOut = parseDocument(text).toString();
+    const yamlOut = yaml.stringify(yaml.parseDocument(text));
+    assert.equal(ourOut, yamlOut);
   });
 });
 
