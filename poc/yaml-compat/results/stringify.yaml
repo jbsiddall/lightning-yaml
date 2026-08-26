@@ -2,9 +2,9 @@
 # machine: linux x64
 # node: v22.23.2
 # yaml: 2.9.0
-# poc: 651351b
-# date: 2026-08-26T20:20:08.823Z
-# git-sha: 651351b
+# poc: 10dff1e
+# date: 2026-08-26T21:44:26.325Z
+# git-sha: 10dff1e
 # iters: 15 (fixtures >1MB: 3)
 # methodology: median MB/s, sequential, warm-up 1 iter
 
@@ -15,105 +15,105 @@ speed:
     rows:
       - library: yaml
         op: stringify(doc)
-        median_ms: 53.745
-        mbps: 0.92
+        median_ms: 50.897
+        mbps: 0.97
       - library: poc
         op: stringify(doc)
-        median_ms: 6.444
-        mbps: 7.64
+        median_ms: 6.130
+        mbps: 8.03
   - fixture: comments-docker-compose
     size_bytes: 9188
     iters: 15
     rows:
       - library: yaml
         op: stringify(doc)
-        median_ms: 9.580
-        mbps: 0.91
+        median_ms: 10.132
+        mbps: 0.86
       - library: poc
         op: stringify(doc)
-        median_ms: 1.799
-        mbps: 4.87
+        median_ms: 1.784
+        mbps: 4.91
   - fixture: comments-github-actions
     size_bytes: 5446
     iters: 15
     rows:
       - library: yaml
         op: stringify(doc)
-        median_ms: 4.930
-        mbps: 1.05
+        median_ms: 4.612
+        mbps: 1.13
       - library: poc
         op: stringify(doc)
-        median_ms: 0.838
-        mbps: 6.20
+        median_ms: 0.523
+        mbps: 9.92
   - fixture: comments-k8s-deployment
     size_bytes: 5039
     iters: 15
     rows:
       - library: yaml
         op: stringify(doc)
-        median_ms: 3.136
-        mbps: 1.53
+        median_ms: 2.848
+        mbps: 1.69
       - library: poc
         op: stringify(doc)
-        median_ms: 0.689
-        mbps: 6.98
+        median_ms: 0.627
+        mbps: 7.67
   - fixture: json-records-large
     size_bytes: 2097217
     iters: 3
     rows:
       - library: yaml
         op: stringify(doc)
-        median_ms: 2188.535
-        mbps: 0.91
+        median_ms: 2018.082
+        mbps: 0.99
       - library: poc
         op: stringify(doc)
-        median_ms: 321.041
-        mbps: 6.23
+        median_ms: 290.669
+        mbps: 6.88
   - fixture: json-records-medium
     size_bytes: 204883
     iters: 15
     rows:
       - library: yaml
         op: stringify(doc)
-        median_ms: 195.479
-        mbps: 1.00
+        median_ms: 197.583
+        mbps: 0.99
       - library: poc
         op: stringify(doc)
-        median_ms: 24.369
-        mbps: 8.02
+        median_ms: 24.706
+        mbps: 7.91
   - fixture: json-records-small
     size_bytes: 10347
     iters: 15
     rows:
       - library: yaml
         op: stringify(doc)
-        median_ms: 9.732
-        mbps: 1.01
+        median_ms: 9.487
+        mbps: 1.04
       - library: poc
         op: stringify(doc)
-        median_ms: 0.869
-        mbps: 11.36
+        median_ms: 0.867
+        mbps: 11.39
   - fixture: large-block
     size_bytes: 5243771
     iters: 3
     rows:
       - library: yaml
         op: stringify(doc)
-        median_ms: 6065.979
-        mbps: 0.82
+        median_ms: 5950.871
+        mbps: 0.84
       - library: poc
         op: stringify(doc)
-        median_ms: 790.624
-        mbps: 6.33
+        median_ms: 799.779
+        mbps: 6.25
   - fixture: multidoc-k8s
     size_bytes: 102638
     iters: 15
     rows:
       - library: yaml
         op: stringify(doc)
-        median_ms: 95.784
-        mbps: 1.02
+        median_ms: 99.167
+        mbps: 0.99
       - library: poc
         op: stringify(doc)
-        median_ms: 10.247
-        mbps: 9.55
+        median_ms: 12.019
+        mbps: 8.14

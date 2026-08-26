@@ -182,3 +182,132 @@ describe('Document.toString()', () => {
     assert.equal(doc.toString(), stringify(doc));
   });
 });
+
+// ---- B1: block scalar + comment regression ---------------------------------
+
+describe('block scalar + comment (B1)', () => {
+  it('literal block scalar with following comment preserves value', () => {
+    const text = 'script: |\n  echo hi\n# after block\nb: 2\n';
+    const ourOut = parseDocument(text).toString();
+    const yamlOut = yaml.stringify(yaml.parseDocument(text));
+    assert.equal(ourOut, yamlOut);
+    // Value must not be corrupted
+    const reparsed = yaml.parse(ourOut);
+    assert.equal(reparsed.script, 'echo hi\n');
+  });
+
+  it('folded block scalar with following comment preserves value', () => {
+    const text = 'desc: >\n  hello\n# after\nb: 2\n';
+    const ourOut = parseDocument(text).toString();
+    const yamlOut = yaml.stringify(yaml.parseDocument(text));
+    assert.equal(ourOut, yamlOut);
+  });
+});
+
+// ---- M1: blank-line preservation -------------------------------------------
+
+describe('blank-line preservation (M1)', () => {
+  it('preserves blank line between map keys', () => {
+    const text = 'a: 1\n\nb: 2\n';
+    const ourOut = parseDocument(text).toString();
+    const yamlOut = yaml.stringify(yaml.parseDocument(text));
+    assert.equal(ourOut, yamlOut);
+  });
+
+  it('preserves blank line before comment block', () => {
+    const text = 'a: 1\n\n# comment\nb: 2\n';
+    const ourOut = parseDocument(text).toString();
+    const yamlOut = yaml.stringify(yaml.parseDocument(text));
+    assert.equal(ourOut, yamlOut);
+  });
+
+  it('no blank line when none in source', () => {
+    const text = 'a: 1\nb: 2\n';
+    const ourOut = parseDocument(text).toString();
+    const yamlOut = yaml.stringify(yaml.parseDocument(text));
+    assert.equal(ourOut, yamlOut);
+  });
+});
+
+// ---- M2: option dispositions -----------------------------------------------
+
+describe('option dispositions (M2)', () => {
+  it('throws on lineWidth != 80', () => {
+    assert.throws(
+      () => stringify({ a: 1 }, { lineWidth: 20 }),
+      /Not implemented in POC: lineWidth/,
+    );
+  });
+
+  it('accepts lineWidth: 80 (default)', () => {
+    assert.doesNotThrow(() => stringify({ a: 1 }, { lineWidth: 80 }));
+  });
+
+  it('throws on flowLevel != -1', () => {
+    assert.throws(
+      () => stringify({ a: { b: 1 } }, { flowLevel: 0 }),
+      /Not implemented in POC: flowLevel/,
+    );
+  });
+
+  it('accepts flowLevel: -1 (default)', () => {
+    assert.doesNotThrow(() => stringify({ a: 1 }, { flowLevel: -1 }));
+  });
+
+  it('throws on defaultStringType != PLAIN', () => {
+    assert.throws(
+      () => stringify({ a: 'hello' }, { defaultStringType: 'QUOTE_DOUBLE' }),
+      /Not implemented in POC: defaultStringType/,
+    );
+  });
+
+  it('throws on directives: true', () => {
+    assert.throws(
+      () => stringify({ a: 1 }, { directives: true }),
+      /Not implemented in POC: directives/,
+    );
+  });
+
+  it('accepts directives: false (default)', () => {
+    assert.doesNotThrow(() => stringify({ a: 1 }, { directives: false }));
+  });
+});
+
+// ---- M3: multiline → block scalar ------------------------------------------
+
+describe('multiline block scalar choice (M3)', () => {
+  it('uses block scalar for multiline strings with trailing newline', () => {
+    const result = stringify({ a: 'line1\nline2\n' });
+    const expected = yaml.stringify({ a: 'line1\nline2\n' });
+    assert.equal(result, expected);
+    assert.ok(result.includes('|'));
+  });
+
+  it('uses block scalar for multiline strings without trailing newline', () => {
+    const result = stringify({ a: 'line1\nline2' });
+    const expected = yaml.stringify({ a: 'line1\nline2' });
+    assert.equal(result, expected);
+  });
+});
+
+// ---- M4: empty document ----------------------------------------------------
+
+describe('empty document (M4)', () => {
+  it('renders empty document as null\\n like eemeli', () => {
+    const result = stringify(parseDocument(''));
+    const expected = yaml.stringify(yaml.parseDocument(''));
+    assert.equal(result, expected);
+    assert.equal(result, 'null\n');
+  });
+});
+
+// ---- m4: bare document markers ---------------------------------------------
+
+describe('bare document markers (m4)', () => {
+  it('blank line between --- and ... with no content', () => {
+    const result = stringify(parseDocument('---\n...\n'));
+    const expected = yaml.stringify(yaml.parseDocument('---\n...\n'));
+    assert.equal(result, expected);
+    assert.equal(result, '---\n\n...\n');
+  });
+});

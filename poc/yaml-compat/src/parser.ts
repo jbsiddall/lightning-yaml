@@ -281,13 +281,13 @@ export class Parser {
         this.pos++;
         crossedNewline = true;
         consecutiveNewlines++;
-        this.hadBlankLine = true;
+        if (consecutiveNewlines >= 2) this.hadBlankLine = true;
       } else if (c === 0x0D) {
         this.pos++;
         if (this.pos < this.len && this.src.charCodeAt(this.pos) === 0x0A) this.pos++;
         crossedNewline = true;
         consecutiveNewlines++;
-        this.hadBlankLine = true;
+        if (consecutiveNewlines >= 2) this.hadBlankLine = true;
       } else if (c === 0x23) { // #
         // If we have pending comments and saw a blank line, mark it
         if (this.pendingCommentBefore.length > 0 && consecutiveNewlines >= 2) {
@@ -341,7 +341,15 @@ export class Parser {
 
   private consumePendingCommentBefore(): string | null {
     if (this.pendingCommentBefore.length === 0) return null;
-    const result = this.pendingCommentBefore.join('\n');
+    let result = this.pendingCommentBefore.join('\n');
+    // M1: preserve blank line between comment block and following content
+    if (this.blankAfterLastComment) {
+      result += '\n';
+      this.blankAfterLastComment = false;
+      // The blank line after the comment also sets hadBlankLine; clear it so
+      // spaceBefore isn't redundantly set (the trailing \n already captures it)
+      this.hadBlankLine = false;
+    }
     this.pendingCommentBefore = [];
     return result;
   }
@@ -1345,6 +1353,9 @@ export class Parser {
           this.src.charCodeAt(this.pos + 2) === 0x2E) break;
 
       const cb = this.consumePendingCommentBefore();
+      // M1: capture blank line before this key (for spaceBefore)
+      const spaceBefore = this.hadBlankLine;
+      this.hadBlankLine = false;
 
       // Parse key
       let key: Node | null;
@@ -1401,6 +1412,7 @@ export class Parser {
       }
 
       if (cb && key) key.commentBefore = cb;
+      if (spaceBefore && key) key.spaceBefore = true;
 
       // Trailing comment on the pair
       const tc = this.skipInlineComment();

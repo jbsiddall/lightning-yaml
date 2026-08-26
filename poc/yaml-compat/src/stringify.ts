@@ -60,12 +60,26 @@ interface Ctx {
   keyCache: Map<string, string>;
   out: string[];
   prefixRendered: boolean;
+  pendingAnchorAfterComment: string | null;
 }
 
 function makeCtx(opts?: StringifyOptions): Ctx {
   if (opts) {
     for (const k of Object.keys(opts)) {
       if (!KNOWN_OPTIONS.has(k)) throw new Error(`Not implemented in POC: ${k}`);
+    }
+    // M2: throw on options accepted but not implemented (loud-throw doctrine)
+    if (opts.lineWidth !== undefined && opts.lineWidth !== 80) {
+      throw new Error('Not implemented in POC: lineWidth');
+    }
+    if (opts.flowLevel !== undefined && opts.flowLevel !== -1) {
+      throw new Error('Not implemented in POC: flowLevel');
+    }
+    if (opts.defaultStringType !== undefined && opts.defaultStringType !== 'PLAIN') {
+      throw new Error('Not implemented in POC: defaultStringType');
+    }
+    if (opts.directives === true) {
+      throw new Error('Not implemented in POC: directives');
     }
   }
   const indent = opts?.indent ?? 2;
@@ -87,6 +101,7 @@ function makeCtx(opts?: StringifyOptions): Ctx {
     keyCache: new Map(),
     out: [],
     prefixRendered: false,
+    pendingAnchorAfterComment: null,
   };
 }
 
@@ -141,6 +156,9 @@ function stringifyDocument(doc: Document, ctx: Ctx): void {
   if (doc.contents) {
     renderNode(doc.contents, ctx, 0, false);
     ctx.out.push('\n');
+  } else if (!dir.docStart && !dir.docEnd) {
+    // M4: empty document with no markers → "null\n" like eemeli
+    ctx.out.push('null\n');
   }
 
   if (doc.comment) {
@@ -149,6 +167,8 @@ function stringifyDocument(doc: Document, ctx: Ctx): void {
   }
 
   if (dir.docEnd) {
+    // m4: blank line between bare --- and ... markers when no content
+    if (dir.docStart && !doc.contents) ctx.out.push('\n');
     ctx.out.push('...\n');
   }
 
@@ -164,7 +184,8 @@ function emitCommentText(text: string, ctx: Ctx): void {
   const lines = text.split('\n');
   for (const line of lines) {
     if (line.length > 0) {
-      ctx.out.push(`#${line}\n`);
+      // m5: guard against comment text without leading space
+      ctx.out.push(line.startsWith(' ') ? `#${line}\n` : `# ${line}\n`);
     } else {
       ctx.out.push('\n');
     }
@@ -221,6 +242,12 @@ function renderScalar(node: Scalar, ctx: Ctx, _level: number): void {
   }
   if (node.type === SCALAR_SINGLE) { ctx.out.push(renderSingleQuoted(s)); return; }
   if (node.type === SCALAR_DOUBLE) { ctx.out.push(JSON.stringify(s)); return; }
+
+  // M3: multiline strings → block scalar (|) like eemeli
+  if (s.includes('\n')) {
+    renderBlockScalar(s, '|', ctx, _level);
+    return;
+  }
 
   if (isPlainSafe(s, ctx)) { ctx.out.push(s); return; }
 
@@ -313,6 +340,15 @@ function renderMap(node: YAMLMap, ctx: Ctx, level: number, inFlow: boolean): voi
     return;
   }
 
+  // When prefix (anchor/tag) exists and first pair has commentBefore,
+  // defer prefix so it renders after the comment (matching eemeli's order)
+  const firstPair = node.items[0]!;
+  const firstKeyCB = firstPair?.key && isNode(firstPair.key) ? firstPair.key.commentBefore : null;
+  if (prefix && !ctx.prefixRendered && firstKeyCB) {
+    ctx.pendingAnchorAfterComment = prefix.trimEnd();
+    ctx.prefixRendered = true;
+  }
+
   if (prefix && !ctx.prefixRendered) {
     ctx.out.push(prefix.trimEnd());
     ctx.out.push('\n');
@@ -338,6 +374,14 @@ function renderBlockPair(pair: Pair, ctx: Ctx, level: number): void {
     }
   }
 
+  // Deferred anchor from parent map (rendered after comment, before key)
+  if (ctx.pendingAnchorAfterComment) {
+    ctx.out.push(p);
+    ctx.out.push(ctx.pendingAnchorAfterComment);
+    ctx.out.push('\n');
+    ctx.pendingAnchorAfterComment = null;
+  }
+
   ctx.out.push(p);
   ctx.out.push(renderNodeToString(pair.key, ctx, level));
   ctx.out.push(':');
@@ -358,7 +402,9 @@ function renderBlockPair(pair: Pair, ctx: Ctx, level: number): void {
     // ponytail: ignore vsb on block collection values — our parser sets spaceBefore
     // on every block collection value regardless of blank lines; add when parser fixed
     const valuePrefix = anchorTagPrefix(value);
-    if (valuePrefix) {
+    const firstItemCB = getFirstItemCommentBefore(value);
+    // When first item has commentBefore, defer anchor to renderMap (after comment, before key)
+    if (valuePrefix && !firstItemCB) {
       ctx.out.push(' ' + valuePrefix.trimEnd());
       ctx.prefixRendered = true;
     }
@@ -382,8 +428,30 @@ function renderBlockPair(pair: Pair, ctx: Ctx, level: number): void {
   }
 
   if (isNode(value) && value.comment) {
-    ctx.out.push(` #${value.comment}`);
+    // B1: block scalar comments go on their own line, not inline (inline corrupts value)
+    if (isScalar(value) && (value.type === SCALAR_LITERAL || value.type === SCALAR_FOLDED)) {
+      ctx.out.push('\n');
+      ctx.out.push(p);
+      // Emit without trailing newline — the map loop separator or doc-end handles it
+      const c = value.comment;
+      ctx.out.push(c.startsWith(' ') ? `#${c}` : `# ${c}`);
+    } else {
+      ctx.out.push(` #${value.comment}`);
+    }
   }
+}
+
+function getFirstItemCommentBefore(node: Node | null): string | null {
+  if (!node) return null;
+  if (isMap(node) && node.items.length > 0) {
+    const key = node.items[0]!.key;
+    return (key && isNode(key)) ? key.commentBefore : null;
+  }
+  if (isSeq(node) && node.items.length > 0) {
+    const item = node.items[0];
+    return (item && isNode(item)) ? item.commentBefore : null;
+  }
+  return null;
 }
 
 function isBlockCollection(node: Node | null, level: number, ctx: Ctx): boolean {
