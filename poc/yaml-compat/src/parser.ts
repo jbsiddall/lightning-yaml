@@ -137,6 +137,8 @@ export class Parser {
   private pendingTrailingComment: string | null;
   // Track if we saw a blank line before current position (for spaceBefore)
   private hadBlankLine: boolean;
+  // Whether a blank line separates the last pending comment from upcoming content
+  private blankAfterLastComment: boolean;
 
   constructor(src: string, opts?: ParseOptions) {
     this.src = src;
@@ -155,6 +157,7 @@ export class Parser {
     this.pendingCommentBefore = [];
     this.pendingTrailingComment = null;
     this.hadBlankLine = false;
+    this.blankAfterLastComment = false;
 
     // Track newlines for LineCounter
     if (this.lineCounter) {
@@ -265,6 +268,7 @@ export class Parser {
    */
   private skipWsAndComments(): boolean {
     let crossedNewline = false;
+    let consecutiveNewlines = 0;
     while (this.pos < this.len) {
       const c = this.src.charCodeAt(this.pos);
       if (c === 0x20 || c === 0x09) {
@@ -272,13 +276,20 @@ export class Parser {
       } else if (c === 0x0A) {
         this.pos++;
         crossedNewline = true;
+        consecutiveNewlines++;
         this.hadBlankLine = true;
       } else if (c === 0x0D) {
         this.pos++;
         if (this.pos < this.len && this.src.charCodeAt(this.pos) === 0x0A) this.pos++;
         crossedNewline = true;
+        consecutiveNewlines++;
         this.hadBlankLine = true;
       } else if (c === 0x23) { // #
+        // If we have pending comments and saw a blank line, mark it
+        if (this.pendingCommentBefore.length > 0 && consecutiveNewlines >= 2) {
+          this.blankAfterLastComment = true;
+        }
+        consecutiveNewlines = 0;
         const start = this.pos;
         this.pos++; // skip #
         while (this.pos < this.len) {
@@ -289,6 +300,7 @@ export class Parser {
         const commentText = this.src.slice(start + 1, this.pos);
         if (crossedNewline || this.pendingCommentBefore.length > 0 || this.pendingTrailingComment === null) {
           this.pendingCommentBefore.push(commentText);
+          this.blankAfterLastComment = false; // comment is adjacent to what follows
         } else {
           // Trailing comment on same line (after content)
           this.pendingTrailingComment = commentText;
@@ -296,6 +308,10 @@ export class Parser {
       } else {
         break;
       }
+    }
+    // If we have pending comments and saw a blank line after the last one
+    if (this.pendingCommentBefore.length > 0 && consecutiveNewlines >= 2) {
+      this.blankAfterLastComment = true;
     }
     return crossedNewline;
   }
@@ -1199,12 +1215,15 @@ export class Parser {
     const indent = this.currentColumn();
     const fc = this.ch();
     let node: Node;
+    let isCollection = false;
 
     if (fc === 0x2D && (this.pos + 1 >= this.len || this.isWsOrNl(this.src.charCodeAt(this.pos + 1)))) {
       // Block sequence
+      isCollection = true;
       node = this.parseBlockSequence(indent);
     } else if (fc === 0x3F && (this.pos + 1 >= this.len || this.isWsOrNl(this.src.charCodeAt(this.pos + 1)))) {
       // Explicit key
+      isCollection = true;
       node = this.parseBlockMappingExplicit(indent);
     } else if (fc === 0x5B) { // [
       node = this.parseFlowSequence(this.pos);
@@ -1222,6 +1241,7 @@ export class Parser {
       // Could be a plain scalar OR a block mapping key
       // Look ahead for : to decide
       if (this.isBlockMapKey()) {
+        isCollection = true;
         node = this.parseBlockMapping(indent);
       } else {
         node = this.parsePlainScalar(minIndent);
@@ -1233,7 +1253,17 @@ export class Parser {
       this.anchors.set(anchor, node);
     }
     if (tag) node.tag = tag;
-    if (cb) node.commentBefore = cb;
+    // For collections, pass the comment through to the first key/item;
+    // for non-collections, attach directly.
+    if (cb) {
+      if (isCollection && node instanceof YAMLMap && node.items.length > 0 && node.items[0]!.key) {
+        node.items[0]!.key.commentBefore = cb;
+      } else if (isCollection && node instanceof YAMLSeq && node.items.length > 0) {
+        node.items[0]!.commentBefore = cb;
+      } else {
+        node.commentBefore = cb;
+      }
+    }
     if (spaceBefore) node.spaceBefore = spaceBefore;
 
     // Attach trailing comment
@@ -1493,6 +1523,28 @@ export class Parser {
     const docStart = this.pos;
     this.hadBlankLine = false;
 
+    // strict: detect tabs used in indentation (matches eemeli's rule)
+    if (this.strict) {
+      let lineStart = true;
+      for (let i = 0; i < this.len; i++) {
+        const c = this.src.charCodeAt(i);
+        if (c === 0x09 && lineStart) { // tab in leading whitespace
+          const lc = this.lineCounter
+            ? this.lineCounter.linePos(i)
+            : offsetToLineCol(this.src, i);
+          this.errors.push(new YAMLParseError(i, 'Tabs are not allowed as indentation', [lc]));
+          // Only report once per line
+          lineStart = false;
+        } else if (c === 0x0A) {
+          lineStart = true;
+        } else if (c === 0x0D) {
+          lineStart = true;
+        } else if (c !== 0x20) {
+          lineStart = false;
+        }
+      }
+    }
+
     // Parse directives
     while (this.pos < this.len) {
       this.skipWsAndComments();
@@ -1507,10 +1559,13 @@ export class Parser {
     // Check for --- doc start
     let hasDocStart = false;
     this.skipWsAndComments();
+    let docCommentBefore: string | null = null;
     if (this.pos + 2 < this.len &&
         this.src.charCodeAt(this.pos) === 0x2D &&
         this.src.charCodeAt(this.pos + 1) === 0x2D &&
         this.src.charCodeAt(this.pos + 2) === 0x2D) {
+      // Comments before --- are always doc.commentBefore
+      docCommentBefore = this.consumePendingCommentBefore();
       hasDocStart = true;
       this.directives.docStart = true;
       this.pos += 3;
@@ -1521,9 +1576,19 @@ export class Parser {
       }
     }
 
-    // Collect leading comments for the document
+    // Collect leading comments for the document (after --- if present)
     this.skipWsAndComments();
-    const docCommentBefore = this.consumePendingCommentBefore();
+    // Only consume as doc.commentBefore if separated by a blank line from content;
+    // adjacent comments pass through to attach to the first content node (eemeli semantics).
+    if (this.blankAfterLastComment || this.pos >= this.len) {
+      const afterComment = this.consumePendingCommentBefore();
+      if (afterComment) {
+        docCommentBefore = docCommentBefore
+          ? docCommentBefore + '\n' + afterComment
+          : afterComment;
+      }
+    }
+    this.blankAfterLastComment = false;
 
     // Parse the document content
     let contents: Node | null = null;
@@ -1582,6 +1647,7 @@ export class Parser {
       this.pendingCommentBefore = [];
       this.pendingTrailingComment = null;
       this.hadBlankLine = false;
+      this.blankAfterLastComment = false;
 
       // Skip blank lines between documents
       this.skipWsAndComments();

@@ -56,9 +56,7 @@ export class Document {
     const anchorMap = new Map<string, Node>();
     collectAnchors(this.contents, anchorMap);
 
-    const aliasCounts = new Map<Node, number>();
-
-    return nodeToJS(this.contents, anchorMap, aliasCounts, maxAliasCount, merge, mapAsMap);
+    return nodeToJS(this.contents, anchorMap, { total: 0 }, maxAliasCount, merge, mapAsMap, new Map());
   }
 
   /** Get a value at a top-level key. */
@@ -109,11 +107,8 @@ export class Document {
     return node;
   }
 
-  /** Minimal toString — renders the document back to YAML. */
+  /** Minimal toString — renders the document back to YAML (best-effort, even with errors). */
   toString(): string {
-    if (this.errors.length > 0) {
-      throw new Error('Document has errors: ' + this.errors.map(e => e.message).join('; '));
-    }
     const lines: string[] = [];
     if (this.directives.yaml.explicit) {
       lines.push(`%YAML ${this.directives.yaml.version}`);
@@ -155,44 +150,62 @@ function collectAnchors(node: Node | null, map: Map<string, Node>): void {
 function nodeToJS(
   node: Node | null,
   anchors: Map<string, Node>,
-  aliasCounts: Map<Node, number>,
+  aliasCount: { total: number },
   maxAliasCount: number,
   merge: boolean,
   mapAsMap: boolean,
+  resolved: Map<Node, unknown>,
 ): unknown {
   if (!node) return null;
 
   if (isScalar(node)) {
+    // !!binary is not implemented — throw loud per DEFER doctrine
+    if (node.tag === '!!binary') {
+      throw new Error('Not implemented in POC: !!binary');
+    }
     return node.value;
   }
 
   if (isAlias(node)) {
     const target = anchors.get(node.source);
     if (!target) return undefined;
-    return nodeToJS(target, anchors, aliasCounts, maxAliasCount, merge, mapAsMap);
+    // Enforce maxAliasCount (-1 = unlimited)
+    if (maxAliasCount >= 0) {
+      aliasCount.total++;
+      if (aliasCount.total > maxAliasCount) {
+        throw new ReferenceError('Excessive alias count indicates a resource exhaustion attack');
+      }
+    }
+    // Cycle detection: if target is already being resolved, return the partial object
+    if (resolved.has(target)) return resolved.get(target);
+    return nodeToJS(target, anchors, aliasCount, maxAliasCount, merge, mapAsMap, resolved);
   }
 
   if (isSeq(node)) {
     const arr: unknown[] = [];
+    resolved.set(node, arr);
     for (const item of node.items) {
-      arr.push(nodeToJS(item, anchors, aliasCounts, maxAliasCount, merge, mapAsMap));
+      arr.push(nodeToJS(item, anchors, aliasCount, maxAliasCount, merge, mapAsMap, resolved));
     }
     return arr;
   }
 
   if (isMap(node)) {
+    // Check for !!binary on maps (unlikely but be safe)
+    if (node.tag === '!!binary') {
+      throw new Error('Not implemented in POC: !!binary');
+    }
     const obj: Record<string, unknown> = {};
+    resolved.set(node, obj);
     for (const pair of node.items) {
       // Merge key handling
       if (merge && isScalar(pair.key) && pair.key.value === '<<') {
-        const mergeValue = nodeToJS(pair.value, anchors, aliasCounts, maxAliasCount, merge, mapAsMap);
+        const mergeValue = nodeToJS(pair.value, anchors, aliasCount, maxAliasCount, merge, mapAsMap, resolved);
         if (mergeValue && typeof mergeValue === 'object' && !Array.isArray(mergeValue)) {
-          // Merge the object's keys into obj (only if not already set)
           for (const [k, v] of Object.entries(mergeValue)) {
             if (!(k in obj)) obj[k] = v;
           }
         } else if (Array.isArray(mergeValue)) {
-          // Merge key with array of maps
           for (const m of mergeValue) {
             if (m && typeof m === 'object' && !Array.isArray(m)) {
               for (const [k, v] of Object.entries(m)) {
@@ -204,8 +217,8 @@ function nodeToJS(
         continue;
       }
 
-      const key = isScalar(pair.key) ? String(pair.key.value) : String(nodeToJS(pair.key, anchors, aliasCounts, maxAliasCount, merge, mapAsMap));
-      const value = nodeToJS(pair.value, anchors, aliasCounts, maxAliasCount, merge, mapAsMap);
+      const key = isScalar(pair.key) ? String(pair.key.value) : String(nodeToJS(pair.key, anchors, aliasCount, maxAliasCount, merge, mapAsMap, resolved));
+      const value = nodeToJS(pair.value, anchors, aliasCount, maxAliasCount, merge, mapAsMap, resolved);
       obj[key] = value;
     }
 

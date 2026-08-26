@@ -99,8 +99,13 @@ function blockConfigYaml(targetBytes: number): string {
     const secName = pick(rand, WORDS) + "_" + section;
     out.push(`${secName}:`);
     const fields = 6 + Math.floor(rand() * 10);
+    const usedKeys = new Set<string>();
     for (let f = 0; f < fields; f++) {
-      const k = pick(rand, WORDS) + "_" + ident(rand, 3);
+      let k: string;
+      do {
+        k = pick(rand, WORDS) + "_" + ident(rand, 3);
+      } while (usedKeys.has(k));
+      usedKeys.add(k);
       const v = rand() > 0.5 ? String(Math.floor(rand() * 10000)) : pick(rand, WORDS);
       out.push(`  ${k}: ${v}`);
     }
@@ -435,8 +440,13 @@ function largeBlockYaml(targetBytes: number): string {
     const sec = pick(rand, WORDS) + "_" + i;
     out.push(`${sec}:`);
     const fields = 10 + Math.floor(rand() * 16);
+    const usedKeys = new Set<string>();
     for (let f = 0; f < fields; f++) {
-      const k = pick(rand, WORDS) + "_" + ident(rand, 3);
+      let k: string;
+      do {
+        k = pick(rand, WORDS) + "_" + ident(rand, 3);
+      } while (usedKeys.has(k));
+      usedKeys.add(k);
       const v = rand() > 0.5 ? String(Math.floor(rand() * 100000)) : pick(rand, WORDS) + "-" + ident(rand, 4);
       out.push(`  ${k}: ${v}`);
     }

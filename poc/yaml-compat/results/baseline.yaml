@@ -1,3 +1,19 @@
+# Baseline benchmark results — poc/yaml-compat
+# machine: linux x64
+# node: v22.23.2
+# yaml: 2.9.0
+# js-yaml: 5.2.1
+# lightning-yaml: main@eaf00b1
+# date: 2026-08-26T13:36:57.830Z
+# github-actions-remeasured: 2026-08-26 — speed + memory rows for comments-github-actions
+#   re-run after fixing corpus nondeterminism (Math.random → seeded PRNG); all other rows unchanged
+# git-sha: eaf00b1
+# speed-iters: 15 (fixtures >1MB: 3)
+# memory-iters: 25 (fixtures >1MB: 5)
+# large-threshold: 1000000 bytes
+# poc-speed-rows: added 2026-08-26 — 3 poc ops (parse, parseDocument, parseDocument+toJS) per fixture
+# poc-corpus-fix: 2026-08-26 — large-block fixture regenerated with unique-key enforcement
+
 speed:
   - fixture: block-config
     size_bytes: 51595
@@ -39,6 +55,18 @@ speed:
         op: stringify
         median_ms: 0.861
         mbps: 57.16
+      - library: poc
+        op: parse
+        median_ms: 5.036
+        mbps: 9.77
+      - library: poc
+        op: parseDocument
+        median_ms: 3.495
+        mbps: 14.08
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 5.277
+        mbps: 9.33
   - fixture: comments-docker-compose
     size_bytes: 9188
     iters: 15
@@ -79,6 +107,18 @@ speed:
         op: stringify
         median_ms: 0.415
         mbps: 21.12
+      - library: poc
+        op: parse
+        median_ms: 1.198
+        mbps: 7.32
+      - library: poc
+        op: parseDocument
+        median_ms: 0.761
+        mbps: 11.51
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 0.768
+        mbps: 11.42
   - fixture: comments-github-actions
     size_bytes: 5446
     iters: 15
@@ -119,6 +159,18 @@ speed:
         op: stringify
         median_ms: 0.478
         mbps: 10.87
+      - library: poc
+        op: parse
+        median_ms: 0.768
+        mbps: 6.76
+      - library: poc
+        op: parseDocument
+        median_ms: 0.354
+        mbps: 14.69
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 0.445
+        mbps: 11.68
   - fixture: comments-k8s-deployment
     size_bytes: 5039
     iters: 15
@@ -159,6 +211,18 @@ speed:
         op: stringify
         median_ms: 0.034
         mbps: 139.43
+      - library: poc
+        op: parse
+        median_ms: 0.573
+        mbps: 8.39
+      - library: poc
+        op: parseDocument
+        median_ms: 0.282
+        mbps: 17.06
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 0.328
+        mbps: 14.64
   - fixture: json-records-large
     size_bytes: 2097217
     iters: 3
@@ -199,6 +263,18 @@ speed:
         op: stringify
         median_ms: 43.331
         mbps: 46.16
+      - library: poc
+        op: parse
+        median_ms: 239.016
+        mbps: 8.37
+      - library: poc
+        op: parseDocument
+        median_ms: 175.334
+        mbps: 11.41
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 232.088
+        mbps: 8.62
   - fixture: json-records-medium
     size_bytes: 204883
     iters: 15
@@ -239,6 +315,18 @@ speed:
         op: stringify
         median_ms: 1.971
         mbps: 99.11
+      - library: poc
+        op: parse
+        median_ms: 24.085
+        mbps: 8.11
+      - library: poc
+        op: parseDocument
+        median_ms: 13.859
+        mbps: 14.10
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 19.252
+        mbps: 10.15
   - fixture: json-records-small
     size_bytes: 10347
     iters: 15
@@ -279,6 +367,18 @@ speed:
         op: stringify
         median_ms: 0.091
         mbps: 108.71
+      - library: poc
+        op: parse
+        median_ms: 0.819
+        mbps: 12.05
+      - library: poc
+        op: parseDocument
+        median_ms: 0.617
+        mbps: 15.99
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 0.791
+        mbps: 12.48
   - fixture: large-block
     size_bytes: 5243790
     iters: 3
@@ -299,6 +399,18 @@ speed:
         op: stringify
         median_ms: 197.454
         mbps: 25.33
+      - library: poc
+        op: parse
+        median_ms: 796.671
+        mbps: 6.28
+      - library: poc
+        op: parseDocument
+        median_ms: 438.050
+        mbps: 11.42
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 750.473
+        mbps: 6.66
   - fixture: multidoc-k8s
     size_bytes: 102638
     iters: 15
@@ -331,6 +443,18 @@ speed:
         op: dump
         median_ms: 11.009
         mbps: 8.89
+      - library: poc
+        op: parse
+        median_ms: 172.598
+        mbps: 0.57
+      - library: poc
+        op: parseDocument
+        median_ms: 171.058
+        mbps: 0.57
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 175.225
+        mbps: 0.56
 
 memory:
   - fixture: block-config

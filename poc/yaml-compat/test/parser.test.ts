@@ -43,11 +43,6 @@ function loadCorpus() {
 describe('Corpus toJS differential', () => {
   for (const fx of loadCorpus()) {
     it(fx.name, () => {
-      if (fx.name === 'large-block') {
-        // Skip — corpus generator may produce duplicate keys; both parsers
-        // may disagree on error behavior. Not a parser correctness issue.
-        return;
-      }
       if (fx.isMultidoc) {
         const ours = parseAllDocuments(fx.text);
         const theirs = yaml.parseAllDocuments(fx.text);
@@ -375,31 +370,40 @@ describe('visit and type guards', () => {
 // ---- Comment preservation --------------------------------------------------
 
 describe('Comments', () => {
-  it('commentBefore with blank line separation', () => {
-    // Per eemeli semantics: comment separated by blank line → doc.commentBefore
+  it('blank-line-separated comment → doc.commentBefore', () => {
+    // Comment separated by blank line → doc.commentBefore (eemeli semantics)
     const doc = parseDocument('# top comment\n\na: 1\n');
-    assert.ok(
-      doc.commentBefore?.includes('top comment') ||
-      doc.contents?.commentBefore?.includes('top comment'),
-      'comment should be preserved somewhere in the AST',
-    );
-  });
-
-  it('leading comment attached to first node', () => {
-    // Comment directly before content (no blank line) → attached to first node
-    const doc = parseDocument('# before a\na: 1\n');
+    assert.ok(doc.commentBefore?.includes('top comment'),
+      'blank-line-separated comment should be doc.commentBefore');
     const map = doc.contents as YAMLMap;
     const firstKey = map.items[0]?.key as Scalar;
-    // Either on doc, contents, or first key — just verify it's preserved
-    const allComments = [
-      doc.commentBefore,
-      doc.contents?.commentBefore,
-      firstKey?.commentBefore,
-    ].filter(Boolean);
-    assert.ok(
-      allComments.some(c => c?.includes('before a')),
-      'comment should be preserved in the AST',
-    );
+    assert.equal(firstKey?.commentBefore, null,
+      'first key should NOT have the doc-level comment');
+  });
+
+  it('adjacent comment → first key commentBefore', () => {
+    // Comment directly before content (no blank line) → first node's commentBefore
+    const doc = parseDocument('# before a\na: 1\n');
+    assert.equal(doc.commentBefore, null,
+      'adjacent comment should NOT be doc.commentBefore');
+    const map = doc.contents as YAMLMap;
+    const firstKey = map.items[0]?.key as Scalar;
+    assert.ok(firstKey?.commentBefore?.includes('before a'),
+      'adjacent comment should attach to first key');
+  });
+
+  it('comment before --- doc marker → doc.commentBefore', () => {
+    const doc = parseDocument('# before marker\n---\na: 1\n');
+    assert.ok(doc.commentBefore?.includes('before marker'),
+      'comment before --- should be doc.commentBefore');
+  });
+
+  it('comment between keys attaches to next key', () => {
+    const doc = parseDocument('a: 1\n# between\nb: 2\n');
+    const map = doc.contents as YAMLMap;
+    const secondKey = map.items[1]?.key as Scalar;
+    assert.ok(secondKey?.commentBefore?.includes('between'),
+      'comment between keys should attach to the next key');
   });
 });
 
@@ -424,5 +428,89 @@ describe('Error paths', () => {
       assert.ok(err.pos[0]!.line >= 1);
       assert.ok(err.pos[0]!.col >= 1);
     }
+  });
+});
+
+// ---- Alias cycles and maxAliasCount (B2) -----------------------------------
+
+describe('Alias cycles and maxAliasCount', () => {
+  it('alias cycle does not crash toJS()', () => {
+    const doc = parseDocument('a: &a\n  ref: *a\n');
+    // Should not throw — creates a circular JS object
+    const result = doc.toJS() as Record<string, unknown>;
+    assert.ok(result.a !== undefined);
+    // Verify circular reference
+    assert.equal((result.a as Record<string, unknown>).ref, result.a);
+  });
+
+  it('maxAliasCount enforced — throws ReferenceError when exceeded', () => {
+    const doc = parseDocument('a: &a [1, 2]\nb: *a\nc: *a\nd: *a\n');
+    assert.throws(
+      () => doc.toJS({ maxAliasCount: 2 }),
+      (err: Error) => err instanceof ReferenceError && /Excessive alias count/.test(err.message),
+    );
+  });
+
+  it('maxAliasCount: -1 means unlimited', () => {
+    const doc = parseDocument('a: &a\n  ref: *a\n');
+    // Should not throw with unlimited aliases
+    const result = doc.toJS({ maxAliasCount: -1 }) as Record<string, unknown>;
+    assert.ok(result.a !== undefined);
+  });
+
+  it('deep alias reuse within limit succeeds', () => {
+    const doc = parseDocument('a: &a\n  x: 1\nb: *a\nc: *a\nd: *a\n');
+    const result = doc.toJS() as Record<string, unknown>;
+    assert.deepStrictEqual(result.b, { x: 1 });
+    assert.deepStrictEqual(result.c, { x: 1 });
+    assert.deepStrictEqual(result.d, { x: 1 });
+  });
+});
+
+// ---- !!binary throws (M1) -------------------------------------------------
+
+describe('!!binary tag', () => {
+  it('!!binary throws NotImplemented on toJS()', () => {
+    const doc = parseDocument('data: !!binary "SGVsbG8="');
+    assert.throws(
+      () => doc.toJS(),
+      (err: Error) => /!!binary/.test(err.message),
+    );
+  });
+
+  it('parse() with !!binary throws', () => {
+    assert.throws(
+      () => parse('data: !!binary "SGVsbG8="'),
+      (err: Error) => /!!binary/.test(err.message),
+    );
+  });
+});
+
+// ---- strict mode (m4) ------------------------------------------------------
+
+describe('strict mode', () => {
+  it('strict:true detects tabs in indentation', () => {
+    const doc = parseDocument('a:\n\tb: 1\n', { strict: true });
+    assert.ok(doc.errors.length > 0, 'should have errors for tab indentation');
+    assert.ok(doc.errors.some(e => /Tabs are not allowed/.test(e.message)),
+      'error should mention tabs');
+  });
+
+  it('strict:false allows tabs in indentation', () => {
+    const doc = parseDocument('a:\n\tb: 1\n', { strict: false });
+    const tabErrors = doc.errors.filter(e => /Tabs are not allowed/.test(e.message));
+    assert.equal(tabErrors.length, 0, 'strict:false should not flag tabs');
+  });
+});
+
+// ---- toString best-effort (m5) ---------------------------------------------
+
+describe('toString best-effort', () => {
+  it('toString renders even when document has errors', () => {
+    const doc = parseDocument('{unclosed: [');
+    assert.ok(doc.errors.length > 0, 'should have parse errors');
+    // Should not throw — renders what it can
+    const str = doc.toString();
+    assert.ok(typeof str === 'string');
   });
 });
