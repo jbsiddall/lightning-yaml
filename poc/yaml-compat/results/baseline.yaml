@@ -11,6 +11,8 @@
 # speed-iters: 15 (fixtures >1MB: 3)
 # memory-iters: 25 (fixtures >1MB: 5)
 # large-threshold: 1000000 bytes
+# poc-speed-rows: added 2026-08-26 — 3 poc ops (parse, parseDocument, parseDocument+toJS) per fixture
+# poc-corpus-fix: 2026-08-26 — large-block fixture regenerated with unique-key enforcement
 
 speed:
   - fixture: block-config
@@ -53,6 +55,18 @@ speed:
         op: stringify
         median_ms: 0.861
         mbps: 57.16
+      - library: poc
+        op: parse
+        median_ms: 4.885
+        mbps: 10.07
+      - library: poc
+        op: parseDocument
+        median_ms: 3.14
+        mbps: 15.67
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 3.903
+        mbps: 12.61
   - fixture: comments-docker-compose
     size_bytes: 9188
     iters: 15
@@ -93,6 +107,18 @@ speed:
         op: stringify
         median_ms: 0.415
         mbps: 21.12
+      - library: poc
+        op: parse
+        median_ms: 1.184
+        mbps: 7.4
+      - library: poc
+        op: parseDocument
+        median_ms: 0.502
+        mbps: 17.46
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 0.536
+        mbps: 16.36
   - fixture: comments-github-actions
     size_bytes: 5446
     iters: 15
@@ -133,6 +159,18 @@ speed:
         op: stringify
         median_ms: 0.478
         mbps: 10.87
+      - library: poc
+        op: parse
+        median_ms: 0.495
+        mbps: 10.5
+      - library: poc
+        op: parseDocument
+        median_ms: 0.42
+        mbps: 12.36
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 0.327
+        mbps: 15.9
   - fixture: comments-k8s-deployment
     size_bytes: 5039
     iters: 15
@@ -173,6 +211,18 @@ speed:
         op: stringify
         median_ms: 0.034
         mbps: 139.43
+      - library: poc
+        op: parse
+        median_ms: 0.506
+        mbps: 9.5
+      - library: poc
+        op: parseDocument
+        median_ms: 0.241
+        mbps: 19.96
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 0.273
+        mbps: 17.58
   - fixture: json-records-large
     size_bytes: 2097217
     iters: 3
@@ -213,6 +263,18 @@ speed:
         op: stringify
         median_ms: 43.331
         mbps: 46.16
+      - library: poc
+        op: parse
+        median_ms: 175.013
+        mbps: 11.43
+      - library: poc
+        op: parseDocument
+        median_ms: 158.277
+        mbps: 12.64
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 168.247
+        mbps: 11.89
   - fixture: json-records-medium
     size_bytes: 204883
     iters: 15
@@ -253,6 +315,18 @@ speed:
         op: stringify
         median_ms: 1.971
         mbps: 99.11
+      - library: poc
+        op: parse
+        median_ms: 13.356
+        mbps: 14.63
+      - library: poc
+        op: parseDocument
+        median_ms: 11.479
+        mbps: 17.02
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 13.498
+        mbps: 14.48
   - fixture: json-records-small
     size_bytes: 10347
     iters: 15
@@ -293,6 +367,18 @@ speed:
         op: stringify
         median_ms: 0.091
         mbps: 108.71
+      - library: poc
+        op: parse
+        median_ms: 0.562
+        mbps: 17.55
+      - library: poc
+        op: parseDocument
+        median_ms: 0.479
+        mbps: 20.61
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 0.553
+        mbps: 17.83
   - fixture: large-block
     size_bytes: 5243790
     iters: 3
@@ -313,6 +399,18 @@ speed:
         op: stringify
         median_ms: 197.454
         mbps: 25.33
+      - library: poc
+        op: parse
+        median_ms: 651.181
+        mbps: 7.68
+      - library: poc
+        op: parseDocument
+        median_ms: 367.988
+        mbps: 13.59
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 575.133
+        mbps: 8.7
   - fixture: multidoc-k8s
     size_bytes: 102638
     iters: 15
@@ -345,6 +443,18 @@ speed:
         op: dump
         median_ms: 11.009
         mbps: 8.89
+      - library: poc
+        op: parse
+        median_ms: 4.661
+        mbps: 21
+      - library: poc
+        op: parseDocument
+        median_ms: 4.361
+        mbps: 22.45
+      - library: poc
+        op: parseDocument+toJS
+        median_ms: 9.202
+        mbps: 10.64
 
 memory:
   - fixture: block-config
@@ -387,6 +497,18 @@ memory:
         op: stringify
         peak_rss_bytes: 104542208
         heap_delta_bytes: 193584
+      - library: poc
+        op: parse
+        peak_rss_bytes: 111943680
+        heap_delta_bytes: 85752
+      - library: poc
+        op: parseDocument
+        peak_rss_bytes: 106532864
+        heap_delta_bytes: 83232
+      - library: poc
+        op: parseDocument+toJS
+        peak_rss_bytes: 112197632
+        heap_delta_bytes: 78240
   - fixture: comments-docker-compose
     size_bytes: 9188
     iters: 25
@@ -427,6 +549,18 @@ memory:
         op: stringify
         peak_rss_bytes: 99729408
         heap_delta_bytes: 232656
+      - library: poc
+        op: parse
+        peak_rss_bytes: 97857536
+        heap_delta_bytes: 141240
+      - library: poc
+        op: parseDocument
+        peak_rss_bytes: 98025472
+        heap_delta_bytes: 120424
+      - library: poc
+        op: parseDocument+toJS
+        peak_rss_bytes: 96100352
+        heap_delta_bytes: 141304
   - fixture: comments-github-actions
     size_bytes: 5446
     iters: 25
@@ -467,6 +601,18 @@ memory:
         op: stringify
         peak_rss_bytes: 100036608
         heap_delta_bytes: 89944
+      - library: poc
+        op: parse
+        peak_rss_bytes: 95432704
+        heap_delta_bytes: 126072
+      - library: poc
+        op: parseDocument
+        peak_rss_bytes: 100098048
+        heap_delta_bytes: 97536
+      - library: poc
+        op: parseDocument+toJS
+        peak_rss_bytes: 98775040
+        heap_delta_bytes: 133864
   - fixture: comments-k8s-deployment
     size_bytes: 5039
     iters: 25
@@ -507,6 +653,18 @@ memory:
         op: stringify
         peak_rss_bytes: 94756864
         heap_delta_bytes: 84592
+      - library: poc
+        op: parse
+        peak_rss_bytes: 99512320
+        heap_delta_bytes: 96560
+      - library: poc
+        op: parseDocument
+        peak_rss_bytes: 95019008
+        heap_delta_bytes: 89264
+      - library: poc
+        op: parseDocument+toJS
+        peak_rss_bytes: 95547392
+        heap_delta_bytes: 95520
   - fixture: json-records-large
     size_bytes: 2097217
     iters: 5
@@ -547,6 +705,18 @@ memory:
         op: stringify
         peak_rss_bytes: 182464512
         heap_delta_bytes: 17768
+      - library: poc
+        op: parse
+        peak_rss_bytes: 276082688
+        heap_delta_bytes: 28456
+      - library: poc
+        op: parseDocument
+        peak_rss_bytes: 258527232
+        heap_delta_bytes: 24952
+      - library: poc
+        op: parseDocument+toJS
+        peak_rss_bytes: 276733952
+        heap_delta_bytes: 28200
   - fixture: json-records-medium
     size_bytes: 204883
     iters: 25
@@ -587,6 +757,18 @@ memory:
         op: stringify
         peak_rss_bytes: 110448640
         heap_delta_bytes: 105712
+      - library: poc
+        op: parse
+        peak_rss_bytes: 128266240
+        heap_delta_bytes: 64520
+      - library: poc
+        op: parseDocument
+        peak_rss_bytes: 128024576
+        heap_delta_bytes: 48112
+      - library: poc
+        op: parseDocument+toJS
+        peak_rss_bytes: 126889984
+        heap_delta_bytes: 59936
   - fixture: json-records-small
     size_bytes: 10347
     iters: 25
@@ -627,6 +809,18 @@ memory:
         op: stringify
         peak_rss_bytes: 96133120
         heap_delta_bytes: 189448
+      - library: poc
+        op: parse
+        peak_rss_bytes: 100253696
+        heap_delta_bytes: 119248
+      - library: poc
+        op: parseDocument
+        peak_rss_bytes: 103374848
+        heap_delta_bytes: 100656
+      - library: poc
+        op: parseDocument+toJS
+        peak_rss_bytes: 101367808
+        heap_delta_bytes: 115904
   - fixture: large-block
     size_bytes: 5243790
     iters: 5
@@ -647,6 +841,19 @@ memory:
         op: stringify
         peak_rss_bytes: 279887872
         heap_delta_bytes: 131528
+      - library: poc
+        op: parse
+        status: error
+        reason: "/workspace/lightning-yaml/poc/yaml-compat/src/parser.ts:175     const e
+          = new YAMLParseError(offset, message, lc);      "
+      - library: poc
+        op: parseDocument
+        peak_rss_bytes: 486907904
+        heap_delta_bytes: 7960
+      - library: poc
+        op: parseDocument+toJS
+        peak_rss_bytes: 480473088
+        heap_delta_bytes: 7120
   - fixture: multidoc-k8s
     size_bytes: 102638
     iters: 25
@@ -679,3 +886,15 @@ memory:
         op: dump
         peak_rss_bytes: 129404928
         heap_delta_bytes: 176512
+      - library: poc
+        op: parse
+        peak_rss_bytes: 111124480
+        heap_delta_bytes: 103504
+      - library: poc
+        op: parseDocument
+        peak_rss_bytes: 109969408
+        heap_delta_bytes: 104608
+      - library: poc
+        op: parseDocument+toJS
+        peak_rss_bytes: 120676352
+        heap_delta_bytes: 94208

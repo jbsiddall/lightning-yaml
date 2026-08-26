@@ -22,6 +22,11 @@ import { performance } from "node:perf_hooks";
 import * as yamlLib from "yaml";
 import * as jsYaml from "js-yaml";
 import { parse as lyParse, stringify as lyStringify } from "../../../src/index.ts";
+import {
+  parse as pocParse,
+  parseDocument as pocParseDocument,
+  parseAllDocuments as pocParseAllDocuments,
+} from "../src/index.ts";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const CORPUS = join(HERE, "corpus");
@@ -183,6 +188,24 @@ function speedForFixture(fx: Fixture): SpeedResult[] {
     push("lightning-yaml", "stringify", { error: `parse failed: ${(e as Error).message ?? String(e)}` });
   }
 
+  // ---- poc (yaml-compat parser)
+  push("poc", "parse", timeSync(() => {
+    if (isMultidoc) pocParseAllDocuments(text);
+    else pocParse(text);
+  }, iters, bytes));
+
+  push("poc", "parseDocument", timeSync(() => {
+    if (isMultidoc) pocParseAllDocuments(text);
+    else pocParseDocument(text);
+  }, iters, bytes));
+
+  push("poc", "parseDocument+toJS", timeSync(() => {
+    const docs = isMultidoc
+      ? pocParseAllDocuments(text)
+      : [pocParseDocument(text)];
+    for (const d of docs) d.toJS();
+  }, iters, bytes));
+
   return out;
 }
 
@@ -236,6 +259,7 @@ const MEMORY_OPS: Array<{ library: string; ops: string[] }> = [
   { library: "yaml", ops: ["parse", "parseDocument", "parseDocument+toJS", "stringify(doc)", "round-trip"] },
   { library: "js-yaml", ops: ["load", "dump"] },
   { library: "lightning-yaml", ops: ["parse", "stringify"] },
+  { library: "poc", ops: ["parse", "parseDocument", "parseDocument+toJS"] },
 ];
 
 function memItersFor(fx: Fixture): number {

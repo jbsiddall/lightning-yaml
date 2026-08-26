@@ -11,6 +11,11 @@ import { readFileSync } from "node:fs";
 import * as yamlLib from "yaml";
 import * as jsYaml from "js-yaml";
 import { parse as lyParse, stringify as lyStringify } from "../../../src/index.ts";
+import {
+  parse as pocParse,
+  parseDocument as pocParseDocument,
+  parseAllDocuments as pocParseAllDocuments,
+} from "../src/index.ts";
 
 const [fixturePath, library, op, itersStr, isMultidocStr] = process.argv.slice(2);
 const iters = Number(itersStr);
@@ -87,6 +92,28 @@ function runOp(): void {
           break;
         default:
           throw new Error(`unknown lightning-yaml op: ${op}`);
+      }
+      break;
+    }
+    case "poc": {
+      switch (op) {
+        case "parse":
+          if (isMultidoc) pocParseAllDocuments(text);
+          else pocParse(text);
+          break;
+        case "parseDocument":
+          if (isMultidoc) pocParseAllDocuments(text);
+          else pocParseDocument(text);
+          break;
+        case "parseDocument+toJS": {
+          const docs = isMultidoc
+            ? pocParseAllDocuments(text)
+            : [pocParseDocument(text)];
+          for (const d of docs) d.toJS();
+          break;
+        }
+        default:
+          throw new Error(`unknown poc op: ${op}`);
       }
       break;
     }
