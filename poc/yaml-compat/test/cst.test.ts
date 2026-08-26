@@ -346,4 +346,52 @@ describe('CST pipeline — consumer pattern equivalence', () => {
       assert.equal(docs.length, 1);
     });
   });
+
+  describe('Regression: value shapes that previously split documents', () => {
+    const shapes: Record<string, string> = {
+      'flow-seq-value': 'list: [1, 2, 3]\nmap: {a: 1, b: 2}\n',
+      'anchored-block-map': 'base: &base\n  x: 1\nderived:\n  <<: *base\n  y: 2\n',
+      'tagged-block-map': 'key: !tag\n  a: 1\nnext: val\n',
+      'anchored-block-seq-item': '- &anc\n  a: 1\n- next\n',
+      'tagged-block-seq-item': '- !tag\n  a: 1\n- next\n',
+      'anchor-then-scalar': 'base: &anc val\nnext: 1\n',
+      'tag-then-scalar': 'date: !date 2024-01-01\nnext: 1\n',
+      'flow-map-value': 'map: {a: 1}\nnext: val\n',
+      'block-seq-value': 'items:\n  - a\n  - b\nnext: val\n',
+      'block-scalar-value': 'text: |\n  line1\n  line2\nnext: val\n',
+      'deeply-nested-map': 'a:\n  b:\n    c: val\nnext: 1\n',
+      'quoted-scalar-values': "a: 'hello'\nb: \"world\"\n",
+    };
+
+    for (const [name, text] of Object.entries(shapes)) {
+      it(name + ': single document + stringify round-trip', () => {
+        // Parse with our CST
+        const p = new CSTParser();
+        const tokens = [...p.parse(text)];
+        const docs = tokens.filter(t => t.type === 'document');
+        assert.equal(docs.length, 1, `expected 1 document, got ${docs.length}`);
+
+        // Stringify must reproduce source exactly
+        const reconstructed = tokens.map(t => CST.stringify(t)).join('');
+        assert.equal(reconstructed, text, 'stringify round-trip failed');
+
+        // Re-parse stringified text with real yaml — same JS value
+        const realP = new RealParser();
+        const realTokens = [...realP.parse(text)];
+        const realC = new RealComposer({ strict: false, uniqueKeys: false });
+        const realDocs = [...realC.compose(realTokens, true, text.length)];
+
+        const lc = new LineCounter();
+        const p2 = new CSTParser(lc.addNewLine);
+        const tokens2 = [...p2.parse(reconstructed)];
+        const c2 = new Composer({ strict: false, uniqueKeys: false });
+        const ourDocs = [...c2.compose(tokens2, true, reconstructed.length)];
+
+        assert.equal(ourDocs.length, realDocs.length, 'doc count mismatch after reparse');
+        for (let i = 0; i < ourDocs.length; i++) {
+          assert.deepStrictEqual(ourDocs[i]!.toJS(), realDocs[i]!.toJS(), `toJS mismatch doc ${i}`);
+        }
+      });
+    }
+  });
 });

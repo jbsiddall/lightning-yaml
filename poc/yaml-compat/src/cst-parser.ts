@@ -365,9 +365,19 @@ export class CSTParser {
 
     const c = this.src.charCodeAt(this.pos);
 
-    // Flow collection
-    if (c === CH_LBRACKET) return this.parseFlowSequence(this.pos);
-    if (c === CH_LBRACE) return this.parseFlowMapping(this.pos);
+    // Flow collection — consume trailing EOL so parent block loops see the next line
+    if (c === CH_LBRACKET) {
+      const fc = this.parseFlowSequence(this.pos);
+      const endTokens = this.readScalarEnd();
+      if (endTokens.length > 0) fc.end.push(...endTokens);
+      return fc;
+    }
+    if (c === CH_LBRACE) {
+      const fc = this.parseFlowMapping(this.pos);
+      const endTokens = this.readScalarEnd();
+      if (endTokens.length > 0) fc.end.push(...endTokens);
+      return fc;
+    }
 
     // Block scalar
     if (c === CH_PIPE || c === CH_GT) return this.parseBlockScalar(this.pos);
@@ -444,6 +454,17 @@ export class CSTParser {
         item.start.push(this.readSpaces());
       }
 
+      // Anchor/tag before value — consume into start so the real value is parsed next
+      if (this.pos < this.len) {
+        const pc = this.src.charCodeAt(this.pos);
+        if (pc === CH_AMP || pc === CH_BANG) {
+          item.start.push(this.readAnchorOrTag());
+          if (this.pos < this.len && (this.src.charCodeAt(this.pos) === CH_SPACE || this.src.charCodeAt(this.pos) === CH_TAB)) {
+            item.start.push(this.readSpaces());
+          }
+        }
+      }
+
       // Parse value
       if (this.pos < this.len) {
         const vc = this.src.charCodeAt(this.pos);
@@ -461,30 +482,40 @@ export class CSTParser {
             item.value = this.parsePlainScalarToken(this.pos, indent + 1, false);
           }
         } else if (vc === CH_NL || vc === CH_CR) {
-          // Value on next line
-          const nl = this.readNewline();
-          // Look at next line's indent
-          if (this.pos < this.len) {
-            const nextCol = this.columnOf(this.pos);
-            if (nextCol > indent && !this.atDocStart() && !this.atDocEnd()) {
-              // Skip blank lines/comments before value
-              const startTokens: SourceToken[] = [nl];
-              this.skipBlockStartTokens(startTokens);
-              if (startTokens.length > 1) {
-                // We have leading comments/blanks
-                if (!item.value) {
-                  item.value = this.parseBlockValue(indent + 1);
-                  if (item.value) {
-                    // Prepend the start tokens
-                    this.prependStartTokens(item.value, startTokens);
-                  }
+          // Value on next line — consume newline, skip blank lines/comments, then check content indent
+          const startTokens: SourceToken[] = [this.readNewline()];
+          while (this.pos < this.len) {
+            const nc = this.src.charCodeAt(this.pos);
+            if (nc === CH_NL || nc === CH_CR) {
+              startTokens.push(this.readNewline());
+            } else if (nc === CH_SPACE || nc === CH_TAB) {
+              const sp = this.readSpaces();
+              if (this.pos < this.len && this.src.charCodeAt(this.pos) === CH_HASH) {
+                startTokens.push(sp);
+                startTokens.push(this.readComment());
+                if (this.pos < this.len && (this.src.charCodeAt(this.pos) === CH_NL || this.src.charCodeAt(this.pos) === CH_CR)) {
+                  startTokens.push(this.readNewline());
                 }
+              } else if (this.pos >= this.len || this.src.charCodeAt(this.pos) === CH_NL || this.src.charCodeAt(this.pos) === CH_CR) {
+                startTokens.push(sp);
               } else {
-                item.value = this.parseBlockValue(indent + 1);
-                if (item.value) {
-                  this.prependStartTokens(item.value, [nl]);
-                }
+                startTokens.push(sp);
+                break;
               }
+            } else if (nc === CH_HASH) {
+              startTokens.push(this.readComment());
+              if (this.pos < this.len && (this.src.charCodeAt(this.pos) === CH_NL || this.src.charCodeAt(this.pos) === CH_CR)) {
+                startTokens.push(this.readNewline());
+              }
+            } else {
+              break;
+            }
+          }
+          if (this.pos < this.len && !this.atDocStart() && !this.atDocEnd()) {
+            const nextCol = this.columnOf(this.pos);
+            if (nextCol > indent) {
+              for (const st of startTokens) item.start.push(st);
+              item.value = this.parseBlockValue(indent + 1);
             }
           }
         }
@@ -564,6 +595,19 @@ export class CSTParser {
 
       // Separator (: and following space)
       this.readMapSep(item as CollectionItem);
+
+      // Anchor/tag before value — consume into sep so the real value is parsed next
+      if (this.pos < this.len) {
+        const pc = this.src.charCodeAt(this.pos);
+        if (pc === CH_AMP || pc === CH_BANG) {
+          item.sep = item.sep || [];
+          item.sep.push(this.readAnchorOrTag());
+          // Space after anchor/tag
+          if (this.pos < this.len && (this.src.charCodeAt(this.pos) === CH_SPACE || this.src.charCodeAt(this.pos) === CH_TAB)) {
+            item.sep.push(this.readSpaces());
+          }
+        }
+      }
 
       // Value
       if (this.pos < this.len) {
@@ -1215,6 +1259,33 @@ export class CSTParser {
     if (endTokens.length > 0) scalar.end = endTokens;
 
     return scalar;
+  }
+
+  // ---- Anchor/tag property reader -------------------------------------------
+
+  /**
+   * Read an anchor (&name) or tag (!name) token. Caller must have verified
+   * the current char is & or !.
+   */
+  private readAnchorOrTag(): SourceToken {
+    const offset = this.pos;
+    const c = this.src.charCodeAt(this.pos);
+    const type = c === CH_AMP ? 'anchor' : 'tag';
+    this.pos++; // skip & or !
+    while (this.pos < this.len) {
+      const ch = this.src.charCodeAt(this.pos);
+      if (this.isWsOrNl(ch) || ch === CH_COMMA || ch === CH_LBRACKET || ch === CH_RBRACKET ||
+          ch === CH_LBRACE || ch === CH_RBRACE || ch === CH_COLON) {
+        break;
+      }
+      this.pos++;
+    }
+    return {
+      type: type as SourceToken['type'],
+      offset,
+      indent: this.columnOf(offset),
+      source: this.src.slice(offset, this.pos),
+    };
   }
 
   // ---- Source token readers -------------------------------------------------
