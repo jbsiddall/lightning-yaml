@@ -496,10 +496,11 @@ describe('strict mode', () => {
       'error should mention tabs');
   });
 
-  it('strict:false allows tabs in indentation', () => {
+  it('strict:false still flags tab indentation (matches eemeli)', () => {
+    // eemeli checks tabs regardless of strict; strict controls other checks
     const doc = parseDocument('a:\n\tb: 1\n', { strict: false });
     const tabErrors = doc.errors.filter(e => /Tabs are not allowed/.test(e.message));
-    assert.equal(tabErrors.length, 0, 'strict:false should not flag tabs');
+    assert.equal(tabErrors.length, 1, 'tab check is unconditional, like eemeli');
   });
 });
 

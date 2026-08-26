@@ -120,6 +120,7 @@ export class Parser {
   // Options
   private version: '1.1' | '1.2';
   private strict: boolean;
+  private tabsScanned = false;
   private uniqueKeys: boolean;
   private merge: boolean;
   private customTags: CustomTag[];
@@ -1523,8 +1524,16 @@ export class Parser {
     const docStart = this.pos;
     this.hadBlankLine = false;
 
-    // strict: detect tabs used in indentation (matches eemeli's rule)
-    if (this.strict) {
+    // Detect tabs used in indentation — unconditional: eemeli reports them
+    // even with strict:false (strict controls other checks, not this one).
+    // ponytail: scanned once per Parser (per source), all tab errors land on
+    // the FIRST document of a multi-doc stream; eemeli attributes each to the
+    // document containing its offset. Upgrade: bucket errors by position when
+    // scanning, if multi-doc tab-error attribution ever matters. Without this
+    // guard parseAllDocuments re-scanned the whole source per document
+    // (100 KB × 100 docs: 5 ms -> 171 ms regression, caught in review).
+    if (!this.tabsScanned) {
+      this.tabsScanned = true;
       let lineStart = true;
       for (let i = 0; i < this.len; i++) {
         const c = this.src.charCodeAt(i);
