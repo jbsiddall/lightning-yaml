@@ -19,7 +19,7 @@ it, and a named differential test.
 | `parse(src, opts?)` | SUPPORTED | yaml-language-server, Prettier | `parser.test.ts` corpus round-trip | Deep-equal to eemeli on all corpus fixtures |
 | `parseDocument(src, opts?)` | SUPPORTED | yaml-language-server, Prettier, eslint-yml | `parser.test.ts` AST structure, `api.test.ts` | Returns `Document` with errors, warnings, directives, comments |
 | `parseAllDocuments(src, opts?)` | SUPPORTED | yaml-language-server | `api.test.ts` parseAllDocuments | Multi-doc streams parsed correctly |
-| `stringify(doc, opts?)` | SUPPORTED | Prettier, eslint-yml | `stringify.test.ts` corpus round-trip | Comment-preserving; byte-identical on 7/9 corpus files |
+| `stringify(doc, opts?)` | SUPPORTED | Prettier, eslint-yml | `stringify.test.ts` corpus round-trip | Comment-preserving; byte-identical on 8 of 9 corpus fixtures (only comments-github-actions diverges by 1 comment-attachment line) |
 | `doc.toString(opts?)` | SUPPORTED | Prettier | `stringify.test.ts` | Delegates to `stringify` |
 
 ## Document methods
