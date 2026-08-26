@@ -2,9 +2,9 @@
 # machine: linux x64
 # node: v22.23.2
 # yaml: 2.9.0
-# poc: 10dff1e
+# poc: 99a14dc
 # date: 2026-08-26T21:44:26.325Z
-# git-sha: 10dff1e
+# git-sha: 99a14dc
 # iters: 15 (fixtures >1MB: 3)
 # methodology: median MB/s, sequential, warm-up 1 iter
 
