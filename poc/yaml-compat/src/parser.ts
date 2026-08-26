@@ -498,6 +498,7 @@ export class Parser {
         if (chunkStart < this.pos) result += this.src.slice(chunkStart, this.pos);
         this.pos++; // skip closing "
         const node = new Scalar(result, SCALAR_DOUBLE);
+        node.range = [start, this.pos, this.pos];
         return node;
       }
       if (c === 0x5C) { // backslash
@@ -594,7 +595,9 @@ export class Parser {
     }
     if (chunkStart < this.pos) result += this.src.slice(chunkStart, this.pos);
     this.error(start, 'Unterminated double-quoted scalar');
-    return new Scalar(result, SCALAR_DOUBLE);
+    const node = new Scalar(result, SCALAR_DOUBLE);
+    node.range = [start, this.pos, this.pos];
+    return node;
   }
 
   private parseSingleQuoted(start: number): Scalar {
@@ -614,7 +617,9 @@ export class Parser {
         // End of scalar
         result += this.src.slice(chunkStart, this.pos);
         this.pos++; // skip closing '
-        return new Scalar(result, SCALAR_SINGLE);
+        const node = new Scalar(result, SCALAR_SINGLE);
+        node.range = [start, this.pos, this.pos];
+        return node;
       }
       if (c === 0x0A || c === 0x0D) {
         // Line folding in single-quoted
@@ -643,7 +648,9 @@ export class Parser {
     }
     result += this.src.slice(chunkStart, this.pos);
     this.error(start, 'Unterminated single-quoted scalar');
-    return new Scalar(result, SCALAR_SINGLE);
+    const node = new Scalar(result, SCALAR_SINGLE);
+    node.range = [start, this.pos, this.pos];
+    return node;
   }
 
   private parseBlockScalar(start: number): Scalar {
@@ -817,7 +824,9 @@ export class Parser {
         break;
     }
 
-    return new Scalar(result, type);
+    const node = new Scalar(result, type);
+    node.range = [start, this.pos, this.pos];
+    return node;
   }
 
   /**
@@ -949,7 +958,9 @@ export class Parser {
     text = text.replace(/\s+$/, '');
 
     const value = this.resolvePlainScalar(text);
-    return new Scalar(value, SCALAR_PLAIN);
+    const node = new Scalar(value, SCALAR_PLAIN);
+    node.range = [start, this.pos, this.pos];
+    return node;
   }
 
   // ---- Anchor/Tag parsing --------------------------------------------------
@@ -1141,6 +1152,7 @@ export class Parser {
     if (this.pos >= this.len) {
       this.error(start, 'Unexpected end of input');
       const s = new Scalar(null, SCALAR_PLAIN);
+      s.range = [start, this.pos, this.pos];
       if (anchor) s.anchor = anchor;
       if (tag) s.tag = tag;
       return s;

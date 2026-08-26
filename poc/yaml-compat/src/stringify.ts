@@ -267,6 +267,7 @@ function isPlainSafe(s: string, ctx: Ctx): boolean {
   if (s === '.inf' || s === '-.inf' || s === '.nan' || s === '.Inf' || s === '.NAN') return false;
   if (/^\s|\s$/.test(s)) return false;
   if (s.includes('\n') || s.includes('\r')) return false;
+  if (/[\x00-\x08\x0b-\x1f]/.test(s)) return false;
   if (/^[{}\[\],&*!|>'"%@`]/.test(s)) return false;
   if (s.includes(': ') || s.includes(' #')) return false;
   if (s.includes('\t')) return false;
@@ -283,10 +284,28 @@ function renderSingleQuoted(s: string): string {
 }
 
 function renderDoubleQuoted(s: string): string {
-  // YAML double-quoted escapes beyond JSON's: \0 (null), \e (escape)
-  return JSON.stringify(s)
-    .replace(/\\u0000/g, '\\0')
-    .replace(/\\u001b/g, '\\e');
+  // YAML double-quoted escape table matching eemeli
+  let out = '"';
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    switch (c) {
+      case 0x00: out += '\\0'; break;
+      case 0x07: out += '\\a'; break;
+      case 0x08: out += '\\b'; break;
+      case 0x09: out += '\\t'; break;
+      case 0x0a: out += '\\n'; break;
+      case 0x0b: out += '\\v'; break;
+      case 0x0c: out += '\\f'; break;
+      case 0x0d: out += '\\r'; break;
+      case 0x1b: out += '\\e'; break;
+      case 0x22: out += '\\"'; break;
+      case 0x5c: out += '\\\\'; break;
+      default:
+        if (c < 0x20) out += '\\x' + c.toString(16).padStart(2, '0');
+        else out += s[i];
+    }
+  }
+  return out + '"';
 }
 
 function renderBlockScalar(text: string, indicator: '|' | '>', ctx: Ctx, level: number): void {

@@ -10,10 +10,10 @@ import { Document } from './document.ts';
 import {
   Scalar, YAMLMap, YAMLSeq, Pair, Alias,
   SCALAR_PLAIN, SCALAR_SINGLE, SCALAR_DOUBLE, SCALAR_FOLDED, SCALAR_LITERAL,
-  isNode, isScalar, isMap, isSeq, isPair, isAlias, isCollection,
+  isNode, isScalar, isMap, isSeq, isPair, isAlias, isCollection, isDocument,
   type Node, type Range,
 } from './nodes.ts';
-import { visit } from './visit.ts';
+import { visit, visitAsync } from './visit.ts';
 import { YAMLParseError, YAMLWarning } from './errors.ts';
 import { validateOptions, type ParseOptions, type CustomTag } from './options.ts';
 import { CSTParser } from './cst-parser.ts';
@@ -71,6 +71,11 @@ function parseAllDocuments(src: string, opts?: ParseOptions): Document[] {
   });
 }
 
+/** Convenience: create an AST node from a JS value (eemeli has this on Document only). */
+function createNode(value: unknown): Node {
+  return new Document(null).createNode(value);
+}
+
 // ---- Exports ---------------------------------------------------------------
 
 export {
@@ -107,9 +112,11 @@ export {
   isPair,
   isAlias,
   isCollection,
+  isDocument,
 
   // AST Visitor
   visit,
+  visitAsync,
 
   // Document
   Document,
@@ -120,6 +127,9 @@ export {
 
   // AST-level stringify
   stringify,
+
+  // Convenience
+  createNode,
 };
 
 // CST utility re-exports

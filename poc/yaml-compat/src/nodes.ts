@@ -190,3 +190,13 @@ export function isAlias(value: unknown): value is Alias {
 export function isCollection(value: unknown): value is YAMLMap | YAMLSeq {
   return value instanceof YAMLMap || value instanceof YAMLSeq;
 }
+
+export function isDocument(value: unknown): boolean {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'contents' in value &&
+    'directives' in value &&
+    'errors' in value
+  );
+}
