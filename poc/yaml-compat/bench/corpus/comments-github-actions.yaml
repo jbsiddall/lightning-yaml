@@ -25,7 +25,7 @@ jobs:
   lint:
     # lint — runs on the standard GitHub-hosted runner
     runs-on: ubuntu-latest
-    timeout-minutes: 17
+    timeout-minutes: 22
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
   typecheck:
     # typecheck — runs on the standard GitHub-hosted runner
     runs-on: ubuntu-latest
-    timeout-minutes: 26
+    timeout-minutes: 28
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,7 +67,7 @@ jobs:
   unit-test:
     # unit-test — runs on the standard GitHub-hosted runner
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 21
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -88,7 +88,7 @@ jobs:
   integration-test:
     # integration-test — runs on the standard GitHub-hosted runner
     runs-on: ubuntu-latest
-    timeout-minutes: 16
+    timeout-minutes: 18
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -109,7 +109,7 @@ jobs:
   benchmark:
     # benchmark — runs on the standard GitHub-hosted runner
     runs-on: ubuntu-latest
-    timeout-minutes: 24
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -135,7 +135,7 @@ jobs:
   build:
     # build — runs on the standard GitHub-hosted runner
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 17
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -161,7 +161,7 @@ jobs:
   e2e:
     # e2e — runs on the standard GitHub-hosted runner
     runs-on: ubuntu-latest
-    timeout-minutes: 29
+    timeout-minutes: 22
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -182,7 +182,7 @@ jobs:
   deploy-staging:
     # deploy-staging — runs on the standard GitHub-hosted runner
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 12
     steps:
       - name: Checkout
         uses: actions/checkout@v4

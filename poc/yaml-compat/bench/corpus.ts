@@ -294,6 +294,7 @@ function dockerComposeYaml(): string {
 
 // ---- comments-rich: github actions (~5 KB) ---------------------------------
 function githubActionsYaml(): string {
+  const rand = prng(0xAC710);
   const lines: string[] = [];
   lines.push("# .github/workflows/ci.yml — baseline fixture");
   lines.push("# Represents a typical CI pipeline with matrix builds, caching, and artifacts.");
@@ -327,7 +328,7 @@ function githubActionsYaml(): string {
     lines.push(`  ${job}:`);
     lines.push(`    # ${job} — runs on the standard GitHub-hosted runner`);
     lines.push(`    runs-on: ubuntu-latest`);
-    lines.push(`    timeout-minutes: ${10 + Math.floor(Math.random() * 20)}`);
+    lines.push(`    timeout-minutes: ${10 + Math.floor(rand() * 20)}`);
     lines.push(`    steps:`);
     lines.push(`      - name: Checkout`);
     lines.push(`        uses: actions/checkout@v4`);

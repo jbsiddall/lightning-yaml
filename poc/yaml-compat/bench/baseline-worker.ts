@@ -111,7 +111,9 @@ if (typeof global.gc === "function") global.gc();
 const after = process.memoryUsage();
 
 const peakRss = Math.max(...rssSamples, after.rss);
-const heapDelta = after.heapUsed - before.heapUsed;
+// GC between iterations can shrink heap below the pre-warmup baseline,
+// producing negative deltas that don't reflect real allocation. Clamp to 0.
+const heapDelta = Math.max(0, after.heapUsed - before.heapUsed);
 
 const result = {
   library,

@@ -67,6 +67,8 @@ interface SpeedResult {
   op: string;
   medianMs: number;
   mbps: number;
+  status?: "error";
+  reason?: string;
 }
 
 function median(xs: number[]): number {
@@ -85,16 +87,16 @@ function timeSync(
   iters: number,
   fixtureBytes: number,
   warmup = 1,
-): { medianMs: number; mbps: number } | null {
+): { medianMs: number; mbps: number } | { error: string } {
   try {
     for (let i = 0; i < warmup; i++) fn();
   } catch (e) {
-    return null;
+    return { error: (e as Error).message ?? String(e) };
   }
   const samples: number[] = [];
   for (let i = 0; i < iters; i++) {
     const t0 = performance.now();
-    try { fn(); } catch { return null; }
+    try { fn(); } catch (e) { return { error: (e as Error).message ?? String(e) }; }
     samples.push(performance.now() - t0);
   }
   const medianMs = median(samples);
@@ -107,9 +109,13 @@ function speedForFixture(fx: Fixture): SpeedResult[] {
   const { text, bytes, isMultidoc } = fx;
   const iters = bytes > 1_000_000 ? Math.max(3, ITERS >> 2) : ITERS;
 
-  function push(library: string, op: string, r: { medianMs: number; mbps: number } | null): void {
-    if (r) out.push({ library, op, medianMs: r.medianMs, mbps: r.mbps });
-    else console.log(`    [skip] ${library}/${op} — threw on this fixture`);
+  function push(library: string, op: string, r: { medianMs: number; mbps: number } | { error: string }): void {
+    if ("error" in r) {
+      out.push({ library, op, medianMs: 0, mbps: 0, status: "error", reason: r.error });
+      console.log(`    [error] ${library}/${op} — ${r.error}`);
+    } else {
+      out.push({ library, op, medianMs: r.medianMs, mbps: r.mbps });
+    }
   }
 
   // ---- yaml lib
@@ -163,7 +169,9 @@ function speedForFixture(fx: Fixture): SpeedResult[] {
         jsYaml.dump(parsed);
       }
     }, iters, bytes));
-  } catch { /* skip dump if load failed */ }
+  } catch (e) {
+    push("js-yaml", "dump", { error: `load failed: ${(e as Error).message ?? String(e)}` });
+  }
 
   // ---- lightning-yaml
   push("lightning-yaml", "parse", timeSync(() => lyParse(text), iters, bytes));
@@ -171,7 +179,9 @@ function speedForFixture(fx: Fixture): SpeedResult[] {
   try {
     const parsed = lyParse(text);
     push("lightning-yaml", "stringify", timeSync(() => lyStringify(parsed), iters, bytes));
-  } catch { /* skip stringify if parse failed */ }
+  } catch (e) {
+    push("lightning-yaml", "stringify", { error: `parse failed: ${(e as Error).message ?? String(e)}` });
+  }
 
   return out;
 }
@@ -182,6 +192,8 @@ interface MemoryResult {
   op: string;
   peakRssBytes: number;
   heapDeltaBytes: number;
+  status?: "error";
+  reason?: string;
 }
 
 /**
@@ -189,7 +201,7 @@ interface MemoryResult {
  * for N iterations and reports peak RSS + heap delta. One child per cell —
  * sequential — to keep peak RSS trustworthy.
  */
-function memoryForCell(fx: Fixture, library: string, op: string, memIters: number): MemoryResult | null {
+function memoryForCell(fx: Fixture, library: string, op: string, memIters: number): MemoryResult {
   const workerPath = join(HERE, "baseline-worker.ts");
   const proc = spawnSync(
     process.execPath,
@@ -206,15 +218,17 @@ function memoryForCell(fx: Fixture, library: string, op: string, memIters: numbe
     { encoding: "utf8", maxBuffer: 4 * 1024 * 1024, timeout: 300_000 },
   );
   if (proc.status !== 0) {
-    console.error(`  ! memory ${library}/${op}/${fx.name}: ${proc.stderr?.trim().split("\n").pop()}`);
-    return null;
+    const reason = proc.stderr?.trim().split("\n").pop() ?? "unknown error";
+    console.error(`  ! memory ${library}/${op}/${fx.name}: ${reason}`);
+    return { library, op, peakRssBytes: 0, heapDeltaBytes: 0, status: "error", reason };
   }
   const line = proc.stdout.trim().split("\n").pop() ?? "";
   try {
     return JSON.parse(line) as MemoryResult;
   } catch {
-    console.error(`  ! memory ${library}/${op}/${fx.name}: unparseable: ${line.slice(0, 200)}`);
-    return null;
+    const reason = `unparseable output: ${line.slice(0, 120)}`;
+    console.error(`  ! memory ${library}/${op}/${fx.name}: ${reason}`);
+    return { library, op, peakRssBytes: 0, heapDeltaBytes: 0, status: "error", reason };
   }
 }
 
@@ -233,8 +247,7 @@ function memoryForFixture(fx: Fixture): { results: MemoryResult[]; memIters: num
   const out: MemoryResult[] = [];
   for (const { library, ops } of MEMORY_OPS) {
     for (const op of ops) {
-      const r = memoryForCell(fx, library, op, memIters);
-      if (r) out.push(r);
+      out.push(memoryForCell(fx, library, op, memIters));
     }
   }
   return { results: out, memIters };
@@ -282,8 +295,13 @@ function writeResults(
     for (const r of results) {
       lines.push(`      - library: ${yamlScalar(r.library)}`);
       lines.push(`        op: ${yamlScalar(r.op)}`);
-      lines.push(`        median_ms: ${r.medianMs.toFixed(3)}`);
-      lines.push(`        mbps: ${r.mbps.toFixed(2)}`);
+      if (r.status === "error") {
+        lines.push(`        status: error`);
+        lines.push(`        reason: ${yamlScalar(r.reason ?? "unknown")}`);
+      } else {
+        lines.push(`        median_ms: ${r.medianMs.toFixed(3)}`);
+        lines.push(`        mbps: ${r.mbps.toFixed(2)}`);
+      }
     }
   }
   lines.push("");
@@ -296,8 +314,13 @@ function writeResults(
     for (const r of results) {
       lines.push(`      - library: ${yamlScalar(r.library)}`);
       lines.push(`        op: ${yamlScalar(r.op)}`);
-      lines.push(`        peak_rss_bytes: ${r.peakRssBytes}`);
-      lines.push(`        heap_delta_bytes: ${r.heapDeltaBytes}`);
+      if (r.status === "error") {
+        lines.push(`        status: error`);
+        lines.push(`        reason: ${yamlScalar(r.reason ?? "unknown")}`);
+      } else {
+        lines.push(`        peak_rss_bytes: ${r.peakRssBytes}`);
+        lines.push(`        heap_delta_bytes: ${r.heapDeltaBytes}`);
+      }
     }
   }
 
@@ -327,7 +350,11 @@ function main(): void {
     const results = speedForFixture(fx);
     speedOut.push({ fixture: fx.name, size: fx.bytes, results, speedIters });
     for (const r of results) {
-      console.log(`    ${r.library.padEnd(15)} ${r.op.padEnd(22)} ${r.mbps.toFixed(1).padStart(8)} MB/s  (${r.medianMs.toFixed(1)} ms)`);
+      if (r.status === "error") {
+        console.log(`    ${r.library.padEnd(15)} ${r.op.padEnd(22)} ERROR: ${r.reason}`);
+      } else {
+        console.log(`    ${r.library.padEnd(15)} ${r.op.padEnd(22)} ${r.mbps.toFixed(1).padStart(8)} MB/s  (${r.medianMs.toFixed(1)} ms)`);
+      }
     }
   }
 
