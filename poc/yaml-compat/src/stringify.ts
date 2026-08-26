@@ -59,6 +59,7 @@ interface Ctx {
   version: string;
   keyCache: Map<string, string>;
   out: string[];
+  prefixRendered: boolean;
 }
 
 function makeCtx(opts?: StringifyOptions): Ctx {
@@ -85,6 +86,7 @@ function makeCtx(opts?: StringifyOptions): Ctx {
     version: opts?.version ?? '1.2',
     keyCache: new Map(),
     out: [],
+    prefixRendered: false,
   };
 }
 
@@ -306,15 +308,16 @@ function renderMap(node: YAMLMap, ctx: Ctx, level: number, inFlow: boolean): voi
   }
 
   if (node.items.length === 0) {
-    if (prefix) ctx.out.push(prefix + ' ');
+    if (prefix && !ctx.prefixRendered) ctx.out.push(prefix + ' ');
     ctx.out.push('{}');
     return;
   }
 
-  if (prefix) {
+  if (prefix && !ctx.prefixRendered) {
     ctx.out.push(prefix.trimEnd());
     ctx.out.push('\n');
   }
+  ctx.prefixRendered = false;
 
   for (let i = 0; i < node.items.length; i++) {
     const pair = node.items[i]!;
@@ -354,6 +357,11 @@ function renderBlockPair(pair: Pair, ctx: Ctx, level: number): void {
     // Block collection: newline after ':', collection handles its own indent
     // ponytail: ignore vsb on block collection values — our parser sets spaceBefore
     // on every block collection value regardless of blank lines; add when parser fixed
+    const valuePrefix = anchorTagPrefix(value);
+    if (valuePrefix) {
+      ctx.out.push(' ' + valuePrefix.trimEnd());
+      ctx.prefixRendered = true;
+    }
     ctx.out.push('\n');
     if (vcb) {
       ctx.out.push(pad(level + 1, ctx));
@@ -431,21 +439,24 @@ function renderSeq(node: YAMLSeq, ctx: Ctx, level: number, inFlow: boolean): voi
   const prefix = anchorTagPrefix(node);
 
   if (useFlow) {
-    if (prefix) ctx.out.push(prefix);
+    if (prefix && !ctx.prefixRendered) ctx.out.push(prefix);
+    ctx.prefixRendered = false;
     renderFlowSeq(node, ctx, level);
     return;
   }
 
   if (node.items.length === 0) {
-    if (prefix) ctx.out.push(prefix + ' ');
+    if (prefix && !ctx.prefixRendered) ctx.out.push(prefix + ' ');
+    ctx.prefixRendered = false;
     ctx.out.push('[]');
     return;
   }
 
-  if (prefix) {
+  if (prefix && !ctx.prefixRendered) {
     ctx.out.push(prefix.trimEnd());
     ctx.out.push('\n');
   }
+  ctx.prefixRendered = false;
 
   for (let i = 0; i < node.items.length; i++) {
     const item = node.items[i]!;

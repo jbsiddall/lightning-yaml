@@ -1,0 +1,119 @@
+# Stringify benchmark results — poc/yaml-compat
+# machine: linux x64
+# node: v22.23.2
+# yaml: 2.9.0
+# poc: 651351b
+# date: 2026-08-26T20:20:08.823Z
+# git-sha: 651351b
+# iters: 15 (fixtures >1MB: 3)
+# methodology: median MB/s, sequential, warm-up 1 iter
+
+speed:
+  - fixture: block-config
+    size_bytes: 51595
+    iters: 15
+    rows:
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 53.745
+        mbps: 0.92
+      - library: poc
+        op: stringify(doc)
+        median_ms: 6.444
+        mbps: 7.64
+  - fixture: comments-docker-compose
+    size_bytes: 9188
+    iters: 15
+    rows:
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 9.580
+        mbps: 0.91
+      - library: poc
+        op: stringify(doc)
+        median_ms: 1.799
+        mbps: 4.87
+  - fixture: comments-github-actions
+    size_bytes: 5446
+    iters: 15
+    rows:
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 4.930
+        mbps: 1.05
+      - library: poc
+        op: stringify(doc)
+        median_ms: 0.838
+        mbps: 6.20
+  - fixture: comments-k8s-deployment
+    size_bytes: 5039
+    iters: 15
+    rows:
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 3.136
+        mbps: 1.53
+      - library: poc
+        op: stringify(doc)
+        median_ms: 0.689
+        mbps: 6.98
+  - fixture: json-records-large
+    size_bytes: 2097217
+    iters: 3
+    rows:
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 2188.535
+        mbps: 0.91
+      - library: poc
+        op: stringify(doc)
+        median_ms: 321.041
+        mbps: 6.23
+  - fixture: json-records-medium
+    size_bytes: 204883
+    iters: 15
+    rows:
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 195.479
+        mbps: 1.00
+      - library: poc
+        op: stringify(doc)
+        median_ms: 24.369
+        mbps: 8.02
+  - fixture: json-records-small
+    size_bytes: 10347
+    iters: 15
+    rows:
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 9.732
+        mbps: 1.01
+      - library: poc
+        op: stringify(doc)
+        median_ms: 0.869
+        mbps: 11.36
+  - fixture: large-block
+    size_bytes: 5243771
+    iters: 3
+    rows:
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 6065.979
+        mbps: 0.82
+      - library: poc
+        op: stringify(doc)
+        median_ms: 790.624
+        mbps: 6.33
+  - fixture: multidoc-k8s
+    size_bytes: 102638
+    iters: 15
+    rows:
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 95.784
+        mbps: 1.02
+      - library: poc
+        op: stringify(doc)
+        median_ms: 10.247
+        mbps: 9.55
