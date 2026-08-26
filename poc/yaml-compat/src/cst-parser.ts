@@ -82,17 +82,7 @@ export class CSTParser {
           yield* preTokens;
           return;
         }
-        // Check if next thing is a doc marker or content
-        if (this.atDocStart() || this.atDocEnd()) {
-          yield* preTokens;
-          continue;
-        }
-        // Check if this is directive territory
-        if (this.src.charCodeAt(this.pos) === CH_PERCENT) {
-          yield* preTokens;
-          continue;
-        }
-        // It's content — wrap in a document
+        // Attach pre-tokens to the next document (whether it starts with --- or content)
         yield* this.parseDocumentWithStart(preTokens, incomplete);
         continue;
       }
@@ -197,6 +187,7 @@ export class CSTParser {
       start: [],
       value: undefined,
       end: undefined,
+      _source: this.src,
     };
 
     // Separate start tokens: directives/comments/newlines go to doc.start
@@ -627,6 +618,16 @@ export class CSTParser {
                 item.sep.push(...leadingTokens);
               }
               item.value = this.parseBlockValue(indent + 1);
+            } else {
+              // No value — capture the newline in sep for round-trip fidelity
+              if (item.sep) {
+                item.sep.push(...leadingTokens);
+              }
+            }
+          } else {
+            // End of input or doc marker — capture newline in sep
+            if (item.sep) {
+              item.sep.push(...leadingTokens);
             }
           }
         }

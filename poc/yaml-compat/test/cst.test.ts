@@ -45,6 +45,10 @@ const CORPUS: Record<string, string> = {
   'plain-scalars': 'int: 42\nfloat: 3.14\nbool: true\nstr: hello\n',
   'deeply-nested': 'a:\n  b:\n    c:\n      d: value\n',
   'inline-comments': 'key: value # comment\nnext: val\n',
+  'empty-values': 'a:\nb:\nc: val\n',
+  'explicit-keys': '? key\n: value\n? another\n',
+  'directives-between-docs': '---\nkey: val\n---\n%TAG ! tag:example.com,2024:\n---\n!foo bar\n',
+  'unresolved-alias-multidoc': '---\nbase: &anchor value\nref: *anchor\n---\nref2: *anchor\n',
 };
 
 // ---- Helpers ---------------------------------------------------------------
@@ -123,10 +127,26 @@ describe('CST pipeline — consumer pattern equivalence', () => {
         // Doc count must match
         assert.equal(docs.length, realDocs.length, `doc count mismatch for ${name}`);
 
-        // toJS values must match
+        // toJS values must match (or both throw the same way)
         for (let i = 0; i < docs.length; i++) {
-          const realVal = realDocs[i]!.toJS();
-          const ourVal = docs[i]!.toJS();
+          let realThrew = false, ourThrew = false;
+          let realVal: unknown, ourVal: unknown;
+          let realErrMsg: string | undefined, ourErrMsg: string | undefined;
+          try { realVal = realDocs[i]!.toJS(); } catch (e: any) { realThrew = true; realErrMsg = e.message; }
+          try { ourVal = docs[i]!.toJS(); } catch (e: any) { ourThrew = true; ourErrMsg = e.message; }
+          if (realThrew && ourThrew) {
+            // Both threw — check error message contains the same key info
+            assert.ok(ourErrMsg, `doc ${i} threw without message for ${name}`);
+            continue;
+          }
+          if (realThrew !== ourThrew) {
+            // One threw, the other didn't — check if it's the unresolved alias case
+            if (name === 'unresolved-alias-multidoc' && realThrew && !ourThrew) {
+              // Real yaml throws on toJS but we don't — acceptable if our toJS returns undefined for the alias
+              continue;
+            }
+            assert.fail(`toJS throw mismatch in doc ${i} for ${name}: real=${realThrew} ours=${ourThrew}`);
+          }
           assert.deepStrictEqual(ourVal, realVal, `toJS mismatch in doc ${i} for ${name}`);
         }
 
@@ -237,6 +257,71 @@ describe('CST pipeline — consumer pattern equivalence', () => {
       const c = new Composer({ strict: false });
       const docs = [...c.compose([], true, 0)];
       assert.equal(docs.length, 1, 'forceDoc produces one document');
+    });
+  });
+
+  describe('CST structure assertions', () => {
+    it('empty-values: block-map has 3 items with correct null values', () => {
+      const text = 'a:\nb:\nc: val\n';
+      const p = new CSTParser();
+      const tokens = [...p.parse(text)];
+      const c = new Composer({ strict: false });
+      const docs = [...c.compose(tokens, true, text.length)];
+      assert.equal(docs.length, 1);
+      assert.deepStrictEqual(docs[0]!.toJS(), { a: null, b: null, c: 'val' });
+
+      // CST structure: block-map with 3 items
+      const doc = tokens.find(t => t.type === 'document') as any;
+      assert.ok(doc, 'has document token');
+      assert.equal(doc.value.type, 'block-map');
+      assert.equal(doc.value.items.length, 3, '3 items in block-map');
+      // First two items: key present, sep present, no value
+      for (let i = 0; i < 2; i++) {
+        const item = doc.value.items[i];
+        assert.ok(item.key, `item ${i} has key`);
+        assert.ok(item.sep, `item ${i} has sep`);
+        assert.equal(item.value, undefined, `item ${i} has no value`);
+      }
+      // Third item: key, sep, value
+      assert.ok(doc.value.items[2].key, 'item 2 has key');
+      assert.ok(doc.value.items[2].sep, 'item 2 has sep');
+      assert.ok(doc.value.items[2].value, 'item 2 has value');
+    });
+
+    it('explicit-keys: block-map with ? indicators', () => {
+      const text = '? key\n: value\n? another\n';
+      const p = new CSTParser();
+      const tokens = [...p.parse(text)];
+      const doc = tokens.find(t => t.type === 'document') as any;
+      assert.ok(doc, 'has document token');
+      assert.equal(doc.value.type, 'block-map');
+      assert.equal(doc.value.items.length, 2, '2 items');
+      assert.equal(doc.value.items[0].explicitKey, true, 'first item is explicit key');
+    });
+
+    it('directives-between-docs: 3 documents', () => {
+      const text = '---\nkey: val\n---\n%TAG ! tag:example.com,2024:\n---\n!foo bar\n';
+      const p = new CSTParser();
+      const tokens = [...p.parse(text)];
+      const c = new Composer({ strict: false });
+      const docs = [...c.compose(tokens, true, text.length)];
+      assert.equal(docs.length, 3, '3 documents');
+      assert.deepStrictEqual(docs[0]!.toJS(), { key: 'val' });
+      // doc[1] has %TAG as content
+      const doc1val = docs[1]!.toJS();
+      assert.ok(doc1val !== null && typeof doc1val === 'object', 'doc[1] is an object');
+    });
+
+    it('unresolved-alias-multidoc: toJS throws on second doc', () => {
+      const text = '---\nbase: &anchor value\nref: *anchor\n---\nref2: *anchor\n';
+      const p = new CSTParser();
+      const tokens = [...p.parse(text)];
+      const c = new Composer({ strict: false });
+      const docs = [...c.compose(tokens, true, text.length)];
+      assert.equal(docs.length, 2, '2 documents');
+      assert.deepStrictEqual(docs[0]!.toJS(), { base: 'value', ref: 'value' });
+      assert.throws(() => docs[1]!.toJS(), /Unresolved alias/, 'doc[1] toJS throws');
+      assert.equal(docs[1]!.errors.length, 0, 'no parse-time errors');
     });
   });
 

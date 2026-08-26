@@ -1,14 +1,13 @@
 /**
  * Composer — takes CST tokens and produces Document objects.
  *
- * Reconstructs source from tokens, parses with the existing fast-path
- * parser (which handles all YAML correctly), then attaches srcToken
- * references by offset matching.
+ * Uses the original source string (stamped on document tokens by the CST
+ * parser as `_source`) to feed the AST parser per-document slices. This
+ * avoids the lossy stringify→reparse round-trip.
  */
 
 import { Parser as ASTParser } from './parser.ts';
 import { Document } from './document.ts';
-import { stringify } from './cst-stringify.ts';
 import type { Token } from './cst.ts';
 import type { Node } from './nodes.ts';
 import type { ParseOptions, CustomTag } from './options.ts';
@@ -33,10 +32,7 @@ export class Composer {
     const allTokens: Token[] = [];
     for (const t of tokens) allTokens.push(t);
 
-    // Reconstruct full source from all tokens
-    const fullSource = allTokens.map(t => stringify(t)).join('');
-
-    if (fullSource.length === 0 && allTokens.length === 0 && !forceDoc) return;
+    if (allTokens.length === 0 && !forceDoc) return;
 
     const opts: ParseOptions = {
       strict: this.options.strict ?? true,
@@ -46,14 +42,47 @@ export class Composer {
       customTags: this.options.customTags ?? [],
     };
 
-    // Use the AST parser to get all documents
-    const parser = new ASTParser(fullSource, opts);
-    const parsedDocs = parser.parseAllDocuments();
+    // Separate document tokens from pre-document tokens
+    const docTokens: Token[] = [];
+    const preDocTokens: Token[] = [];
+    for (const t of allTokens) {
+      if (t.type === 'document') {
+        docTokens.push(t);
+      } else {
+        preDocTokens.push(t);
+      }
+    }
 
-    if (parsedDocs.length === 0 && forceDoc) {
-      const doc = new Document(null, opts);
-      if (endOffset != null) doc.range = [0, endOffset, endOffset];
-      yield doc;
+    // If no document tokens, either force an empty doc or return
+    if (docTokens.length === 0) {
+      if (forceDoc) {
+        // Pre-doc tokens (directives, comments) form the source for a synthetic doc
+        const src = this.tokensToSource(preDocTokens);
+        if (src.length > 0) {
+          const parser = new ASTParser(src, opts);
+          const parsedDocs = parser.parseAllDocuments();
+          if (parsedDocs.length > 0) {
+            for (const parsed of parsedDocs) {
+              const doc = new Document(parsed.contents, opts);
+              doc.errors = parsed.errors;
+              doc.warnings = parsed.warnings;
+              doc.directives = parsed.directives;
+              doc.commentBefore = parsed.commentBefore;
+              doc.comment = parsed.comment;
+              doc.range = parsed.range;
+              yield doc;
+            }
+          } else {
+            const doc = new Document(null, opts);
+            if (endOffset != null) doc.range = [0, endOffset, endOffset];
+            yield doc;
+          }
+        } else {
+          const doc = new Document(null, opts);
+          if (endOffset != null) doc.range = [0, endOffset, endOffset];
+          yield doc;
+        }
+      }
       return;
     }
 
@@ -62,21 +91,110 @@ export class Composer {
       ? this.buildTokenIndex(allTokens)
       : null;
 
-    for (const parsed of parsedDocs) {
-      const doc = new Document(parsed.contents, opts);
-      doc.errors = parsed.errors;
-      doc.warnings = parsed.warnings;
-      doc.directives = parsed.directives;
-      doc.commentBefore = parsed.commentBefore;
-      doc.comment = parsed.comment;
-      doc.range = parsed.range;
+    // Process each document token using its original source
+    for (let i = 0; i < docTokens.length; i++) {
+      const dt = docTokens[i] as Token & { type: 'document'; _source?: string };
+      const source = dt._source;
 
-      if (tokenIndex) {
-        this.attachSrcTokens(doc.contents, tokenIndex);
+      // Compute the document's range in the original source
+      const docStart = this.docTokenStart(dt);
+      const docEnd = this.docTokenEnd(dt, source?.length ?? endOffset ?? 0, i === docTokens.length - 1);
+
+      if (source) {
+        const docSource = source.slice(docStart, docEnd);
+        const parser = new ASTParser(docSource, opts);
+        const parsed = parser.parseDocument();
+
+        const doc = new Document(parsed.contents, opts);
+        doc.errors = parsed.errors;
+        doc.warnings = parsed.warnings;
+        doc.directives = parsed.directives;
+        doc.commentBefore = parsed.commentBefore;
+        doc.comment = parsed.comment;
+        doc.range = parsed.range;
+
+        if (tokenIndex) {
+          this.attachSrcTokens(doc.contents, tokenIndex);
+        }
+
+        yield doc;
+      } else {
+        // Fallback: no source available, produce empty doc
+        const doc = new Document(null, opts);
+        if (endOffset != null) doc.range = [0, endOffset, endOffset];
+        yield doc;
       }
-
-      yield doc;
     }
+  }
+
+  /** Compute the start offset of a document token in the original source. */
+  private docTokenStart(dt: any): number {
+    if (dt.start && dt.start.length > 0) {
+      return dt.start[0].offset;
+    }
+    return dt.offset;
+  }
+
+  /** Compute the end offset of a document token in the original source. */
+  private docTokenEnd(dt: any, sourceLen: number, isLast: boolean): number {
+    if (dt.end && dt.end.length > 0) {
+      const lastEnd = dt.end[dt.end.length - 1];
+      return lastEnd.offset + (lastEnd.source?.length ?? 0);
+    }
+    if (dt.value) {
+      return this.tokenEnd(dt.value);
+    }
+    return isLast ? sourceLen : dt.offset;
+  }
+
+  /** Compute the end offset of a token. */
+  private tokenEnd(token: any): number {
+    if (!token) return 0;
+    if (token.type === 'block-map' || token.type === 'block-seq') {
+      const items = token.items;
+      if (items.length === 0) return token.offset;
+      const lastItem = items[items.length - 1];
+      let end = token.offset;
+      if (lastItem.value) end = Math.max(end, this.tokenEnd(lastItem.value));
+      else if (lastItem.sep && lastItem.sep.length > 0) {
+        const ls = lastItem.sep[lastItem.sep.length - 1];
+        end = Math.max(end, ls.offset + (ls.source?.length ?? 0));
+      } else if (lastItem.key) end = Math.max(end, this.tokenEnd(lastItem.key));
+      // Check end tokens on the scalar
+      if (lastItem.value && lastItem.value.end) {
+        for (const et of lastItem.value.end) {
+          end = Math.max(end, et.offset + (et.source?.length ?? 0));
+        }
+      }
+      return end;
+    }
+    if (token.type === 'flow-collection') {
+      if (token.end && token.end.length > 0) {
+        const last = token.end[token.end.length - 1];
+        return last.offset + (last.source?.length ?? 0);
+      }
+      return token.offset + (token.source?.length ?? 0);
+    }
+    if (token.type === 'block-scalar') {
+      return token.offset + (token.props?.[0]?.source?.length ?? 0) + (token.source?.length ?? 0);
+    }
+    // Scalar types
+    let end = token.offset + (token.source?.length ?? 0);
+    if (token.end) {
+      for (const et of token.end) {
+        end = Math.max(end, et.offset + (et.source?.length ?? 0));
+      }
+    }
+    return end;
+  }
+
+  /** Fallback: reconstruct source from non-document tokens (for pre-doc-only streams). */
+  private tokensToSource(tokens: Token[]): string {
+    let out = '';
+    for (const t of tokens) {
+      if ('source' in t) out += (t as any).source;
+    }
+    return out;
   }
 
   private buildTokenIndex(tokens: Token[]): Map<number, Token> {

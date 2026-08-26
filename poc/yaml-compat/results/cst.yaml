@@ -1,0 +1,78 @@
+# CST compat pipeline benchmark — Parser→tokens→Composer vs real yaml
+# <!-- bench:poc/yaml-cst-compat ly:358e2c0 -->
+# Pipeline: CSTParser → tokens → Composer → Document[]
+# Compared: yaml v2 Parser → tokens → Composer → Document[]
+# Machine: node v22, single-core, median of >=50 iters (>=15 for large)
+# Note: json-records-medium is SLOWER — the CST+AST double-parse
+# overhead dominates on dense JSON-like input.
+
+suite: cst-compat-pipeline
+scope: poc
+date: 2026-08-26
+
+fixtures:
+  - name: block-config
+    poc_us: 143
+    real_us: 423
+    ratio: 2.96
+    verdict: faster
+
+  - name: simple-map
+    poc_us: 56
+    real_us: 180
+    ratio: 3.20
+    verdict: faster
+
+  - name: nested-map
+    poc_us: 51
+    real_us: 154
+    ratio: 3.02
+    verdict: faster
+
+  - name: simple-seq
+    poc_us: 87
+    real_us: 320
+    ratio: 3.66
+    verdict: faster
+
+  - name: map-of-seq
+    poc_us: 47
+    real_us: 124
+    ratio: 2.65
+    verdict: faster
+
+  - name: flow-collections
+    poc_us: 51
+    real_us: 190
+    ratio: 3.69
+    verdict: faster
+
+  - name: multi-doc
+    poc_us: 114
+    real_us: 299
+    ratio: 2.63
+    verdict: faster
+
+  - name: anchors
+    poc_us: 85
+    real_us: 178
+    ratio: 2.09
+    verdict: faster
+
+  - name: json-records-medium
+    poc_us: 11993
+    real_us: 5895
+    ratio: 0.49
+    verdict: slower
+    note: >
+      Dense JSON input causes double-parse overhead in the
+      CST→AST pipeline. The CST parser tokenizes, then the
+      Composer re-parses the source slice with the AST parser.
+      Real yaml's CST+Composer avoids this overhead.
+
+summary:
+  faster_count: 8
+  slower_count: 1
+  best_ratio: 3.69
+  worst_ratio: 0.49
+  worst_fixture: json-records-medium

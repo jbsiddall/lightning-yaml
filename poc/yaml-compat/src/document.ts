@@ -168,7 +168,7 @@ function nodeToJS(
 
   if (isAlias(node)) {
     const target = anchors.get(node.source);
-    if (!target) return undefined;
+    if (!target) throw new ReferenceError(`Unresolved alias (the anchor must be set before the alias): ${node.source}`);
     // Enforce maxAliasCount (-1 = unlimited)
     if (maxAliasCount >= 0) {
       aliasCount.total++;

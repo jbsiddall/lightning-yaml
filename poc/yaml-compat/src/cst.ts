@@ -35,6 +35,8 @@ export interface Document {
   start: SourceToken[];
   value?: Token;
   end?: SourceToken[];
+  /** @internal Original source string — used by Composer to avoid stringify→reparse. */
+  _source?: string;
 }
 
 export interface DocumentEnd {
