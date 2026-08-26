@@ -1,17 +1,11 @@
 /**
  * Public API for the yaml-compat POC parser.
  *
- * Exports:
- *   parse(src, opts?) → JS value
- *   parseDocument(src, opts?) → Document
- *   parseAllDocuments(src, opts?) → Document[]
- *   Node classes: Scalar, YAMLMap, YAMLSeq, Pair, Alias
- *   Guards: isNode, isScalar, isMap, isSeq, isPair, isAlias, isCollection
- *   visit, LineCounter
- *   Document
+ * High-level: parse, parseDocument, parseAllDocuments
+ * Low-level (CST pipeline): Parser, Composer, LineCounter, CST namespace
  */
 
-import { Parser, LineCounter } from './parser.ts';
+import { Parser as ASTParser, LineCounter } from './parser.ts';
 import { Document } from './document.ts';
 import {
   Scalar, YAMLMap, YAMLSeq, Pair, Alias,
@@ -22,16 +16,15 @@ import {
 import { visit } from './visit.ts';
 import { YAMLParseError, YAMLWarning } from './errors.ts';
 import { validateOptions, type ParseOptions, type CustomTag } from './options.ts';
+import { CSTParser } from './cst-parser.ts';
+import { Composer } from './cst-composer.ts';
+import * as CST from './cst.ts';
 
 // ---- Public API functions --------------------------------------------------
 
-/**
- * Parse YAML source into a plain JS value.
- * Like JSON.parse but for YAML.
- */
 function parse(src: string, opts?: ParseOptions): unknown {
-  const options = validateOptions(opts);
-  const parser = new Parser(src, options);
+  const options = validateOptions(opts as Record<string, unknown> | undefined);
+  const parser = new ASTParser(src, options);
   const parsed = parser.parseDocument();
 
   if (parsed.errors.length > 0) {
@@ -44,13 +37,9 @@ function parse(src: string, opts?: ParseOptions): unknown {
   return doc.toJS({ merge: options.merge });
 }
 
-/**
- * Parse YAML source into a Document with full AST, comments, ranges.
- * Never throws on parse errors — errors collected on doc.errors.
- */
 function parseDocument(src: string, opts?: ParseOptions): Document {
-  const options = validateOptions(opts);
-  const parser = new Parser(src, options);
+  const options = validateOptions(opts as Record<string, unknown> | undefined);
+  const parser = new ASTParser(src, options);
   const parsed = parser.parseDocument();
 
   const doc = new Document(parsed.contents, options);
@@ -64,12 +53,9 @@ function parseDocument(src: string, opts?: ParseOptions): Document {
   return doc;
 }
 
-/**
- * Parse a multi-document YAML stream into an array of Documents.
- */
 function parseAllDocuments(src: string, opts?: ParseOptions): Document[] {
-  const options = validateOptions(opts);
-  const parser = new Parser(src, options);
+  const options = validateOptions(opts as Record<string, unknown> | undefined);
+  const parser = new ASTParser(src, options);
   const parsedDocs = parser.parseAllDocuments();
 
   return parsedDocs.map((parsed) => {
@@ -87,10 +73,16 @@ function parseAllDocuments(src: string, opts?: ParseOptions): Document[] {
 // ---- Exports ---------------------------------------------------------------
 
 export {
-  // Public API
+  // High-level API
   parse,
   parseDocument,
   parseAllDocuments,
+
+  // Low-level CST pipeline (eemeli-compatible)
+  CSTParser as Parser,
+  Composer,
+  LineCounter,
+  CST,
 
   // Node classes
   Scalar,
@@ -115,11 +107,8 @@ export {
   isAlias,
   isCollection,
 
-  // Visitor
+  // AST Visitor
   visit,
-
-  // Line counter
-  LineCounter,
 
   // Document
   Document,
@@ -128,6 +117,12 @@ export {
   YAMLParseError,
   YAMLWarning,
 };
+
+// CST utility re-exports
+export { createScalarToken, resolveAsScalar, setScalarValue } from './cst-scalar.ts';
+export { stringify } from './cst-stringify.ts';
+export type { Visitor as CSTVisitor, VisitPath } from './cst-visit.ts';
+export { visit as visitCST } from './cst-visit.ts';
 
 // Re-export types
 export type { Node, Range, ParseOptions, CustomTag };

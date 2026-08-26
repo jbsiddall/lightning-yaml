@@ -38,7 +38,7 @@ function visitNode(
   visitor: Visitor,
 ): VisitorReturn {
   // Call the visitor
-  let result: VisitorReturn;
+  let result: VisitorReturn = undefined;
 
   if (typeof visitor === 'function') {
     result = visitor(key, node, path);
