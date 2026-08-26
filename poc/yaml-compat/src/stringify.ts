@@ -241,10 +241,12 @@ function renderScalar(node: Scalar, ctx: Ctx, _level: number): void {
     return;
   }
   if (node.type === SCALAR_SINGLE) { ctx.out.push(renderSingleQuoted(s)); return; }
-  if (node.type === SCALAR_DOUBLE) { ctx.out.push(JSON.stringify(s)); return; }
+  if (node.type === SCALAR_DOUBLE) { ctx.out.push(renderDoubleQuoted(s)); return; }
 
   // M3: multiline strings → block scalar (|) like eemeli
-  if (s.includes('\n')) {
+  // R3-M1: reject \r and C0 controls (except \t) — YAML §8.1.1.2 normalizes
+  // line breaks in block scalars, and controls like \0/\x1b are not printable.
+  if (s.includes('\n') && !/[\x00-\x08\x0b-\x1f]/.test(s)) {
     renderBlockScalar(s, '|', ctx, _level);
     return;
   }
@@ -252,7 +254,7 @@ function renderScalar(node: Scalar, ctx: Ctx, _level: number): void {
   if (isPlainSafe(s, ctx)) { ctx.out.push(s); return; }
 
   if (ctx.singleQuote) ctx.out.push(renderSingleQuoted(s));
-  else ctx.out.push(JSON.stringify(s));
+  else ctx.out.push(renderDoubleQuoted(s));
 }
 
 function isPlainSafe(s: string, ctx: Ctx): boolean {
@@ -280,20 +282,32 @@ function renderSingleQuoted(s: string): string {
   return `'${s.replace(/'/g, "''")}'`;
 }
 
+function renderDoubleQuoted(s: string): string {
+  // YAML double-quoted escapes beyond JSON's: \0 (null), \e (escape)
+  return JSON.stringify(s)
+    .replace(/\\u0000/g, '\\0')
+    .replace(/\\u001b/g, '\\e');
+}
+
 function renderBlockScalar(text: string, indicator: '|' | '>', ctx: Ctx, level: number): void {
   const lines = text.split('\n');
   const hasTrailingNewline = text.endsWith('\n');
   if (hasTrailingNewline && lines[lines.length - 1] === '') lines.pop();
 
-  // Chomping: strip if no trailing newline, keep if trailing blank lines or all-blank content
+  // Chomping: strip if no trailing newline, keep if last content line is blank/whitespace-only
+  // R3-M2: whitespace-only lines count as blank for chomping purposes (YAML §8.1)
   let chomp = '';
   if (!hasTrailingNewline) chomp = '-';
-  else if (text.endsWith('\n\n') || lines.every(l => l === '')) chomp = '+';
+  else {
+    const lastLine = lines[lines.length - 1];
+    if (lastLine !== undefined && lastLine.trim() === '') chomp = '+';
+  }
 
   // Indent indicator: check first NON-EMPTY line for leading space
+  // R3-M2: skip indent indicator for whitespace-only content (eemeli doesn't add one)
   const firstNonEmpty = lines.find(l => l.length > 0);
   let indentIndicator = '';
-  if (firstNonEmpty && firstNonEmpty[0] === ' ') {
+  if (firstNonEmpty && firstNonEmpty[0] === ' ' && firstNonEmpty.trim().length > 0) {
     indentIndicator = String(ctx.indent);
   }
 
@@ -479,13 +493,13 @@ function renderNodeToString(node: Node | null, ctx: Ctx, level: number): string 
     if (typeof v === 'number') return String(v);
     const s = String(v);
     if (node.type === SCALAR_SINGLE) return renderSingleQuoted(s);
-    if (node.type === SCALAR_DOUBLE) return JSON.stringify(s);
+    if (node.type === SCALAR_DOUBLE) return renderDoubleQuoted(s);
     if (isPlainSafe(s, ctx)) {
       let cached = ctx.keyCache.get(s);
       if (!cached) { cached = s; ctx.keyCache.set(s, cached); }
       return cached;
     }
-    return ctx.singleQuote ? renderSingleQuoted(s) : JSON.stringify(s);
+    return ctx.singleQuote ? renderSingleQuoted(s) : renderDoubleQuoted(s);
   }
   const saved = ctx.out;
   ctx.out = [];

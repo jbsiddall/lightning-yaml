@@ -352,3 +352,91 @@ describe('bare document markers (m4)', () => {
     assert.equal(result, '---\n\n...\n');
   });
 });
+
+// ---- R3: adversarial string battery (≥30 shapes) ---------------------------
+
+describe('adversarial string battery (R3)', () => {
+  // Shapes where YAML block scalars strip whitespace-only trailing lines,
+  // so even eemeli can't value-roundtrip. We assert byte-match + reparse
+  // equivalence with eemeli (the oracle).
+  const NON_ROUNDTRIPPABLE = new Set([
+    ' \n', '   \n', '  \n  \n', ' \t \n',
+  ]);
+
+  const shapes: [string, string][] = [
+    // Line endings
+    ['\\r', '\r'],
+    ['\\r\\r', '\r\r'],
+    ['a\\rb\\n', 'a\rb\n'],
+    ['a\\r\\nb\\n', 'a\r\nb\n'],
+    ['a\\r\\nb', 'a\r\nb'],
+    ['\\r\\n', '\r\n'],
+    ['hello\\rworld\\n', 'hello\rworld\n'],
+    // Whitespace-only trailing lines
+    ['sp+lf', ' \n'],
+    ['3sp+lf', '   \n'],
+    ['2sp+lf+2sp+lf', '  \n  \n'],
+    ['tab+lf', '\t\n'],
+    ['sp+tab+sp+lf', ' \t \n'],
+    ['a+lf+3sp+lf', 'a\n   \n'],
+    ['a+lf+sp+lf', 'a\n \n'],
+    ['a+lf+tab+lf', 'a\n\t\n'],
+    // Blank-line runs
+    ['lf', '\n'],
+    ['lf+lf', '\n\n'],
+    ['lf+lf+lf', '\n\n\n'],
+    ['lf+hello+lf', '\nhello\n'],
+    ['hello+lf+lf', 'hello\n\n'],
+    ['hello+lf+lf+lf', 'hello\n\n\n'],
+    ['lf+lf+hello+lf', '\n\nhello\n'],
+    ['a+lf+lf+b+lf', 'a\n\nb\n'],
+    // Leading/trailing spaces on content lines
+    ['sp+a+lf+b+lf', ' a\nb\n'],
+    ['a+sp+lf+b+lf', 'a \nb\n'],
+    ['a+lf+sp+b+lf', 'a\n b\n'],
+    ['2sp+hello+lf+2sp+world+lf', '  hello\n  world\n'],
+    // Tabs in content
+    ['a+tab+b+lf+c+lf', 'a\tb\nc\n'],
+    ['tab+a+lf', '\ta\n'],
+    // Unicode line breaks (literal U+2028, U+2029)
+    ['a+u2028+b+lf', 'a b\n'],
+    ['a+u2029+b+lf', 'a b\n'],
+    // Control chars
+    ['a+null+b+lf', 'a\0b\n'],
+    ['a+esc+b+lf', 'a\x1bb\n'],
+    // Indicator starts on lines
+    ['dash+a+lf+b+lf', '- a\nb\n'],
+    ['colon+a+lf', ': a\n'],
+    ['hash+x+lf+y+lf', '# x\ny\n'],
+    ['amp+a+x+lf', '&a x\n'],
+    ['bang+t+x+lf', '!t x\n'],
+    ['lbrace+a1+rbrace+lf+b+lf', '{a: 1}\nb\n'],
+    ['lbracket1+rbracket+lf+b+lf', '[1]\nb\n'],
+    // Bare oddities
+    ['empty', ''],
+    ['sp', ' '],
+    ['a', 'a'],
+    ['a+lf', 'a\n'],
+    ['line1+lf+line2', 'line1\nline2'],
+    ['true+lf+false+lf', 'true\nfalse\n'],
+    ['123+lf+456+lf', '123\n456\n'],
+    // Indent-sensitivity
+    ['a+lf+2sp+b+lf+4sp+c+lf', 'a\n  b\n    c\n'],
+  ];
+
+  for (const [name, value] of shapes) {
+    it(`byte-matches and reparses: ${name}`, () => {
+      const ours = stringify({ a: value });
+      const eemeli = yaml.stringify({ a: value });
+      assert.equal(ours, eemeli, `byte-match for ${JSON.stringify(value)}`);
+      const ourReparsed = yaml.parse(ours);
+      const eemReparsed = yaml.parse(eemeli);
+      if (NON_ROUNDTRIPPABLE.has(value)) {
+        // eemeli itself can't roundtrip these (YAML strips ws-only lines in block scalars)
+        assert.equal(ourReparsed.a, eemReparsed.a);
+      } else {
+        assert.equal(ourReparsed.a, value, `value-exact reparse for ${JSON.stringify(value)}`);
+      }
+    });
+  }
+});
