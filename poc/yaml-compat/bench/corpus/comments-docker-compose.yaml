@@ -1,0 +1,409 @@
+# docker-compose.yml — baseline POC fixture
+# Uses YAML merge key (<<) and anchors to DRY up service definitions.
+# Do not edit by hand; regenerate with the corpus script.
+
+version: "3.9"
+
+# Shared defaults — every service merges this via <<: *default
+x-default: &default
+  # Base image pinned to a known-good digest-bearing tag
+  image: registry.example.com/base:v2.9.0
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+  # Common env for every container
+  environment: &common-env
+    TZ: UTC
+    LANG: en_US.UTF-8
+    LOG_LEVEL: info
+
+x-network: &net
+  networks:
+    - backend
+    - frontend
+
+services:
+  api:
+    <<: [*default, *net]
+    # api — image kilo component
+    container_name: api-prod
+    hostname: api.internal
+    ports:
+      - "5971:5971"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: api
+      PORT: "5971"
+      ALPHA_NB: "pod-447"
+      KILO_PF: "xray-265"
+      QUEUE_AA: "deploy-886"
+      XRAY_WN: "kilo-821"
+      NETWORK_BT: "test-365"
+      MIKE_ZG: "alpha-256"
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          cpus: "0.12"
+          memory: 768M
+    depends_on:
+      - cron
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5971/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    <<: [*default, *net]
+    # worker — client service component
+    container_name: worker-prod
+    hostname: worker.internal
+    ports:
+      - "8562:8562"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: worker
+      PORT: "8562"
+      STAGE_HX: "server-202"
+      SERVICE_YT: "bravo-465"
+      CLIENT_XA: "bravo-439"
+      JULIET_SO: "november-657"
+      ZULU_ZZ: "mike-366"
+      SIERRA_TH: "xray-78"
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          cpus: "0.6"
+          memory: 384M
+    depends_on:
+      - mailer
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8562/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  scheduler:
+    <<: [*default, *net]
+    # scheduler — queue test component
+    container_name: scheduler-prod
+    hostname: scheduler.internal
+    ports:
+      - "6186:6186"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: scheduler
+      PORT: "6186"
+      JOB_UL: "bravo-526"
+      STAGE_KQ: "victor-961"
+      POD_RB: "alpha-835"
+      TASK_JS: "victor-161"
+      NETWORK_GZ: "mike-128"
+      WHISKEY_TA: "deploy-192"
+    deploy:
+      replicas: 5
+      resources:
+        limits:
+          cpus: "0.7"
+          memory: 384M
+    depends_on:
+      - cron
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6186/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  gateway:
+    <<: [*default, *net]
+    # gateway — november network component
+    container_name: gateway-prod
+    hostname: gateway.internal
+    ports:
+      - "7302:7302"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: gateway
+      PORT: "7302"
+      ROMEO_JA: "alpha-126"
+      SIERRA_UB: "india-44"
+      VOLUME_FH: "replica-211"
+      TANGO_BP: "juliet-645"
+      TANGO_IK: "image-404"
+      XRAY_UI: "node-684"
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "0.12"
+          memory: 1024M
+    depends_on:
+      - mailer
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7302/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  cache:
+    <<: [*default, *net]
+    # cache — yankee papa component
+    container_name: cache-prod
+    hostname: cache.internal
+    ports:
+      - "3915:3915"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: cache
+      PORT: "3915"
+      DEPLOY_NL: "tango-583"
+      HOTEL_HQ: "pod-933"
+      YANKEE_LE: "client-179"
+      ALPHA_XP: "cache-31"
+      GOLF_FV: "golf-787"
+      FOXTROT_GW: "node-99"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.9"
+          memory: 640M
+    depends_on:
+      - proxy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3915/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  queue:
+    <<: [*default, *net]
+    # queue — tango tango component
+    container_name: queue-prod
+    hostname: queue.internal
+    ports:
+      - "3247:3247"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: queue
+      PORT: "3247"
+      DELTA_JA: "romeo-301"
+      INDIA_SB: "oscar-77"
+      KILO_GV: "lima-204"
+      DELTA_KY: "replica-659"
+      SERVER_UZ: "romeo-518"
+      KILO_ID: "config-574"
+    deploy:
+      replicas: 5
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 768M
+    depends_on:
+      - cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3247/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  indexer:
+    <<: [*default, *net]
+    # indexer — bravo dev component
+    container_name: indexer-prod
+    hostname: indexer.internal
+    ports:
+      - "6205:6205"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: indexer
+      PORT: "6205"
+      STAGE_UA: "client-267"
+      CHARLIE_NE: "lima-977"
+      BRAVO_GI: "oscar-384"
+      ROMEO_LS: "delta-841"
+      CLIENT_UD: "mike-361"
+      VOLUME_WR: "yankee-283"
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "0.11"
+          memory: 256M
+    depends_on:
+      - cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6205/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mailer:
+    <<: [*default, *net]
+    # mailer — quebec task component
+    container_name: mailer-prod
+    hostname: mailer.internal
+    ports:
+      - "3737:3737"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: mailer
+      PORT: "3737"
+      ROMEO_DY: "volume-267"
+      DEV_BH: "bravo-591"
+      VOLUME_PK: "november-584"
+      KILO_GC: "zulu-483"
+      JULIET_JR: "oscar-371"
+      NODE_XL: "echo-571"
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          cpus: "0.9"
+          memory: 128M
+    depends_on:
+      - scheduler
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3737/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  webhook:
+    <<: [*default, *net]
+    # webhook — oscar job component
+    container_name: webhook-prod
+    hostname: webhook.internal
+    ports:
+      - "3467:3467"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: webhook
+      PORT: "3467"
+      FOXTROT_WD: "victor-525"
+      WORKER_IO: "uniform-241"
+      CHARLIE_DH: "worker-344"
+      ZULU_SR: "port-780"
+      TANGO_XO: "bravo-762"
+      JULIET_XH: "client-575"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.12"
+          memory: 512M
+    depends_on:
+      - mailer
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3467/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  cron:
+    <<: [*default, *net]
+    # cron — hotel victor component
+    container_name: cron-prod
+    hostname: cron.internal
+    ports:
+      - "4842:4842"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: cron
+      PORT: "4842"
+      ECHO_AV: "node-903"
+      ALPHA_MA: "uniform-875"
+      CLIENT_AU: "replica-576"
+      JOB_SF: "worker-162"
+      UNIFORM_IN: "foxtrot-326"
+      BRAVO_WY: "node-767"
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          cpus: "0.11"
+          memory: 512M
+    depends_on:
+      - scheduler
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4842/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  monitor:
+    <<: [*default, *net]
+    # monitor — charlie volume component
+    container_name: monitor-prod
+    hostname: monitor.internal
+    ports:
+      - "5929:5929"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: monitor
+      PORT: "5929"
+      OSCAR_CM: "quebec-539"
+      SERVER_MZ: "config-327"
+      CHARLIE_GF: "queue-511"
+      CLIENT_AF: "config-415"
+      ROMEO_VB: "prod-260"
+      BUILD_BT: "november-673"
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          cpus: "0.6"
+          memory: 1024M
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5929/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  proxy:
+    <<: [*default, *net]
+    # proxy — cache test component
+    container_name: proxy-prod
+    hostname: proxy.internal
+    ports:
+      - "3792:3792"
+    environment:
+      <<: *common-env
+      SERVICE_NAME: proxy
+      PORT: "3792"
+      VICTOR_SU: "zulu-79"
+      NETWORK_QE: "sierra-556"
+      OSCAR_OW: "zulu-3"
+      FOXTROT_MG: "juliet-902"
+      QUEBEC_EL: "mike-187"
+      JOB_ZH: "golf-530"
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "0.12"
+          memory: 384M
+    depends_on:
+      - cron
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3792/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+
+volumes:
+  cache-data:
+  queue-data:
