@@ -4176,7 +4176,10 @@ function parseBlockScalar(parentCol: number): string {
   lineStart = pos;
 
   const effParentCol = parentCol === ROOT_AFTER_INLINE_MARKER ? -1 : parentCol;
-  const contentIndent = indentIndicator > 0 ? effParentCol + indentIndicator : detectBlockScalarIndent(effParentCol);
+  const contentIndent =
+    indentIndicator > 0
+      ? Math.max(0, effParentCol) + indentIndicator
+      : detectBlockScalarIndent(effParentCol);
 
   // --- body: accumulate content-line text into `res`, a ConsString built via
   // `+=` (O(1) per append, flattened lazily on first read) rather than an
