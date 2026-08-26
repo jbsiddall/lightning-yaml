@@ -93,6 +93,7 @@
     "test:watch": "vitest",
     "test:suite": "pnpm gen:suite && node --import tsx bench/conformance/run.ts",
     "test:compat": "node --import tsx bench/conformance/compat.ts",
+    "test:poc": "node --import tsx --test poc/yaml-compat/test/parser.test.ts poc/yaml-compat/test/cst.test.ts",
     "validate:benchmarks": "node --import tsx bench/validate.ts site/src/data/benchmarks/speed.yaml site/src/data/benchmarks/memory.yaml site/src/data/benchmarks/memory-ratios.yaml site/src/data/benchmarks/conformance.yaml site/src/data/benchmarks/bundle-size.yaml",
     "typecheck": "tsc --noEmit && tsc --noEmit -p bench/browser/tsconfig.json",
     "changeset": "changeset",

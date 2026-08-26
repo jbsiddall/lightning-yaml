@@ -71,14 +71,16 @@ CT[0x60] = CC_INDICATOR; // `
 // ---- Line tracking ---------------------------------------------------------
 
 export class LineCounter {
-  lineStarts: number[] = [0];
+  lineStarts: number[] = [];
 
-  addNewLine(offset: number): void {
+  addNewLine = (offset: number): number => {
     this.lineStarts.push(offset);
-  }
+    return this.lineStarts.length;
+  };
 
-  linePos(offset: number): { line: number; col: number } {
+  linePos = (offset: number): { line: number; col: number } => {
     const ls = this.lineStarts;
+    if (ls.length === 0) return { line: 0, col: offset };
     let lo = 0, hi = ls.length - 1;
     while (lo < hi) {
       const mid = (lo + hi + 1) >> 1;
@@ -86,7 +88,7 @@ export class LineCounter {
       else hi = mid - 1;
     }
     return { line: lo + 1, col: offset - ls[lo]! + 1 };
-  }
+  };
 }
 
 // ---- Directives ------------------------------------------------------------
@@ -162,6 +164,7 @@ export class Parser {
 
     // Track newlines for LineCounter
     if (this.lineCounter) {
+      this.lineCounter.addNewLine(0);
       for (let i = 0; i < src.length; i++) {
         if (src.charCodeAt(i) === 0x0A) {
           this.lineCounter.addNewLine(i + 1);
@@ -1185,8 +1188,12 @@ export class Parser {
       return null; // doc end marker
     }
 
-    // Check for directives
-    if (c === 0x25) return null; // % directive
+    // Check for directives — only before any document content.
+    // After ---, % is treated as content (plain scalar) but with an error, matching eemeli.
+    if (c === 0x25 && !this.directives.docStart) return null; // % directive
+    if (c === 0x25) {
+      this.error(this.pos, 'Plain value cannot start with directive indicator character %');
+    }
 
     const cb = this.consumePendingCommentBefore();
     const spaceBefore = this.hadBlankLine;
@@ -1316,7 +1323,7 @@ export class Parser {
       if (c === 0x2E && this.pos + 2 < this.len &&
           this.src.charCodeAt(this.pos + 1) === 0x2E &&
           this.src.charCodeAt(this.pos + 2) === 0x2E) break;
-      if (c === 0x25) break; // directive
+      if (c === 0x25 && !this.directives.docStart) break; // directive (only before ---)
 
       // Skip leading comments
       const crossedNewline = this.skipWsAndComments();
@@ -1443,7 +1450,7 @@ export class Parser {
       if (c === 0x2E && this.pos + 2 < this.len &&
           this.src.charCodeAt(this.pos + 1) === 0x2E &&
           this.src.charCodeAt(this.pos + 2) === 0x2E) break;
-      if (c === 0x25) break; // directive
+      if (c === 0x25 && !this.directives.docStart) break; // directive (only before ---)
 
       // Skip comments and blank lines
       this.skipWsAndComments();

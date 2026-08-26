@@ -1,0 +1,72 @@
+# CST compat pipeline benchmark — Parser→tokens→Composer vs real yaml
+# <!-- bench:poc/yaml-cst-compat ly:cbb2f04 -->
+# Pipeline: CSTParser → tokens → Composer → Document[]
+# Compared: yaml v2 Parser → tokens → Composer → Document[]
+# Methodology: warmup=3, iters=50 (>1MB: 15), median, sequential
+# Machine: node v22.23.2, linux x64
+
+suite: cst-compat-pipeline
+scope: poc
+date: 2026-08-26
+
+fixtures:
+  - name: block-config
+    poc_us: 4000
+    real_us: 37550
+    ratio: 9.39
+    verdict: faster
+
+  - name: comments-docker-compose
+    poc_us: 1052
+    real_us: 6596
+    ratio: 6.27
+    verdict: faster
+
+  - name: comments-github-actions
+    poc_us: 854
+    real_us: 2865
+    ratio: 3.36
+    verdict: faster
+
+  - name: comments-k8s-deployment
+    poc_us: 381
+    real_us: 1724
+    ratio: 4.52
+    verdict: faster
+
+  - name: json-records-large
+    poc_us: 284876
+    real_us: 1510123
+    ratio: 5.3
+    verdict: faster
+
+  - name: json-records-medium
+    poc_us: 23791
+    real_us: 141378
+    ratio: 5.94
+    verdict: faster
+
+  - name: json-records-small
+    poc_us: 675
+    real_us: 7153
+    ratio: 10.6
+    verdict: faster
+
+  - name: large-block
+    poc_us: 704624
+    real_us: 3897565
+    ratio: 5.53
+    verdict: faster
+
+  - name: multidoc-k8s
+    poc_us: 13300
+    real_us: 68635
+    ratio: 5.16
+    verdict: faster
+
+summary:
+  faster_count: 9
+  slower_count: 0
+  best_ratio: 10.6
+  worst_ratio: 3.36
+  worst_fixture: comments-github-actions
