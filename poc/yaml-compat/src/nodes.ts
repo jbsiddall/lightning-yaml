@@ -69,11 +69,17 @@ export class Pair {
   range: Range | null;
 
   constructor(
-    key: Scalar | YAMLMap | YAMLSeq | Alias | null,
-    value: Scalar | YAMLMap | YAMLSeq | Alias | null,
+    key: Scalar | YAMLMap | YAMLSeq | Alias | null | unknown,
+    value: Scalar | YAMLMap | YAMLSeq | Alias | null | unknown,
   ) {
-    this.key = key;
-    this.value = value;
+    // Wrap plain JS values in Scalar nodes so that programmatic construction
+    // (e.g. `new Pair('k', 'v')`) produces renderable AST nodes.
+    this.key = (key === null || key instanceof Scalar || key instanceof YAMLMap || key instanceof YAMLSeq || key instanceof Alias)
+      ? key as Scalar | YAMLMap | YAMLSeq | Alias | null
+      : new Scalar(key as unknown, SCALAR_PLAIN);
+    this.value = (value === null || value instanceof Scalar || value instanceof YAMLMap || value instanceof YAMLSeq || value instanceof Alias)
+      ? value as Scalar | YAMLMap | YAMLSeq | Alias | null
+      : new Scalar(value as unknown, SCALAR_PLAIN);
     this.range = null;
   }
 }

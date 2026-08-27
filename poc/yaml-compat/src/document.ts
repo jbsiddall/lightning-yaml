@@ -9,6 +9,13 @@ import {
   SCALAR_PLAIN,
   type Node, type Range,
 } from './nodes.ts';
+
+/** Wrap a plain JS value in a Scalar; pass through Node/null unchanged. */
+function wrapNode(v: unknown): Scalar | YAMLMap | YAMLSeq | Alias | null {
+  if (v === null || v === undefined) return new Scalar(null, SCALAR_PLAIN);
+  if (isNode(v)) return v as Scalar | YAMLMap | YAMLSeq | Alias;
+  return new Scalar(v, SCALAR_PLAIN);
+}
 import type { YAMLParseError, YAMLWarning } from './errors.ts';
 import type { ParseOptions, CustomTag } from './options.ts';
 import { stringify as astStringify } from './stringify.ts';
@@ -136,7 +143,7 @@ export class Document {
       return;
     }
     if (!this.contents) {
-      this.contents = isMap(this.contents) ? new YAMLMap() : new YAMLMap();
+      this.contents = new YAMLMap();
     }
     let node: Node = this.contents;
     for (let i = 0; i < keys.length - 1; i++) {
@@ -287,16 +294,22 @@ export class Document {
   }
 
   /** Add a Pair to the top-level map, or an item to the top-level seq. */
-  add(pair: Pair | Node): void {
+  add(pair: Pair | Node | unknown): void {
     if (isMap(this.contents)) {
-      this.contents.items.push(pair as Pair);
+      if (isPair(pair)) {
+        this.contents.items.push(pair as Pair);
+      } else {
+        // eemeli: plain value becomes a key with null value
+        const key = isNode(pair) ? pair as Scalar | YAMLMap | YAMLSeq | Alias : new Scalar(pair, SCALAR_PLAIN);
+        this.contents.items.push(new Pair(key, new Scalar(null)));
+      }
     } else if (isSeq(this.contents)) {
-      this.contents.items.push(pair as Scalar | YAMLMap | YAMLSeq | Alias);
+      this.contents.items.push(wrapNode(pair) as Scalar | YAMLMap | YAMLSeq | Alias);
     }
   }
 
   /** Add to collection at path. */
-  addIn(path: Iterable<unknown>, pair: Pair | Node): void {
+  addIn(path: Iterable<unknown>, pair: Pair | Node | unknown): void {
     const keys = Array.from(path);
     let node: Node | null = this.contents;
     for (const key of keys) {
@@ -314,9 +327,14 @@ export class Document {
       }
     }
     if (isMap(node)) {
-      node.items.push(pair as Pair);
+      if (isPair(pair)) {
+        node.items.push(pair as Pair);
+      } else {
+        const key = isNode(pair) ? pair as Scalar | YAMLMap | YAMLSeq | Alias : new Scalar(pair, SCALAR_PLAIN);
+        node.items.push(new Pair(key, new Scalar(null)));
+      }
     } else if (isSeq(node)) {
-      node.items.push(pair as Scalar | YAMLMap | YAMLSeq | Alias);
+      node.items.push(wrapNode(pair) as Scalar | YAMLMap | YAMLSeq | Alias);
     }
   }
 

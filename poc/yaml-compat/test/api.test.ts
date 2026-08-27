@@ -228,6 +228,30 @@ describe('Scalar.range', () => {
     assert.deepStrictEqual(ourPair.value!.range, (theirPair.value as any).range);
   });
 
+  it('value nodeEnd extends to end of line (trailing newline)', () => {
+    const cases = [
+      'key: value\n',
+      'a: 1\nb: 2\n',
+      'k: "quoted"\n',
+      'k: v # comment\n',
+      'a: [1, 2, 3]\n',
+      'a: {x: 1}\n',
+      "a: 'single'\n",
+      'a: |\n  hello\n',
+    ];
+    for (const src of cases) {
+      const ours = parseDocument(src);
+      const theirs = yaml.parseDocument(src);
+      const ourPair = (ours.contents as YAMLMap).items[0]!;
+      const theirPair = (theirs.contents as yaml.YAMLMap).items[0]!;
+      assert.deepStrictEqual(
+        ourPair.value!.range,
+        (theirPair.value as any).range,
+        `value range mismatch for ${JSON.stringify(src)}`,
+      );
+    }
+  });
+
   it('block scalar has range', () => {
     const doc = parseDocument('a: |\n  hello');
     const pair = (doc.contents as YAMLMap).items[0]!;
@@ -307,6 +331,30 @@ describe('Document methods differential', () => {
     assert.equal(ours.get('b'), theirs.get('b'));
   });
 
+  it('add plain string to map becomes key with null value', () => {
+    const ours = parseDocument('a: 1\n');
+    const theirs = yaml.parseDocument('a: 1\n');
+    ours.add('new');
+    theirs.add('new');
+    assert.equal(ours.toString(), theirs.toString());
+  });
+
+  it('add plain number to seq', () => {
+    const ours = parseDocument('- 1\n- 2\n');
+    const theirs = yaml.parseDocument('- 1\n- 2\n');
+    ours.add(3);
+    theirs.add(3);
+    assert.equal(ours.toString(), theirs.toString());
+  });
+
+  it('add Pair with plain string key/value', () => {
+    const ours = parseDocument('a: 1\n');
+    const theirs = yaml.parseDocument('a: 1\n');
+    ours.add(new Pair('k', 'v'));
+    theirs.add(new yaml.Pair('k', 'v'));
+    assert.equal(ours.toString(), theirs.toString());
+  });
+
   it('addIn to nested seq', () => {
     const src = 'list:\n  - x\n  - y';
     const ours = parseDocument(src);
@@ -316,6 +364,14 @@ describe('Document methods differential', () => {
     theirs.addIn(['list'], new yaml.Scalar('z'));
 
     assert.equal(ours.getIn(['list', 2]), theirs.getIn(['list', 2]));
+  });
+
+  it('addIn plain value to nested seq', () => {
+    const ours = parseDocument('list:\n  - 1\n  - 2\n');
+    const theirs = yaml.parseDocument('list:\n  - 1\n  - 2\n');
+    ours.addIn(['list'], 3);
+    theirs.addIn(['list'], 3);
+    assert.equal(ours.toString(), theirs.toString());
   });
 
   it('clone produces independent copy', () => {

@@ -148,7 +148,15 @@ block it.
 *ponytail: ranges cover Prettier's position needs. Full CST attachment is a
 mechanical add, defer until a consumer actually reads `.token`.*
 
-### 3. Alias resolution in `getIn`
+### 3. C0 control escape format in stringify
+
+When stringifying strings containing C0 control characters (e.g. `\x07`, `\x1b`),
+our stringify emits the same escape sequences as eemeli (`\a`, `\b`, `\t`, `\n`,
+`\v`, `\f`, `\r`, `\e`, `\xNN`). Value-level round-trip is byte-identical.
+Escape format (named vs hex) is tested by `api.test.ts` "C0 control escape
+fidelity".
+
+### 4. Alias resolution in `getIn`
 
 `getIn` does not resolve `Alias` nodes mid-path. If a path traverses through
 an aliased map, the lookup returns `undefined` instead of following the alias.
@@ -162,10 +170,10 @@ collection at Document level, add when a consumer navigates through aliases.*
 
 | Status | Count |
 |---|---|
-| SUPPORTED | 52 |
-| PARTIAL | 3 |
+| SUPPORTED | 58 |
+| PARTIAL | 2 |
 | DEFERRED | 1 |
-| CUT | 9 |
+| CUT | 10 |
 
 The POC covers every API endpoint needed by the three target consumers
 (yaml-language-server, Prettier, eslint-plugin-yml) at P0+P1 priority, with

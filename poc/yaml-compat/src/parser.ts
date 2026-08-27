@@ -263,6 +263,24 @@ export class Parser {
     return c === 0x20 || c === 0x09 || c === 0x0A || c === 0x0D;
   }
 
+  /**
+   * Find end-of-line from a given position (returns the offset PAST the newline).
+   * Used to set value range[2] (nodeEnd) to match eemeli's convention where
+   * value nodeEnd extends to end of the containing line.
+   */
+  private endOfLine(from: number): number {
+    let p = from;
+    while (p < this.len) {
+      const c = this.src.charCodeAt(p);
+      if (c === 0x0A) return p + 1;
+      if (c === 0x0D) {
+        return p + 1 < this.len && this.src.charCodeAt(p + 1) === 0x0A ? p + 2 : p + 1;
+      }
+      p++;
+    }
+    return this.len;
+  }
+
   // ---- Comment collection --------------------------------------------------
 
   /**
@@ -954,12 +972,22 @@ export class Parser {
 
     if (chunkStart < this.pos) text += this.src.slice(chunkStart, this.pos);
 
-    // Trim trailing whitespace
+    // Trim trailing whitespace from text
     text = text.replace(/\s+$/, '');
+
+    // Adjust valueEnd: back up past source whitespace that was trimmed from text.
+    // This ensures range[1] points just past the actual content, not past trailing
+    // spaces that precede comments or line endings.
+    let valueEnd = this.pos;
+    while (valueEnd > start) {
+      const c = this.src.charCodeAt(valueEnd - 1);
+      if (c !== 0x20 && c !== 0x09) break;
+      valueEnd--;
+    }
 
     const value = this.resolvePlainScalar(text);
     const node = new Scalar(value, SCALAR_PLAIN);
-    node.range = [start, this.pos, this.pos];
+    node.range = [start, valueEnd, valueEnd];
     return node;
   }
 
@@ -1430,6 +1458,13 @@ export class Parser {
       const tc = this.skipInlineComment();
       if (tc && value) value.comment = tc;
 
+      // Extend value nodeEnd to end of line (eemeli convention: value range[2]
+      // includes trailing newline and any inline comment on the same line)
+      if (value) {
+        const eol = this.endOfLine(this.pos);
+        (value.range as [number, number, number])[2] = eol;
+      }
+
       map.items.push(pair);
 
       // Skip to next line
@@ -1499,10 +1534,13 @@ export class Parser {
       if (value && cb) value.commentBefore = cb;
 
       if (value) {
-        seq.items.push(value);
         // Trailing comment
         const tc = this.skipInlineComment();
         if (tc) value.comment = tc;
+        // Extend value nodeEnd to end of line (eemeli convention)
+        const eol = this.endOfLine(this.pos);
+        (value.range as [number, number, number])[2] = eol;
+        seq.items.push(value);
       }
 
       this.skipWsAndComments();
