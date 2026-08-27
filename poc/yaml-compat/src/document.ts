@@ -125,7 +125,7 @@ export class Document {
       this.contents = new YAMLMap();
     }
     const map = this.contents;
-    const valueNode = isNode(value) ? value as Node : new Scalar(value);
+    const valueNode = isNode(value) ? value as Node : valueToNode(value);
     for (const pair of map.items) {
       if (isScalar(pair.key) && pair.key.value === key) {
         pair.value = valueNode;
@@ -139,7 +139,7 @@ export class Document {
   setIn(path: Iterable<unknown>, value: unknown): void {
     const keys = Array.from(path);
     if (keys.length === 0) {
-      this.contents = isNode(value) ? value as Node : new Scalar(value);
+      this.contents = isNode(value) ? value as Node : valueToNode(value);
       return;
     }
     if (!this.contents) {
@@ -179,11 +179,16 @@ export class Document {
           node = next;
         }
       } else {
-        return; // can't navigate through scalar
+        const rest = keys.slice(i + 1).join(',');
+        throw new Error(`Expected YAML collection at ${k}. Remaining path: ${rest}`);
       }
     }
     const lastKey = keys[keys.length - 1]!;
-    const valueNode = isNode(value) ? value as Node : new Scalar(value);
+    if (!isMap(node) && !isSeq(node)) {
+      const prevKey = keys.length >= 2 ? keys[keys.length - 2] : keys[0];
+      throw new Error(`Expected YAML collection at ${prevKey}. Remaining path: ${lastKey}`);
+    }
+    const valueNode = isNode(value) ? value as Node : valueToNode(value);
     if (isMap(node)) {
       for (const pair of node.items) {
         if (isScalar(pair.key) && pair.key.value === lastKey) {
@@ -270,10 +275,15 @@ export class Document {
         if (isNaN(idx) || idx < 0 || idx >= node.items.length) return false;
         node = node.items[idx] ?? null;
       } else {
-        return false;
+        const rest = keys.slice(i + 1).join(',');
+        throw new Error(`Expected YAML collection at ${keys[i]}. Remaining path: ${rest}`);
       }
     }
     const lastKey = keys[keys.length - 1]!;
+    if (node !== null && !isMap(node) && !isSeq(node)) {
+      const prevKey = keys.length >= 2 ? keys[keys.length - 2] : keys[0];
+      throw new Error(`Expected YAML collection at ${prevKey}. Remaining path: ${lastKey}`);
+    }
     if (isMap(node)) {
       const items = node.items;
       for (let i = 0; i < items.length; i++) {
@@ -308,34 +318,17 @@ export class Document {
     }
   }
 
-  /** Add to collection at path. */
+  /** Add to collection at path — mirrors eemeli's recursive descent. */
   addIn(path: Iterable<unknown>, pair: Pair | Node | unknown): void {
     const keys = Array.from(path);
-    let node: Node | null = this.contents;
-    for (const key of keys) {
-      if (node === null) return;
-      if (isMap(node)) {
-        for (const p of node.items) {
-          if (isScalar(p.key) && p.key.value === key) {
-            node = p.value;
-            break;
-          }
-        }
-      } else if (isSeq(node)) {
-        const idx = typeof key === 'number' ? key : parseInt(String(key), 10);
-        node = node.items[idx] ?? null;
-      }
+    if (keys.length === 0) {
+      this.add(pair);
+      return;
     }
-    if (isMap(node)) {
-      if (isPair(pair)) {
-        node.items.push(pair as Pair);
-      } else {
-        const key = isNode(pair) ? pair as Scalar | YAMLMap | YAMLSeq | Alias : new Scalar(pair, SCALAR_PLAIN);
-        node.items.push(new Pair(key, new Scalar(null)));
-      }
-    } else if (isSeq(node)) {
-      node.items.push(wrapNode(pair) as Scalar | YAMLMap | YAMLSeq | Alias);
+    if (!isMap(this.contents) && !isSeq(this.contents)) {
+      throw new Error('Expected a YAML collection as document contents');
     }
+    addInCollection(this.contents, keys, 0, pair);
   }
 
   /** Deep clone the document. */
@@ -558,5 +551,111 @@ function valueToNode(value: unknown): Node {
     return map;
   }
   return new Scalar(String(value), SCALAR_PLAIN);
+}
+
+// ---- addIn helpers (mirror eemeli's Collection.addIn recursion) -----------
+
+/** Build a nested node from remaining path + value (mirrors eemeli's collectionFromPath). */
+function collectionFromPath(keys: unknown[], value: unknown): Node {
+  let v: unknown = value;
+  for (let i = keys.length - 1; i >= 0; i--) {
+    const k = keys[i]!;
+    if (typeof k === 'number' && Number.isInteger(k) && k >= 0) {
+      const a: unknown[] = [];
+      a[k] = v;
+      v = a;
+    } else {
+      v = { [String(k)]: v };
+    }
+  }
+  return valueToNode(v);
+}
+
+/** Recursive addIn on a collection node. */
+function addInCollection(node: YAMLMap | YAMLSeq, keys: unknown[], idx: number, value: unknown): void {
+  const key = keys[idx]!;
+  const rest = keys.slice(idx + 1);
+
+  if (isMap(node)) {
+    let child: Node | null = null;
+    let found = false;
+    for (const p of node.items) {
+      if (isScalar(p.key) && p.key.value === key) {
+        child = p.value;
+        found = true;
+        break;
+      }
+    }
+
+    if (rest.length === 0) {
+      // Empty rest: if key exists as collection → add(value) on it;
+      // if not found → set(key, value); if scalar → throw
+      if (found && (isMap(child) || isSeq(child))) {
+        // add(value) on the child collection
+        if (isMap(child)) {
+          if (isPair(value)) {
+            child.items.push(value as Pair);
+          } else {
+            const k = isNode(value) ? value as Scalar : new Scalar(value, SCALAR_PLAIN);
+            child.items.push(new Pair(k, new Scalar(null)));
+          }
+        } else {
+          child.items.push(wrapNode(value) as Scalar | YAMLMap | YAMLSeq | Alias);
+        }
+      } else if (!found) {
+        // set(key, value) — just add a pair
+        const valueNode = isNode(value) ? value as Node : valueToNode(value);
+        node.items.push(new Pair(new Scalar(key, SCALAR_PLAIN), valueNode));
+      } else {
+        throw new Error(`Expected YAML collection at ${key}. Remaining path: `);
+      }
+      return;
+    }
+
+    if (found && (isMap(child) || isSeq(child))) {
+      addInCollection(child, keys, idx + 1, value);
+    } else if (!found) {
+      const built = collectionFromPath(rest, value);
+      node.items.push(new Pair(new Scalar(key, SCALAR_PLAIN), built));
+    } else {
+      throw new Error(`Expected YAML collection at ${key}. Remaining path: ${rest}`);
+    }
+  } else if (isSeq(node)) {
+    const seqIdx = typeof key === 'number' ? key : parseInt(String(key), 10);
+    const child = (seqIdx >= 0 && seqIdx < node.items.length) ? node.items[seqIdx] ?? null : null;
+    const found = child !== null && child !== undefined;
+
+    if (rest.length === 0) {
+      if (found && (isMap(child) || isSeq(child))) {
+        if (isMap(child)) {
+          if (isPair(value)) {
+            child.items.push(value as Pair);
+          } else {
+            const k = isNode(value) ? value as Scalar : new Scalar(value, SCALAR_PLAIN);
+            child.items.push(new Pair(k, new Scalar(null)));
+          }
+        } else {
+          child.items.push(wrapNode(value) as Scalar | YAMLMap | YAMLSeq | Alias);
+        }
+      } else if (!found) {
+        const valueNode = isNode(value) ? value as Node : valueToNode(value);
+        while (node.items.length <= seqIdx) node.items.push(new Scalar(null));
+        node.items[seqIdx] = valueNode as Scalar | YAMLMap | YAMLSeq | Alias;
+      } else {
+        throw new Error(`Expected YAML collection at ${key}. Remaining path: `);
+      }
+      return;
+    }
+
+    if (found && (isMap(child) || isSeq(child))) {
+      addInCollection(child as YAMLMap | YAMLSeq, keys, idx + 1, value);
+    } else if (!found) {
+      const built = collectionFromPath(rest, value);
+      while (node.items.length <= seqIdx) node.items.push(new Scalar(null));
+      node.items[seqIdx] = built as Scalar | YAMLMap | YAMLSeq | Alias;
+    } else {
+      throw new Error(`Expected YAML collection at ${key}. Remaining path: ${rest}`);
+    }
+  }
 }
 

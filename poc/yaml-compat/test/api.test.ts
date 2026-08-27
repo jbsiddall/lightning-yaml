@@ -482,3 +482,114 @@ describe('parseAllDocuments', () => {
     }
   });
 });
+
+// ---- Round-2 fixes: F1–F5 regression ----------------------------------------
+
+describe('F1: set/setIn wraps plain JS objects and arrays', () => {
+  it('set() with object value', () => {
+    const d = parseDocument('a: 1\n'); const e = yaml.parseDocument('a: 1\n');
+    d.set('b', { c: 2 }); e.set('b', { c: 2 });
+    assert.equal(d.toString(), e.toString());
+  });
+  it('set() with array value', () => {
+    const d = parseDocument('a: 1\n'); const e = yaml.parseDocument('a: 1\n');
+    d.set('b', [1]); e.set('b', [1]);
+    assert.equal(d.toString(), e.toString());
+  });
+  it('setIn() with object value replacing scalar', () => {
+    const d = parseDocument('a: 1\n'); const e = yaml.parseDocument('a: 1\n');
+    d.setIn(['a'], { b: 2 }); e.setIn(['a'], { b: 2 });
+    assert.equal(d.toString(), e.toString());
+  });
+  it('setIn() with array value replacing scalar', () => {
+    const d = parseDocument('a: 1\n'); const e = yaml.parseDocument('a: 1\n');
+    d.setIn(['a'], [1, 2]); e.setIn(['a'], [1, 2]);
+    assert.equal(d.toString(), e.toString());
+  });
+});
+
+describe('F2: addIn() multi-segment path creation', () => {
+  it('creates intermediate maps for new keys', () => {
+    const d = parseDocument('a: 1\n'); const e = yaml.parseDocument('a: 1\n');
+    d.addIn(['b', 'c'], 2); e.addIn(['b', 'c'], 2);
+    assert.equal(d.toString(), e.toString());
+  });
+  it('adds into existing flow map', () => {
+    const d = parseDocument('a: {x: 1}\n'); const e = yaml.parseDocument('a: {x: 1}\n');
+    d.addIn(['a', 'y'], 2); e.addIn(['a', 'y'], 2);
+    assert.equal(d.toString(), e.toString());
+  });
+});
+
+describe('F3: setIn/addIn/deleteIn through scalar throws', () => {
+  it('setIn through scalar throws', () => {
+    const d = parseDocument('a: 1\n');
+    assert.throws(() => d.setIn(['a', 'b'], 2), /Expected YAML collection at a/);
+  });
+  it('addIn through scalar (seq item) throws', () => {
+    const d = parseDocument('a:\n  - 1\n');
+    assert.throws(() => d.addIn(['a', 0], 9), /Expected YAML collection at 0/);
+  });
+  it('deleteIn through scalar throws', () => {
+    const d = parseDocument('a: 1\n');
+    assert.throws(() => d.deleteIn(['a', 'b']), /Expected YAML collection at a/);
+  });
+  it('error message matches eemeli exactly', () => {
+    const d = parseDocument('a: 1\n'); const e = yaml.parseDocument('a: 1\n');
+    let oursErr = '', theirsErr = '';
+    try { d.setIn(['a', 'b'], 2); } catch (err: any) { oursErr = err.message; }
+    try { e.setIn(['a', 'b'], 2); } catch (err: any) { theirsErr = err.message; }
+    assert.equal(oursErr, theirsErr);
+  });
+});
+
+describe('F4: Document.range semantics', () => {
+  const cases: [string, [number, number, number]][] = [
+    ['k: v', [0, 4, 4]],
+    ['k: v\n', [0, 5, 5]],
+    ['k: v\n\n', [0, 5, 6]],
+    ['k: v\n\n\n', [0, 5, 7]],
+    ['k: v\n# trailing comment\n', [0, 5, 24]],
+    ['k: v\n\n# comment after\n', [0, 5, 22]],
+    ['\n\nk: v\n', [2, 7, 7]],
+    ['k: v\n ', [0, 5, 6]],
+    ['# lead comment\nk: v\n', [15, 20, 20]],
+    ['', [0, 0, 0]],
+    ['k: v # trailing\n', [0, 16, 16]],
+  ];
+  for (const [src, expected] of cases) {
+    it(`range for ${JSON.stringify(src)}`, () => {
+      const d = parseDocument(src);
+      assert.deepStrictEqual(d.range, expected);
+    });
+  }
+  it('byte-matches eemeli for all shapes', () => {
+    for (const [src] of cases) {
+      const d = parseDocument(src);
+      const e = yaml.parseDocument(src);
+      assert.deepStrictEqual(d.range, (e as any).range, `mismatch for ${JSON.stringify(src)}`);
+    }
+  });
+});
+
+describe('F5: top-level flow document contents range', () => {
+  it('flow map nodeEnd extends to end of line', () => {
+    const d = parseDocument('{f: 1}\n');
+    const e = yaml.parseDocument('{f: 1}\n');
+    assert.deepStrictEqual(d.contents!.range, (e.contents as any).range);
+  });
+  it('multi-line flow map', () => {
+    const src = '{\n  a: 1,\n  b: 2\n}\n';
+    const d = parseDocument(src);
+    const e = yaml.parseDocument(src);
+    assert.deepStrictEqual(d.contents!.range, (e.contents as any).range);
+  });
+  it('nested flow range stays correct', () => {
+    const src = 'a: {f: 1}\n';
+    const d = parseDocument(src);
+    const e = yaml.parseDocument(src);
+    const ourPair = (d.contents as YAMLMap).items[0]!;
+    const theirPair = (e.contents as yaml.YAMLMap).items[0]!;
+    assert.deepStrictEqual(ourPair.value!.range, (theirPair.value as any).range);
+  });
+});

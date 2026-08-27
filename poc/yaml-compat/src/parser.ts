@@ -17,6 +17,7 @@
 
 import {
   Scalar, YAMLMap, YAMLSeq, Pair, Alias,
+  isMap, isSeq,
   SCALAR_PLAIN, SCALAR_SINGLE, SCALAR_DOUBLE, SCALAR_FOLDED, SCALAR_LITERAL,
   type Node, type Range,
 } from './nodes.ts';
@@ -279,6 +280,50 @@ export class Parser {
       p++;
     }
     return this.len;
+  }
+
+  /**
+   * Find the end of the last content line — walks backward from streamEnd,
+   * skipping trailing blank lines and comment-only lines. Returns the offset
+   * past the terminating newline of the last content line.
+   */
+  private contentLineEnd(streamEnd: number): number {
+    let p = streamEnd;
+    while (p > 0) {
+      // Walk backward to start of current line
+      let lineEnd = p;
+      // Skip trailing whitespace on this line (spaces/tabs before lineEnd)
+      let q = p - 1;
+      while (q >= 0 && (this.src.charCodeAt(q) === 0x20 || this.src.charCodeAt(q) === 0x09)) q--;
+      // Check if we're at a newline boundary
+      if (q >= 0 && (this.src.charCodeAt(q) === 0x0A || this.src.charCodeAt(q) === 0x0D)) {
+        // This was a blank line — skip it
+        p = q;
+        if (this.src.charCodeAt(q) === 0x0A && q > 0 && this.src.charCodeAt(q - 1) === 0x0D) p = q - 1;
+        continue;
+      }
+      // Walk back to start of this line
+      let lineStart = q;
+      while (lineStart > 0 && this.src.charCodeAt(lineStart - 1) !== 0x0A && this.src.charCodeAt(lineStart - 1) !== 0x0D) {
+        lineStart--;
+      }
+      // Check if this line is a comment-only line
+      let firstNonWs = lineStart;
+      while (firstNonWs <= q && (this.src.charCodeAt(firstNonWs) === 0x20 || this.src.charCodeAt(firstNonWs) === 0x09)) {
+        firstNonWs++;
+      }
+      if (firstNonWs <= q && this.src.charCodeAt(firstNonWs) === 0x23) {
+        // Comment-only line — skip it
+        p = lineStart > 0 ? lineStart - 1 : 0;
+        if (p > 0 && this.src.charCodeAt(p) === 0x0D && p + 1 < streamEnd && this.src.charCodeAt(p + 1) === 0x0A) {
+          // Skip \r of \r\n
+        }
+        continue;
+      }
+      // This is a content line — return end of this line (past its newline)
+      return this.endOfLine(q);
+    }
+    return 0;
   }
 
   // ---- Comment collection --------------------------------------------------
@@ -1700,6 +1745,17 @@ export class Parser {
     this.skipWsAndComments();
     const docComment = this.consumePendingCommentBefore();
 
+    // F5: extend top-level flow content nodeEnd to end of line (eemeli convention)
+    if (contents && (isMap(contents) || isSeq(contents)) && (contents as any).flow === true) {
+      const eol = this.endOfLine(contents.range![1]);
+      (contents.range as [number, number, number])[2] = eol;
+    }
+
+    // F4: compute document range as [contentStart, contentLineEnd, streamEnd]
+    const contentStart = contents?.range?.[0] ?? docStart;
+    const streamEnd = this.len;
+    const contentLineEnd = contents ? this.contentLineEnd(streamEnd) : streamEnd;
+
     const doc: ParsedDocument = {
       contents,
       errors: this.errors,
@@ -1707,7 +1763,7 @@ export class Parser {
       directives: { ...this.directives },
       commentBefore: docCommentBefore,
       comment: docComment,
-      range: [docStart, contents?.range?.[1] ?? this.pos, this.pos],
+      range: [contentStart, contentLineEnd, streamEnd],
       hasDocStart,
       hasDocEnd,
     };
