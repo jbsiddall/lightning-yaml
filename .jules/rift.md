@@ -1,0 +1,3 @@
+## 2026-08-27 - Root-level block scalar explicit indentation indicator
+**Learning:** For root-level block scalars (where `parentCol` = -1 or -2), calculating content indentation with an explicit indicator (`indentIndicator > 0`) using `parentCol + indentIndicator` results in an off-by-one error (-1 + 1 = 0 instead of 1). Using `Math.max(0, parentCol) + indentIndicator` ensures root-level block scalars use column 0 as their baseline.
+**Action:** When auditing indentation calculation in block scalars or other block nodes, ensure `effParentCol` is normalized with `Math.max(0, effParentCol)` before adding explicit indent indicators.
