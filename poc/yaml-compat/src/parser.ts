@@ -176,11 +176,11 @@ export class Parser {
 
   // ---- Error helpers -------------------------------------------------------
 
-  private error(offset: number, message: string): YAMLParseError {
+  private error(offset: number, message: string, code?: string): YAMLParseError {
     const lc = this.lineCounter
       ? [this.lineCounter.linePos(offset)]
       : [offsetToLineCol(this.src, offset)];
-    const e = new YAMLParseError(offset, message, lc);
+    const e = new YAMLParseError(offset, message, lc, code);
     this.errors.push(e);
     return e;
   }
@@ -1636,6 +1636,7 @@ export class Parser {
 
   parseDocument(): ParsedDocument {
     const docStart = this.pos;
+    let sawDocComment = false; // any comment attached to this doc (inline on --- or comment-only lines)
     this.hadBlankLine = false;
 
     // Detect tabs used in indentation — unconditional: eemeli reports them
@@ -1669,11 +1670,13 @@ export class Parser {
     }
 
     // Parse directives
+    let directivesParsed = false;
     while (this.pos < this.len) {
       this.skipWsAndComments();
       if (this.pos >= this.len) break;
       if (this.src.charCodeAt(this.pos) === 0x25) { // %
         this.parseDirective();
+        directivesParsed = true;
       } else {
         break;
       }
@@ -1682,6 +1685,8 @@ export class Parser {
     // Check for --- doc start
     let hasDocStart = false;
     let markerStart = -1;
+    let markerContentEnd = -1; // end of bare marker text + trailing ws (before newline)
+    let markerLineEnd = -1;    // end of marker line incl inline comment + newline
     this.skipWsAndComments();
     let docCommentBefore: string | null = null;
     if (this.pos + 2 < this.len &&
@@ -1695,10 +1700,13 @@ export class Parser {
       this.directives.docStart = true;
       this.pos += 3;
       // Skip inline comment after ---
-      this.skipInlineComment();
+      const inlineComment = this.skipInlineComment();
+      if (inlineComment !== null) sawDocComment = true;
+      markerContentEnd = this.pos; // after trailing ws / inline comment, before newline
       if (this.pos < this.len && (this.src.charCodeAt(this.pos) === 0x0A || this.src.charCodeAt(this.pos) === 0x0D)) {
         this.skipLine();
       }
+      markerLineEnd = this.pos; // end of marker line incl newline
     }
 
     // Collect leading comments for the document (after --- if present)
@@ -1708,6 +1716,7 @@ export class Parser {
     if (this.blankAfterLastComment || this.pos >= this.len) {
       const afterComment = this.consumePendingCommentBefore();
       if (afterComment) {
+        sawDocComment = true;
         docCommentBefore = docCommentBefore
           ? docCommentBefore + '\n' + afterComment
           : afterComment;
@@ -1750,6 +1759,7 @@ export class Parser {
     // Collect trailing document comment
     this.skipWsAndComments();
     const docComment = this.consumePendingCommentBefore();
+    if (docComment) sawDocComment = true;
 
     // F5: extend top-level flow content nodeEnd to end of line (eemeli convention)
     if (contents && (isMap(contents) || isSeq(contents)) && (contents as any).flow === true) {
@@ -1760,19 +1770,37 @@ export class Parser {
     // F4: compute document range as [contentStart, contentLineEnd, streamEnd]
     // contentStart: include --- marker if present, else first content node
     const contentStart = hasDocStart ? markerStart : (contents?.range?.[0] ?? docStart);
-    // effectiveEnd: where this doc's parsing stopped (next doc's start or end of source).
-    // Special case: bare --- with no content and no ... ends at the marker text (pos 3).
-    const effectiveEnd = (hasDocStart && !contents && !hasDocEnd) ? markerStart + 3 : this.pos;
-    const streamEnd = hasDocEnd ? docEndLineEnd : effectiveEnd;
-    // contentLineEnd: end of last content line; walk back from before ... or from effectiveEnd
+
+    // MINOR-5: directives present but no --- marker -> eemeli reports MISSING_CHAR
+    if (directivesParsed && !hasDocStart) {
+      this.error(contentStart, 'Missing directives-end/doc-start indicator line', 'MISSING_CHAR');
+    }
+
+    // contentLineEnd / streamEnd: no-content marker docs differ from content docs.
     let contentLineEnd: number;
+    let streamEnd: number;
     if (contents) {
-      contentLineEnd = this.contentLineEnd(hasDocEnd ? docEndMarkerStart : effectiveEnd);
+      // content-bearing: walk back from before ... or from where parsing stopped
+      streamEnd = hasDocEnd ? docEndLineEnd : this.pos;
+      contentLineEnd = this.contentLineEnd(hasDocEnd ? docEndMarkerStart : this.pos);
+    } else if (hasDocEnd && !hasDocStart) {
+      // only-... document: `...` is just an end marker, no content to cover
+      contentLineEnd = docStart;
+      streamEnd = docEndLineEnd;
     } else if (hasDocStart) {
-      contentLineEnd = markerStart + 3;
+      // No-content --- doc. With a comment (inline on --- or comment-only lines)
+      // eemeli extends over trailing blanks/comments; a bare marker ends at its text.
+      if (sawDocComment) {
+        contentLineEnd = hasDocEnd ? markerLineEnd : this.pos;
+        streamEnd = hasDocEnd ? docEndLineEnd : this.pos;
+      } else {
+        contentLineEnd = markerContentEnd;
+        streamEnd = hasDocEnd ? docEndLineEnd : markerContentEnd;
+      }
     } else {
       // No content, no marker — comment-only or empty doc
-      contentLineEnd = effectiveEnd;
+      contentLineEnd = this.pos;
+      streamEnd = this.pos;
     }
 
     const doc: ParsedDocument = {

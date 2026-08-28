@@ -621,17 +621,46 @@ describe('Document.range matches eemeli', () => {
     'k: v\n# trailing comment\n',
     'k: v # same-line\n',
     'a: &x 1\nb: *x\n',
+    // no-content --- with inline comment (round-4 MAJOR-1)
+    '--- # c\n',
+    '---  # c\n',
+    '--- # c\n\n',
+    '--- # c\n\n# later\n',
+    '---\t# c\n',
+    '--- # c\n...\n',
+    // only-... document (round-4 MAJOR-2)
+    '...\n',
+    '... \n',
+    '...\n\n',
+    '... # c\n',
+    '...\n# after\n',
+    // directives without --- marker (round-4 MINOR-5)
+    '%YAML 1.2\nk: v\n',
+    '%TAG !y! tag:x\nk: v\n',
   ];
 
   for (const src of singleCases) {
     it(`parseDocument ${JSON.stringify(src)}`, () => {
       const ours = parseDocument(src);
       const theirs = yaml.parseDocument(src);
-      assert.deepStrictEqual(
-        Array.from(ours.range),
-        Array.from((theirs as any).range),
-        `range mismatch for ${JSON.stringify(src)}`,
-      );
+      const ourRange = ours.range!;
+      assert.deepStrictEqual(Array.from(ourRange), Array.from((theirs as any).range as [number, number, number]), `range mismatch for ${JSON.stringify(src)}`);
+    });
+  }
+
+  // Error-code parity vs eemeli — limited to the round-4 error rows we reproduce;
+  // legacy round-3 rows (e.g. '--- k: v\n', post-... content) have intentional gaps.
+  const errorRows: string[] = [
+    '%YAML 1.2\nk: v\n',
+    '%TAG !y! tag:x\nk: v\n',
+  ];
+  for (const src of errorRows) {
+    it(`error code matches eemeli ${JSON.stringify(src)}`, () => {
+      const ours = parseDocument(src);
+      const theirs = yaml.parseDocument(src);
+      const ourCodes = ours.errors.map((e) => (e as any).code).filter((c: unknown) => c !== undefined);
+      const theirCodes = ((theirs as any).errors as any[]).map((e) => e.code).filter((c: unknown) => c !== undefined);
+      assert.deepStrictEqual(ourCodes, theirCodes, `error codes mismatch for ${JSON.stringify(src)}`);
     });
   }
 
@@ -640,6 +669,10 @@ describe('Document.range matches eemeli', () => {
     '---\na: 1\n---\nb: 2\n',
     'a: 1\n---\nb: 2\n',
     'k: v\n---\n---\nx: 1\n',
+    // round-4 multi-doc no-content edges
+    '...\n---\nk: v\n',
+    'k: v\n...\n...\n',
+    '---\n...\n---\nx: 1\n',
   ];
 
   for (const src of multiCases) {
@@ -648,9 +681,10 @@ describe('Document.range matches eemeli', () => {
       const theirs = [...yaml.parseAllDocuments(src)];
       assert.equal(ours.length, theirs.length, 'doc count mismatch');
       for (let i = 0; i < ours.length; i++) {
+        const ourRange = ours[i].range!;
         assert.deepStrictEqual(
-          Array.from(ours[i].range),
-          Array.from((theirs[i] as any).range),
+          Array.from(ourRange),
+          Array.from((theirs[i] as any).range as [number, number, number]),
           `doc[${i}] range mismatch for ${JSON.stringify(src)}`,
         );
       }
