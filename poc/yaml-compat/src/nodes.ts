@@ -45,6 +45,7 @@ export class Scalar {
   commentBefore: string | null;
   comment: string | null;
   spaceBefore: boolean;
+  source: string | null;
 
   constructor(
     value: unknown,
@@ -58,6 +59,7 @@ export class Scalar {
     this.commentBefore = null;
     this.comment = null;
     this.spaceBefore = false;
+    this.source = null;
   }
 }
 

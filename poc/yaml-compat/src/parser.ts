@@ -1032,6 +1032,9 @@ export class Parser {
 
     const value = this.resolvePlainScalar(text);
     const node = new Scalar(value, SCALAR_PLAIN);
+    // PR5b-F2: keep the raw source text on bool scalars so stringify can
+    //   preserve it (round-trip) rather than always applying trueStr/falseStr.
+    node.source = typeof value === 'boolean' ? text : null;
     node.range = [start, valueEnd, valueEnd];
     return node;
   }
