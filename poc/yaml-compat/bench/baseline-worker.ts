@@ -112,6 +112,15 @@ function runOp(): void {
           for (const d of docs) d.toJS();
           break;
         }
+        case "stringify(doc)": {
+          if (isMultidoc) {
+            const docs = pocParseAllDocuments(text);
+            for (const d of docs) d.toString();
+          } else {
+            pocParseDocument(text).toString();
+          }
+          break;
+        }
         default:
           throw new Error(`unknown poc op: ${op}`);
       }
