@@ -501,3 +501,43 @@ describe('PR5b-F3: version:"1.1" resolves merge keys', () => {
     assert.deepEqual(ours, theirs);
   });
 });
+
+describe('PR5b-M2: nested block seqs render inline, matching eemeli', () => {
+  const cases: string[] = [
+    '- - 1\n  - 2\n',
+    '- - - 1\n',
+    '- - 1\n  - 2\n  - - 3\n    - 4\n',
+    '- - a: 1\n    b: 2\n  - c: 3\n',
+    'a:\n  - - 1\n    - 2\n',
+  ];
+  for (const src of cases) {
+    it(`stringifies ${JSON.stringify(src.trim())} byte-identically`, () => {
+      const ours = stringify(parseDocument(src));
+      const theirs = yaml.parseDocument(src).toString();
+      assert.equal(ours, theirs);
+      assert.equal(ours, src);
+      // Output must reparse to the same value
+      assert.deepEqual(parseDocument(ours).toJS(), yaml.parseDocument(src).toJS());
+    });
+  }
+});
+
+describe('PR5b-M1: bool source preservation, matching eemeli', () => {
+  it('preserves canonical bool spellings instead of the option string', () => {
+    for (const src of ['a: True\n', 'a: TRUE\n', 'a: true\n', 'a: False\n', 'a: FALSE\n', 'a: false\n']) {
+      const ours = stringify(parseDocument(src), { trueStr: 'yes', falseStr: 'no' });
+      const theirs = yaml.parseDocument(src).toString({ trueStr: 'yes', falseStr: 'no' });
+      assert.equal(ours, theirs);
+      assert.equal(ours, src);
+    }
+  });
+  it('non-canonical programmatic bools (no source) use the option string', () => {
+    const doc = parseDocument('a: x\n');
+    doc.set('b', true);
+    assert.equal(doc.toString({ trueStr: 'yes', falseStr: 'no' }).includes('b: yes'), true);
+  });
+  it('default options leave bool output unchanged', () => {
+    const doc = parseDocument('a: True\n');
+    assert.equal(doc.toString(), yaml.parseDocument('a: True\n').toString());
+  });
+});

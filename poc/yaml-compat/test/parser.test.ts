@@ -515,3 +515,29 @@ describe('toString best-effort', () => {
     assert.ok(typeof str === 'string');
   });
 });
+
+describe('PR5b-M3: quoted keys in compact block-seq maps', () => {
+  const cases: [string, unknown][] = [
+    ['- "qk": v1\n  k2: v2\n', [{ qk: 'v1', k2: 'v2' }]],
+    ["- 'sk': v1\n", [{ sk: 'v1' }]],
+    ['- "a b": v1\n', [{ 'a b': 'v1' }]],
+    ['- "k": \n    nest: x\n    deep: 1\n  other: 2\n', [{ k: { nest: 'x', deep: 1 }, other: 2 }]],
+    ['- "a":\n    - 1\n    - 2\n  b: c\n', [{ a: [1, 2], b: 'c' }]],
+    // Unquoted compact-map keys keep working (regression guard)
+    ['- qk: v1\n  k2: v2\n', [{ qk: 'v1', k2: 'v2' }]],
+    ['- 123: v1\n', [{ '123': 'v1' }]],
+  ];
+  for (const [src, expected] of cases) {
+    it(`parses ${JSON.stringify(src.trim())} and stays silent, matching eemeli`, () => {
+      const ours = parseDocument(src);
+      const ref = yaml.parseDocument(src);
+      assert.deepEqual(ours.toJS(), expected);
+      assert.deepEqual(ours.toJS(), ref.toJS());
+      assert.equal(ours.errors.length, 0, 'must not drop content silently');
+      assert.equal(ref.errors.length, 0);
+      // Stringify round-trip must reparse to the same value and byte-match eemeli
+      assert.equal(ours.toString(), ref.toString());
+      assert.deepEqual(parseDocument(ours.toString()).toJS(), expected);
+    });
+  }
+});
