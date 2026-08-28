@@ -19,7 +19,7 @@ it, and a named differential test.
 | `parse(src, opts?)` | SUPPORTED | yaml-language-server, Prettier | `parser.test.ts` corpus round-trip | Deep-equal to eemeli on all corpus fixtures |
 | `parseDocument(src, opts?)` | SUPPORTED | yaml-language-server, Prettier, eslint-yml | `parser.test.ts` AST structure, `api.test.ts` | Returns `Document` with errors, warnings, directives, comments |
 | `parseAllDocuments(src, opts?)` | SUPPORTED | yaml-language-server | `api.test.ts` parseAllDocuments | Multi-doc streams parsed correctly |
-| `stringify(doc, opts?)` | SUPPORTED | Prettier, eslint-yml | `stringify.test.ts` corpus round-trip | Comment-preserving; byte-identical on 8 of 9 corpus fixtures (only comments-github-actions diverges by 1 comment-attachment line) |
+| `stringify(doc, opts?)` | PARTIAL | Prettier, eslint-yml | `stringify.test.ts` corpus round-trip | Comment-preserving; byte-identical on 8 of 9 corpus fixtures (only comments-github-actions diverges by 1 comment-attachment line); inline comments inside flow collections detach (caveat 5) |
 | `doc.toString(opts?)` | SUPPORTED | Prettier | `stringify.test.ts` | Delegates to `stringify` |
 
 ## Document methods
@@ -168,11 +168,12 @@ collection at Document level, add when a consumer navigates through aliases.*
 
 ### 5. Inline comments inside flow collections are detached, not attached
 
-A comment on the same line as a value inside a flow collection (`k: [a: 1 # c]`)
-does not attach to that value; it is treated as a trailing document comment and
-stringified on its own line (or, in some single-line inputs, swallows the
-closing `]`/`}` delimiter). Value and byte content are preserved; only the
-placement is wrong. Block collections attach inline comments correctly.
+A comment on the same line as a value inside a flow collection does not attach
+to that value. On re-stringify it surfaces as a standalone top-level comment
+line instead of inline (`k: [\n  a: 1 # c\n]`), and when the flow collection
+continues after the comment (`k: [a: 1, # c\n  b: 2]`) the comment is dropped
+entirely. Values are always preserved; block collections attach inline
+comments correctly.
 
 *ponytail: block-path comment retention works; flow-path attachment needs the
 comment routed to the value instead of the pending-before-queue. Add when a
@@ -182,7 +183,7 @@ flow comment placement matters to a consumer.*
 
 | Status | Count |
 |---|---|
-| SUPPORTED | 57 |
+| SUPPORTED | 56 |
 | PARTIAL | 4 |
 | DEFERRED | 1 |
 | CUT | 10 |
