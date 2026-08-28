@@ -6,8 +6,9 @@ description: Measured parse/stringify speed and memory for the yaml v2.9.0-compa
 Is a requirement-compatible reimplementation of the `yaml` v2.9.0 API, layered on
 the lightning-yaml parser, worth shipping? **Yes — adopt it.** Versus the eemeli
 `yaml` library, the compat layer parses `parseDocument`/`parseAllDocuments`
-~9.6–12.9× faster across the corpus, stringifies ~3.9–10.4× faster, uses 61–65%
-less peak memory to parse and 32–37% less to stringify, and covers every API
+~9.6–12.9× faster across the corpus, stringifies ~3.9–10.4× faster, uses
+~60%+ less peak memory to parse block-shaped input (JSON-shaped input less, and
+noisy run-to-run — see Memory) and 32–37% less to stringify, and covers every API
 endpoint the three target consumers (yaml-language-server, Prettier,
 eslint-plugin-yml) need at P0/P1 — 8 of 9 text fixtures round-trip byte-identical.
 The residual gaps are narrowly scoped, documented, and mostly already mirrored by
@@ -80,19 +81,32 @@ slower but still 3.9×+.
 
 ### Memory (peak RSS)
 
-| Operation | Fixture | ours | yaml lib | reduction |
+| Operation | Fixture | ours | yaml lib | reduction observed |
 |---|---|---|---|---|
-| parse | json-records-large | 256 MB | 664 MB | 61% less |
-| parseDocument | json-records-large | 250 MB | 663 MB | 62% less |
-| parseDocument | large-block | 473 MB | 1.35 GB | 65% less |
-| stringify | json-records-large | 440 MB | 648 MB | 32% less |
-| stringify | large-block | 644 MB | 1.03 GB | 37% less |
+| parse | json-records-large | ~255–285 MB | ~0.66–0.70 GB | 59–62% (this run) |
+| parseDocument | json-records-large | ~250–285 MB | ~0.55–0.70 GB | 32–62% (across runs) |
+| parseDocument | large-block | ~470–610 MB | ~1.3–1.5 GB | 59–66% |
+| stringify | json-records-large | 440 MB | 648 MB | 32% |
+| stringify | large-block | 644 MB | 1.03 GB | 37% |
 
-Parse meets and beats the ~50%-less ideal. Stringify lands at 32–37% less — well
-below yaml's footprint, but short of the 50% target. The gap is that stringify
-re-serializes the comment-preserving AST, which carries more per-node bookkeeping
-than the plain parse tree. Heap delta follows the same shape (parse −60–65%, drained
-by the child-process GC); peak RSS is the durable figure here.
+Peak RSS for the large fixtures is **noisy**: it depends on GC timing and the
+allocation baseline, so the same harness produces different absolute MB and
+different reductions session to session. Re-verifying the two parse cells with
+`baseline-worker.ts` this session gave **59–62%** less for json-records-large
+(poc ~263–285 MB vs yaml ~694–697 MB) and **66%** less for large-block — but an
+independent reviewer's run measured 32–43% for json-records-large and 59–60% for
+large-block, and this session's original baseline run measured 61–65% / 65%.
+Across all three, the honest envelope is **32–62%** less for JSON-shaped parse and
+**59–66%** less for block-shaped parse.
+
+So the ~50%-less ideal is met **reliably only on block-shaped input**. For
+JSON-shaped input and for stringify (32–37% less), the reduction is real and large,
+but it does not reliably reach the 50% target. This is a **nice-to-have** bar, not
+a deal-breaker; the adoption verdict rests on speed, which clears its bar by a
+wide margin (see Verdict). Stringify's smaller reduction tracks the comment-
+preserving AST carrying more per-node bookkeeping than the plain parse tree. Heap
+delta is small on both sides and GC-drained, so peak RSS is the figure to look at —
+unstable, but consistently lower for the POC.
 
 ### Compatibility state
 
@@ -113,7 +127,7 @@ misbehaving. Merge keys and YAML 1.1 style configs (docker-compose, via
 |---|---|---|
 | ≥2× parse speed | 9.6–12.9× | **PASS** |
 | ≥2× stringify speed | 3.9–10.4× | **PASS** |
-| ~50% less peak memory (ideal) | parse 61–65% / stringify 32–37% less | **PASS (parse); under target (stringify)** |
+| ~50% less peak memory (nice-to-have, not required) | block-shaped parse 59–66% / JSON parse 32–62% / stringify 32–37% less | **PASS (block-shaped parse); under target (JSON parse + stringify)** |
 | ≥90% API compatibility | flat count 84.5% (SUPPORTED+PARTIAL) | **PASS on consumer-need** |
 | Merge keys + YAML 1.1 configs | work | **PASS** |
 
@@ -129,10 +143,11 @@ narrow flow-comment placement issue below.
 **Recommendation: adopt.** Merge the stacked PRs toward main behind the POC path. The
 POC is a compatibility layer, not a replacement for the fast native parse/stringify
 in `src/core.ts`; it exists so drop-in consumers can run on lightning-yaml's engine.
-Confidence: high on the speed and memory verdicts (repeated measurements, both libs
-under identical isolation), moderate on the "consumers won't hit the gaps" claim,
-which rests on reasoning about the three consumers' known usage rather than a live
-integration test.
+Confidence: high on the speed verdict (repeated, both libs under identical
+isolation); the memory verdict is bounded by the noisy-RSS ranges above and is
+explicitly a nice-to-have rather than the deciding criterion. Confidence is
+moderate on the "consumers won't hit the gaps" claim, which rests on reasoning
+about the three consumers' known usage rather than a live integration test.
 
 ## Residual risks that should inform that call
 
@@ -179,7 +194,15 @@ integration test.
   block-config number is higher than the ~8× recollection (the prior session's own
   baseline file already showed ~13×), and the stringify low end is a bit below the
   prior 5× floor (3.9× on the comment-dense k8s fixture). Reported ranges supersede.
-  The heap Δ / RSS parse reduction (61–65%) matches the prior −62–65%.
+- **Memory re-verification:** this note's original run reported 61–65% less peak
+  RSS to parse (json-records-large 256 vs 664 MB). That exact figure does **not**
+  reproduce: re-verifying with the committed `baseline-worker.ts` harness this
+  session gave ~59–62% for json-records-large (poc ~263–285 MB vs yaml ~694–697 MB)
+  and ~66% for large-block, while an independent reviewer run measured 32–43% for
+  json-records-large and 59–60% for large-block. Peak RSS on these large fixtures is
+  machine- and run-dependent; the corrected statement above (block-shaped parse
+  59–66% less, JSON-shaped parse 32–62% less across runs) supersedes the single-run
+  figure. Speed numbers were unaffected.
 - **Code references:** `parseDocument`/`parseAllDocuments`/`stringify` entry points
   in `poc/yaml-compat/src/index.ts`; block-scalar whitespace shapes in
   `poc/yaml-compat/test/stringify.test.ts`; compat/priority maps in
