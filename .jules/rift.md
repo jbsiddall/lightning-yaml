@@ -1,0 +1,3 @@
+## 2026-08-28 - Root-level block scalar explicit indentation calculation
+**Learning:** In `src/core.ts`, `effParentCol` for root-level nodes is set to `-1`. When calculating `contentIndent` with an explicit indentation indicator (`indentIndicator > 0`), computing `effParentCol + indentIndicator` yields `-1 + N = N - 1`, which under-calculates the required content indentation level by 1 space for root-level block scalars (e.g. `|1\n line1\n` computed `contentIndent = 0` instead of `1`).
+**Action:** Always clamp `effParentCol` to `0` via `Math.max(0, effParentCol) + indentIndicator` when an explicit indentation indicator is present.
