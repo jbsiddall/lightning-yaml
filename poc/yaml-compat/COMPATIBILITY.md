@@ -170,8 +170,8 @@ collection at Document level, add when a consumer navigates through aliases.*
 
 | Status | Count |
 |---|---|
-| SUPPORTED | 58 |
-| PARTIAL | 2 |
+| SUPPORTED | 57 |
+| PARTIAL | 3 |
 | DEFERRED | 1 |
 | CUT | 10 |
 
