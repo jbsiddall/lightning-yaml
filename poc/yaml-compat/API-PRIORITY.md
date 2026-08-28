@@ -117,8 +117,9 @@ rather than silently misbehaving. None of the three consumers depend on them
 
 ## Priority coverage vs the goal
 
-Every endpoint the three consumers need at **P0** is SUPPORTED. Prettier's P0
-`stringify` is the only P0 under PARTIAL, with a documented, value-preserving
+Every endpoint the three consumers need at **P0** is covered — SUPPORTED, or
+PARTIAL with a documented, value-preserving caveat. Prettier's P0 `stringify` is
+the only P0 under PARTIAL, with that
 caveat (flow-collection comments, COMPATIBILITY.md PARTIAL 5). The one P0-adjacent
 gap is the `version: 1.1` option — PARTIAL (subset) but covering the
 docker-compose merge-key + y/n-boolean shapes the project explicitly requires.

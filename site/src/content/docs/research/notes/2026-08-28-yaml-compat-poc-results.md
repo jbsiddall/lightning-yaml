@@ -150,14 +150,16 @@ integration test.
   ~2.7× slower than eemeli's first-doc-only parse. `parseAllDocuments` on the same
   stream is ~13× faster because the single pass is reused. Most consumers handle
   single-doc files, so the real-world hit is small.
-- **Block-scalar whitespace residuals.** The adversarial string battery documents
-  block-scalar shapes where whitespace-only trailing lines are stripped on
-  round-trip (and leading/trailing space on content lines normalizes). This matches
-  YAML §8.1 block-scalar stripping and eemeli behaves identically, so value
-  round-trip holds and the oracle agrees — but byte-identity on those specific
-  string shapes is not preserved.
+- **Block-scalar whitespace-only trailing lines.** The adversarial string battery
+  (30+ shapes) shows our stringify byte-matches eemeli on *every* shape. What does
+  not survive is **value** round-trip on exactly the four whitespace-only-trailing-line
+  shapes (`' \n'`, `'   \n'`, `'  \n  \n'`, `' \t \n'`): block scalars strip those
+  trailing lines, which is YAML §8.1's own stripping rule, and eemeli suffers it
+  identically. Leading/trailing space on *content* lines round-trips value-EXACTLY.
+  So bytes agree with the oracle on these strings too; the value is what is
+  normalized, by the spec, not by us.
 
-<!-- bench:none js-yaml:none yaml:2.9.0 ly:eaf00b1(poc/yaml-results) — local one-off measurements (2026-08-28), not benchmark-data branch rows. Speed: median of 15-iter loops (3 for >1 MB), 5 runs for the headline parse cells; single run for stringify corpus. Memory: peak RSS, child-process isolation, 5-25 iters. Node v22.23.2, linux x64. -->
+<!-- bench:none js-yaml:none yaml:2.9.0 ly:6a25ef6 — local one-off measurements (2026-08-28), not benchmark-data branch rows. Speed: median of 15-iter loops (3 for >1 MB), 5 runs for the headline parse cells; single run for stringify corpus. Memory: peak RSS, child-process isolation, 5-25 iters. Node v22.23.2, linux x64. -->
 
 ## Provenance & sources
 
