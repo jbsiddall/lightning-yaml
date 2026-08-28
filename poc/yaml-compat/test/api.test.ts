@@ -11,7 +11,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as yaml from 'yaml';
 import {
-  parse, parseDocument, parseAllDocuments,
+  parse, parseDocument, parseAllDocuments, stringify,
   Scalar, YAMLMap, YAMLSeq, Pair, Alias,
   isScalar, isMap, isSeq, isPair, isAlias, isNode, isCollection, isDocument,
   visit, visitAsync, createNode,
@@ -690,4 +690,82 @@ describe('Document.range matches eemeli', () => {
       }
     });
   }
+});
+
+// ---- PR5c-FIX-1: block seq at map-key indentation parses as the key's value ----
+
+describe('PR5c-FIX1: block seq at same indentation as map key', () => {
+  const cases: { src: string; label?: string }[] = [
+    { src: 'a:\n- 1\n- 2\n', label: 'top-level map' },
+    { src: 'a:\n  b:\n  - 1\n  - 2\n', label: 'map-in-map' },
+    { src: '- key:\n  - a\n  - b\n', label: 'compact map in seq item' },
+    { src: 'a:\n- 1\nb: 2\n', label: 'seq value followed by sibling key' },
+    { src: 'key:\n- 1\n- two words\n- 3\n', label: 'multi-item seq' },
+    { src: 'items:\n- name: a\n  size: 1\n- name: b\n', label: 'seq of maps' },
+    { src: 'k:\n- &a 1\n- *a\n', label: 'seq with anchors' },
+    { src: 'k:\n- 1\n# c\n- 2\n', label: 'seq with comments' },
+    { src: '"ok":\n- 1\nplain:\n- 2\n', label: 'quoted and plain keys' },
+    { src: 'a:\n- - 1\n  - 2\n', label: 'nested seq value' },
+  ];
+
+  for (const c of cases) {
+    it(c.label, () => {
+      const ours = parseDocument(c.src).toJS();
+      const theirs = yaml.parseDocument(c.src).toJS();
+      assert.deepEqual(ours, theirs);
+      // byte-identical stringify
+      assert.equal(stringify(parseDocument(c.src)), yaml.parseDocument(c.src).toString());
+      // reparse of our output equals the original value
+      assert.deepEqual(parseDocument(stringify(parseDocument(c.src))).toJS(), theirs);
+    });
+  }
+
+  it('deeper seq value still works (no regression)', () => {
+    const src = 'a:\n  - 1\n  - 2\n';
+    assert.deepEqual(parseDocument(src).toJS(), yaml.parseDocument(src).toJS());
+  });
+
+  it('same-indent seq under version:1.1 with merge keys', () => {
+    const src = 'base: &base\n  x: 1\nlists:\n- a\n- b\nmerged:\n  <<: *base\n';
+    assert.deepEqual(
+      parse(src, { version: '1.1' }),
+      yaml.parse(src, { version: '1.1' }),
+    );
+  });
+});
+
+// ---- PR5c-FIX-2: `:` before flow terminator is an empty-value key separator ----
+
+describe('PR5c-FIX2: empty-value flow pairs', () => {
+  const cases: { src: string; label: string }[] = [
+    { src: 'k: [a:]\n', label: 'seq item empty value' },
+    { src: 'k: [a:, b: 2]\n', label: 'seq empty then valued pair' },
+    { src: 'k: {a:}\n', label: 'map empty value' },
+    { src: 'k: {a:, b: 2}\n', label: 'map empty then valued pair' },
+    { src: 'k: [\n  a:\n]\n', label: 'multiline flow empty value' },
+    { src: 'k: [[a:]]\n', label: 'nested flow seq' },
+    { src: 'k: [a:[1, 2]]\n', label: 'value flow seq after colon' },
+  ];
+
+  for (const c of cases) {
+    it(c.label, () => {
+      assert.deepEqual(parseDocument(c.src).toJS(), yaml.parseDocument(c.src).toJS());
+      assert.equal(stringify(parseDocument(c.src)), yaml.parseDocument(c.src).toString());
+    });
+  }
+
+  it('colon NOT followed by a separator stays a plain scalar', () => {
+    for (const src of ['k: [a:-1]\n', 'k: [http://e]\n', 'k: [a.b:c]\n']) {
+      assert.deepEqual(parseDocument(src).toJS(), yaml.parseDocument(src).toJS());
+    }
+  });
+});
+
+// ---- PR5c-FIX-3: flow-collection value comment placement (documented caveat) ----
+
+describe('PR5c-FIX3: flow inline comment placement', () => {
+  it('value is preserved (documented placement caveat)', () => {
+    const src = 'k: [\n  a: 1 # c\n]\n';
+    assert.deepEqual(parseDocument(src).toJS(), yaml.parseDocument(src).toJS());
+  });
 });

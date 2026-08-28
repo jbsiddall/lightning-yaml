@@ -555,9 +555,13 @@ function renderFlowMap(node: YAMLMap, ctx: Ctx, col: number): void {
     if (i > 0) ctx.out.push(', ');
     const pair = node.items[i]!;
     ctx.out.push(renderNodeToString(pair.key, ctx, col + 1));
-    ctx.out.push(': ');
-    if (pair.value === null) ctx.out.push(ctx.nullStr);
-    else renderNode(pair.value, ctx, col + 1, true);
+    ctx.out.push(':');
+    // eemeli omits ` null` for an absent value (`{ a: }`) vs an explicit
+    // Scalar(null) (`{ a: null }`); the closing ` }` supplies the parting space.
+    if (pair.value !== null) {
+      ctx.out.push(' ');
+      renderNode(pair.value, ctx, col + 1, true);
+    }
   }
   ctx.out.push(' }');
 }

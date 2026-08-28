@@ -166,12 +166,24 @@ aliases correctly).
 *ponytail: `toJS` resolves everything. `getIn` alias following needs anchor
 collection at Document level, add when a consumer navigates through aliases.*
 
+### 5. Inline comments inside flow collections are detached, not attached
+
+A comment on the same line as a value inside a flow collection (`k: [a: 1 # c]`)
+does not attach to that value; it is treated as a trailing document comment and
+stringified on its own line (or, in some single-line inputs, swallows the
+closing `]`/`}` delimiter). Value and byte content are preserved; only the
+placement is wrong. Block collections attach inline comments correctly.
+
+*ponytail: block-path comment retention works; flow-path attachment needs the
+comment routed to the value instead of the pending-before-queue. Add when a
+flow comment placement matters to a consumer.*
+
 ## Summary
 
 | Status | Count |
 |---|---|
 | SUPPORTED | 57 |
-| PARTIAL | 3 |
+| PARTIAL | 4 |
 | DEFERRED | 1 |
 | CUT | 10 |
 

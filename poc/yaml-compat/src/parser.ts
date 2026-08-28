@@ -913,7 +913,12 @@ export class Parser {
 
       if (c === 0x3A) { // :
         const next = this.pos + 1 < this.len ? this.src.charCodeAt(this.pos + 1) : -1;
-        if (next === 0x20 || next === 0x09 || next === 0x0A || next === 0x0D || next === -1) {
+        // `:` is a key/sep indicator when followed by whitespace, a flow
+        // terminator/opener, or EOF. In flow context `a,`/`a]`/`a}`/`a[`(etc.)
+        // following `:` marks an (empty) value indicator too (eemeli §7.3):
+        if (next === -1 || this.isWsOrNl(next) ||
+            (inFlow && (next === 0x2C || next === 0x5B || next === 0x5D ||
+                        next === 0x7B || next === 0x7D))) {
           break; // key: value separator
         }
         this.pos++;
@@ -1116,19 +1121,51 @@ export class Parser {
    * parses to a one-pair map). parseFlowValue stops before the `:`; peek for
    * a key-separator on this line and, if present, re-read the entry as a map.
    */
+  private flowValuePresent(): boolean {
+    // Called after `key:` + inline ws. In flow context newlines are whitespace,
+    // so a value may start on a later line; only a terminator/EOF means empty.
+    const c = this.ch();
+    if (c === 0x2C || c === 0x5D || c === 0x7D) return false; // , ] }
+    if (c !== 0x0A && c !== 0x0D && c !== 0x23) return true;
+    // Peek past newlines/comments for the next real token (don't advance pos).
+    let p = this.pos;
+    while (p < this.len) {
+      const cc = this.src.charCodeAt(p);
+      if (cc === 0x20 || cc === 0x09 || cc === 0x0A || cc === 0x0D) { p++; continue; }
+      if (cc === 0x23) {
+        while (p < this.len) {
+          const z = this.src.charCodeAt(p);
+          if (z === 0x0A || z === 0x0D) break;
+          p++;
+        }
+        continue;
+      }
+      break;
+    }
+    if (p >= this.len) return false;
+    const pc = this.src.charCodeAt(p);
+    return !(pc === 0x2C || pc === 0x5D || pc === 0x7D);
+  }
+
+  private isFlowKeySep(p: number): boolean {
+    // True when a `:` just before p forms a flow key/value separator: the char
+    // after it is ws/newline, EOF, or a flow indicator.
+    if (p >= this.len) return true;
+    const c = this.src.charCodeAt(p);
+    return this.isWsOrNl(c) || c === 0x2C || c === 0x5B || c === 0x5D || c === 0x7B || c === 0x7D;
+  }
+
   private parseFlowSeqItem(): Node {
     const first = this.parseFlowValue();
     const saved = this.pos;
     this.skipWsInline();
     if (this.pos < this.len && this.src.charCodeAt(this.pos) === 0x3A &&
-        (this.pos + 1 >= this.len || this.isWsOrNl(this.src.charCodeAt(this.pos + 1)))) {
+        this.isFlowKeySep(this.pos + 1)) {
       // `key:` — consume the value and wrap into a single-pair flow map
       this.pos++; // skip :
       this.skipWsInline();
       let value: Node | null = null;
-      if (this.pos < this.len &&
-          this.src.charCodeAt(this.pos) !== 0x2C &&   // ,
-          this.src.charCodeAt(this.pos) !== 0x5D) {   // ]
+      if (this.flowValuePresent()) {
         value = this.parseFlowValue();
       }
       const map = new YAMLMap();
@@ -1461,6 +1498,13 @@ export class Parser {
     return false;
   }
 
+  private isBlockSeqEntry(): boolean {
+    const c = this.ch();
+    if (c !== 0x2D) return false; // - at current position
+    const nx = this.pos + 1 < this.len ? this.src.charCodeAt(this.pos + 1) : -1;
+    return nx === -1 || this.isWsOrNl(nx);
+  }
+
   private isBlockMapKey(): boolean {
     // Scan ahead on the current line to see if there's a : (key-value separator)
     let p = this.pos;
@@ -1565,8 +1609,13 @@ export class Parser {
             }
             // Skip newlines and comments to find the value
             this.skipWsAndComments();
-            if (this.pos < this.len && this.currentColumn() > indent) {
+            const vcol = this.pos < this.len ? this.currentColumn() : -1;
+            if (vcol > indent) {
               value = this.parseBlockNode(indent + 1);
+            } else if (vcol === indent && this.isBlockSeqEntry()) {
+              // §8.2.1: a block sequence may nest at the SAME indentation as the
+              // enclosing map's keys; it is this key's value.
+              value = this.parseBlockSequence(indent);
             }
           }
         }
