@@ -3,16 +3,12 @@
 # node: v22.23.2
 # yaml: 2.9.0
 # js-yaml: 5.2.1
-# lightning-yaml: main@eaf00b1
-# date: 2026-08-26T13:36:57.830Z
-# github-actions-remeasured: 2026-08-26 — speed + memory rows for comments-github-actions
-#   re-run after fixing corpus nondeterminism (Math.random → seeded PRNG); all other rows unchanged
-# git-sha: eaf00b1
+# lightning-yaml: main@6a25ef6
+# date: 2026-08-28T18:38:48.470Z
+# git-sha: 6a25ef6
 # speed-iters: 15 (fixtures >1MB: 3)
 # memory-iters: 25 (fixtures >1MB: 5)
 # large-threshold: 1000000 bytes
-# poc-speed-rows: added 2026-08-26 — 3 poc ops (parse, parseDocument, parseDocument+toJS) per fixture
-# poc-corpus-fix: 2026-08-26 — large-block fixture regenerated with unique-key enforcement
 
 speed:
   - fixture: block-config
@@ -21,440 +17,468 @@ speed:
     rows:
       - library: yaml
         op: parse
-        median_ms: 44.914
-        mbps: 1.10
+        median_ms: 43.402
+        mbps: 1.13
       - library: yaml
         op: parseDocument
-        median_ms: 41.082
-        mbps: 1.20
+        median_ms: 39.823
+        mbps: 1.24
       - library: yaml
         op: parseDocument+toJS
-        median_ms: 44.707
-        mbps: 1.10
+        median_ms: 41.686
+        mbps: 1.18
       - library: yaml
         op: stringify(doc)
-        median_ms: 59.056
-        mbps: 0.83
+        median_ms: 50.594
+        mbps: 0.97
       - library: yaml
         op: round-trip
-        median_ms: 86.715
-        mbps: 0.57
+        median_ms: 93.487
+        mbps: 0.53
       - library: js-yaml
         op: load
-        median_ms: 4.147
-        mbps: 11.87
+        median_ms: 4.451
+        mbps: 11.05
       - library: js-yaml
         op: dump
-        median_ms: 5.197
-        mbps: 9.47
+        median_ms: 5.623
+        mbps: 8.75
       - library: lightning-yaml
         op: parse
-        median_ms: 1.951
-        mbps: 25.22
+        median_ms: 1.607
+        mbps: 30.62
       - library: lightning-yaml
         op: stringify
-        median_ms: 0.861
-        mbps: 57.16
+        median_ms: 0.973
+        mbps: 50.56
       - library: poc
         op: parse
-        median_ms: 4.885
-        mbps: 10.07
+        median_ms: 4.553
+        mbps: 10.81
       - library: poc
         op: parseDocument
-        median_ms: 3.14
-        mbps: 15.67
+        median_ms: 3.035
+        mbps: 16.21
       - library: poc
         op: parseDocument+toJS
-        median_ms: 3.903
-        mbps: 12.61
+        median_ms: 4.060
+        mbps: 12.12
   - fixture: comments-docker-compose
     size_bytes: 9188
     iters: 15
     rows:
       - library: yaml
         op: parse
-        median_ms: 7.428
-        mbps: 1.18
+        median_ms: 8.328
+        mbps: 1.05
       - library: yaml
         op: parseDocument
-        median_ms: 4.443
-        mbps: 1.97
+        median_ms: 6.479
+        mbps: 1.35
       - library: yaml
         op: parseDocument+toJS
-        median_ms: 5.165
-        mbps: 1.70
+        median_ms: 9.485
+        mbps: 0.92
       - library: yaml
         op: stringify(doc)
-        median_ms: 7.395
-        mbps: 1.18
+        median_ms: 7.682
+        mbps: 1.14
       - library: yaml
         op: round-trip
-        median_ms: 12.581
-        mbps: 0.70
+        median_ms: 12.271
+        mbps: 0.71
       - library: js-yaml
         op: load
-        median_ms: 1.341
-        mbps: 6.54
+        median_ms: 2.100
+        mbps: 4.17
       - library: js-yaml
         op: dump
-        median_ms: 1.053
-        mbps: 8.32
+        median_ms: 1.041
+        mbps: 8.42
       - library: lightning-yaml
         op: parse
-        median_ms: 0.545
-        mbps: 16.09
+        median_ms: 0.559
+        mbps: 15.68
       - library: lightning-yaml
         op: stringify
-        median_ms: 0.415
-        mbps: 21.12
+        median_ms: 0.342
+        mbps: 25.61
       - library: poc
         op: parse
-        median_ms: 1.184
-        mbps: 7.4
+        median_ms: 1.146
+        mbps: 7.65
       - library: poc
         op: parseDocument
-        median_ms: 0.502
-        mbps: 17.46
+        median_ms: 0.425
+        mbps: 20.64
       - library: poc
         op: parseDocument+toJS
-        median_ms: 0.536
-        mbps: 16.36
+        median_ms: 0.487
+        mbps: 17.99
   - fixture: comments-github-actions
     size_bytes: 5446
     iters: 15
     rows:
       - library: yaml
         op: parse
-        median_ms: 5.582
-        mbps: 0.93
+        median_ms: 2.824
+        mbps: 1.84
       - library: yaml
         op: parseDocument
-        median_ms: 3.038
-        mbps: 1.71
+        median_ms: 2.019
+        mbps: 2.57
       - library: yaml
         op: parseDocument+toJS
-        median_ms: 3.038
-        mbps: 1.71
+        median_ms: 2.108
+        mbps: 2.46
       - library: yaml
         op: stringify(doc)
-        median_ms: 4.056
-        mbps: 1.28
+        median_ms: 3.885
+        mbps: 1.34
       - library: yaml
         op: round-trip
-        median_ms: 6.795
-        mbps: 0.76
+        median_ms: 6.374
+        mbps: 0.81
       - library: js-yaml
         op: load
-        median_ms: 0.969
-        mbps: 5.36
+        median_ms: 0.658
+        mbps: 7.89
       - library: js-yaml
         op: dump
-        median_ms: 1.550
-        mbps: 3.35
+        median_ms: 0.346
+        mbps: 15.02
       - library: lightning-yaml
         op: parse
-        median_ms: 0.435
-        mbps: 11.94
+        median_ms: 0.083
+        mbps: 62.48
       - library: lightning-yaml
         op: stringify
-        median_ms: 0.478
-        mbps: 10.87
+        median_ms: 0.145
+        mbps: 35.88
       - library: poc
         op: parse
-        median_ms: 0.495
-        mbps: 10.5
+        median_ms: 0.784
+        mbps: 6.63
       - library: poc
         op: parseDocument
-        median_ms: 0.42
-        mbps: 12.36
+        median_ms: 0.319
+        mbps: 16.27
       - library: poc
         op: parseDocument+toJS
-        median_ms: 0.327
-        mbps: 15.9
+        median_ms: 0.343
+        mbps: 15.12
   - fixture: comments-k8s-deployment
     size_bytes: 5039
     iters: 15
     rows:
       - library: yaml
         op: parse
-        median_ms: 2.980
-        mbps: 1.61
+        median_ms: 1.972
+        mbps: 2.44
       - library: yaml
         op: parseDocument
-        median_ms: 1.837
-        mbps: 2.62
+        median_ms: 1.632
+        mbps: 2.95
       - library: yaml
         op: parseDocument+toJS
-        median_ms: 2.014
-        mbps: 2.39
+        median_ms: 1.663
+        mbps: 2.89
       - library: yaml
         op: stringify(doc)
-        median_ms: 2.548
-        mbps: 1.89
+        median_ms: 2.367
+        mbps: 2.03
       - library: yaml
         op: round-trip
-        median_ms: 5.910
-        mbps: 0.81
+        median_ms: 4.489
+        mbps: 1.07
       - library: js-yaml
         op: load
-        median_ms: 0.216
-        mbps: 22.25
+        median_ms: 0.225
+        mbps: 21.38
       - library: js-yaml
         op: dump
-        median_ms: 0.234
-        mbps: 20.50
+        median_ms: 0.307
+        mbps: 15.67
       - library: lightning-yaml
         op: parse
-        median_ms: 0.123
-        mbps: 39.09
+        median_ms: 0.120
+        mbps: 39.96
       - library: lightning-yaml
         op: stringify
-        median_ms: 0.034
-        mbps: 139.43
+        median_ms: 0.036
+        mbps: 133.09
       - library: poc
         op: parse
-        median_ms: 0.506
-        mbps: 9.5
+        median_ms: 0.536
+        mbps: 8.97
       - library: poc
         op: parseDocument
-        median_ms: 0.241
-        mbps: 19.96
+        median_ms: 0.493
+        mbps: 9.75
       - library: poc
         op: parseDocument+toJS
-        median_ms: 0.273
-        mbps: 17.58
+        median_ms: 0.355
+        mbps: 13.52
   - fixture: json-records-large
     size_bytes: 2097217
     iters: 3
     rows:
       - library: yaml
         op: parse
-        median_ms: 1668.542
+        median_ms: 1699.833
+        mbps: 1.18
+      - library: yaml
+        op: parseDocument
+        median_ms: 1665.068
         mbps: 1.20
       - library: yaml
-        op: parseDocument
-        median_ms: 1651.877
-        mbps: 1.21
-      - library: yaml
         op: parseDocument+toJS
-        median_ms: 1627.980
-        mbps: 1.23
+        median_ms: 1587.650
+        mbps: 1.26
       - library: yaml
         op: stringify(doc)
-        median_ms: 2102.834
-        mbps: 0.95
+        median_ms: 2194.575
+        mbps: 0.91
       - library: yaml
         op: round-trip
-        median_ms: 3698.111
-        mbps: 0.54
+        median_ms: 3913.487
+        mbps: 0.51
       - library: js-yaml
         op: load
-        median_ms: 145.619
-        mbps: 13.73
+        median_ms: 175.301
+        mbps: 11.41
       - library: js-yaml
         op: dump
-        median_ms: 245.129
-        mbps: 8.16
+        median_ms: 285.008
+        mbps: 7.02
       - library: lightning-yaml
         op: parse
-        median_ms: 32.767
-        mbps: 61.04
+        median_ms: 33.599
+        mbps: 59.53
       - library: lightning-yaml
         op: stringify
-        median_ms: 43.331
-        mbps: 46.16
+        median_ms: 45.989
+        mbps: 43.49
       - library: poc
         op: parse
-        median_ms: 175.013
-        mbps: 11.43
+        median_ms: 218.135
+        mbps: 9.17
       - library: poc
         op: parseDocument
-        median_ms: 158.277
-        mbps: 12.64
+        median_ms: 172.847
+        mbps: 11.57
       - library: poc
         op: parseDocument+toJS
-        median_ms: 168.247
-        mbps: 11.89
+        median_ms: 226.973
+        mbps: 8.81
   - fixture: json-records-medium
     size_bytes: 204883
     iters: 15
     rows:
       - library: yaml
         op: parse
-        median_ms: 152.637
-        mbps: 1.28
+        median_ms: 156.935
+        mbps: 1.25
       - library: yaml
         op: parseDocument
-        median_ms: 139.831
-        mbps: 1.40
+        median_ms: 147.396
+        mbps: 1.33
       - library: yaml
         op: parseDocument+toJS
-        median_ms: 151.432
-        mbps: 1.29
+        median_ms: 153.798
+        mbps: 1.27
       - library: yaml
         op: stringify(doc)
-        median_ms: 198.575
-        mbps: 0.98
+        median_ms: 205.970
+        mbps: 0.95
       - library: yaml
         op: round-trip
-        median_ms: 354.146
+        median_ms: 357.202
         mbps: 0.55
       - library: js-yaml
         op: load
-        median_ms: 13.050
-        mbps: 14.97
+        median_ms: 13.088
+        mbps: 14.93
       - library: js-yaml
         op: dump
-        median_ms: 20.804
-        mbps: 9.39
+        median_ms: 23.252
+        mbps: 8.40
       - library: lightning-yaml
         op: parse
-        median_ms: 2.905
-        mbps: 67.26
+        median_ms: 3.392
+        mbps: 57.61
       - library: lightning-yaml
         op: stringify
-        median_ms: 1.971
-        mbps: 99.11
+        median_ms: 2.210
+        mbps: 88.42
       - library: poc
         op: parse
-        median_ms: 13.356
-        mbps: 14.63
+        median_ms: 16.685
+        mbps: 11.71
       - library: poc
         op: parseDocument
-        median_ms: 11.479
-        mbps: 17.02
+        median_ms: 12.533
+        mbps: 15.59
       - library: poc
         op: parseDocument+toJS
-        median_ms: 13.498
-        mbps: 14.48
+        median_ms: 16.891
+        mbps: 11.57
   - fixture: json-records-small
     size_bytes: 10347
     iters: 15
     rows:
       - library: yaml
         op: parse
-        median_ms: 6.912
-        mbps: 1.43
+        median_ms: 8.776
+        mbps: 1.12
       - library: yaml
         op: parseDocument
-        median_ms: 7.518
-        mbps: 1.31
+        median_ms: 6.794
+        mbps: 1.45
       - library: yaml
         op: parseDocument+toJS
-        median_ms: 7.780
-        mbps: 1.27
+        median_ms: 7.615
+        mbps: 1.30
       - library: yaml
         op: stringify(doc)
-        median_ms: 9.864
-        mbps: 1.00
+        median_ms: 10.226
+        mbps: 0.96
       - library: yaml
         op: round-trip
-        median_ms: 17.351
-        mbps: 0.57
+        median_ms: 15.695
+        mbps: 0.63
       - library: js-yaml
         op: load
-        median_ms: 0.626
-        mbps: 15.76
+        median_ms: 0.580
+        mbps: 17.01
       - library: js-yaml
         op: dump
-        median_ms: 0.893
-        mbps: 11.05
+        median_ms: 0.878
+        mbps: 11.24
       - library: lightning-yaml
         op: parse
-        median_ms: 0.145
-        mbps: 68.22
+        median_ms: 0.149
+        mbps: 66.22
       - library: lightning-yaml
         op: stringify
-        median_ms: 0.091
-        mbps: 108.71
+        median_ms: 0.090
+        mbps: 109.13
       - library: poc
         op: parse
-        median_ms: 0.562
-        mbps: 17.55
+        median_ms: 0.620
+        mbps: 15.93
       - library: poc
         op: parseDocument
-        median_ms: 0.479
-        mbps: 20.61
+        median_ms: 0.576
+        mbps: 17.12
       - library: poc
         op: parseDocument+toJS
-        median_ms: 0.553
-        mbps: 17.83
+        median_ms: 0.625
+        mbps: 15.79
   - fixture: large-block
-    size_bytes: 5243790
+    size_bytes: 5243771
     iters: 3
     rows:
       - library: yaml
+        op: parse
+        median_ms: 5329.054
+        mbps: 0.94
+      - library: yaml
         op: parseDocument
-        median_ms: 4816.640
-        mbps: 1.04
+        median_ms: 5289.352
+        mbps: 0.95
       - library: yaml
         op: parseDocument+toJS
-        median_ms: 5321.452
-        mbps: 0.94
+        median_ms: 5392.539
+        mbps: 0.93
+      - library: yaml
+        op: stringify(doc)
+        median_ms: 6215.270
+        mbps: 0.80
+      - library: yaml
+        op: round-trip
+        median_ms: 11140.894
+        mbps: 0.45
+      - library: js-yaml
+        op: load
+        median_ms: 584.392
+        mbps: 8.56
+      - library: js-yaml
+        op: dump
+        median_ms: 666.489
+        mbps: 7.50
       - library: lightning-yaml
         op: parse
-        median_ms: 289.987
-        mbps: 17.25
+        median_ms: 304.322
+        mbps: 16.43
       - library: lightning-yaml
         op: stringify
-        median_ms: 197.454
-        mbps: 25.33
+        median_ms: 208.157
+        mbps: 24.02
       - library: poc
         op: parse
-        median_ms: 651.181
-        mbps: 7.68
+        median_ms: 692.046
+        mbps: 7.23
       - library: poc
         op: parseDocument
-        median_ms: 367.988
-        mbps: 13.59
+        median_ms: 464.952
+        mbps: 10.76
       - library: poc
         op: parseDocument+toJS
-        median_ms: 575.133
-        mbps: 8.7
+        median_ms: 712.620
+        mbps: 7.02
   - fixture: multidoc-k8s
     size_bytes: 102638
     iters: 15
     rows:
       - library: yaml
         op: parse
-        median_ms: 62.867
-        mbps: 1.56
+        median_ms: 66.944
+        mbps: 1.46
       - library: yaml
         op: parseDocument
-        median_ms: 64.104
-        mbps: 1.53
+        median_ms: 67.190
+        mbps: 1.46
       - library: yaml
         op: parseDocument+toJS
-        median_ms: 70.330
-        mbps: 1.39
+        median_ms: 64.958
+        mbps: 1.51
       - library: yaml
         op: stringify(doc)
-        median_ms: 93.294
-        mbps: 1.05
+        median_ms: 90.685
+        mbps: 1.08
       - library: yaml
         op: round-trip
-        median_ms: 167.958
-        mbps: 0.58
+        median_ms: 159.689
+        mbps: 0.61
       - library: js-yaml
         op: load
-        median_ms: 7.236
-        mbps: 13.53
+        median_ms: 7.701
+        mbps: 12.71
       - library: js-yaml
         op: dump
-        median_ms: 11.009
-        mbps: 8.89
+        median_ms: 10.428
+        mbps: 9.39
+      - library: lightning-yaml
+        op: parse
+        status: error
+        reason: "expected a single document in the stream, but found more (use parseAll for multi-document streams) (line 22, column 1)"
+      - library: lightning-yaml
+        op: stringify
+        status: error
+        reason: "parse failed: expected a single document in the stream, but found more (use parseAll for multi-document streams) (line 22, column 1)"
       - library: poc
         op: parse
-        median_ms: 4.661
-        mbps: 21
+        median_ms: 5.162
+        mbps: 18.96
       - library: poc
         op: parseDocument
-        median_ms: 4.361
-        mbps: 22.45
+        median_ms: 4.958
+        mbps: 19.74
       - library: poc
         op: parseDocument+toJS
-        median_ms: 9.202
-        mbps: 10.64
+        median_ms: 6.985
+        mbps: 14.01
 
 memory:
   - fixture: block-config
@@ -463,438 +487,465 @@ memory:
     rows:
       - library: yaml
         op: parse
-        peak_rss_bytes: 180613120
-        heap_delta_bytes: 246344
+        peak_rss_bytes: 182652928
+        heap_delta_bytes: 246656
       - library: yaml
         op: parseDocument
-        peak_rss_bytes: 162426880
-        heap_delta_bytes: 222152
+        peak_rss_bytes: 166543360
+        heap_delta_bytes: 225280
       - library: yaml
         op: parseDocument+toJS
-        peak_rss_bytes: 176807936
-        heap_delta_bytes: 242328
+        peak_rss_bytes: 185024512
+        heap_delta_bytes: 261560
       - library: yaml
         op: stringify(doc)
-        peak_rss_bytes: 185581568
-        heap_delta_bytes: 291736
+        peak_rss_bytes: 184528896
+        heap_delta_bytes: 288640
       - library: yaml
         op: round-trip
-        peak_rss_bytes: 192008192
-        heap_delta_bytes: 266968
+        peak_rss_bytes: 193097728
+        heap_delta_bytes: 262232
       - library: js-yaml
         op: load
-        peak_rss_bytes: 110284800
-        heap_delta_bytes: 129480
+        peak_rss_bytes: 105168896
+        heap_delta_bytes: 122256
       - library: js-yaml
         op: dump
-        peak_rss_bytes: 112295936
-        heap_delta_bytes: 179104
+        peak_rss_bytes: 110637056
+        heap_delta_bytes: 201736
       - library: lightning-yaml
         op: parse
-        peak_rss_bytes: 99536896
-        heap_delta_bytes: 177632
+        peak_rss_bytes: 101330944
+        heap_delta_bytes: 195896
       - library: lightning-yaml
         op: stringify
-        peak_rss_bytes: 104542208
-        heap_delta_bytes: 193584
+        peak_rss_bytes: 110796800
+        heap_delta_bytes: 181744
       - library: poc
         op: parse
-        peak_rss_bytes: 111943680
-        heap_delta_bytes: 85752
+        peak_rss_bytes: 112631808
+        heap_delta_bytes: 101112
       - library: poc
         op: parseDocument
-        peak_rss_bytes: 106532864
-        heap_delta_bytes: 83232
+        peak_rss_bytes: 112365568
+        heap_delta_bytes: 95280
       - library: poc
         op: parseDocument+toJS
-        peak_rss_bytes: 112197632
-        heap_delta_bytes: 78240
+        peak_rss_bytes: 107450368
+        heap_delta_bytes: 103640
   - fixture: comments-docker-compose
     size_bytes: 9188
     iters: 25
     rows:
       - library: yaml
         op: parse
-        peak_rss_bytes: 114294784
-        heap_delta_bytes: 513656
+        peak_rss_bytes: 113942528
+        heap_delta_bytes: 515336
       - library: yaml
         op: parseDocument
-        peak_rss_bytes: 108326912
-        heap_delta_bytes: 451584
+        peak_rss_bytes: 111562752
+        heap_delta_bytes: 454568
       - library: yaml
         op: parseDocument+toJS
-        peak_rss_bytes: 107069440
-        heap_delta_bytes: 509056
+        peak_rss_bytes: 113410048
+        heap_delta_bytes: 510424
       - library: yaml
         op: stringify(doc)
-        peak_rss_bytes: 110305280
-        heap_delta_bytes: 609296
+        peak_rss_bytes: 114110464
+        heap_delta_bytes: 609744
       - library: yaml
         op: round-trip
-        peak_rss_bytes: 130076672
-        heap_delta_bytes: 628688
+        peak_rss_bytes: 129544192
+        heap_delta_bytes: 637656
       - library: js-yaml
         op: load
-        peak_rss_bytes: 99975168
-        heap_delta_bytes: 182448
+        peak_rss_bytes: 102445056
+        heap_delta_bytes: 167136
       - library: js-yaml
         op: dump
-        peak_rss_bytes: 100659200
-        heap_delta_bytes: 291000
+        peak_rss_bytes: 102039552
+        heap_delta_bytes: 293296
       - library: lightning-yaml
         op: parse
-        peak_rss_bytes: 95219712
-        heap_delta_bytes: 88200
+        peak_rss_bytes: 99299328
+        heap_delta_bytes: 211344
       - library: lightning-yaml
         op: stringify
-        peak_rss_bytes: 99729408
-        heap_delta_bytes: 232656
+        peak_rss_bytes: 103636992
+        heap_delta_bytes: 276768
       - library: poc
         op: parse
-        peak_rss_bytes: 97857536
-        heap_delta_bytes: 141240
+        peak_rss_bytes: 104898560
+        heap_delta_bytes: 179736
       - library: poc
         op: parseDocument
-        peak_rss_bytes: 98025472
-        heap_delta_bytes: 120424
+        peak_rss_bytes: 103141376
+        heap_delta_bytes: 151288
       - library: poc
         op: parseDocument+toJS
-        peak_rss_bytes: 96100352
-        heap_delta_bytes: 141304
+        peak_rss_bytes: 100245504
+        heap_delta_bytes: 179152
   - fixture: comments-github-actions
     size_bytes: 5446
     iters: 25
     rows:
       - library: yaml
         op: parse
-        peak_rss_bytes: 103096320
-        heap_delta_bytes: 535616
+        peak_rss_bytes: 108363776
+        heap_delta_bytes: 534856
       - library: yaml
         op: parseDocument
-        peak_rss_bytes: 102313984
-        heap_delta_bytes: 495168
+        peak_rss_bytes: 112922624
+        heap_delta_bytes: 504736
       - library: yaml
         op: parseDocument+toJS
-        peak_rss_bytes: 101539840
-        heap_delta_bytes: 532792
+        peak_rss_bytes: 108138496
+        heap_delta_bytes: 539888
       - library: yaml
         op: stringify(doc)
-        peak_rss_bytes: 106328064
-        heap_delta_bytes: 652760
+        peak_rss_bytes: 110411776
+        heap_delta_bytes: 657552
       - library: yaml
         op: round-trip
-        peak_rss_bytes: 111960064
-        heap_delta_bytes: 589384
+        peak_rss_bytes: 113819648
+        heap_delta_bytes: 592640
       - library: js-yaml
         op: load
-        peak_rss_bytes: 101765120
-        heap_delta_bytes: 136640
+        peak_rss_bytes: 100741120
+        heap_delta_bytes: 118224
       - library: js-yaml
         op: dump
-        peak_rss_bytes: 103878656
-        heap_delta_bytes: 256504
+        peak_rss_bytes: 102727680
+        heap_delta_bytes: 283328
       - library: lightning-yaml
         op: parse
-        peak_rss_bytes: 97308672
-        heap_delta_bytes: 58432
+        peak_rss_bytes: 97824768
+        heap_delta_bytes: 83528
       - library: lightning-yaml
         op: stringify
-        peak_rss_bytes: 100036608
-        heap_delta_bytes: 89944
+        peak_rss_bytes: 101761024
+        heap_delta_bytes: 95864
       - library: poc
         op: parse
-        peak_rss_bytes: 95432704
-        heap_delta_bytes: 126072
+        peak_rss_bytes: 104566784
+        heap_delta_bytes: 133576
       - library: poc
         op: parseDocument
-        peak_rss_bytes: 100098048
-        heap_delta_bytes: 97536
+        peak_rss_bytes: 99115008
+        heap_delta_bytes: 120344
       - library: poc
         op: parseDocument+toJS
-        peak_rss_bytes: 98775040
-        heap_delta_bytes: 133864
+        peak_rss_bytes: 104132608
+        heap_delta_bytes: 145880
   - fixture: comments-k8s-deployment
     size_bytes: 5039
     iters: 25
     rows:
       - library: yaml
         op: parse
-        peak_rss_bytes: 103370752
-        heap_delta_bytes: 508968
+        peak_rss_bytes: 106618880
+        heap_delta_bytes: 511216
       - library: yaml
         op: parseDocument
-        peak_rss_bytes: 105267200
-        heap_delta_bytes: 482992
+        peak_rss_bytes: 103718912
+        heap_delta_bytes: 486040
       - library: yaml
         op: parseDocument+toJS
-        peak_rss_bytes: 101879808
-        heap_delta_bytes: 505232
+        peak_rss_bytes: 106229760
+        heap_delta_bytes: 507536
       - library: yaml
         op: stringify(doc)
-        peak_rss_bytes: 102567936
-        heap_delta_bytes: 613120
+        peak_rss_bytes: 111308800
+        heap_delta_bytes: 614720
       - library: yaml
         op: round-trip
-        peak_rss_bytes: 111067136
-        heap_delta_bytes: 631472
+        peak_rss_bytes: 114708480
+        heap_delta_bytes: 633864
       - library: js-yaml
         op: load
-        peak_rss_bytes: 100859904
-        heap_delta_bytes: 115600
+        peak_rss_bytes: 102653952
+        heap_delta_bytes: 118288
       - library: js-yaml
         op: dump
-        peak_rss_bytes: 99454976
-        heap_delta_bytes: 252912
+        peak_rss_bytes: 101924864
+        heap_delta_bytes: 254968
       - library: lightning-yaml
         op: parse
-        peak_rss_bytes: 96784384
-        heap_delta_bytes: 53112
+        peak_rss_bytes: 96043008
+        heap_delta_bytes: 57320
       - library: lightning-yaml
         op: stringify
-        peak_rss_bytes: 94756864
-        heap_delta_bytes: 84592
+        peak_rss_bytes: 99450880
+        heap_delta_bytes: 89088
       - library: poc
         op: parse
-        peak_rss_bytes: 99512320
-        heap_delta_bytes: 96560
+        peak_rss_bytes: 103075840
+        heap_delta_bytes: 118648
       - library: poc
         op: parseDocument
-        peak_rss_bytes: 95019008
-        heap_delta_bytes: 89264
+        peak_rss_bytes: 100184064
+        heap_delta_bytes: 111912
       - library: poc
         op: parseDocument+toJS
-        peak_rss_bytes: 95547392
-        heap_delta_bytes: 95520
+        peak_rss_bytes: 103006208
+        heap_delta_bytes: 121672
   - fixture: json-records-large
     size_bytes: 2097217
     iters: 5
     rows:
       - library: yaml
         op: parse
-        peak_rss_bytes: 663715840
-        heap_delta_bytes: 91040
+        peak_rss_bytes: 695865344
+        heap_delta_bytes: 104592
       - library: yaml
         op: parseDocument
-        peak_rss_bytes: 654307328
-        heap_delta_bytes: 86576
+        peak_rss_bytes: 694915072
+        heap_delta_bytes: 88264
       - library: yaml
         op: parseDocument+toJS
-        peak_rss_bytes: 662446080
-        heap_delta_bytes: 106496
+        peak_rss_bytes: 695615488
+        heap_delta_bytes: 88216
       - library: yaml
         op: stringify(doc)
-        peak_rss_bytes: 588013568
-        heap_delta_bytes: 104960
+        peak_rss_bytes: 643424256
+        heap_delta_bytes: 108696
       - library: yaml
         op: round-trip
-        peak_rss_bytes: 783626240
-        heap_delta_bytes: -1007288
+        peak_rss_bytes: 831385600
+        heap_delta_bytes: 0
       - library: js-yaml
         op: load
-        peak_rss_bytes: 265539584
-        heap_delta_bytes: 54016
+        peak_rss_bytes: 267051008
+        heap_delta_bytes: 59928
       - library: js-yaml
         op: dump
-        peak_rss_bytes: 300826624
-        heap_delta_bytes: 58960
+        peak_rss_bytes: 286773248
+        heap_delta_bytes: 61496
       - library: lightning-yaml
         op: parse
-        peak_rss_bytes: 118112256
-        heap_delta_bytes: 15552
+        peak_rss_bytes: 116047872
+        heap_delta_bytes: 12480
       - library: lightning-yaml
         op: stringify
-        peak_rss_bytes: 182464512
-        heap_delta_bytes: 17768
+        peak_rss_bytes: 180023296
+        heap_delta_bytes: 20688
       - library: poc
         op: parse
-        peak_rss_bytes: 276082688
-        heap_delta_bytes: 28456
+        peak_rss_bytes: 268054528
+        heap_delta_bytes: 43856
       - library: poc
         op: parseDocument
-        peak_rss_bytes: 258527232
-        heap_delta_bytes: 24952
+        peak_rss_bytes: 262279168
+        heap_delta_bytes: 38800
       - library: poc
         op: parseDocument+toJS
-        peak_rss_bytes: 276733952
-        heap_delta_bytes: 28200
+        peak_rss_bytes: 257970176
+        heap_delta_bytes: 44968
   - fixture: json-records-medium
     size_bytes: 204883
     iters: 25
     rows:
       - library: yaml
         op: parse
-        peak_rss_bytes: 199401472
-        heap_delta_bytes: -950344
+        peak_rss_bytes: 222228480
+        heap_delta_bytes: 208440
       - library: yaml
         op: parseDocument
-        peak_rss_bytes: 201728000
-        heap_delta_bytes: -937848
+        peak_rss_bytes: 218193920
+        heap_delta_bytes: 0
       - library: yaml
         op: parseDocument+toJS
-        peak_rss_bytes: 217600000
-        heap_delta_bytes: -902552
+        peak_rss_bytes: 215162880
+        heap_delta_bytes: 0
       - library: yaml
         op: stringify(doc)
-        peak_rss_bytes: 213413888
-        heap_delta_bytes: -926072
+        peak_rss_bytes: 224780288
+        heap_delta_bytes: 0
       - library: yaml
         op: round-trip
-        peak_rss_bytes: 246988800
-        heap_delta_bytes: -957104
+        peak_rss_bytes: 232026112
+        heap_delta_bytes: 0
       - library: js-yaml
         op: load
-        peak_rss_bytes: 146784256
-        heap_delta_bytes: 95736
+        peak_rss_bytes: 149782528
+        heap_delta_bytes: 82152
       - library: js-yaml
         op: dump
-        peak_rss_bytes: 179216384
-        heap_delta_bytes: 122616
+        peak_rss_bytes: 177778688
+        heap_delta_bytes: 132024
       - library: lightning-yaml
         op: parse
-        peak_rss_bytes: 99655680
-        heap_delta_bytes: 95056
+        peak_rss_bytes: 104108032
+        heap_delta_bytes: 122432
       - library: lightning-yaml
         op: stringify
-        peak_rss_bytes: 110448640
-        heap_delta_bytes: 105712
+        peak_rss_bytes: 114126848
+        heap_delta_bytes: 115888
       - library: poc
         op: parse
-        peak_rss_bytes: 128266240
-        heap_delta_bytes: 64520
+        peak_rss_bytes: 127451136
+        heap_delta_bytes: 79232
       - library: poc
         op: parseDocument
-        peak_rss_bytes: 128024576
-        heap_delta_bytes: 48112
+        peak_rss_bytes: 128036864
+        heap_delta_bytes: 45384
       - library: poc
         op: parseDocument+toJS
-        peak_rss_bytes: 126889984
-        heap_delta_bytes: 59936
+        peak_rss_bytes: 130867200
+        heap_delta_bytes: 76104
   - fixture: json-records-small
     size_bytes: 10347
     iters: 25
     rows:
       - library: yaml
         op: parse
-        peak_rss_bytes: 113352704
-        heap_delta_bytes: 406552
+        peak_rss_bytes: 130351104
+        heap_delta_bytes: 408432
       - library: yaml
         op: parseDocument
-        peak_rss_bytes: 112050176
-        heap_delta_bytes: 363816
+        peak_rss_bytes: 126857216
+        heap_delta_bytes: 357384
       - library: yaml
         op: parseDocument+toJS
-        peak_rss_bytes: 113106944
-        heap_delta_bytes: 403584
+        peak_rss_bytes: 114249728
+        heap_delta_bytes: 407792
       - library: yaml
         op: stringify(doc)
-        peak_rss_bytes: 113651712
-        heap_delta_bytes: 500376
+        peak_rss_bytes: 126840832
+        heap_delta_bytes: 502808
       - library: yaml
         op: round-trip
-        peak_rss_bytes: 127340544
-        heap_delta_bytes: 460184
+        peak_rss_bytes: 131428352
+        heap_delta_bytes: 462608
       - library: js-yaml
         op: load
-        peak_rss_bytes: 101949440
-        heap_delta_bytes: 151000
+        peak_rss_bytes: 103243776
+        heap_delta_bytes: 157592
       - library: js-yaml
         op: dump
-        peak_rss_bytes: 103198720
-        heap_delta_bytes: 247296
+        peak_rss_bytes: 103206912
+        heap_delta_bytes: 250920
       - library: lightning-yaml
         op: parse
-        peak_rss_bytes: 98619392
-        heap_delta_bytes: 106664
+        peak_rss_bytes: 102023168
+        heap_delta_bytes: 111664
       - library: lightning-yaml
         op: stringify
-        peak_rss_bytes: 96133120
-        heap_delta_bytes: 189448
+        peak_rss_bytes: 103235584
+        heap_delta_bytes: 167792
       - library: poc
         op: parse
-        peak_rss_bytes: 100253696
-        heap_delta_bytes: 119248
+        peak_rss_bytes: 101089280
+        heap_delta_bytes: 145272
       - library: poc
         op: parseDocument
-        peak_rss_bytes: 103374848
-        heap_delta_bytes: 100656
+        peak_rss_bytes: 103915520
+        heap_delta_bytes: 122304
       - library: poc
         op: parseDocument+toJS
-        peak_rss_bytes: 101367808
-        heap_delta_bytes: 115904
+        peak_rss_bytes: 104054784
+        heap_delta_bytes: 145920
   - fixture: large-block
-    size_bytes: 5243790
+    size_bytes: 5243771
     iters: 5
     rows:
       - library: yaml
+        op: parse
+        peak_rss_bytes: 1460965376
+        heap_delta_bytes: 0
+      - library: yaml
         op: parseDocument
-        peak_rss_bytes: 1389064192
-        heap_delta_bytes: -1043784
+        peak_rss_bytes: 1447682048
+        heap_delta_bytes: 107056
       - library: yaml
         op: parseDocument+toJS
-        peak_rss_bytes: 1411612672
-        heap_delta_bytes: -1038896
+        peak_rss_bytes: 1460760576
+        heap_delta_bytes: 0
+      - library: yaml
+        op: stringify(doc)
+        peak_rss_bytes: 1232277504
+        heap_delta_bytes: 0
+      - library: yaml
+        op: round-trip
+        peak_rss_bytes: 1592225792
+        heap_delta_bytes: 0
+      - library: js-yaml
+        op: load
+        peak_rss_bytes: 443375616
+        heap_delta_bytes: 41904
+      - library: js-yaml
+        op: dump
+        peak_rss_bytes: 561950720
+        heap_delta_bytes: 0
       - library: lightning-yaml
         op: parse
-        peak_rss_bytes: 265555968
-        heap_delta_bytes: 33416
+        peak_rss_bytes: 239521792
+        heap_delta_bytes: 24776
       - library: lightning-yaml
         op: stringify
-        peak_rss_bytes: 279887872
-        heap_delta_bytes: 131528
+        peak_rss_bytes: 291766272
+        heap_delta_bytes: 23144
       - library: poc
         op: parse
-        status: error
-        reason: "/workspace/lightning-yaml/poc/yaml-compat/src/parser.ts:175     const e
-          = new YAMLParseError(offset, message, lc);      "
+        peak_rss_bytes: 865771520
+        heap_delta_bytes: 25976
       - library: poc
         op: parseDocument
-        peak_rss_bytes: 486907904
-        heap_delta_bytes: 7960
+        peak_rss_bytes: 496128000
+        heap_delta_bytes: 24864
       - library: poc
         op: parseDocument+toJS
-        peak_rss_bytes: 480473088
-        heap_delta_bytes: 7120
+        peak_rss_bytes: 861048832
+        heap_delta_bytes: 26184
   - fixture: multidoc-k8s
     size_bytes: 102638
     iters: 25
     rows:
       - library: yaml
         op: parse
-        peak_rss_bytes: 166969344
-        heap_delta_bytes: 202280
+        peak_rss_bytes: 169869312
+        heap_delta_bytes: 201120
       - library: yaml
         op: parseDocument
-        peak_rss_bytes: 162459648
-        heap_delta_bytes: 196904
+        peak_rss_bytes: 171106304
+        heap_delta_bytes: 196888
       - library: yaml
         op: parseDocument+toJS
-        peak_rss_bytes: 163934208
-        heap_delta_bytes: 210224
+        peak_rss_bytes: 171212800
+        heap_delta_bytes: 213632
       - library: yaml
         op: stringify(doc)
-        peak_rss_bytes: 164990976
-        heap_delta_bytes: 232352
+        peak_rss_bytes: 168685568
+        heap_delta_bytes: 231264
       - library: yaml
         op: round-trip
-        peak_rss_bytes: 163753984
-        heap_delta_bytes: 222480
+        peak_rss_bytes: 168353792
+        heap_delta_bytes: 225136
       - library: js-yaml
         op: load
-        peak_rss_bytes: 112410624
-        heap_delta_bytes: 97552
+        peak_rss_bytes: 114249728
+        heap_delta_bytes: 75232
       - library: js-yaml
         op: dump
-        peak_rss_bytes: 129404928
-        heap_delta_bytes: 176512
+        peak_rss_bytes: 122068992
+        heap_delta_bytes: 170072
+      - library: lightning-yaml
+        op: parse
+        status: error
+        reason: Node.js v22.23.2
+      - library: lightning-yaml
+        op: stringify
+        status: error
+        reason: Node.js v22.23.2
       - library: poc
         op: parse
-        peak_rss_bytes: 111124480
-        heap_delta_bytes: 103504
+        peak_rss_bytes: 125394944
+        heap_delta_bytes: 121528
       - library: poc
         op: parseDocument
-        peak_rss_bytes: 109969408
-        heap_delta_bytes: 104608
+        peak_rss_bytes: 131506176
+        heap_delta_bytes: 119536
       - library: poc
         op: parseDocument+toJS
-        peak_rss_bytes: 120676352
-        heap_delta_bytes: 94208
+        peak_rss_bytes: 132440064
+        heap_delta_bytes: 88184
