@@ -593,3 +593,67 @@ describe('F5: top-level flow document contents range', () => {
     assert.deepStrictEqual(ourPair.value!.range, (theirPair.value as any).range);
   });
 });
+
+// ---- Document.range differential (single-doc + multi-doc) ------------------
+
+describe('Document.range matches eemeli', () => {
+  const singleCases: string[] = [
+    '---\nk: v\n',
+    '--- k: v\n',
+    '---  \nk: v\n',
+    'k: v\n',
+    '---\n# c\nk: v\n',
+    '---\n\nk: v\n',
+    '%YAML 1.2\n---\nk: v\n',
+    '# leading\n---\nk: v\n',
+    '---\nk: v\n\n',
+    'k: v\n...\n',
+    'k: v\n... \n',
+    'k: v\n...\n\n',
+    'k: v\n...\nk2: v2\n',
+    '',
+    '# only comment\n',
+    '---\n',
+    '---\n...\n',
+    '---\nk: v\n...\n',
+    '\n\nk: v\n',
+    '# lead comment\nk: v\n',
+    'k: v\n# trailing comment\n',
+    'k: v # same-line\n',
+    'a: &x 1\nb: *x\n',
+  ];
+
+  for (const src of singleCases) {
+    it(`parseDocument ${JSON.stringify(src)}`, () => {
+      const ours = parseDocument(src);
+      const theirs = yaml.parseDocument(src);
+      assert.deepStrictEqual(
+        Array.from(ours.range),
+        Array.from((theirs as any).range),
+        `range mismatch for ${JSON.stringify(src)}`,
+      );
+    });
+  }
+
+  const multiCases: string[] = [
+    '---\na: 1\n---\nb: 2\n...\n',
+    '---\na: 1\n---\nb: 2\n',
+    'a: 1\n---\nb: 2\n',
+    'k: v\n---\n---\nx: 1\n',
+  ];
+
+  for (const src of multiCases) {
+    it(`parseAllDocuments ${JSON.stringify(src)}`, () => {
+      const ours = [...parseAllDocuments(src)];
+      const theirs = [...yaml.parseAllDocuments(src)];
+      assert.equal(ours.length, theirs.length, 'doc count mismatch');
+      for (let i = 0; i < ours.length; i++) {
+        assert.deepStrictEqual(
+          Array.from(ours[i].range),
+          Array.from((theirs[i] as any).range),
+          `doc[${i}] range mismatch for ${JSON.stringify(src)}`,
+        );
+      }
+    });
+  }
+});

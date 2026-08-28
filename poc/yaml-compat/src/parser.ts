@@ -1681,6 +1681,7 @@ export class Parser {
 
     // Check for --- doc start
     let hasDocStart = false;
+    let markerStart = -1;
     this.skipWsAndComments();
     let docCommentBefore: string | null = null;
     if (this.pos + 2 < this.len &&
@@ -1690,6 +1691,7 @@ export class Parser {
       // Comments before --- are always doc.commentBefore
       docCommentBefore = this.consumePendingCommentBefore();
       hasDocStart = true;
+      markerStart = this.pos;
       this.directives.docStart = true;
       this.pos += 3;
       // Skip inline comment after ---
@@ -1730,15 +1732,19 @@ export class Parser {
 
     // Check for ... doc end
     let hasDocEnd = false;
+    let docEndMarkerStart = -1;
+    let docEndLineEnd = -1;
     this.skipWsAndComments();
     if (this.pos + 2 < this.len &&
         this.src.charCodeAt(this.pos) === 0x2E &&
         this.src.charCodeAt(this.pos + 1) === 0x2E &&
         this.src.charCodeAt(this.pos + 2) === 0x2E) {
       hasDocEnd = true;
+      docEndMarkerStart = this.pos;
       this.directives.docEnd = true;
       this.pos += 3;
       this.skipInlineComment();
+      docEndLineEnd = this.endOfLine(this.pos);
     }
 
     // Collect trailing document comment
@@ -1752,9 +1758,22 @@ export class Parser {
     }
 
     // F4: compute document range as [contentStart, contentLineEnd, streamEnd]
-    const contentStart = contents?.range?.[0] ?? docStart;
-    const streamEnd = this.len;
-    const contentLineEnd = contents ? this.contentLineEnd(streamEnd) : streamEnd;
+    // contentStart: include --- marker if present, else first content node
+    const contentStart = hasDocStart ? markerStart : (contents?.range?.[0] ?? docStart);
+    // effectiveEnd: where this doc's parsing stopped (next doc's start or end of source).
+    // Special case: bare --- with no content and no ... ends at the marker text (pos 3).
+    const effectiveEnd = (hasDocStart && !contents && !hasDocEnd) ? markerStart + 3 : this.pos;
+    const streamEnd = hasDocEnd ? docEndLineEnd : effectiveEnd;
+    // contentLineEnd: end of last content line; walk back from before ... or from effectiveEnd
+    let contentLineEnd: number;
+    if (contents) {
+      contentLineEnd = this.contentLineEnd(hasDocEnd ? docEndMarkerStart : effectiveEnd);
+    } else if (hasDocStart) {
+      contentLineEnd = markerStart + 3;
+    } else {
+      // No content, no marker — comment-only or empty doc
+      contentLineEnd = effectiveEnd;
+    }
 
     const doc: ParsedDocument = {
       contents,
