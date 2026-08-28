@@ -44,7 +44,6 @@ const KNOWN_OPTIONS = new Set([
 
 interface Ctx {
   indent: number;
-  indentStr: string;
   lineWidth: number;
   singleQuote: boolean;
   flowLevel: number;
@@ -85,7 +84,6 @@ function makeCtx(opts?: StringifyOptions): Ctx {
   const indent = opts?.indent ?? 2;
   return {
     indent,
-    indentStr: ' '.repeat(indent),
     lineWidth: opts?.lineWidth ?? 80,
     singleQuote: opts?.singleQuote ?? false,
     flowLevel: opts?.flowLevel ?? -1,
@@ -105,12 +103,16 @@ function makeCtx(opts?: StringifyOptions): Ctx {
   };
 }
 
-function pad(level: number, ctx: Ctx): string {
-  return ctx.indentStr.repeat(level);
+function pad(col: number): string {
+  return ' '.repeat(col);
 }
 
-function shouldFlow(level: number, ctx: Ctx): boolean {
-  return ctx.flowLevel >= 0 && level >= ctx.flowLevel;
+function depth(col: number, ctx: Ctx): number {
+  return col / ctx.indent;
+}
+
+function shouldFlow(col: number, ctx: Ctx): boolean {
+  return ctx.flowLevel >= 0 && depth(col, ctx) >= ctx.flowLevel;
 }
 
 // ---- Entry point -----------------------------------------------------------
@@ -194,13 +196,13 @@ function emitCommentText(text: string, ctx: Ctx): void {
 
 // ---- Node dispatch ---------------------------------------------------------
 
-function renderNode(node: Node, ctx: Ctx, level: number, inFlow: boolean): void {
+function renderNode(node: Node, ctx: Ctx, col: number, inFlow: boolean): void {
   if (isScalar(node)) {
-    renderScalar(node, ctx, level);
+    renderScalar(node, ctx, col);
   } else if (isMap(node)) {
-    renderMap(node, ctx, level, inFlow);
+    renderMap(node, ctx, col, inFlow);
   } else if (isSeq(node)) {
-    renderSeq(node, ctx, level, inFlow);
+    renderSeq(node, ctx, col, inFlow);
   } else if (isAlias(node)) {
     renderAlias(node, ctx);
   }
@@ -217,13 +219,14 @@ function anchorTagPrefix(node: Node): string {
 
 // ---- Scalar ----------------------------------------------------------------
 
-function renderScalar(node: Scalar, ctx: Ctx, _level: number): void {
+function renderScalar(node: Scalar, ctx: Ctx, col: number): void {
   const prefix = anchorTagPrefix(node);
   if (prefix) ctx.out.push(prefix);
 
   const v = node.value;
 
   if (v === null || v === undefined) { ctx.out.push(ctx.nullStr); return; }
+  if (boolPreserved(node)) { ctx.out.push(node.source!); return; }
   if (typeof v === 'boolean') { ctx.out.push(v ? ctx.trueStr : ctx.falseStr); return; }
   if (typeof v === 'number') {
     if (v === Infinity) { ctx.out.push('.inf'); return; }
@@ -237,7 +240,7 @@ function renderScalar(node: Scalar, ctx: Ctx, _level: number): void {
   const s = String(v);
 
   if (node.type === SCALAR_LITERAL || node.type === SCALAR_FOLDED) {
-    renderBlockScalar(s, node.type === SCALAR_LITERAL ? '|' : '>', ctx, _level);
+    renderBlockScalar(s, node.type === SCALAR_LITERAL ? '|' : '>', ctx, col);
     return;
   }
   if (node.type === SCALAR_SINGLE) { ctx.out.push(renderSingleQuoted(s)); return; }
@@ -247,7 +250,7 @@ function renderScalar(node: Scalar, ctx: Ctx, _level: number): void {
   // R3-M1: reject \r and C0 controls (except \t) — YAML §8.1.1.2 normalizes
   // line breaks in block scalars, and controls like \0/\x1b are not printable.
   if (s.includes('\n') && !/[\x00-\x08\x0b-\x1f]/.test(s)) {
-    renderBlockScalar(s, '|', ctx, _level);
+    renderBlockScalar(s, '|', ctx, col);
     return;
   }
 
@@ -267,6 +270,7 @@ function isPlainSafe(s: string, ctx: Ctx): boolean {
   if (s === '.inf' || s === '-.inf' || s === '.nan' || s === '.Inf' || s === '.NAN') return false;
   if (/^\s|\s$/.test(s)) return false;
   if (s.includes('\n') || s.includes('\r')) return false;
+  if (/[\x00-\x08\x0b-\x1f]/.test(s)) return false;
   if (/^[{}\[\],&*!|>'"%@`]/.test(s)) return false;
   if (s.includes(': ') || s.includes(' #')) return false;
   if (s.includes('\t')) return false;
@@ -283,13 +287,31 @@ function renderSingleQuoted(s: string): string {
 }
 
 function renderDoubleQuoted(s: string): string {
-  // YAML double-quoted escapes beyond JSON's: \0 (null), \e (escape)
-  return JSON.stringify(s)
-    .replace(/\\u0000/g, '\\0')
-    .replace(/\\u001b/g, '\\e');
+  // YAML double-quoted escape table matching eemeli
+  let out = '"';
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    switch (c) {
+      case 0x00: out += '\\0'; break;
+      case 0x07: out += '\\a'; break;
+      case 0x08: out += '\\b'; break;
+      case 0x09: out += '\\t'; break;
+      case 0x0a: out += '\\n'; break;
+      case 0x0b: out += '\\v'; break;
+      case 0x0c: out += '\\f'; break;
+      case 0x0d: out += '\\r'; break;
+      case 0x1b: out += '\\e'; break;
+      case 0x22: out += '\\"'; break;
+      case 0x5c: out += '\\\\'; break;
+      default:
+        if (c < 0x20) out += '\\x' + c.toString(16).padStart(2, '0');
+        else out += s[i];
+    }
+  }
+  return out + '"';
 }
 
-function renderBlockScalar(text: string, indicator: '|' | '>', ctx: Ctx, level: number): void {
+function renderBlockScalar(text: string, indicator: '|' | '>', ctx: Ctx, col: number): void {
   const lines = text.split('\n');
   const hasTrailingNewline = text.endsWith('\n');
   if (hasTrailingNewline && lines[lines.length - 1] === '') lines.pop();
@@ -315,8 +337,7 @@ function renderBlockScalar(text: string, indicator: '|' | '>', ctx: Ctx, level: 
 
   if (lines.length === 0) { ctx.out.push('\n'); return; }
 
-  // ponytail: block scalar content indent = level (the pair's level) per eemeli
-  const blockPad = ctx.indentStr.repeat(level);
+  const blockPad = ' '.repeat(col);
 
   if (indicator === '|') {
     for (let i = 0; i < lines.length; i++) {
@@ -345,15 +366,27 @@ function renderBlockScalar(text: string, indicator: '|' | '>', ctx: Ctx, level: 
   }
 }
 
+// eemeli (schema/core/bool.js) preserves a bool scalar's parsed source iff it
+// is a canonical bool spelling AND the source's boolean value equals the node's
+// value; only otherwise does it fall back to trueStr/falseStr. Mirrored here.
+const BOOL_SOURCE = /^(?:[Tt]rue|TRUE|[Ff]alse|FALSE)$/;
+function boolSourceValue(source: string): boolean {
+  return source[0] === 't' || source[0] === 'T';
+}
+function boolPreserved(node: Scalar): node is Scalar & { value: boolean } {
+  const v = node.value;
+  return typeof v === 'boolean' && node.source !== null && BOOL_SOURCE.test(node.source) && v === boolSourceValue(node.source);
+}
+
 // ---- Map -------------------------------------------------------------------
 
-function renderMap(node: YAMLMap, ctx: Ctx, level: number, inFlow: boolean): void {
-  const useFlow = inFlow || node.flow || shouldFlow(level, ctx);
+function renderMap(node: YAMLMap, ctx: Ctx, col: number, inFlow: boolean): void {
+  const useFlow = inFlow || node.flow || shouldFlow(col, ctx);
   const prefix = anchorTagPrefix(node);
 
   if (useFlow) {
     if (prefix) ctx.out.push(prefix);
-    renderFlowMap(node, ctx, level);
+    renderFlowMap(node, ctx, col);
     return;
   }
 
@@ -381,12 +414,12 @@ function renderMap(node: YAMLMap, ctx: Ctx, level: number, inFlow: boolean): voi
   for (let i = 0; i < node.items.length; i++) {
     const pair = node.items[i]!;
     if (i > 0) ctx.out.push('\n');
-    renderBlockPair(pair, ctx, level);
+    renderBlockPair(pair, ctx, col);
   }
 }
 
-function renderBlockPair(pair: Pair, ctx: Ctx, level: number): void {
-  const p = pad(level, ctx);
+function renderBlockPair(pair: Pair, ctx: Ctx, col: number): void {
+  const p = pad(col);
 
   // Key's commentBefore / spaceBefore appear before the pair line
   if (pair.key && isNode(pair.key)) {
@@ -406,7 +439,7 @@ function renderBlockPair(pair: Pair, ctx: Ctx, level: number): void {
   }
 
   ctx.out.push(p);
-  ctx.out.push(renderNodeToString(pair.key, ctx, level));
+  ctx.out.push(renderNodeToString(pair.key, ctx, col));
   ctx.out.push(':');
 
   if (pair.key && isNode(pair.key) && pair.key.comment) {
@@ -418,7 +451,8 @@ function renderBlockPair(pair: Pair, ctx: Ctx, level: number): void {
   const value = pair.value;
   const vsb = isNode(value) ? value.spaceBefore : false;
   const vcb = isNode(value) ? value.commentBefore : null;
-  const valueIsBlock = isBlockCollection(value, level + 1, ctx);
+  const vcol = col + ctx.indent;
+  const valueIsBlock = isBlockCollection(value, vcol, ctx);
 
   if (valueIsBlock) {
     // Block collection: newline after ':', collection handles its own indent
@@ -433,29 +467,33 @@ function renderBlockPair(pair: Pair, ctx: Ctx, level: number): void {
     }
     ctx.out.push('\n');
     if (vcb) {
-      ctx.out.push(pad(level + 1, ctx));
+      ctx.out.push(pad(vcol));
       emitCommentText(vcb, ctx);
     }
-    renderNode(value, ctx, level + 1, false);
+    renderNode(value, ctx, vcol, false);
   } else if (vcb) {
     // Inline value with commentBefore: comment then value on next line
     ctx.out.push('\n');
-    ctx.out.push(pad(level + 1, ctx));
+    ctx.out.push(pad(vcol));
     emitCommentText(vcb, ctx);
-    ctx.out.push(pad(level + 1, ctx));
-    renderNode(value, ctx, level + 1, false);
+    ctx.out.push(pad(vcol));
+    renderNode(value, ctx, vcol, false);
   } else {
     // Plain inline value — ignore spaceBefore (parser artifact for inline scalars)
     ctx.out.push(' ');
-    renderNode(value, ctx, level + 1, false);
+    renderNode(value, ctx, vcol, false);
   }
 
+  emitValueComment(value, p, ctx);
+}
+
+// Emit a value's trailing comment. Block scalars get their own line (inline
+// would corrupt the value); other values carry an inline ` #c`.
+function emitValueComment(value: Node, p: string, ctx: Ctx): void {
   if (isNode(value) && value.comment) {
-    // B1: block scalar comments go on their own line, not inline (inline corrupts value)
     if (isScalar(value) && (value.type === SCALAR_LITERAL || value.type === SCALAR_FOLDED)) {
       ctx.out.push('\n');
       ctx.out.push(p);
-      // Emit without trailing newline — the map loop separator or doc-end handles it
       const c = value.comment;
       ctx.out.push(c.startsWith(' ') ? `#${c}` : `# ${c}`);
     } else {
@@ -477,18 +515,19 @@ function getFirstItemCommentBefore(node: Node | null): string | null {
   return null;
 }
 
-function isBlockCollection(node: Node | null, level: number, ctx: Ctx): boolean {
+function isBlockCollection(node: Node | null, col: number, ctx: Ctx): boolean {
   if (!node) return false;
-  if (isMap(node) && !node.flow && !shouldFlow(level, ctx) && node.items.length > 0) return true;
-  if (isSeq(node) && !node.flow && !shouldFlow(level, ctx) && node.items.length > 0) return true;
+  if (isMap(node) && !node.flow && !shouldFlow(col, ctx) && node.items.length > 0) return true;
+  if (isSeq(node) && !node.flow && !shouldFlow(col, ctx) && node.items.length > 0) return true;
   return false;
 }
 
-function renderNodeToString(node: Node | null, ctx: Ctx, level: number): string {
+function renderNodeToString(node: Node | null, ctx: Ctx, col: number): string {
   if (node === null) return ctx.nullStr;
   if (isScalar(node)) {
     const v = node.value;
     if (v === null || v === undefined) return ctx.nullStr;
+    if (boolPreserved(node)) return node.source!;
     if (typeof v === 'boolean') return v ? ctx.trueStr : ctx.falseStr;
     if (typeof v === 'number') return String(v);
     const s = String(v);
@@ -503,36 +542,40 @@ function renderNodeToString(node: Node | null, ctx: Ctx, level: number): string 
   }
   const saved = ctx.out;
   ctx.out = [];
-  renderNode(node, ctx, level, false);
+  renderNode(node, ctx, col, false);
   const result = ctx.out.join('');
   ctx.out = saved;
   return result;
 }
 
-function renderFlowMap(node: YAMLMap, ctx: Ctx, level: number): void {
+function renderFlowMap(node: YAMLMap, ctx: Ctx, col: number): void {
   if (node.items.length === 0) { ctx.out.push('{}'); return; }
   ctx.out.push('{ ');
   for (let i = 0; i < node.items.length; i++) {
     if (i > 0) ctx.out.push(', ');
     const pair = node.items[i]!;
-    ctx.out.push(renderNodeToString(pair.key, ctx, level + 1));
-    ctx.out.push(': ');
-    if (pair.value === null) ctx.out.push(ctx.nullStr);
-    else renderNode(pair.value, ctx, level + 1, true);
+    ctx.out.push(renderNodeToString(pair.key, ctx, col + 1));
+    ctx.out.push(':');
+    // eemeli omits ` null` for an absent value (`{ a: }`) vs an explicit
+    // Scalar(null) (`{ a: null }`); the closing ` }` supplies the parting space.
+    if (pair.value !== null) {
+      ctx.out.push(' ');
+      renderNode(pair.value, ctx, col + 1, true);
+    }
   }
   ctx.out.push(' }');
 }
 
 // ---- Seq -------------------------------------------------------------------
 
-function renderSeq(node: YAMLSeq, ctx: Ctx, level: number, inFlow: boolean): void {
-  const useFlow = inFlow || node.flow || shouldFlow(level, ctx);
+function renderSeq(node: YAMLSeq, ctx: Ctx, col: number, inFlow: boolean): void {
+  const useFlow = inFlow || node.flow || shouldFlow(col, ctx);
   const prefix = anchorTagPrefix(node);
 
   if (useFlow) {
     if (prefix && !ctx.prefixRendered) ctx.out.push(prefix);
     ctx.prefixRendered = false;
-    renderFlowSeq(node, ctx, level);
+    renderFlowSeq(node, ctx, col);
     return;
   }
 
@@ -553,7 +596,7 @@ function renderSeq(node: YAMLSeq, ctx: Ctx, level: number, inFlow: boolean): voi
     const item = node.items[i]!;
     if (i > 0) ctx.out.push('\n');
 
-    const p = pad(level, ctx);
+    const p = pad(col);
 
     // ponytail: ignore spaceBefore on seq items — parser sets it on every item
     // after the first regardless of blank lines; add when parser fixed
@@ -561,43 +604,10 @@ function renderSeq(node: YAMLSeq, ctx: Ctx, level: number, inFlow: boolean): voi
       ctx.out.push(p);
       emitCommentText(item.commentBefore, ctx);
     }
+
     ctx.out.push(`${p}- `);
 
-    if (isMap(item) && !item.flow && !shouldFlow(level + 1, ctx) && item.items.length > 0) {
-      // First pair inline after "- "
-      const firstPair = item.items[0]!;
-      if (firstPair.key && isNode(firstPair.key) && firstPair.key.commentBefore) {
-        emitCommentText(firstPair.key.commentBefore, ctx);
-      }
-      ctx.out.push(renderNodeToString(firstPair.key, ctx, level + 1));
-      ctx.out.push(':');
-      if (firstPair.key && isNode(firstPair.key) && firstPair.key.comment) {
-        ctx.out.push(` #${firstPair.key.comment}`);
-      }
-      if (firstPair.value === null) {
-        // nothing
-      } else if (isBlockCollection(firstPair.value, level + 2, ctx)) {
-        ctx.out.push('\n');
-        renderNode(firstPair.value, ctx, level + 2, false);
-      } else {
-        ctx.out.push(' ');
-        renderNode(firstPair.value, ctx, level + 2, false);
-      }
-      // Remaining pairs
-      for (let j = 1; j < item.items.length; j++) {
-        ctx.out.push('\n');
-        renderBlockPair(item.items[j]!, ctx, level + 1);
-      }
-    } else if (isSeq(item) && !item.flow && !shouldFlow(level + 1, ctx) && item.items.length > 0) {
-      // Nested block seq: render items directly
-      for (let j = 0; j < item.items.length; j++) {
-        if (j > 0) ctx.out.push('\n');
-        ctx.out.push(`${pad(level + 1, ctx)}- `);
-        renderNode(item.items[j]!, ctx, level + 2, false);
-      }
-    } else {
-      renderNode(item, ctx, level + 1, false);
-    }
+    renderSeqItemContent(item, ctx, col);
 
     if (isNode(item) && item.comment) {
       ctx.out.push(` #${item.comment}`);
@@ -605,12 +615,62 @@ function renderSeq(node: YAMLSeq, ctx: Ctx, level: number, inFlow: boolean): voi
   }
 }
 
-function renderFlowSeq(node: YAMLSeq, ctx: Ctx, level: number): void {
+// Renders a seq item whose "- " dash opener sits at column `dcol`. The item
+// body continues on the same line; nested block collections recurse inline so
+// dashes accumulate left-to-right (e.g. "- - - 1"), with sibling items aligned
+// at the parent dash column.
+function renderSeqItemContent(item: Node, ctx: Ctx, dcol: number): void {
+  const ccol = dcol + 2;
+
+  if (isMap(item) && !item.flow && !shouldFlow(ccol, ctx) && item.items.length > 0) {
+    renderSeqMapItem(item, ctx, ccol);
+  } else if (isSeq(item) && !item.flow && !shouldFlow(ccol, ctx) && item.items.length > 0) {
+    for (let j = 0; j < item.items.length; j++) {
+      if (j > 0) ctx.out.push('\n' + pad(ccol));
+      ctx.out.push('- ');
+      renderSeqItemContent(item.items[j]!, ctx, ccol);
+    }
+  } else {
+    renderNode(item, ctx, ccol, false);
+  }
+}
+
+// Renders a map as a seq item: first pair's key is inline after "- ", the rest
+// of the pairs align at column `kcol` with the first inline key.
+function renderSeqMapItem(item: YAMLMap, ctx: Ctx, kcol: number): void {
+  const firstPair = item.items[0]!;
+  if (firstPair.key && isNode(firstPair.key) && firstPair.key.commentBefore) {
+    emitCommentText(firstPair.key.commentBefore, ctx);
+  }
+  ctx.out.push(renderNodeToString(firstPair.key, ctx, kcol));
+  ctx.out.push(':');
+  if (firstPair.key && isNode(firstPair.key) && firstPair.key.comment) {
+    ctx.out.push(` #${firstPair.key.comment}`);
+  }
+  const vcol = kcol + ctx.indent;
+  if (firstPair.value === null) {
+    // nothing
+  } else if (isBlockCollection(firstPair.value, vcol, ctx)) {
+    ctx.out.push('\n');
+    renderNode(firstPair.value, ctx, vcol, false);
+  } else {
+    ctx.out.push(' ');
+    renderNode(firstPair.value, ctx, vcol, false);
+    emitValueComment(firstPair.value, pad(vcol), ctx);
+  }
+  // Remaining pairs aligned with the first inline key
+  for (let j = 1; j < item.items.length; j++) {
+    ctx.out.push('\n');
+    renderBlockPair(item.items[j]!, ctx, kcol);
+  }
+}
+
+function renderFlowSeq(node: YAMLSeq, ctx: Ctx, col: number): void {
   if (node.items.length === 0) { ctx.out.push('[]'); return; }
   ctx.out.push('[ ');
   for (let i = 0; i < node.items.length; i++) {
     if (i > 0) ctx.out.push(', ');
-    renderNode(node.items[i]!, ctx, level + 1, true);
+    renderNode(node.items[i]!, ctx, col + 1, true);
   }
   ctx.out.push(' ]');
 }

@@ -440,3 +440,123 @@ describe('adversarial string battery (R3)', () => {
     });
   }
 });
+
+// ---- PR5b fix round 1: indent / trueStr / version:1.1 parity --------------
+
+const SEQ_OF_MAPS = `- name: app
+  enabled: true
+  ports:
+    - name: http
+      containerPort: 8080
+      protocol: TCP
+  livenessProbe:
+    httpGet:
+      path: /healthz
+    initialDelaySeconds: 30
+- name: other
+  count: 2
+  sparse: null
+`;
+
+describe('PR5b-F1: non-2 indent emits valid aligned YAML for seq-of-maps', () => {
+  for (const indent of [2, 3, 4, 6]) {
+    it(`indent ${indent}: reparse-equal + byte-match eemeli`, () => {
+      const ours = stringify(parseDocument(SEQ_OF_MAPS), { indent });
+      const theirs = yaml.parseDocument(SEQ_OF_MAPS).toString({ indent });
+      assert.deepEqual(yaml.parse(ours), yaml.parse(SEQ_OF_MAPS), `reparse matches original`);
+      assert.strictEqual(ours, theirs, `byte-match indent ${indent}`);
+    });
+  }
+});
+
+describe('PR5b-F2: trueStr/falseStr preserve round-tripping bool source', () => {
+  const src = 'flag: true\non: false\nnested:\n  also: true\n';
+  for (const opts of [
+    { trueStr: 'yes', falseStr: 'no' },
+    { trueStr: 'Y', falseStr: 'N' },
+  ]) {
+    it(`byte-matches eemeli for ${JSON.stringify(opts)}`, () => {
+      const ours = stringify(parseDocument(src), opts);
+      const theirs = yaml.parseDocument(src).toString(opts);
+      assert.strictEqual(ours, theirs);
+    });
+  }
+});
+
+describe('PR5b-F3: version:"1.1" resolves merge keys', () => {
+  it('merges `<<` like eemeli when version is 1.1', () => {
+    const src = `b: &b\n  x: 1\n  y: 2\nsvc:\n  <<: *b\n  z: 3\n`;
+    const ours = parse(src, { version: '1.1' }) as Record<string, any>;
+    const theirs = yaml.parse(src, { version: '1.1' }) as Record<string, any>;
+    assert.deepEqual(ours.svc.x, theirs.svc.x, 'merge value x');
+    assert.deepEqual(ours.svc.z, theirs.svc.z, 'own key z');
+    assert.ok(!('<<' in ours.svc), '`<<` resolved, not kept as a data key');
+  });
+
+  it('does NOT resolve `<<` by default (1.2), matching eemeli', () => {
+    const src = `b: &b\n  x: 1\nsvc:\n  <<: *b\n  z: 3\n`;
+    const ours = parse(src) as Record<string, any>;
+    const theirs = yaml.parse(src) as Record<string, any>;
+    assert.ok('<<' in ours.svc);
+    assert.deepEqual(ours, theirs);
+  });
+});
+
+describe('PR5b-M2: nested block seqs render inline, matching eemeli', () => {
+  const cases: string[] = [
+    '- - 1\n  - 2\n',
+    '- - - 1\n',
+    '- - 1\n  - 2\n  - - 3\n    - 4\n',
+    '- - a: 1\n    b: 2\n  - c: 3\n',
+    'a:\n  - - 1\n    - 2\n',
+  ];
+  for (const src of cases) {
+    it(`stringifies ${JSON.stringify(src.trim())} byte-identically`, () => {
+      const ours = stringify(parseDocument(src));
+      const theirs = yaml.parseDocument(src).toString();
+      assert.equal(ours, theirs);
+      assert.equal(ours, src);
+      // Output must reparse to the same value
+      assert.deepEqual(parseDocument(ours).toJS(), yaml.parseDocument(src).toJS());
+    });
+  }
+});
+
+describe('PR5b-M1: bool source preservation, matching eemeli', () => {
+  it('preserves canonical bool spellings instead of the option string', () => {
+    for (const src of ['a: True\n', 'a: TRUE\n', 'a: true\n', 'a: False\n', 'a: FALSE\n', 'a: false\n']) {
+      const ours = stringify(parseDocument(src), { trueStr: 'yes', falseStr: 'no' });
+      const theirs = yaml.parseDocument(src).toString({ trueStr: 'yes', falseStr: 'no' });
+      assert.equal(ours, theirs);
+      assert.equal(ours, src);
+    }
+  });
+  it('non-canonical programmatic bools (no source) use the option string', () => {
+    const doc = parseDocument('a: x\n');
+    doc.set('b', true);
+    assert.equal(doc.toString({ trueStr: 'yes', falseStr: 'no' }).includes('b: yes'), true);
+  });
+  it('default options leave bool output unchanged', () => {
+    const doc = parseDocument('a: True\n');
+    assert.equal(doc.toString(), yaml.parseDocument('a: True\n').toString());
+  });
+});
+
+// ---- PR5b-F3: seq-item map keeps its first value's inline comment ----------
+// Regression: renderSeqMapItem dropped the first pair's inline value comment.
+
+describe('PR5b-F3: inline value comment in seq-item maps', () => {
+  const cases = [
+    '- - a: 1 # c\n    b: 2\n  - c: 3\n',
+    '- a: 1 # c\n  b: 2\n',
+    '- "k": "v" # comment\n  j: 2\n',
+  ];
+  for (const src of cases) {
+    it(`keeps inline value comment for ${JSON.stringify(src.split('\n')[0])}`, () => {
+      const ours = parseDocument(src);
+      const ref = yaml.parseDocument(src);
+      assert.equal(ours.toString(), ref.toString());
+      assert.deepEqual(parseDocument(ours.toString()).toJS(), yaml.parse(src));
+    });
+  }
+});

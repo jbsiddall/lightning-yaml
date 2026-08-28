@@ -17,6 +17,7 @@
 
 import {
   Scalar, YAMLMap, YAMLSeq, Pair, Alias,
+  isMap, isSeq,
   SCALAR_PLAIN, SCALAR_SINGLE, SCALAR_DOUBLE, SCALAR_FOLDED, SCALAR_LITERAL,
   type Node, type Range,
 } from './nodes.ts';
@@ -175,11 +176,11 @@ export class Parser {
 
   // ---- Error helpers -------------------------------------------------------
 
-  private error(offset: number, message: string): YAMLParseError {
+  private error(offset: number, message: string, code?: string): YAMLParseError {
     const lc = this.lineCounter
       ? [this.lineCounter.linePos(offset)]
       : [offsetToLineCol(this.src, offset)];
-    const e = new YAMLParseError(offset, message, lc);
+    const e = new YAMLParseError(offset, message, lc, code);
     this.errors.push(e);
     return e;
   }
@@ -261,6 +262,68 @@ export class Parser {
 
   private isWsOrNl(c: number): boolean {
     return c === 0x20 || c === 0x09 || c === 0x0A || c === 0x0D;
+  }
+
+  /**
+   * Find end-of-line from a given position (returns the offset PAST the newline).
+   * Used to set value range[2] (nodeEnd) to match eemeli's convention where
+   * value nodeEnd extends to end of the containing line.
+   */
+  private endOfLine(from: number): number {
+    let p = from;
+    while (p < this.len) {
+      const c = this.src.charCodeAt(p);
+      if (c === 0x0A) return p + 1;
+      if (c === 0x0D) {
+        return p + 1 < this.len && this.src.charCodeAt(p + 1) === 0x0A ? p + 2 : p + 1;
+      }
+      p++;
+    }
+    return this.len;
+  }
+
+  /**
+   * Find the end of the last content line — walks backward from streamEnd,
+   * skipping trailing blank lines and comment-only lines. Returns the offset
+   * past the terminating newline of the last content line.
+   */
+  private contentLineEnd(streamEnd: number): number {
+    let p = streamEnd;
+    while (p > 0) {
+      // Walk backward to start of current line
+      let lineEnd = p;
+      // Skip trailing whitespace on this line (spaces/tabs before lineEnd)
+      let q = p - 1;
+      while (q >= 0 && (this.src.charCodeAt(q) === 0x20 || this.src.charCodeAt(q) === 0x09)) q--;
+      // Check if we're at a newline boundary
+      if (q >= 0 && (this.src.charCodeAt(q) === 0x0A || this.src.charCodeAt(q) === 0x0D)) {
+        // This was a blank line — skip it
+        p = q;
+        if (this.src.charCodeAt(q) === 0x0A && q > 0 && this.src.charCodeAt(q - 1) === 0x0D) p = q - 1;
+        continue;
+      }
+      // Walk back to start of this line
+      let lineStart = q;
+      while (lineStart > 0 && this.src.charCodeAt(lineStart - 1) !== 0x0A && this.src.charCodeAt(lineStart - 1) !== 0x0D) {
+        lineStart--;
+      }
+      // Check if this line is a comment-only line
+      let firstNonWs = lineStart;
+      while (firstNonWs <= q && (this.src.charCodeAt(firstNonWs) === 0x20 || this.src.charCodeAt(firstNonWs) === 0x09)) {
+        firstNonWs++;
+      }
+      if (firstNonWs <= q && this.src.charCodeAt(firstNonWs) === 0x23) {
+        // Comment-only line — skip it
+        p = lineStart > 0 ? lineStart - 1 : 0;
+        if (p > 0 && this.src.charCodeAt(p) === 0x0D && p + 1 < streamEnd && this.src.charCodeAt(p + 1) === 0x0A) {
+          // Skip \r of \r\n
+        }
+        continue;
+      }
+      // This is a content line — return end of this line (past its newline)
+      return this.endOfLine(q);
+    }
+    return 0;
   }
 
   // ---- Comment collection --------------------------------------------------
@@ -498,6 +561,7 @@ export class Parser {
         if (chunkStart < this.pos) result += this.src.slice(chunkStart, this.pos);
         this.pos++; // skip closing "
         const node = new Scalar(result, SCALAR_DOUBLE);
+        node.range = [start, this.pos, this.pos];
         return node;
       }
       if (c === 0x5C) { // backslash
@@ -594,7 +658,9 @@ export class Parser {
     }
     if (chunkStart < this.pos) result += this.src.slice(chunkStart, this.pos);
     this.error(start, 'Unterminated double-quoted scalar');
-    return new Scalar(result, SCALAR_DOUBLE);
+    const node = new Scalar(result, SCALAR_DOUBLE);
+    node.range = [start, this.pos, this.pos];
+    return node;
   }
 
   private parseSingleQuoted(start: number): Scalar {
@@ -614,7 +680,9 @@ export class Parser {
         // End of scalar
         result += this.src.slice(chunkStart, this.pos);
         this.pos++; // skip closing '
-        return new Scalar(result, SCALAR_SINGLE);
+        const node = new Scalar(result, SCALAR_SINGLE);
+        node.range = [start, this.pos, this.pos];
+        return node;
       }
       if (c === 0x0A || c === 0x0D) {
         // Line folding in single-quoted
@@ -643,7 +711,9 @@ export class Parser {
     }
     result += this.src.slice(chunkStart, this.pos);
     this.error(start, 'Unterminated single-quoted scalar');
-    return new Scalar(result, SCALAR_SINGLE);
+    const node = new Scalar(result, SCALAR_SINGLE);
+    node.range = [start, this.pos, this.pos];
+    return node;
   }
 
   private parseBlockScalar(start: number): Scalar {
@@ -817,7 +887,9 @@ export class Parser {
         break;
     }
 
-    return new Scalar(result, type);
+    const node = new Scalar(result, type);
+    node.range = [start, this.pos, this.pos];
+    return node;
   }
 
   /**
@@ -841,7 +913,12 @@ export class Parser {
 
       if (c === 0x3A) { // :
         const next = this.pos + 1 < this.len ? this.src.charCodeAt(this.pos + 1) : -1;
-        if (next === 0x20 || next === 0x09 || next === 0x0A || next === 0x0D || next === -1) {
+        // `:` is a key/sep indicator when followed by whitespace, a flow
+        // terminator/opener, or EOF. In flow context `a,`/`a]`/`a}`/`a[`(etc.)
+        // following `:` marks an (empty) value indicator too (eemeli §7.3):
+        if (next === -1 || this.isWsOrNl(next) ||
+            (inFlow && (next === 0x2C || next === 0x5B || next === 0x5D ||
+                        next === 0x7B || next === 0x7D))) {
           break; // key: value separator
         }
         this.pos++;
@@ -945,11 +1022,26 @@ export class Parser {
 
     if (chunkStart < this.pos) text += this.src.slice(chunkStart, this.pos);
 
-    // Trim trailing whitespace
+    // Trim trailing whitespace from text
     text = text.replace(/\s+$/, '');
 
+    // Adjust valueEnd: back up past source whitespace that was trimmed from text.
+    // This ensures range[1] points just past the actual content, not past trailing
+    // spaces that precede comments or line endings.
+    let valueEnd = this.pos;
+    while (valueEnd > start) {
+      const c = this.src.charCodeAt(valueEnd - 1);
+      if (c !== 0x20 && c !== 0x09) break;
+      valueEnd--;
+    }
+
     const value = this.resolvePlainScalar(text);
-    return new Scalar(value, SCALAR_PLAIN);
+    const node = new Scalar(value, SCALAR_PLAIN);
+    // PR5b-F2: keep the raw source text on bool scalars so stringify can
+    //   preserve it (round-trip) rather than always applying trueStr/falseStr.
+    node.source = typeof value === 'boolean' ? text : null;
+    node.range = [start, valueEnd, valueEnd];
+    return node;
   }
 
   // ---- Anchor/Tag parsing --------------------------------------------------
@@ -1012,6 +1104,80 @@ export class Parser {
 
   // ---- Flow collections ----------------------------------------------------
 
+  /**
+   * Guard against a collection loop that fails to advance the cursor (which
+   * would otherwise spin forever, growing the node until OOM). Force one char
+   * of progress and record a parse error so the caller can't hang.
+   */
+  private guardProgress(prev: number): void {
+    if (this.pos === prev && this.pos < this.len) {
+      this.error(this.pos, 'Failed to progress while parsing a collection');
+      this.pos++;
+    }
+  }
+
+  /**
+   * A flow-sequence entry can be a single `key: value` pair (e.g. `[a: 1]`
+   * parses to a one-pair map). parseFlowValue stops before the `:`; peek for
+   * a key-separator on this line and, if present, re-read the entry as a map.
+   */
+  private flowValuePresent(): boolean {
+    // Called after `key:` + inline ws. In flow context newlines are whitespace,
+    // so a value may start on a later line; only a terminator/EOF means empty.
+    const c = this.ch();
+    if (c === 0x2C || c === 0x5D || c === 0x7D) return false; // , ] }
+    if (c !== 0x0A && c !== 0x0D && c !== 0x23) return true;
+    // Peek past newlines/comments for the next real token (don't advance pos).
+    let p = this.pos;
+    while (p < this.len) {
+      const cc = this.src.charCodeAt(p);
+      if (cc === 0x20 || cc === 0x09 || cc === 0x0A || cc === 0x0D) { p++; continue; }
+      if (cc === 0x23) {
+        while (p < this.len) {
+          const z = this.src.charCodeAt(p);
+          if (z === 0x0A || z === 0x0D) break;
+          p++;
+        }
+        continue;
+      }
+      break;
+    }
+    if (p >= this.len) return false;
+    const pc = this.src.charCodeAt(p);
+    return !(pc === 0x2C || pc === 0x5D || pc === 0x7D);
+  }
+
+  private isFlowKeySep(p: number): boolean {
+    // True when a `:` just before p forms a flow key/value separator: the char
+    // after it is ws/newline, EOF, or a flow indicator.
+    if (p >= this.len) return true;
+    const c = this.src.charCodeAt(p);
+    return this.isWsOrNl(c) || c === 0x2C || c === 0x5B || c === 0x5D || c === 0x7B || c === 0x7D;
+  }
+
+  private parseFlowSeqItem(): Node {
+    const first = this.parseFlowValue();
+    const saved = this.pos;
+    this.skipWsInline();
+    if (this.pos < this.len && this.src.charCodeAt(this.pos) === 0x3A &&
+        this.isFlowKeySep(this.pos + 1)) {
+      // `key:` — consume the value and wrap into a single-pair flow map
+      this.pos++; // skip :
+      this.skipWsInline();
+      let value: Node | null = null;
+      if (this.flowValuePresent()) {
+        value = this.parseFlowValue();
+      }
+      const map = new YAMLMap();
+      map.flow = true;
+      map.items.push(new Pair(first, value));
+      map.range = [first.range?.[0] ?? this.pos, this.pos, this.pos];
+      return map;
+    }
+    this.pos = saved;
+    return first;
+  }
+
   private parseFlowSequence(start: number): YAMLSeq {
     const seq = new YAMLSeq();
     seq.flow = true;
@@ -1020,10 +1186,11 @@ export class Parser {
     this.skipWsAndComments();
 
     while (this.pos < this.len && this.src.charCodeAt(this.pos) !== 0x5D) { // ]
+      const loopStart = this.pos;
       // Apply pending comments
       const cb = this.consumePendingCommentBefore();
 
-      const item = this.parseFlowValue();
+      const item = this.parseFlowSeqItem();
       if (cb) item.commentBefore = cb;
 
       seq.items.push(item);
@@ -1034,6 +1201,7 @@ export class Parser {
         this.pos++;
         this.skipWsAndComments();
       }
+      this.guardProgress(loopStart);
     }
 
     if (this.pos < this.len) {
@@ -1055,6 +1223,7 @@ export class Parser {
     const seenKeys = this.uniqueKeys ? new Set<string>() : null;
 
     while (this.pos < this.len && this.src.charCodeAt(this.pos) !== 0x7D) { // }
+      const loopStart = this.pos;
       this.skipWsAndComments();
       const cb = this.consumePendingCommentBefore();
 
@@ -1101,6 +1270,7 @@ export class Parser {
         this.pos++;
         this.skipWsAndComments();
       }
+      this.guardProgress(loopStart);
     }
 
     if (this.pos < this.len) {
@@ -1141,12 +1311,21 @@ export class Parser {
     if (this.pos >= this.len) {
       this.error(start, 'Unexpected end of input');
       const s = new Scalar(null, SCALAR_PLAIN);
+      s.range = [start, this.pos, this.pos];
       if (anchor) s.anchor = anchor;
       if (tag) s.tag = tag;
       return s;
     }
 
     const c = this.ch();
+    // Block-collection indicators (`- `) are not allowed in flow context
+    // (§8.1); flag and fall through so the value is still consumed (no hang).
+    if (c === 0x2D) {
+      const nxt = this.pos + 1 < this.len ? this.src.charCodeAt(this.pos + 1) : -1;
+      if (nxt === -1 || this.isWsOrNl(nxt)) {
+        this.error(this.pos, 'Block collections are not allowed within flow collections');
+      }
+    }
     let node: Node;
 
     if (c === 0x2A) { // *
@@ -1250,9 +1429,14 @@ export class Parser {
     } else if (fc === 0x7C || fc === 0x3E) { // | or >
       node = this.parseBlockScalar(this.pos);
     } else if (fc === 0x22) { // "
-      node = this.parseDoubleQuoted(this.pos);
+      // A quoted scalar may start a compact block map (e.g. "- \"qk\": v1"); peek
+      // for a key-value separator AFTER the closing quote (a `: ` inside the
+      // quoted content is just part of the string).
+      if (this.isQuotedMapKeyAfter()) node = this.parseBlockMapping(indent);
+      else node = this.parseDoubleQuoted(this.pos);
     } else if (fc === 0x27) { // '
-      node = this.parseSingleQuoted(this.pos);
+      if (this.isQuotedMapKeyAfter()) node = this.parseBlockMapping(indent);
+      else node = this.parseSingleQuoted(this.pos);
     } else {
       // Could be a plain scalar OR a block mapping key
       // Look ahead for : to decide
@@ -1289,6 +1473,38 @@ export class Parser {
     return node;
   }
 
+  // Called with this.pos at an opening quote. Scans to the closing quote
+  // (honoring escape sequences) and reports whether a `:` key separator follows
+  // it — i.e. the quoted scalar is a compact block-map key, not a plain string.
+  private isQuotedMapKeyAfter(): boolean {
+    const q = this.src.charCodeAt(this.pos);
+    if (q !== 0x22 && q !== 0x27) return false;
+    let p = this.pos + 1;
+    while (p < this.len) {
+      const c = this.src.charCodeAt(p);
+      if (q === 0x22 && c === 0x5C) { p += 2; continue; }        // \" escape
+      if (c === q) {
+        if (q === 0x27 && this.src.charCodeAt(p + 1) === 0x27) { p += 2; continue; } // '' literal
+        let s = p + 1; // past closing quote
+        while (s < this.len && (this.src.charCodeAt(s) === 0x20 || this.src.charCodeAt(s) === 0x09)) s++;
+        if (this.src.charCodeAt(s) === 0x3A) {
+          const nx = s + 1 < this.len ? this.src.charCodeAt(s + 1) : -1;
+          if (nx === 0x20 || nx === 0x09 || nx === 0x0A || nx === 0x0D || nx === -1) return true;
+        }
+        return false;
+      }
+      p++;
+    }
+    return false;
+  }
+
+  private isBlockSeqEntry(): boolean {
+    const c = this.ch();
+    if (c !== 0x2D) return false; // - at current position
+    const nx = this.pos + 1 < this.len ? this.src.charCodeAt(this.pos + 1) : -1;
+    return nx === -1 || this.isWsOrNl(nx);
+  }
+
   private isBlockMapKey(): boolean {
     // Scan ahead on the current line to see if there's a : (key-value separator)
     let p = this.pos;
@@ -1315,6 +1531,7 @@ export class Parser {
     const seenKeys = this.uniqueKeys ? new Set<string>() : null;
 
     while (this.pos < this.len) {
+      const loopStart = this.pos;
       // Check indent
       const col = this.currentColumn();
       if (col < indent) break;
@@ -1392,8 +1609,13 @@ export class Parser {
             }
             // Skip newlines and comments to find the value
             this.skipWsAndComments();
-            if (this.pos < this.len && this.currentColumn() > indent) {
+            const vcol = this.pos < this.len ? this.currentColumn() : -1;
+            if (vcol > indent) {
               value = this.parseBlockNode(indent + 1);
+            } else if (vcol === indent && this.isBlockSeqEntry()) {
+              // §8.2.1: a block sequence may nest at the SAME indentation as the
+              // enclosing map's keys; it is this key's value.
+              value = this.parseBlockSequence(indent);
             }
           }
         }
@@ -1418,10 +1640,18 @@ export class Parser {
       const tc = this.skipInlineComment();
       if (tc && value) value.comment = tc;
 
+      // Extend value nodeEnd to end of line (eemeli convention: value range[2]
+      // includes trailing newline and any inline comment on the same line)
+      if (value) {
+        const eol = this.endOfLine(this.pos);
+        (value.range as [number, number, number])[2] = eol;
+      }
+
       map.items.push(pair);
 
       // Skip to next line
       this.skipWsAndComments();
+      this.guardProgress(loopStart);
     }
 
     map.range = [start, this.pos, this.pos];
@@ -1450,6 +1680,7 @@ export class Parser {
     const start = this.pos;
 
     while (this.pos < this.len) {
+      const loopStart = this.pos;
       // Check indent
       const col = this.currentColumn();
       if (col < indent) break;
@@ -1487,13 +1718,17 @@ export class Parser {
       if (value && cb) value.commentBefore = cb;
 
       if (value) {
-        seq.items.push(value);
         // Trailing comment
         const tc = this.skipInlineComment();
         if (tc) value.comment = tc;
+        // Extend value nodeEnd to end of line (eemeli convention)
+        const eol = this.endOfLine(this.pos);
+        (value.range as [number, number, number])[2] = eol;
+        seq.items.push(value);
       }
 
       this.skipWsAndComments();
+      this.guardProgress(loopStart);
     }
 
     seq.range = [start, this.pos, this.pos];
@@ -1541,6 +1776,7 @@ export class Parser {
 
   parseDocument(): ParsedDocument {
     const docStart = this.pos;
+    let sawDocComment = false; // any comment attached to this doc (inline on --- or comment-only lines)
     this.hadBlankLine = false;
 
     // Detect tabs used in indentation — unconditional: eemeli reports them
@@ -1574,11 +1810,13 @@ export class Parser {
     }
 
     // Parse directives
+    let directivesParsed = false;
     while (this.pos < this.len) {
       this.skipWsAndComments();
       if (this.pos >= this.len) break;
       if (this.src.charCodeAt(this.pos) === 0x25) { // %
         this.parseDirective();
+        directivesParsed = true;
       } else {
         break;
       }
@@ -1586,6 +1824,9 @@ export class Parser {
 
     // Check for --- doc start
     let hasDocStart = false;
+    let markerStart = -1;
+    let markerContentEnd = -1; // end of bare marker text + trailing ws (before newline)
+    let markerLineEnd = -1;    // end of marker line incl inline comment + newline
     this.skipWsAndComments();
     let docCommentBefore: string | null = null;
     if (this.pos + 2 < this.len &&
@@ -1595,13 +1836,17 @@ export class Parser {
       // Comments before --- are always doc.commentBefore
       docCommentBefore = this.consumePendingCommentBefore();
       hasDocStart = true;
+      markerStart = this.pos;
       this.directives.docStart = true;
       this.pos += 3;
       // Skip inline comment after ---
-      this.skipInlineComment();
+      const inlineComment = this.skipInlineComment();
+      if (inlineComment !== null) sawDocComment = true;
+      markerContentEnd = this.pos; // after trailing ws / inline comment, before newline
       if (this.pos < this.len && (this.src.charCodeAt(this.pos) === 0x0A || this.src.charCodeAt(this.pos) === 0x0D)) {
         this.skipLine();
       }
+      markerLineEnd = this.pos; // end of marker line incl newline
     }
 
     // Collect leading comments for the document (after --- if present)
@@ -1611,6 +1856,7 @@ export class Parser {
     if (this.blankAfterLastComment || this.pos >= this.len) {
       const afterComment = this.consumePendingCommentBefore();
       if (afterComment) {
+        sawDocComment = true;
         docCommentBefore = docCommentBefore
           ? docCommentBefore + '\n' + afterComment
           : afterComment;
@@ -1635,20 +1881,67 @@ export class Parser {
 
     // Check for ... doc end
     let hasDocEnd = false;
+    let docEndMarkerStart = -1;
+    let docEndLineEnd = -1;
     this.skipWsAndComments();
     if (this.pos + 2 < this.len &&
         this.src.charCodeAt(this.pos) === 0x2E &&
         this.src.charCodeAt(this.pos + 1) === 0x2E &&
         this.src.charCodeAt(this.pos + 2) === 0x2E) {
       hasDocEnd = true;
+      docEndMarkerStart = this.pos;
       this.directives.docEnd = true;
       this.pos += 3;
       this.skipInlineComment();
+      docEndLineEnd = this.endOfLine(this.pos);
     }
 
     // Collect trailing document comment
     this.skipWsAndComments();
     const docComment = this.consumePendingCommentBefore();
+    if (docComment) sawDocComment = true;
+
+    // F5: extend top-level flow content nodeEnd to end of line (eemeli convention)
+    if (contents && (isMap(contents) || isSeq(contents)) && (contents as any).flow === true) {
+      const eol = this.endOfLine(contents.range![1]);
+      (contents.range as [number, number, number])[2] = eol;
+    }
+
+    // F4: compute document range as [contentStart, contentLineEnd, streamEnd]
+    // contentStart: include --- marker if present, else first content node
+    const contentStart = hasDocStart ? markerStart : (contents?.range?.[0] ?? docStart);
+
+    // MINOR-5: directives present but no --- marker -> eemeli reports MISSING_CHAR
+    if (directivesParsed && !hasDocStart) {
+      this.error(contentStart, 'Missing directives-end/doc-start indicator line', 'MISSING_CHAR');
+    }
+
+    // contentLineEnd / streamEnd: no-content marker docs differ from content docs.
+    let contentLineEnd: number;
+    let streamEnd: number;
+    if (contents) {
+      // content-bearing: walk back from before ... or from where parsing stopped
+      streamEnd = hasDocEnd ? docEndLineEnd : this.pos;
+      contentLineEnd = this.contentLineEnd(hasDocEnd ? docEndMarkerStart : this.pos);
+    } else if (hasDocEnd && !hasDocStart) {
+      // only-... document: `...` is just an end marker, no content to cover
+      contentLineEnd = docStart;
+      streamEnd = docEndLineEnd;
+    } else if (hasDocStart) {
+      // No-content --- doc. With a comment (inline on --- or comment-only lines)
+      // eemeli extends over trailing blanks/comments; a bare marker ends at its text.
+      if (sawDocComment) {
+        contentLineEnd = hasDocEnd ? markerLineEnd : this.pos;
+        streamEnd = hasDocEnd ? docEndLineEnd : this.pos;
+      } else {
+        contentLineEnd = markerContentEnd;
+        streamEnd = hasDocEnd ? docEndLineEnd : markerContentEnd;
+      }
+    } else {
+      // No content, no marker — comment-only or empty doc
+      contentLineEnd = this.pos;
+      streamEnd = this.pos;
+    }
 
     const doc: ParsedDocument = {
       contents,
@@ -1657,7 +1950,7 @@ export class Parser {
       directives: { ...this.directives },
       commentBefore: docCommentBefore,
       comment: docComment,
-      range: [docStart, contents?.range?.[1] ?? this.pos, this.pos],
+      range: [contentStart, contentLineEnd, streamEnd],
       hasDocStart,
       hasDocEnd,
     };

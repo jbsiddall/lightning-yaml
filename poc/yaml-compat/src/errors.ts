@@ -6,12 +6,14 @@
 export class YAMLParseError extends Error {
   offset: [number, number];
   pos: { line: number; col: number }[];
+  code?: string;
 
-  constructor(offset: number | [number, number], message: string, lineCol?: { line: number; col: number }[]) {
+  constructor(offset: number | [number, number], message: string, lineCol?: { line: number; col: number }[], code?: string) {
     super(message);
     this.name = 'YAMLParseError';
     this.offset = typeof offset === 'number' ? [offset, offset] : offset;
     this.pos = lineCol ?? [];
+    if (code) this.code = code;
   }
 }
 

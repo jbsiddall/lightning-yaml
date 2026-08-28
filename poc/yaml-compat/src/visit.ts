@@ -5,7 +5,7 @@
 
 import {
   Scalar, YAMLMap, YAMLSeq, Pair, Alias,
-  isScalar, isMap, isSeq, isPair, isAlias,
+  isScalar, isMap, isSeq, isPair, isAlias, isNode,
   type Node,
 } from './nodes.ts';
 import type { Document } from './document.ts';
@@ -108,17 +108,23 @@ function visitNode(
 }
 
 export function visit(
-  doc: Node | Document | null,
+  doc: Node | Document | null | unknown,
   visitor: Visitor,
 ): void {
-  if (!doc) return;
+  if (doc === null || doc === undefined) return;
 
   // Handle Document wrapper
   let root: Node | null;
-  if ('contents' in doc) {
-    root = doc.contents;
+  if (typeof doc === 'object' && 'contents' in doc) {
+    root = (doc as Document).contents;
+  } else if (isNode(doc)) {
+    root = doc as Node;
   } else {
-    root = doc;
+    // Plain JS value — call visitor directly
+    if (typeof visitor === 'function') {
+      visitor(null, doc, []);
+    }
+    return;
   }
 
   if (!root) return;
@@ -128,3 +134,10 @@ export function visit(
 visit.SKIP = SKIP;
 visit.BREAK = BREAK;
 visit.REMOVE = REMOVE;
+
+export function visitAsync(
+  _doc: Node | Document | null,
+  _visitor: Visitor,
+): Promise<void> {
+  throw new Error('Not implemented in POC: visitAsync');
+}
