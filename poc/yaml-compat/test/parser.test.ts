@@ -526,6 +526,9 @@ describe('PR5b-M3: quoted keys in compact block-seq maps', () => {
     // Unquoted compact-map keys keep working (regression guard)
     ['- qk: v1\n  k2: v2\n', [{ qk: 'v1', k2: 'v2' }]],
     ['- 123: v1\n', [{ '123': 'v1' }]],
+    // Quoted strings containing ": " stay scalars, not maps (regression guard)
+    ['- "a: b"\n', ['a: b']],
+    ["- 'a: b'\n", ['a: b']],
   ];
   for (const [src, expected] of cases) {
     it(`parses ${JSON.stringify(src.trim())} and stays silent, matching eemeli`, () => {

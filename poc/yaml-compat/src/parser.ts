@@ -1338,12 +1338,13 @@ export class Parser {
     } else if (fc === 0x7C || fc === 0x3E) { // | or >
       node = this.parseBlockScalar(this.pos);
     } else if (fc === 0x22) { // "
-      // A quoted scalar may start a compact block map (e.g. "- \"qk\": v1");
-      // peek for a key-value separator just like the plain-scalar branch does.
-      if (this.isBlockMapKey()) node = this.parseBlockMapping(indent);
+      // A quoted scalar may start a compact block map (e.g. "- \"qk\": v1"); peek
+      // for a key-value separator AFTER the closing quote (a `: ` inside the
+      // quoted content is just part of the string).
+      if (this.isQuotedMapKeyAfter()) node = this.parseBlockMapping(indent);
       else node = this.parseDoubleQuoted(this.pos);
     } else if (fc === 0x27) { // '
-      if (this.isBlockMapKey()) node = this.parseBlockMapping(indent);
+      if (this.isQuotedMapKeyAfter()) node = this.parseBlockMapping(indent);
       else node = this.parseSingleQuoted(this.pos);
     } else {
       // Could be a plain scalar OR a block mapping key
@@ -1379,6 +1380,31 @@ export class Parser {
     if (tc) node.comment = tc;
 
     return node;
+  }
+
+  // Called with this.pos at an opening quote. Scans to the closing quote
+  // (honoring escape sequences) and reports whether a `:` key separator follows
+  // it — i.e. the quoted scalar is a compact block-map key, not a plain string.
+  private isQuotedMapKeyAfter(): boolean {
+    const q = this.src.charCodeAt(this.pos);
+    if (q !== 0x22 && q !== 0x27) return false;
+    let p = this.pos + 1;
+    while (p < this.len) {
+      const c = this.src.charCodeAt(p);
+      if (q === 0x22 && c === 0x5C) { p += 2; continue; }        // \" escape
+      if (c === q) {
+        if (q === 0x27 && this.src.charCodeAt(p + 1) === 0x27) { p += 2; continue; } // '' literal
+        let s = p + 1; // past closing quote
+        while (s < this.len && (this.src.charCodeAt(s) === 0x20 || this.src.charCodeAt(s) === 0x09)) s++;
+        if (this.src.charCodeAt(s) === 0x3A) {
+          const nx = s + 1 < this.len ? this.src.charCodeAt(s + 1) : -1;
+          if (nx === 0x20 || nx === 0x09 || nx === 0x0A || nx === 0x0D || nx === -1) return true;
+        }
+        return false;
+      }
+      p++;
+    }
+    return false;
   }
 
   private isBlockMapKey(): boolean {
