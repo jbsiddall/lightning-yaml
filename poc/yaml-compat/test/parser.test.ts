@@ -544,3 +544,45 @@ describe('PR5b-M3: quoted keys in compact block-seq maps', () => {
     });
   }
 });
+
+// ---- PR5b-F3: block-map values spanning multiline flow collections ----------
+// Regressions for a hang/OOM: a flow collection value in a block map reused to
+// grow the node forever instead of consuming the collection. Each case parses
+// to a value and matches eemeli; a revert loops/OOMs (fail = never returns).
+
+describe('PR5b-F3: multiline flow-collection values in block maps', () => {
+  const valueCases: [string, unknown][] = [
+    ['k: [\n  a: 1\n]\n', { k: [{ a: 1 }] }],
+    ['k: {\n  a: 1\n}\n', { k: { a: 1 } }],
+    ['k: [\n  1,\n  2\n]\n', { k: [1, 2] }],
+    ['- qk: v1\n  k2: [\n    a: 1\n  ]\n', [{ qk: 'v1', k2: [{ a: 1 }] }]],
+    ['- "qk": v1\n  k2: [\n    a: 1\n  ]\n', [{ qk: 'v1', k2: [{ a: 1 }] }]],
+    ['k: [1, 2]\n', { k: [1, 2] }],
+    ['k: {a: 1}\n', { k: { a: 1 } }],
+  ];
+  for (const [src, expected] of valueCases) {
+    it(`parses ${JSON.stringify(src.split('\n').filter(Boolean).join(' / '))} to completion, matching eemeli`, () => {
+      const ours = parseDocument(src);
+      assert.deepEqual(ours.toJS(), expected);
+      assert.deepEqual(ours.toJS(), yaml.parse(src));
+      assert.equal(ours.errors.length, 0);
+      assert.equal(ours.toString(), yaml.stringify(yaml.parseDocument(src)));
+      assert.deepEqual(parseDocument(ours.toString()).toJS(), expected);
+    });
+  }
+
+  it('flow-seq entries that are key:value pairs become maps (e.g. [a: 1])', () => {
+    const src = 'k: [a: 1, b: 2]\n';
+    const ours = parseDocument(src);
+    const ref = yaml.parseDocument(src);
+    assert.deepEqual(ours.toJS(), ref.toJS());
+    assert.deepEqual(ours.toJS(), { k: [{ a: 1 }, { b: 2 }] });
+    assert.equal(ours.toString(), ref.toString());
+  });
+
+  it('block-collection indicator inside flow throws, matching eemeli (no hang)', () => {
+    const src = 'k: [\n  - 1\n]\n';
+    assert.throws(() => parse(src));
+    assert.throws(() => yaml.parse(src));
+  });
+});

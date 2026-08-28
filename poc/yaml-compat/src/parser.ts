@@ -1099,6 +1099,48 @@ export class Parser {
 
   // ---- Flow collections ----------------------------------------------------
 
+  /**
+   * Guard against a collection loop that fails to advance the cursor (which
+   * would otherwise spin forever, growing the node until OOM). Force one char
+   * of progress and record a parse error so the caller can't hang.
+   */
+  private guardProgress(prev: number): void {
+    if (this.pos === prev && this.pos < this.len) {
+      this.error(this.pos, 'Failed to progress while parsing a collection');
+      this.pos++;
+    }
+  }
+
+  /**
+   * A flow-sequence entry can be a single `key: value` pair (e.g. `[a: 1]`
+   * parses to a one-pair map). parseFlowValue stops before the `:`; peek for
+   * a key-separator on this line and, if present, re-read the entry as a map.
+   */
+  private parseFlowSeqItem(): Node {
+    const first = this.parseFlowValue();
+    const saved = this.pos;
+    this.skipWsInline();
+    if (this.pos < this.len && this.src.charCodeAt(this.pos) === 0x3A &&
+        (this.pos + 1 >= this.len || this.isWsOrNl(this.src.charCodeAt(this.pos + 1)))) {
+      // `key:` — consume the value and wrap into a single-pair flow map
+      this.pos++; // skip :
+      this.skipWsInline();
+      let value: Node | null = null;
+      if (this.pos < this.len &&
+          this.src.charCodeAt(this.pos) !== 0x2C &&   // ,
+          this.src.charCodeAt(this.pos) !== 0x5D) {   // ]
+        value = this.parseFlowValue();
+      }
+      const map = new YAMLMap();
+      map.flow = true;
+      map.items.push(new Pair(first, value));
+      map.range = [first.range?.[0] ?? this.pos, this.pos, this.pos];
+      return map;
+    }
+    this.pos = saved;
+    return first;
+  }
+
   private parseFlowSequence(start: number): YAMLSeq {
     const seq = new YAMLSeq();
     seq.flow = true;
@@ -1107,10 +1149,11 @@ export class Parser {
     this.skipWsAndComments();
 
     while (this.pos < this.len && this.src.charCodeAt(this.pos) !== 0x5D) { // ]
+      const loopStart = this.pos;
       // Apply pending comments
       const cb = this.consumePendingCommentBefore();
 
-      const item = this.parseFlowValue();
+      const item = this.parseFlowSeqItem();
       if (cb) item.commentBefore = cb;
 
       seq.items.push(item);
@@ -1121,6 +1164,7 @@ export class Parser {
         this.pos++;
         this.skipWsAndComments();
       }
+      this.guardProgress(loopStart);
     }
 
     if (this.pos < this.len) {
@@ -1142,6 +1186,7 @@ export class Parser {
     const seenKeys = this.uniqueKeys ? new Set<string>() : null;
 
     while (this.pos < this.len && this.src.charCodeAt(this.pos) !== 0x7D) { // }
+      const loopStart = this.pos;
       this.skipWsAndComments();
       const cb = this.consumePendingCommentBefore();
 
@@ -1188,6 +1233,7 @@ export class Parser {
         this.pos++;
         this.skipWsAndComments();
       }
+      this.guardProgress(loopStart);
     }
 
     if (this.pos < this.len) {
@@ -1235,6 +1281,14 @@ export class Parser {
     }
 
     const c = this.ch();
+    // Block-collection indicators (`- `) are not allowed in flow context
+    // (§8.1); flag and fall through so the value is still consumed (no hang).
+    if (c === 0x2D) {
+      const nxt = this.pos + 1 < this.len ? this.src.charCodeAt(this.pos + 1) : -1;
+      if (nxt === -1 || this.isWsOrNl(nxt)) {
+        this.error(this.pos, 'Block collections are not allowed within flow collections');
+      }
+    }
     let node: Node;
 
     if (c === 0x2A) { // *
@@ -1433,6 +1487,7 @@ export class Parser {
     const seenKeys = this.uniqueKeys ? new Set<string>() : null;
 
     while (this.pos < this.len) {
+      const loopStart = this.pos;
       // Check indent
       const col = this.currentColumn();
       if (col < indent) break;
@@ -1547,6 +1602,7 @@ export class Parser {
 
       // Skip to next line
       this.skipWsAndComments();
+      this.guardProgress(loopStart);
     }
 
     map.range = [start, this.pos, this.pos];
@@ -1575,6 +1631,7 @@ export class Parser {
     const start = this.pos;
 
     while (this.pos < this.len) {
+      const loopStart = this.pos;
       // Check indent
       const col = this.currentColumn();
       if (col < indent) break;
@@ -1622,6 +1679,7 @@ export class Parser {
       }
 
       this.skipWsAndComments();
+      this.guardProgress(loopStart);
     }
 
     seq.range = [start, this.pos, this.pos];

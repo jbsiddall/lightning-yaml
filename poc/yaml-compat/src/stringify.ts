@@ -196,13 +196,13 @@ function emitCommentText(text: string, ctx: Ctx): void {
 
 // ---- Node dispatch ---------------------------------------------------------
 
-function renderNode(node: Node, ctx: Ctx, col: number, inFlow: boolean, inline = false): void {
+function renderNode(node: Node, ctx: Ctx, col: number, inFlow: boolean): void {
   if (isScalar(node)) {
     renderScalar(node, ctx, col);
   } else if (isMap(node)) {
     renderMap(node, ctx, col, inFlow);
   } else if (isSeq(node)) {
-    renderSeq(node, ctx, col, inFlow, inline);
+    renderSeq(node, ctx, col, inFlow);
   } else if (isAlias(node)) {
     renderAlias(node, ctx);
   }
@@ -484,12 +484,16 @@ function renderBlockPair(pair: Pair, ctx: Ctx, col: number): void {
     renderNode(value, ctx, vcol, false);
   }
 
+  emitValueComment(value, p, ctx);
+}
+
+// Emit a value's trailing comment. Block scalars get their own line (inline
+// would corrupt the value); other values carry an inline ` #c`.
+function emitValueComment(value: Node, p: string, ctx: Ctx): void {
   if (isNode(value) && value.comment) {
-    // B1: block scalar comments go on their own line, not inline (inline corrupts value)
     if (isScalar(value) && (value.type === SCALAR_LITERAL || value.type === SCALAR_FOLDED)) {
       ctx.out.push('\n');
       ctx.out.push(p);
-      // Emit without trailing newline — the map loop separator or doc-end handles it
       const c = value.comment;
       ctx.out.push(c.startsWith(' ') ? `#${c}` : `# ${c}`);
     } else {
@@ -560,7 +564,7 @@ function renderFlowMap(node: YAMLMap, ctx: Ctx, col: number): void {
 
 // ---- Seq -------------------------------------------------------------------
 
-function renderSeq(node: YAMLSeq, ctx: Ctx, col: number, inFlow: boolean, inline = false): void {
+function renderSeq(node: YAMLSeq, ctx: Ctx, col: number, inFlow: boolean): void {
   const useFlow = inFlow || node.flow || shouldFlow(col, ctx);
   const prefix = anchorTagPrefix(node);
 
@@ -597,10 +601,7 @@ function renderSeq(node: YAMLSeq, ctx: Ctx, col: number, inFlow: boolean, inline
       emitCommentText(item.commentBefore, ctx);
     }
 
-    // inline: this seq is a nested seq-item — its first dash continues the
-    // parent's line (the parent already wrote "- "), so no column padding.
-    if (i === 0 && inline) ctx.out.push('- ');
-    else ctx.out.push(`${p}- `);
+    ctx.out.push(`${p}- `);
 
     renderSeqItemContent(item, ctx, col);
 
@@ -651,6 +652,7 @@ function renderSeqMapItem(item: YAMLMap, ctx: Ctx, kcol: number): void {
   } else {
     ctx.out.push(' ');
     renderNode(firstPair.value, ctx, vcol, false);
+    emitValueComment(firstPair.value, pad(vcol), ctx);
   }
   // Remaining pairs aligned with the first inline key
   for (let j = 1; j < item.items.length; j++) {

@@ -541,3 +541,22 @@ describe('PR5b-M1: bool source preservation, matching eemeli', () => {
     assert.equal(doc.toString(), yaml.parseDocument('a: True\n').toString());
   });
 });
+
+// ---- PR5b-F3: seq-item map keeps its first value's inline comment ----------
+// Regression: renderSeqMapItem dropped the first pair's inline value comment.
+
+describe('PR5b-F3: inline value comment in seq-item maps', () => {
+  const cases = [
+    '- - a: 1 # c\n    b: 2\n  - c: 3\n',
+    '- a: 1 # c\n  b: 2\n',
+    '- "k": "v" # comment\n  j: 2\n',
+  ];
+  for (const src of cases) {
+    it(`keeps inline value comment for ${JSON.stringify(src.split('\n')[0])}`, () => {
+      const ours = parseDocument(src);
+      const ref = yaml.parseDocument(src);
+      assert.equal(ours.toString(), ref.toString());
+      assert.deepEqual(parseDocument(ours.toString()).toJS(), yaml.parse(src));
+    });
+  }
+});
