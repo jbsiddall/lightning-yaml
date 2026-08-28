@@ -196,13 +196,13 @@ function emitCommentText(text: string, ctx: Ctx): void {
 
 // ---- Node dispatch ---------------------------------------------------------
 
-function renderNode(node: Node, ctx: Ctx, col: number, inFlow: boolean): void {
+function renderNode(node: Node, ctx: Ctx, col: number, inFlow: boolean, inline = false): void {
   if (isScalar(node)) {
     renderScalar(node, ctx, col);
   } else if (isMap(node)) {
     renderMap(node, ctx, col, inFlow);
   } else if (isSeq(node)) {
-    renderSeq(node, ctx, col, inFlow);
+    renderSeq(node, ctx, col, inFlow, inline);
   } else if (isAlias(node)) {
     renderAlias(node, ctx);
   }
@@ -366,12 +366,16 @@ function renderBlockScalar(text: string, indicator: '|' | '>', ctx: Ctx, col: nu
   }
 }
 
-// eemeli preserves a bool scalar's parsed source iff it round-trips to the
-// same value (value === (source === 'true')); only otherwise does it fall back
-// to trueStr/falseStr. Mirrored here (PR5b-F2).
+// eemeli (schema/core/bool.js) preserves a bool scalar's parsed source iff it
+// is a canonical bool spelling AND the source's boolean value equals the node's
+// value; only otherwise does it fall back to trueStr/falseStr. Mirrored here.
+const BOOL_SOURCE = /^(?:[Tt]rue|TRUE|[Ff]alse|FALSE)$/;
+function boolSourceValue(source: string): boolean {
+  return source[0] === 't' || source[0] === 'T';
+}
 function boolPreserved(node: Scalar): node is Scalar & { value: boolean } {
   const v = node.value;
-  return typeof v === 'boolean' && node.source !== null && v === (node.source === 'true');
+  return typeof v === 'boolean' && node.source !== null && BOOL_SOURCE.test(node.source) && v === boolSourceValue(node.source);
 }
 
 // ---- Map -------------------------------------------------------------------
@@ -556,7 +560,7 @@ function renderFlowMap(node: YAMLMap, ctx: Ctx, col: number): void {
 
 // ---- Seq -------------------------------------------------------------------
 
-function renderSeq(node: YAMLSeq, ctx: Ctx, col: number, inFlow: boolean): void {
+function renderSeq(node: YAMLSeq, ctx: Ctx, col: number, inFlow: boolean, inline = false): void {
   const useFlow = inFlow || node.flow || shouldFlow(col, ctx);
   const prefix = anchorTagPrefix(node);
 
@@ -580,10 +584,6 @@ function renderSeq(node: YAMLSeq, ctx: Ctx, col: number, inFlow: boolean): void 
   }
   ctx.prefixRendered = false;
 
-  // PR5b-F1: a map-in-seq's content sits at the dash column + 2 (the "- " width),
-  // regardless of indent; siblings align with the first inline key.
-  const mcol = col + 2;
-
   for (let i = 0; i < node.items.length; i++) {
     const item = node.items[i]!;
     if (i > 0) ctx.out.push('\n');
@@ -596,48 +596,66 @@ function renderSeq(node: YAMLSeq, ctx: Ctx, col: number, inFlow: boolean): void 
       ctx.out.push(p);
       emitCommentText(item.commentBefore, ctx);
     }
-    ctx.out.push(`${p}- `);
 
-    if (isMap(item) && !item.flow && !shouldFlow(mcol, ctx) && item.items.length > 0) {
-      // First pair inline after "- "
-      const firstPair = item.items[0]!;
-      if (firstPair.key && isNode(firstPair.key) && firstPair.key.commentBefore) {
-        emitCommentText(firstPair.key.commentBefore, ctx);
-      }
-      ctx.out.push(renderNodeToString(firstPair.key, ctx, mcol));
-      ctx.out.push(':');
-      if (firstPair.key && isNode(firstPair.key) && firstPair.key.comment) {
-        ctx.out.push(` #${firstPair.key.comment}`);
-      }
-      const vcol = mcol + ctx.indent;
-      if (firstPair.value === null) {
-        // nothing
-      } else if (isBlockCollection(firstPair.value, vcol, ctx)) {
-        ctx.out.push('\n');
-        renderNode(firstPair.value, ctx, vcol, false);
-      } else {
-        ctx.out.push(' ');
-        renderNode(firstPair.value, ctx, vcol, false);
-      }
-      // Remaining pairs (aligned with the first inline key at mcol)
-      for (let j = 1; j < item.items.length; j++) {
-        ctx.out.push('\n');
-        renderBlockPair(item.items[j]!, ctx, mcol);
-      }
-    } else if (isSeq(item) && !item.flow && !shouldFlow(mcol, ctx) && item.items.length > 0) {
-      // Nested block seq: render items directly at the dash column
-      for (let j = 0; j < item.items.length; j++) {
-        if (j > 0) ctx.out.push('\n');
-        ctx.out.push(`${pad(mcol)}- `);
-        renderNode(item.items[j]!, ctx, mcol + ctx.indent, false);
-      }
-    } else {
-      renderNode(item, ctx, col + ctx.indent, false);
-    }
+    // inline: this seq is a nested seq-item — its first dash continues the
+    // parent's line (the parent already wrote "- "), so no column padding.
+    if (i === 0 && inline) ctx.out.push('- ');
+    else ctx.out.push(`${p}- `);
+
+    renderSeqItemContent(item, ctx, col);
 
     if (isNode(item) && item.comment) {
       ctx.out.push(` #${item.comment}`);
     }
+  }
+}
+
+// Renders a seq item whose "- " dash opener sits at column `dcol`. The item
+// body continues on the same line; nested block collections recurse inline so
+// dashes accumulate left-to-right (e.g. "- - - 1"), with sibling items aligned
+// at the parent dash column.
+function renderSeqItemContent(item: Node, ctx: Ctx, dcol: number): void {
+  const ccol = dcol + 2;
+
+  if (isMap(item) && !item.flow && !shouldFlow(ccol, ctx) && item.items.length > 0) {
+    renderSeqMapItem(item, ctx, ccol);
+  } else if (isSeq(item) && !item.flow && !shouldFlow(ccol, ctx) && item.items.length > 0) {
+    for (let j = 0; j < item.items.length; j++) {
+      if (j > 0) ctx.out.push('\n' + pad(ccol));
+      ctx.out.push('- ');
+      renderSeqItemContent(item.items[j]!, ctx, ccol);
+    }
+  } else {
+    renderNode(item, ctx, ccol, false);
+  }
+}
+
+// Renders a map as a seq item: first pair's key is inline after "- ", the rest
+// of the pairs align at column `kcol` with the first inline key.
+function renderSeqMapItem(item: YAMLMap, ctx: Ctx, kcol: number): void {
+  const firstPair = item.items[0]!;
+  if (firstPair.key && isNode(firstPair.key) && firstPair.key.commentBefore) {
+    emitCommentText(firstPair.key.commentBefore, ctx);
+  }
+  ctx.out.push(renderNodeToString(firstPair.key, ctx, kcol));
+  ctx.out.push(':');
+  if (firstPair.key && isNode(firstPair.key) && firstPair.key.comment) {
+    ctx.out.push(` #${firstPair.key.comment}`);
+  }
+  const vcol = kcol + ctx.indent;
+  if (firstPair.value === null) {
+    // nothing
+  } else if (isBlockCollection(firstPair.value, vcol, ctx)) {
+    ctx.out.push('\n');
+    renderNode(firstPair.value, ctx, vcol, false);
+  } else {
+    ctx.out.push(' ');
+    renderNode(firstPair.value, ctx, vcol, false);
+  }
+  // Remaining pairs aligned with the first inline key
+  for (let j = 1; j < item.items.length; j++) {
+    ctx.out.push('\n');
+    renderBlockPair(item.items[j]!, ctx, kcol);
   }
 }
 

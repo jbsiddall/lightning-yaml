@@ -1338,9 +1338,13 @@ export class Parser {
     } else if (fc === 0x7C || fc === 0x3E) { // | or >
       node = this.parseBlockScalar(this.pos);
     } else if (fc === 0x22) { // "
-      node = this.parseDoubleQuoted(this.pos);
+      // A quoted scalar may start a compact block map (e.g. "- \"qk\": v1");
+      // peek for a key-value separator just like the plain-scalar branch does.
+      if (this.isBlockMapKey()) node = this.parseBlockMapping(indent);
+      else node = this.parseDoubleQuoted(this.pos);
     } else if (fc === 0x27) { // '
-      node = this.parseSingleQuoted(this.pos);
+      if (this.isBlockMapKey()) node = this.parseBlockMapping(indent);
+      else node = this.parseSingleQuoted(this.pos);
     } else {
       // Could be a plain scalar OR a block mapping key
       // Look ahead for : to decide

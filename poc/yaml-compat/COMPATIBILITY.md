@@ -96,7 +96,7 @@ it, and a named differential test.
 
 | Option | Status | Consumer | Test | Notes |
 |---|---|---|---|---|
-| `version` | PARTIAL | yaml-language-server | parser tests | '1.2' default; '1.1' enables merge-key resolution but not the full 1.1 tag set (y/n bools etc.) |
+| `version` | PARTIAL | yaml-language-server | parser tests | '1.2' default; '1.1' enables merge-key resolution and y/n boolean resolution (verified vs `yaml` 2.9.0); other 1.1 tag-set differences not implemented |
 | `strict` | SUPPORTED | all | parser tests | |
 | `uniqueKeys` | SUPPORTED | eslint-yml | parser tests | |
 | `merge` | SUPPORTED | — | parser tests | `<<` merge key resolution in toJS |

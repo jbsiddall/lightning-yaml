@@ -62,8 +62,8 @@ export class Document {
     if (opts?.mapAsMap) throw new Error('Not implemented in POC: mapAsMap');
     if (opts?.intAsBigInt) throw new Error('Not implemented in POC: intAsBigInt');
     // PR5b-F3: version:'1.1' enables merge-key resolution (the 1.1 schema has merge
-// built in) regardless of the merge option; we otherwise resolve `<<` only when
-// merge is requested. Full 1.1 tag switching (y/n bools etc.) is out of scope.
+    // built in) regardless of the merge option, and resolves y/n booleans; we only
+    // resolve `<<` on demand otherwise.
     const merge = this.options.version === '1.1' || !!opts?.merge || !!this.options.merge;
     const maxAliasCount = opts?.maxAliasCount ?? 100;
     const mapAsMap = false;
