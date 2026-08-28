@@ -85,6 +85,16 @@ describe('parse option parity vs yaml', () => {
 // ---- Dimension B: stringify parity ------------------------------------------
 
 describe('stringify option parity vs yaml', () => {
+  // trueStr/falseStr only kick in on in-memory booleans (round-tripped bools
+  // keep their source spelling), so the fixture rows above don't exercise them.
+  it('trueStr/falseStr apply on in-memory booleans', () => {
+    for (const opts of [{ trueStr: 'yes', falseStr: 'no' }, { trueStr: 'on', falseStr: 'off' }]) {
+      assert.equal(
+        stringify({ a: true, b: false }, opts),
+        yaml.stringify({ a: true, b: false }, opts as any),
+      );
+    }
+  });
   for (const [name, text] of Object.entries(MATRIX_FIXTURES)) {
     for (const { name: cfg, opts } of STRINGIFY_CONFIGS) {
       it(`${name} × ${cfg}`, () => {
