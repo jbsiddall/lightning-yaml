@@ -522,6 +522,15 @@ test("agrees with js-yaml on block scalars (1.2-core and js-yaml don't diverge h
   }
 });
 
+test("root-level block scalars with explicit indentation indicators (|1, |2, etc.)", () => {
+  deepStrictEqual(parse("|1\n  a\n"), " a\n");
+  deepStrictEqual(parse("|2\n  a\n"), "a\n");
+  deepStrictEqual(parse("--- |1\n  a\n"), " a\n");
+  deepStrictEqual(parse("--- |2\n  a\n"), "a\n");
+  deepStrictEqual(parse("|1\n  a\n"), oracleParse("|1\n  a\n"));
+  deepStrictEqual(parse("|2\n  a\n"), oracleParse("|2\n  a\n"));
+});
+
 // --------------------------------------------------------------------------
 // Regression tests for the adversarial-review findings (2026-07). One test per
 // finding so a recurrence trips immediately. Fixed bugs assert the correct
