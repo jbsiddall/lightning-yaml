@@ -1846,6 +1846,15 @@ test("mostly-distinct mapping keys all parse to the right key/value pairs", () =
   for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
 });
 
+test("flow mapping implicit empty key parsing (yaml-test-suite NKF9)", () => {
+  deepStrictEqual(parse("{ : v}"), { "": "v" });
+  deepStrictEqual(parse("{: v}"), { "": "v" });
+  deepStrictEqual(parse("{ : }"), { "": null });
+  deepStrictEqual(parse("{:}"), { "": null });
+  deepStrictEqual(parse("{\n:\nv\n}"), { "": "v" });
+  deepStrictEqual(parse("{a: 1, : 2}"), { a: 1, "": 2 });
+});
+
 // A caller-supplied `keyCacheMaxKb` far below the default still yields every
 // correct key/value pair — the cap only stops the cache from growing, it never
 // drops or corrupts a key already being parsed (`internKey` returns `s` either

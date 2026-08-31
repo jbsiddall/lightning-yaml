@@ -1,0 +1,3 @@
+## 2026-08-31 - Flow mapping implicit empty keys
+**Learning:** Flow mapping entries starting directly with a colon followed by a flow separator (`{ : v}`, `{: v}`, `{ : }`) represent an implicit empty string key `""`. In `lightning-yaml`'s `parseFlowMap`, `parseFlowKey` was attempting to scan a plain key and throwing `YAMLParseError: expected a mapping key`. Checking `c === COLON && flowSeparatorAt(pos + 1)` in `parseFlowMap` directly assigns `key = ""` and lets the colon handler consume the colon and value.
+**Action:** When hunting for flow mapping bugs, remember that implicit keys can be omitted entirely before `:` or `?` indicators when followed by valid flow separators.
