@@ -1820,6 +1820,7 @@ function plainKey(start: number, end: number): string {
 /** A flow mapping key: an anchor/alias, tag, double-quoted, single-quoted, or a plain scalar. */
 function parseFlowKey(): string {
   const c = src.charCodeAt(pos);
+  if (c === COLON && flowSeparatorAt(pos + 1)) return "";
   if (c === AMP) return parseFlowKeyAnchored();
   if (c === EXCLAIM) return parseFlowKeyTagged();
   if (c === STAR) return internKey(keyToString(parseAlias()));
