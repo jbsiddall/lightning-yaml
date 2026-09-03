@@ -294,3 +294,17 @@ test("binary: invalid base64 characters (e.g. wide unicode or non-base64 charact
   throwsBecause(() => parse("!!binary \"\u0100\u0100\u0100\u0100\""), /invalid base64 character/);
   throwsBecause(() => parse("!!binary \"AAAA-A==\""), /invalid base64 character/);
 });
+
+test("complex keys: cyclic complex mapping keys parse cleanly without RangeError", () => {
+  const inputs = [
+    "&a [*a]: 1",
+    "&a {a: *a}: 1",
+    "? &a [*a]: 1",
+    "? &a {a: *a}: 1",
+  ];
+  for (const input of inputs) {
+    const res = parse(input) as Record<string, unknown>;
+    ok(res !== null && typeof res === "object", `parsed ${input} to object`);
+    deepStrictEqual(parseAll(input)[0], res, `parseAll agrees on ${input}`);
+  }
+});
