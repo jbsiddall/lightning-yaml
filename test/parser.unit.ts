@@ -467,6 +467,15 @@ test("block scalar: explicit indentation indicator in either order (|2- vs |-2)"
   ]);
 });
 
+test("block scalar: explicit indentation indicator at root level (|2, >2)", () => {
+  deepStrictEqual(parse("|2\n  hello\n"), "hello\n");
+  deepStrictEqual(parse("|1\n hello\n"), "hello\n");
+  deepStrictEqual(parse(">2\n  hello\n  world\n"), "hello world\n");
+  deepStrictEqual(parse("--- |2\n  hello\n"), "hello\n");
+  deepStrictEqual(parse("|2\n  hello\n"), oracleParse("|2\n  hello\n"));
+  deepStrictEqual(parse("--- |2\n  hello\n"), oracleParse("--- |2\n  hello\n"));
+});
+
 test("block scalar: a more-indented folded line is kept literally and its surrounding breaks are not folded", () => {
   deepStrictEqual(parse("key: >\n  a\n   more\n  b\n"), { key: "a\n more\nb\n" });
 });
