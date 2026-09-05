@@ -1747,19 +1747,21 @@ function keyToString(node: unknown): string {
 // (and, rarely, a `!!set`/`!!omap` used as a key), never anchors/tags/comments.
 // ---------------------------------------------------------------------------
 
-function stringifyKeyNode(node: object): string {
-  if (Array.isArray(node)) return stringifyKeyItems(node.length, (i) => stringifyKeyValue(node[i]), "[", "]");
+function stringifyKeyNode(node: object, visited = new Set<object>()): string {
+  if (visited.has(node)) return Array.isArray(node) ? "[...]" : "{...}";
+  visited.add(node);
+  if (Array.isArray(node)) return stringifyKeyItems(node.length, (i) => stringifyKeyValue(node[i], visited), "[", "]");
   if (node instanceof Set) {
     const items = [...node.values()];
-    return stringifyKeyItems(items.length, (i) => stringifyKeyValue(items[i]), "[", "]");
+    return stringifyKeyItems(items.length, (i) => stringifyKeyValue(items[i], visited), "[", "]");
   }
   if (node instanceof Map) {
     const entries = [...node.entries()];
-    return stringifyKeyItems(entries.length, (i) => `${stringifyKeyScalar(keyToString(entries[i]![0]))}: ${stringifyKeyValue(entries[i]![1])}`, "{", "}");
+    return stringifyKeyItems(entries.length, (i) => `${stringifyKeyScalar(keyToString(entries[i]![0]))}: ${stringifyKeyValue(entries[i]![1], visited)}`, "{", "}");
   }
-  if (node instanceof Uint8Array) return stringifyKeyNode(Array.from(node)); // best-effort, rare (a binary key)
+  if (node instanceof Uint8Array) return stringifyKeyNode(Array.from(node), visited); // best-effort, rare (a binary key)
   const keys = Object.keys(node as Record<string, unknown>);
-  return stringifyKeyItems(keys.length, (i) => `${stringifyKeyScalar(keys[i]!)}: ${stringifyKeyValue((node as Record<string, unknown>)[keys[i]!])}`, "{", "}");
+  return stringifyKeyItems(keys.length, (i) => `${stringifyKeyScalar(keys[i]!)}: ${stringifyKeyValue((node as Record<string, unknown>)[keys[i]!], visited)}`, "{", "}");
 }
 
 /** Shared flow-padding join for `stringifyKeyNode`'s array/object branches: `"[]"`/`"{}"` empty, else `"X item, item Y"`. */
@@ -1773,12 +1775,12 @@ function stringifyKeyItems(count: number, render: (i: number) => string, open: s
   return out + " " + close;
 }
 
-function stringifyKeyValue(value: unknown): string {
+function stringifyKeyValue(value: unknown, visited?: Set<object>): string {
   if (value === null) return "null";
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return stringifyKeyScalar(value);
-  if (typeof value === "object") return stringifyKeyNode(value);
+  if (typeof value === "object") return stringifyKeyNode(value as object, visited);
   return String(value);
 }
 
