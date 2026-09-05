@@ -256,6 +256,8 @@ test("cyclic anchors resolve to a self-referential structure without crashing", 
   strictEqual(seq.a[0], seq.a, "sequence contains itself");
   const map = parse("a: &a {self: *a}") as { a: { self: unknown } };
   strictEqual(map.a.self, map.a, "map contains itself");
+  const complexKey = parse("&a\n[*a]: 1") as Record<string, number>;
+  ok(typeof complexKey === "object" && complexKey !== null, "complex cyclic key parses into object");
 });
 
 // --------------------------------------------------------------------------
