@@ -631,3 +631,10 @@ test("special keys: constructor / prototype as ordinary map keys", () => {
   const value = { constructor: 1, prototype: 2 };
   assertRoundTrips(value, "constructor/prototype keys");
 });
+
+test("document-end marker '...' as string scalar is quoted in stringify", () => {
+  assertRoundTrips("...", "bare '...' string scalar");
+  assertRoundTrips("... foo", "'... foo' string scalar");
+  const text = stringify("...");
+  strictEqual(text.trim(), "'...'", "stringify('...') must be quoted to avoid parsing as null document end marker");
+});
