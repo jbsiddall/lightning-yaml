@@ -255,6 +255,12 @@ for (const input of flowOracle) {
   });
 }
 
+test("flow mapping with implicit empty key matches oracle", () => {
+  for (const input of ["{:}", "{: v}", "{ : }", "{ : v}", "{a: 1, : 2}", "{: 1, a: 2}", "[:]", "[: 1]", "[ : ]"]) {
+    deepStrictEqual(parse(input), oracleParse(input));
+  }
+});
+
 test("plain scalars that are not numbers stay strings", () => {
   const s = "[01x2, nul, tru, fals, 1x, 0xG, 0b1, 1_000]";
   deepStrictEqual(parse(s), oracleParse(s));
