@@ -121,6 +121,8 @@ b: 2
 **Full API reference and function signatures →
 [lightning-yaml.dev](https://lightning-yaml.dev)**
 
+<a id="drop-in-for-js-yaml-or-yaml"></a>
+
 ### Compatibility with `js-yaml` or `yaml`
 
 The shims expose selected entry points under separate subpaths; check their
