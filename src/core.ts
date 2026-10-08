@@ -4868,6 +4868,14 @@ function writeStringScalar(s: string): string {
   return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
 }
 
+/** Root-only quoting for strings that would be read as a document end marker. */
+function writeRootStringScalar(s: string): string {
+  if (s === "..." || s.startsWith("... ")) {
+    return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+  }
+  return writeStringScalar(s);
+}
+
 // ---------------------------------------------------------------------------
 // Numbers.
 // ---------------------------------------------------------------------------
@@ -5049,7 +5057,7 @@ function writeEntryValue(value: unknown, indent: number): void {
  */
 function writeDocumentValue(value: unknown): void {
   if (value === null || typeof value !== "object") {
-    out += writeScalar(value) + "\n";
+    out += (typeof value === "string" ? writeRootStringScalar(value) : writeScalar(value)) + "\n";
     return;
   }
   const obj = value as object;
