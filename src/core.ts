@@ -2070,6 +2070,10 @@ function trimTrailingWs(from: number, end: number): number {
  * `flowFolded` up front, so a single-line scalar (the hot path) leaves it null.
  */
 function scanFlowPlainEnd(): number {
+  const c = src.charCodeAt(pos);
+  if (c === PERCENT || c === AT || c === BACKTICK || c === PIPE || c === GT) {
+    fail("a plain scalar cannot start with '%', '@', '`', '|', or '>'");
+  }
   flowFolded = null;
   const start = pos;
   const p = scanFlowPlainLine(start);
@@ -4653,8 +4657,8 @@ function dumpScanRefs(value: unknown): void {
   } else {
     const keys = Object.keys(obj as Record<string, unknown>);
     for (let i = 0; i < keys.length; i++) {
-      const val = (obj as Record<string, unknown>)[keys[i]];
-      if (val !== undefined) dumpScanRefs(val);
+      const value = (obj as Record<string, unknown>)[keys[i]];
+      if (value !== undefined) dumpScanRefs(value);
     }
   }
   dumpDepth--;
@@ -4871,6 +4875,14 @@ function writeStringScalar(s: string): string {
   return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
 }
 
+/** Root-only quoting for strings that would be read as a document end marker. */
+function writeRootStringScalar(s: string): string {
+  if (s === "..." || s.startsWith("... ")) {
+    return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+  }
+  return writeStringScalar(s);
+}
+
 // ---------------------------------------------------------------------------
 // Numbers.
 // ---------------------------------------------------------------------------
@@ -4964,12 +4976,7 @@ function writeBinaryScalar(bytes: Uint8Array): string {
 // ---------------------------------------------------------------------------
 
 function isEmptyContainer(obj: object, isArr: boolean): boolean {
-  if (isArr) return (obj as unknown[]).length === 0;
-  const keys = Object.keys(obj);
-  for (let i = 0; i < keys.length; i++) {
-    if ((obj as Record<string, unknown>)[keys[i]] !== undefined) return false;
-  }
-  return true;
+  return isArr ? (obj as unknown[]).length === 0 : Object.keys(obj as Record<string, unknown>).length === 0;
 }
 
 /**
@@ -4977,9 +4984,10 @@ function isEmptyContainer(obj: object, isArr: boolean): boolean {
  * Assumes the caller has already handled `obj`'s OWN anchor placement (this
  * only ever writes the CONTENTS).
  */
-function writeCollectionBody(obj: object, isArr: boolean, indent: number): void {
+function writeCollectionBody(obj: object, isArr: boolean, indent: number): boolean {
   if (++dumpDepth > MAX_DEPTH) throw new YAMLParseError("stringify: maximum nesting depth exceeded");
   const ind = indentSpaces(indent);
+  let hasEntries = isArr;
   if (isArr) {
     const arr = obj as unknown[];
     for (let i = 0; i < arr.length; i++) {
@@ -4991,18 +4999,20 @@ function writeCollectionBody(obj: object, isArr: boolean, indent: number): void 
     const keys = Object.keys(rec);
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
-      const val = rec[k];
-      if (val === undefined) continue;
+      const value = rec[k];
+      if (value === undefined) continue;
+      hasEntries = true;
       let keyColon = dumpKeyCache!.get(k);
       if (keyColon === undefined) {
         keyColon = writeStringScalar(k) + ":";
         if (dumpKeyCache!.size < MAX_DUMP_KEY_CACHE) dumpKeyCache!.set(k, keyColon);
       }
       out += ind + keyColon;
-      writeEntryValue(val, indent);
+      writeEntryValue(value, indent);
     }
   }
   dumpDepth--;
+  return hasEntries;
 }
 
 /**
@@ -5046,9 +5056,13 @@ function writeEntryValue(value: unknown, indent: number): void {
     out += " " + (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
     return;
   }
+  const previousOut = out;
   if (name !== null) out += " &" + name + "\n";
   else out += "\n";
-  writeCollectionBody(obj, isArr, indent + INDENT_STEP);
+  if (!writeCollectionBody(obj, isArr, indent + INDENT_STEP)) {
+    out = previousOut;
+    out += " " + (name !== null ? "&" + name + " " : "") + "{}\n";
+  }
 }
 
 /**
@@ -5059,7 +5073,7 @@ function writeEntryValue(value: unknown, indent: number): void {
  */
 function writeDocumentValue(value: unknown): void {
   if (value === null || typeof value !== "object") {
-    out += writeScalar(value) + "\n";
+    out += (typeof value === "string" ? writeRootStringScalar(value) : writeScalar(value)) + "\n";
     return;
   }
   const obj = value as object;
@@ -5077,8 +5091,12 @@ function writeDocumentValue(value: unknown): void {
     out += (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
     return;
   }
+  const previousOut = out;
   if (name !== null) out += "&" + name + "\n";
-  writeCollectionBody(obj, isArr, 0);
+  if (!writeCollectionBody(obj, isArr, 0)) {
+    out = previousOut;
+    out += (name !== null ? "&" + name + " " : "") + "{}\n";
+  }
 }
 
 /**

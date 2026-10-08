@@ -30,6 +30,7 @@ function runSpeedEmit(scope: Scope): void {
     stdio: "inherit",
     env: { ...process.env, BENCH_SCOPE: scope, FORCE_COLOR: "0" },
   });
+  if (p.error) throw p.error;
   if (p.status !== 0) throw new Error(`speed/emit.ts failed (exit ${p.status})`);
 }
 

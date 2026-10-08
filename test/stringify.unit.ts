@@ -341,6 +341,33 @@ const quoteNeededStrings: Array<[string, string]> = [
 
 for (const [label, value] of quoteNeededStrings) testScalarRoundTrips(label, value);
 
+test("root strings beginning with a document end marker stay scalar strings", () => {
+  for (const value of ["...", "... foo", "...\tfoo"]) {
+    const text = stringify(value);
+    ok(text.startsWith('"') || text.startsWith("'"), `root ${JSON.stringify(value)} must be quoted: ${JSON.stringify(text)}`);
+    strictEqual(parse(text), value);
+    strictEqual(oracleParse(text), value);
+  }
+
+  for (const value of ["..", "....", "...foo", "x ...", "...#comment"]) {
+    const text = stringify(value);
+    strictEqual(parse(text), value, `root near miss ${JSON.stringify(value)}`);
+    strictEqual(oracleParse(text), value, `oracle near miss ${JSON.stringify(value)}`);
+  }
+});
+
+test("nested marker-like values stay bare when safe and controls stay valid", () => {
+  const value = {
+    marker: "...",
+    sequence: ["... foo", "...foo"],
+    controls: ["a\tb", "a\nb", "a" + String.fromCharCode(1) + "b"],
+  };
+  const text = stringify(value);
+  ok(text.includes("marker: ...\n"), `nested map value should remain bare: ${JSON.stringify(text)}`);
+  ok(text.includes("- ... foo\n"), `nested sequence value should remain bare: ${JSON.stringify(text)}`);
+  assertRoundTrips(value, "nested marker-like and control strings");
+});
+
 // ---------------------------------------------------------------------------
 // 3. Collections — empty, nested/mixed, quoting-needed map keys, and deep
 // nesting (kept well under the parser's MAX_DEPTH = 1000 guard).
@@ -632,50 +659,33 @@ test("special keys: constructor / prototype as ordinary map keys", () => {
   assertRoundTrips(value, "constructor/prototype keys");
 });
 
-// ---------------------------------------------------------------------------
-// 8. JS undefined values — object properties with `undefined` values are
-// completely omitted, while sequence items with `undefined` values become `null`.
-// ---------------------------------------------------------------------------
-
-function normalizeUndefined(val: unknown): unknown {
-  if (val === undefined) return null;
-  if (val === null || typeof val !== "object") return val;
-  if (val instanceof Uint8Array) return val;
-  if (Array.isArray(val)) {
-    return val.map(normalizeUndefined);
-  }
-  const res: Record<string, unknown> = {};
-  for (const k of Object.keys(val)) {
-    const v = (val as Record<string, unknown>)[k];
-    if (v !== undefined) {
-      res[k] = normalizeUndefined(v);
-    }
-  }
-  return res;
-}
-
-function assertRoundTripsWithUndefined(value: unknown, label: string): void {
-  const normalized = normalizeUndefined(value);
-  ok(deepEqual(parse(stringify(value)), normalized), `roundTripSelf failed · ${label}`);
-  ok(deepEqual(oracleParse(stringify(value)), normalized), `roundTripOracle failed · ${label}`);
-}
-
-test("undefined values: object properties with undefined values are omitted", () => {
-  assertRoundTripsWithUndefined({ a: undefined }, "object with only undefined property");
-  assertRoundTripsWithUndefined({ a: undefined, b: 1 }, "object with undefined and normal property");
-  assertRoundTripsWithUndefined({ a: { b: undefined } }, "nested object with undefined property");
+test("undefined object properties are omitted while array entries become null", () => {
+  strictEqual(stringify({ only: undefined }), "{}\n");
+  strictEqual(stringify({ drop: undefined, keep: 1 }), "keep: 1\n");
+  strictEqual(stringify({ nested: { drop: undefined } }), "nested: {}\n");
+  strictEqual(stringify([undefined]), "- null\n");
+  strictEqual(stringify({ values: [undefined, { drop: undefined }] }), "values:\n  - null\n  - {}\n");
 });
 
-test("undefined values: array items with undefined values are serialized as null", () => {
-  assertRoundTripsWithUndefined([undefined], "array with only undefined item");
-  assertRoundTripsWithUndefined([1, undefined, 2], "array with undefined and normal items");
+test("shared containers with omitted properties retain their anchor", () => {
+  const shared = { omitted: undefined };
+  const text = stringify({ first: shared, second: shared });
+  strictEqual(text, "first: &a1 {}\nsecond: *a1\n");
+  const parsed = parse(text) as { first: object; second: object };
+  ok(parsed.first === parsed.second, "shared container identity survives omission");
+  const oracleParsed = oracleParse(text) as { first: object; second: object };
+  ok(oracleParsed.first === oracleParsed.second, "oracle preserves shared container identity");
 });
 
-test("undefined values: mixed structures containing undefined round-trip correctly", () => {
-  const mixed = {
-    plain: "text",
-    undefProp: undefined,
-    list: [1, undefined, { a: undefined, b: 2 }],
-  };
-  assertRoundTripsWithUndefined(mixed, "mixed structure with undefined values");
+test("omitting an undefined getter does not add an extra property read", () => {
+  let reads = 0;
+  const value = Object.defineProperty({}, "omitted", {
+    enumerable: true,
+    get() {
+      reads++;
+      return undefined;
+    },
+  });
+  strictEqual(stringify(value), "{}\n");
+  strictEqual(reads, 2);
 });

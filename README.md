@@ -233,8 +233,10 @@ here, treat it as a bug and
   error; we keep the last instead, matching `JSON.parse` — `{a: 1, a: 2}` parses
   to `{a: 2}`.
 - **Merge keys (`<<`) are read as an ordinary key, not merged.** `<<: *anchor`
-  gives you a literal `"<<"` string key rather than merging the aliased map in
-  (js-yaml and `yaml` merge it). It's neither expanded nor rejected today.
+  gives you a literal `"<<"` string key rather than merging the aliased map in.
+  The installed js-yaml 5.2.1 and `yaml` 2.9.0 defaults also leave it literal.
+  It's neither expanded nor rejected today.
+  <!-- js-yaml:5.2.1 yaml:2.9.0 ly:67d2e0b -->
 - **Compat options that aren't implemented yet throw.** The
   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
   (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we

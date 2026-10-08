@@ -182,6 +182,11 @@ test("js-yaml-compat.dump emits YAML the real js-yaml reads back", () => {
   deepStrictEqual(jsyamlReal.load(text), DUMP_VALUE);
 });
 
+test("js-yaml-compat.dump omits undefined object properties like js-yaml", () => {
+  const value = { omitted: undefined };
+  strictEqual(dump(value), jsyamlReal.dump(value));
+});
+
 test("yaml-compat.stringify emits YAML the real yaml reads back", () => {
   const text = stringify(DUMP_VALUE);
   strictEqual(typeof text, "string");
