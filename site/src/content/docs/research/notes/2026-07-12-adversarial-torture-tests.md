@@ -63,7 +63,7 @@ oracle diverges · ⚠️ deliberate deviation from spec · 🔒 newly locked by
 | 4.2 | `-_` (Atheris ValueError case) | string `"-_"` — never throws | ✅ 🔒 |
 | 4.2 | `.inf`/`-.inf`/`.nan` | ±Infinity / NaN | ✅ (covered) |
 | 4.3 | **duplicate keys** `lang: X` / `lang: Y` | **last-wins** `{lang: Y}` | ⚠️ 🔒 deliberate deviation (spec: keys unique → error; we take JSON.parse last-wins) |
-| 4.4–4.9 | **merge key `<<`** | **literal string key** (not merged, not thrown) | ⚠️ 🔒 (merge unimplemented) |
+| 4.4–4.9 | **merge key `<<`** | **merges by default**; `{ merge: false }` restores the literal-string-key reading | ⚠️ 🔒 deliberate deviation — both js-yaml and `yaml` require an opt-in and leave `<<` unmerged by default (see test/merge.unit.ts) |
 | 4.10 | billion-laughs / quadratic alias bomb | shared-ref DAG, <1 ms | ✅ 🔒 safe by sharing |
 | 4.11 | node-property / seq-under-map indentation | per 1.2 | ✅ (covered) |
 | 4.12 | **block** complex key `? [a, b]` | `{"[ a, b ]": …}` | ✅ (covered) |

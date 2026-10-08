@@ -96,15 +96,45 @@ parse(withTab, { strict: true }); // throws YAMLParseError
 Lenient parsing never changes how a *valid* document is read — it only
 widens what's accepted; `strict: true` narrows it back to the spec.
 
-## What's not supported yet
+## Merge keys (`<<`)
 
-Merge keys (`<<: *defaults`) are not implemented. lightning-yaml won't
-silently mis-parse a merge key into the wrong value — it's a documented gap,
-not a correctness bug — but it also won't expand the merge for you today.
-Everything else in the YAML 1.2 core feature set (flow and block
-collections, block scalars, anchors/aliases, tags including `!!binary`,
-directives, multi-document streams) is implemented and covered by the
-conformance suite — see [Benchmarks](/benchmarks/).
+`parse` and `parseAll` resolve `<<: *anchor` / `<<: [*a, *b]` merge keys
+([`tag:yaml.org,2002:merge`](https://yaml.org/type/merge.html)) by default,
+splicing the aliased mapping's keys into the current one at the point `<<`
+appears:
+
+```ts
+import { parse } from "lightning-yaml";
+
+const source = `
+defaults: &d
+  adapter: postgres
+  host: localhost
+development:
+  <<: *d
+  database: dev_db
+`;
+
+parse(source).development;
+// { adapter: "postgres", host: "localhost", database: "dev_db" }
+```
+
+A mapping's own keys always win over a merged one, whether written before or
+after the `<<` line; if `<<` appears more than once in the same mapping, the
+earlier occurrence wins on any key the two share.
+
+`<<` is a YAML 1.1 construct, not part of the YAML 1.2 core schema. Both
+js-yaml and `yaml` require an explicit opt-in and leave it unmerged by
+default, so lightning-yaml treating it as on by default is a deliberate
+divergence from both — real-world YAML depends on `<<` often enough to make
+that the more useful default. Pass `{ merge: false }` to turn it off and get
+the pre-merge reading instead: `<<` becomes an ordinary literal `"<<"`
+string key, neither expanded nor rejected.
+
+```ts
+parse(source, { merge: false }).development;
+// { "<<": { adapter: "postgres", host: "localhost" }, database: "dev_db" }
+```
 
 ## Next
 
