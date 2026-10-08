@@ -56,17 +56,34 @@ export interface Result {
   heapDeltaBytes: number;
 }
 
-function runWorker(candidate: string, dataset: string, op: Op): Result | null {
-  const proc = spawnSync(
+type WorkerSpawner = (
+  command: string,
+  args: readonly string[],
+  options: { encoding: "utf8"; maxBuffer: number },
+) => {
+  error?: Error;
+  status: number | null;
+  stderr?: string | null;
+  stdout?: string | null;
+};
+
+export function runWorker(
+  candidate: string,
+  dataset: string,
+  op: Op,
+  spawn: WorkerSpawner = spawnSync,
+): Result | null {
+  const proc = spawn(
     process.execPath,
     ["--expose-gc", "--import", "tsx", workerPath, candidate, dataset, op, String(ITERS)],
     { encoding: "utf8", maxBuffer: 1024 * 1024 },
   );
+  if (proc.error) throw proc.error;
   if (proc.status !== 0) {
     console.error(`  ! ${candidate}/${dataset}/${op} failed:\n${proc.stderr?.trim()}`);
     return null;
   }
-  const line = proc.stdout.trim().split("\n").pop() ?? "";
+  const line = (proc.stdout ?? "").trim().split("\n").pop() ?? "";
   try {
     return JSON.parse(line) as Result;
   } catch {

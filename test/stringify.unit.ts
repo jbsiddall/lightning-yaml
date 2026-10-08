@@ -341,6 +341,33 @@ const quoteNeededStrings: Array<[string, string]> = [
 
 for (const [label, value] of quoteNeededStrings) testScalarRoundTrips(label, value);
 
+test("root strings beginning with a document end marker stay scalar strings", () => {
+  for (const value of ["...", "... foo", "...\tfoo"]) {
+    const text = stringify(value);
+    ok(text.startsWith('"') || text.startsWith("'"), `root ${JSON.stringify(value)} must be quoted: ${JSON.stringify(text)}`);
+    strictEqual(parse(text), value);
+    strictEqual(oracleParse(text), value);
+  }
+
+  for (const value of ["..", "....", "...foo", "x ...", "...#comment"]) {
+    const text = stringify(value);
+    strictEqual(parse(text), value, `root near miss ${JSON.stringify(value)}`);
+    strictEqual(oracleParse(text), value, `oracle near miss ${JSON.stringify(value)}`);
+  }
+});
+
+test("nested marker-like values stay bare when safe and controls stay valid", () => {
+  const value = {
+    marker: "...",
+    sequence: ["... foo", "...foo"],
+    controls: ["a\tb", "a\nb", "a" + String.fromCharCode(1) + "b"],
+  };
+  const text = stringify(value);
+  ok(text.includes("marker: ...\n"), `nested map value should remain bare: ${JSON.stringify(text)}`);
+  ok(text.includes("- ... foo\n"), `nested sequence value should remain bare: ${JSON.stringify(text)}`);
+  assertRoundTrips(value, "nested marker-like and control strings");
+});
+
 // ---------------------------------------------------------------------------
 // 3. Collections — empty, nested/mixed, quoting-needed map keys, and deep
 // nesting (kept well under the parser's MAX_DEPTH = 1000 guard).

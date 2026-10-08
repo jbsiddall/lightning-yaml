@@ -186,6 +186,22 @@ test("merge: DarkForge four-parser payload does not crash (merge unimplemented)"
   ok(r !== null && typeof r === "object", "parses to an object without throwing");
 });
 
+test("flow plain scalars cannot start with reserved or block indicators", () => {
+  const starts = ["%", "@", "`", "|", ">"];
+  for (const start of starts) {
+    throwsBecause(() => parse(`[ ${start}foo ]`), /plain scalar cannot start/);
+    throwsBecause(() => parse(`{ ${start}foo: value }`), /plain scalar cannot start/);
+    throwsBecause(() => parse(`[ !!str ${start}foo ]`), /plain scalar cannot start/);
+  }
+  throwsBecause(() => parse("[ &a %foo ]"), /plain scalar cannot start/);
+  throwsBecause(() => parse("{ !!str %foo: value }"), /plain scalar cannot start/);
+  throwsBecause(() => parse("{ &a %foo: value }"), /plain scalar cannot start/);
+
+  deepStrictEqual(parse('[ "%foo", "@foo", "`foo", "|foo", ">foo" ]'), ["%foo", "@foo", "`foo", "|foo", ">foo"]);
+  deepStrictEqual(parse("[foo@bar, foo|bar, -foo, ?foo, :foo]"), ["foo@bar", "foo|bar", "-foo", "?foo", ":foo"]);
+  deepStrictEqual(parse("{-key: a, ?key: b, :key: c, foo@bar: d}"), { "-key": "a", "?key": "b", ":key": "c", "foo@bar": "d" });
+});
+
 // --------------------------------------------------------------------------
 // §4.12 Complex (non-scalar) mapping keys — SPEC is the oracle here.
 // A collection used as a key needs the explicit `?` indicator, so the EXPLICIT
@@ -293,20 +309,4 @@ test("anchors: empty anchor aliases to null; redefinition is last-wins; forward 
 test("binary: invalid base64 characters (e.g. wide unicode or non-base64 characters) strictly throw YAMLParseError", () => {
   throwsBecause(() => parse("!!binary \"\u0100\u0100\u0100\u0100\""), /invalid base64 character/);
   throwsBecause(() => parse("!!binary \"AAAA-A==\""), /invalid base64 character/);
-});
-
-test("flow: unquoted plain scalars cannot start with reserved indicators %/@/` or block scalar indicators |/>", () => {
-  throwsBecause(() => parse("[ %foo ]"), /plain scalar cannot start/);
-  throwsBecause(() => parse("[ @foo ]"), /plain scalar cannot start/);
-  throwsBecause(() => parse("[ `foo ]"), /plain scalar cannot start/);
-  throwsBecause(() => parse("[ |foo ]"), /plain scalar cannot start/);
-  throwsBecause(() => parse("[ >foo ]"), /plain scalar cannot start/);
-  throwsBecause(() => parse("{ %foo: 1 }"), /plain scalar cannot start/);
-  throwsBecause(() => parse("{ @foo: 1 }"), /plain scalar cannot start/);
-  throwsBecause(() => parse("{ `foo: 1 }"), /plain scalar cannot start/);
-  throwsBecause(() => parse("{ |foo: 1 }"), /plain scalar cannot start/);
-  throwsBecause(() => parse("{ >foo: 1 }"), /plain scalar cannot start/);
-  // Also tagged versions
-  throwsBecause(() => parse("[ !!str %foo ]"), /plain scalar cannot start/);
-  throwsBecause(() => parse("[ !!str |foo ]"), /plain scalar cannot start/);
 });
