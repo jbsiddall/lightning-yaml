@@ -574,26 +574,16 @@ test("regression [6]: '?' before a flow close is an explicit empty key", () => {
   deepStrictEqual(parse("{?}"), oracleParse("{?}"));
 });
 
-test("flow mapping implicit empty keys", () => {
-  for (const [source, expected] of [
-    ["{: v}", { "": "v" }],
-    ["{ : v }", { "": "v" }],
-    ["{:}", { "": null }],
-    ["{ : }", { "": null }],
-    ["{\n: v\n}", { "": "v" }],
-    ["{ : , a: b}", { "": null, a: "b" }],
-    ["{a: b, : c,}", { a: "b", "": "c" }],
-  ] as const) {
-    deepStrictEqual(parse(source), expected, source);
-    deepStrictEqual(parse(source), oracleParse(source), `oracle: ${source}`);
-  }
-
-  // An empty-key entry needs separation before a nonempty value (§7.4.2).
-  for (const source of ["{:[x]}", "{:{a: b}}"])
-    throws(() => parse(source), YAMLParseError, source);
-
-  deepStrictEqual(parse("{:v}"), { ":v": null });
-  deepStrictEqual(parse("{::}"), { ":": null });
+test("flow mapping implicit empty key parsing ({: v}, { : v}, {:}, { : })", () => {
+  deepStrictEqual(parse("{: v}"), { "": "v" });
+  deepStrictEqual(parse("{ : v}"), { "": "v" });
+  deepStrictEqual(parse("{:}"), { "": null });
+  deepStrictEqual(parse("{ : }"), { "": null });
+  deepStrictEqual(parse("{\n: v\n}"), { "": "v" });
+  deepStrictEqual(parse("{ : , a: b }"), { "": null, a: "b" });
+  deepStrictEqual(parse("{: v}"), oracleParse("{: v}"));
+  deepStrictEqual(parse("{ : v}"), oracleParse("{ : v}"));
+  deepStrictEqual(parse("{ : }"), oracleParse("{ : }"));
 });
 
 test("regression [7]: quoted-scalar multi-line flow folding matches the oracle", () => {

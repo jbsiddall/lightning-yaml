@@ -2,4 +2,4 @@
 "lightning-yaml": patch
 ---
 
-Flow mappings now accept entries with an empty key, such as `{ : value }`.
+Fix flow mapping entries starting with a colon and flow separator (`{ : v}`, `{: v}`) to parse as implicit empty keys (`""`).
