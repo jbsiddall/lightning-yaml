@@ -372,13 +372,11 @@ let lastRecordKeys: string[] | null = null;
 
 /**
  * `%TAG <handle> <prefix>` is per-document state (doc 07 §4) — never
- * inherited across documents in a stream. Created lazily (pay-on-first-use,
- * like `anchorMap`) and stored only so a later milestone can resolve
- * `!handle!suffix` tags against it; nothing reads it yet, but storing it must
- * not require tags to be implemented (design recipe). Reset at the start of
- * every document's `parseDirectives` call, not just per-stream. (`%YAML
- * <version>` is validated the same way but not retained — we stay 1.2-core
- * throughout this milestone and nothing yet branches on the declared version.)
+ * inherited across documents in a stream. Created lazily and read by `scanTag`
+ * when resolving `!handle!suffix` tags. Reset at the start of every document's
+ * `parseDirectives` call, not just per-stream. (`%YAML <version>` is validated
+ * the same way but not retained — we stay 1.2-core and don't branch on the
+ * declared version.)
  */
 let tagHandles: Map<string, string> | null = null;
 
@@ -829,14 +827,8 @@ function skipFlowWsSlow(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Anchors (`&name`) and aliases (`*name`) — M5. Node properties are a seam for
-// F4 (tags): a `!tag` may precede OR follow an anchor (both orders are legal
-// YAML — spec `c-ns-properties`), but tags aren't implemented yet, so no `!`
-// handling is added here; a future `parseNodeProperties`-style merge just
-// needs to also try a leading/trailing `!tag` around the `&name` scan below,
-// in both the flow and block property-dispatch functions. For now a bare `!`
-// falls through to whatever `parseFlowValue`/`parseBlockNode` already did with
-// it pre-F4 (plain-scalar text — no special casing, per the design recipe).
+// Anchors (`&name`) and aliases (`*name`). Tags are parsed by the separate
+// flow and block node-property dispatch paths.
 // ---------------------------------------------------------------------------
 
 /**
@@ -2615,8 +2607,7 @@ function parseDoubleQuoted(): string {
 /**
  * Cold path: the string contains at least one escape, so the first `indexOf('"')`
  * may have landed on an escaped quote. Walk it, copying spans between escapes and
- * decoding each escape. JSON escape set for now; YAML's extra escapes and
- * line-folding land in a later milestone.
+ * decoding each YAML escape and folding any multiline content.
  */
 function parseDoubleQuotedSlow(start: number): string {
   let result = "";
@@ -2771,8 +2762,7 @@ function hexVal(c: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Single-quoted scalar — indexOf hop; `''` is an escaped quote. (Single-line
-// for now; multi-line single-quoted folding is a later milestone.)
+// Single-quoted scalar — indexOf hop; `''` is an escaped quote.
 // ---------------------------------------------------------------------------
 
 function parseSingleQuoted(): string {
@@ -4376,12 +4366,10 @@ function parseYamlDirectiveArgs(): void {
 }
 
 /**
- * `%TAG <handle> <prefix>` — stores the handle → prefix mapping in the
- * per-document `tagHandles` map (created lazily), for a later milestone to
- * resolve `!handle!suffix` tags against. Tags themselves are not implemented
- * yet; storing directives must not require them to be (design recipe). Per
- * spec §6.8.2 (Example 6.17), redefining the same handle within one document
- * is an error, not last-wins — checked before the map is populated.
+ * `%TAG <handle> <prefix>` — stores the handle → prefix mapping consumed by
+ * `scanTag` for this document. Per spec §6.8.2 (Example 6.17), redefining the
+ * same handle within one document is an error, not last-wins — checked before
+ * the map is populated.
  */
 function parseTagDirectiveArgs(): void {
   skipInlineSpaces();
