@@ -8,10 +8,8 @@ sidebar:
 lightning-yaml is a YAML parser and serializer for TypeScript and JavaScript. It
 implements the YAML 1.2 core schema — flow and block syntax, quoting and
 escapes, comments, anchors/aliases, block scalars, tags, and multi-document
-streams — and targets `JSON.parse`/`JSON.stringify`-class speed and memory
-rather than the 10–100× overhead typical of JS YAML libraries. See
-[Research](/research/overview/) for how, and [Benchmarks](/benchmarks/) for
-the numbers.
+streams. See [Research](/research/overview/) for implementation background
+and [Benchmarks](/benchmarks/) for measured performance and memory results.
 
 ## Install
 
@@ -71,7 +69,7 @@ console.log(doc);
 ```
 
 `stringify` is the inverse of `parse`: a JS value in, block-style YAML text
-out. See [Stringifying](/guides/stringifying/) for the formatting options.
+out. See [Stringifying](/guides/stringifying/) for more details.
 
 ## Typing the result
 
@@ -99,6 +97,6 @@ trusting the cast alone.
 
 - [Parsing](/guides/parsing/) — `parse` vs `parseAll`, scalar typing, and
   error handling.
-- [Stringifying](/guides/stringifying/) — formatting options and round-tripping.
+- [Stringifying](/guides/stringifying/) — round-tripping and performance.
 - [API reference](/api/) — the full exported surface.
 - [Benchmarks](/benchmarks/) — speed and memory versus `JSON`, `js-yaml`, and `yaml`.
