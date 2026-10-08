@@ -4,8 +4,8 @@
  *
  *   node --expose-gc --import tsx bench/report.ts self
  *     Benchmarks ONLY this repo's own parser (group "ours") + JSON baseline.
- *     Fast. Run before every commit/PR. If no lightning-yaml parser exists
- *     yet, prints a caveat and exits — nothing to benchmark.
+ *     Fast. Run before every commit/PR. If no lightning-yaml operation passes
+ *     the readiness check, prints a diagnostic and exits.
  *
  *   node --expose-gc --import tsx bench/report.ts competition
  *     Benchmarks every parser (JSON + js-yaml + yaml + lightning-yaml) across
@@ -46,9 +46,8 @@ async function main(): Promise<void> {
     const ready = ours.filter((c) => candidateSupports(c, "parse") || candidateSupports(c, "stringify"));
     if (ready.length === 0) {
       console.log(
-        "lightning-yaml is still a stub (parse/stringify throw) — nothing to benchmark.\n" +
-          "This refreshes automatically once src/index.ts implements them; until then, " +
-          "`pnpm test` runs the consistency suite that specifies what \"correct\" means.",
+        "No lightning-yaml operation passed the readiness check — nothing to benchmark.\n" +
+          "The consistency suite checks correctness for implemented operations.",
       );
       return;
     }
