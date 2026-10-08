@@ -186,7 +186,7 @@ test("merge: DarkForge four-parser payload does not crash (merge unimplemented)"
   ok(r !== null && typeof r === "object", "parses to an object without throwing");
 });
 
-test("flow plain scalars cannot start with reserved or block indicators", () => {
+test("flow plain scalars cannot start with invalid indicator characters", () => {
   const starts = ["%", "@", "`", "|", ">"];
   for (const start of starts) {
     throwsBecause(() => parse(`[ ${start}foo ]`), /plain scalar cannot start/);
