@@ -580,7 +580,7 @@ test("flow mapping implicit empty keys", () => {
     ["{ : v }", { "": "v" }],
     ["{:}", { "": null }],
     ["{ : }", { "": null }],
-    ["{\\n: v\\n}", { "": "v" }],
+    ["{\n: v\n}", { "": "v" }],
     ["{ : , a: b}", { "": null, a: "b" }],
     ["{a: b, : c,}", { a: "b", "": "c" }],
   ] as const) {
