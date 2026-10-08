@@ -3,14 +3,6 @@
  *   node --import tsx --test test/stringify.unit.ts
  *   (or: pnpm test:stringify)
  *
- * TEST-FIRST: `stringify` is still a stub in src/index.ts (throws
- * `NotImplementedError`), so EVERY test below is expected to fail today. That is
- * intentional — this file is the concrete spec the next milestone implements
- * against, mirroring how test/parser.unit.ts and the vitest consistency suite
- * were written before `parse` existed. Deliberately kept OUT of `test:unit`/
- * `test` (its own `test:stringify` script) so the core gate (`pnpm typecheck`,
- * `pnpm test:unit`, `pnpm test`) stays green while this stays red.
- *
  * CORRECTNESS MODEL — round-trip, not textual equality. Two YAML writers can
  * legitimately emit different-but-equivalent text for the same value (quoting
  * style, flow vs. block, key order), so we never assert exact output text.
@@ -217,7 +209,7 @@ test("seeded random corpus (400 cases): stringify -> parse round-trips (self + o
   const CASES = 400;
   for (let i = 0; i < CASES; i++) {
     const value = makeValue(rng, rng.int(1, 5));
-    const text = stringify(value); // throws NotImplementedError today — see file header
+    const text = stringify(value);
     ok(deepEqual(parse(text), value), `roundTripSelf failed · seeded case #${i}\n${JSON.stringify(value)}\n--- text ---\n${text}`);
     ok(deepEqual(oracleParse(text), value), `roundTripOracle failed · seeded case #${i}\n${JSON.stringify(value)}\n--- text ---\n${text}`);
   }
