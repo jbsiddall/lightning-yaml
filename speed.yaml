@@ -61708,3 +61708,2017 @@ operations:
           p75: 14380000
           p99: 15640000
           max: 16580000
+---
+suite: speed
+scope: competition
+tool: mitata
+unit: ns/iter
+lower_is_better: true
+schema_version: 1
+generated: 2026-10-08
+generated_at: 2026-10-08T15:20:07.833Z
+source: 2d02fd834f6d766a424f42981562b8e2a864f5a8
+env:
+  clk: ~3.09 GHz
+  cpu: AMD EPYC 7763 64-Core Processor
+  runtime: node 24.21.0 (x64-linux)
+libraries:
+  - id: JSON
+    label: JSON
+    baseline: true
+  - id: js-yaml
+    label: js-yaml
+    version: 5.2.1
+  - id: js-yaml-tuned
+    label: js-yaml (tuned)
+    version: 5.2.1
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    version: 0.1.1
+operations:
+  parse:
+    - workload: small-records
+      values:
+        JSON:
+          avg: 4759
+          min: 4712
+          p75: 4765
+          p99: 4827
+          max: 4985
+        js-yaml:
+          avg: 44340
+          min: 38512
+          p75: 41166
+          p99: 136505
+          max: 632663
+        yaml:
+          avg: 542957
+          min: 440503
+          p75: 503561
+          p99: 1329695
+          max: 1677314
+        lightning-yaml:
+          avg: 10778
+          min: 10686
+          p75: 10795
+          p99: 10925
+          max: 11003
+    - workload: medium-records
+      values:
+        JSON:
+          avg: 533004
+          min: 517286
+          p75: 536092
+          p99: 590874
+          max: 1071422
+        js-yaml:
+          avg: 4209396
+          min: 4105370
+          p75: 4179118
+          p99: 5026761
+          max: 5118813
+        yaml:
+          avg: 61163167
+          min: 54042727
+          p75: 57378940
+          p99: 62153020
+          max: 110383549
+        lightning-yaml:
+          avg: 1030531
+          min: 981714
+          p75: 995140
+          p99: 1921079
+          max: 2343959
+    - workload: large-records
+      values:
+        JSON:
+          avg: 6153997
+          min: 6075292
+          p75: 6136356
+          p99: 6369951
+          max: 7640492
+        js-yaml:
+          avg: 53195833
+          min: 51045692
+          p75: 54315922
+          p99: 54327144
+          max: 55148295
+        yaml:
+          avg: 660015842
+          min: 632169174
+          p75: 667442586
+          p99: 675671247
+          max: 741966101
+        lightning-yaml:
+          avg: 11401373
+          min: 11189727
+          p75: 11265930
+          p99: 13911182
+          max: 13965824
+    - workload: xlarge-records
+      values:
+        JSON:
+          avg: 61106550
+          min: 54677751
+          p75: 69816550
+          p99: 70234711
+          max: 70752418
+        js-yaml:
+          avg: 558176306
+          min: 534911558
+          p75: 543871898
+          p99: 613687120
+          max: 651809185
+        yaml:
+          avg: 6146630942
+          min: 5827476910
+          p75: 6474477474
+          p99: 6551788884
+          max: 6570567820
+        lightning-yaml:
+          avg: 122147842
+          min: 101725737
+          p75: 120867690
+          p99: 134783062
+          max: 142069783
+    - workload: medium-nested
+      values:
+        JSON:
+          avg: 1090905
+          min: 1074819
+          p75: 1090708
+          p99: 1182079
+          max: 1514900
+        js-yaml:
+          avg: 7391587
+          min: 7086300
+          p75: 7248253
+          p99: 9556937
+          max: 9573167
+        yaml:
+          avg: 96544785
+          min: 86305696
+          p75: 94428407
+          p99: 100306948
+          max: 140549858
+        lightning-yaml:
+          avg: 1812129
+          min: 1755330
+          p75: 1775226
+          p99: 3294115
+          max: 3778830
+    - workload: large-nested
+      values:
+        JSON:
+          avg: 7992705
+          min: 7886145
+          p75: 7969150
+          p99: 9080486
+          max: 9153703
+        js-yaml:
+          avg: 59644704
+          min: 51939535
+          p75: 59775116
+          p99: 60166466
+          max: 85023570
+        yaml:
+          avg: 669006261
+          min: 647565736
+          p75: 667293547
+          p99: 698742310
+          max: 739072250
+        lightning-yaml:
+          avg: 13020019
+          min: 12805575
+          p75: 13039161
+          p99: 14445160
+          max: 14797446
+    - workload: yaml-plain-small-records
+      values:
+        js-yaml:
+          avg: 53814
+          min: 46066
+          p75: 49152
+          p99: 155570
+          max: 647650
+        yaml:
+          avg: 638445
+          min: 516735
+          p75: 610741
+          p99: 1546028
+          max: 2088903
+        lightning-yaml:
+          avg: 14723
+          min: 14621
+          p75: 14741
+          p99: 14777
+          max: 15239
+    - workload: yaml-plain-medium-records
+      values:
+        js-yaml:
+          avg: 5782407
+          min: 5558025
+          p75: 5709197
+          p99: 6900674
+          max: 10216478
+        yaml:
+          avg: 83512078
+          min: 71837360
+          p75: 80212538
+          p99: 97864759
+          max: 147271930
+        lightning-yaml:
+          avg: 1706106
+          min: 1659912
+          p75: 1678375
+          p99: 2506703
+          max: 3174130
+    - workload: yaml-plain-large-records
+      values:
+        js-yaml:
+          avg: 68342398
+          min: 59533562
+          p75: 68431014
+          p99: 70134007
+          max: 85469930
+        yaml:
+          avg: 777733132
+          min: 753490260
+          p75: 773293248
+          p99: 809794078
+          max: 863182586
+        lightning-yaml:
+          avg: 16955430
+          min: 16580248
+          p75: 16734497
+          p99: 18929558
+          max: 19313566
+    - workload: yaml-plain-medium-nested
+      values:
+        js-yaml:
+          avg: 2822260
+          min: 2642086
+          p75: 2719250
+          p99: 5961068
+          max: 7122738
+        yaml:
+          avg: 31941204
+          min: 27930706
+          p75: 32411438
+          p99: 42511643
+          max: 45104561
+        lightning-yaml:
+          avg: 855291
+          min: 840480
+          p75: 855037
+          p99: 903117
+          max: 1382493
+    - workload: yaml-rich-small
+      values:
+        js-yaml:
+          avg: 79144
+          min: 68528
+          p75: 71674
+          p99: 241331
+          max: 748870
+        yaml:
+          avg: 868520
+          min: 713242
+          p75: 817407
+          p99: 1937529
+          max: 2455508
+        lightning-yaml:
+          avg: 22870
+          min: 22576
+          p75: 22862
+          p99: 22949
+          max: 24101
+    - workload: yaml-rich-medium
+      values:
+        js-yaml:
+          avg: 5347820
+          min: 5030038
+          p75: 5195257
+          p99: 8933692
+          max: 11317356
+        yaml:
+          avg: 64148319
+          min: 55131086
+          p75: 61928116
+          p99: 81967638
+          max: 106559785
+        lightning-yaml:
+          avg: 1638521
+          min: 1612212
+          p75: 1629655
+          p99: 1967796
+          max: 2647196
+    - workload: yaml-rich-large
+      values:
+        js-yaml:
+          avg: 54761737
+          min: 51667767
+          p75: 57016881
+          p99: 57771750
+          max: 58271814
+        yaml:
+          avg: 779603907
+          min: 739810106
+          p75: 778230023
+          p99: 808353141
+          max: 867658150
+        lightning-yaml:
+          avg: 15768851
+          min: 15589215
+          p75: 15651812
+          p99: 16978029
+          max: 17282268
+  stringify:
+    - workload: small-records
+      values:
+        JSON:
+          avg: 3298
+          min: 3260
+          p75: 3312
+          p99: 3368
+          max: 3370
+        js-yaml:
+          avg: 93994
+          min: 84598
+          p75: 89117
+          p99: 203490
+          max: 561860
+        js-yaml-tuned:
+          avg: 58211
+          min: 56958
+          p75: 58091
+          p99: 59558
+          max: 64403
+        yaml:
+          avg: 260991
+          min: 227525
+          p75: 247893
+          p99: 634285
+          max: 1051074
+        lightning-yaml:
+          avg: 10176
+          min: 10135
+          p75: 10191
+          p99: 10216
+          max: 10224
+    - workload: medium-records
+      values:
+        JSON:
+          avg: 378838
+          min: 366765
+          p75: 382875
+          p99: 431206
+          max: 731387
+        js-yaml:
+          avg: 9650467
+          min: 9280313
+          p75: 9706895
+          p99: 11041058
+          max: 11207198
+        js-yaml-tuned:
+          avg: 6488626
+          min: 6244912
+          p75: 6396755
+          p99: 7638897
+          max: 10046646
+        yaml:
+          avg: 27844970
+          min: 25629169
+          p75: 27930009
+          p99: 30151391
+          max: 38111457
+        lightning-yaml:
+          avg: 1092868
+          min: 1047894
+          p75: 1069445
+          p99: 2104415
+          max: 2411288
+    - workload: large-records
+      values:
+        JSON:
+          avg: 4838502
+          min: 4762949
+          p75: 4835094
+          p99: 5097916
+          max: 6383487
+        js-yaml:
+          avg: 143892857
+          min: 130760527
+          p75: 147187099
+          p99: 157315513
+          max: 181162679
+        js-yaml-tuned:
+          avg: 102883474
+          min: 89530602
+          p75: 110424180
+          p99: 112215868
+          max: 117361061
+        yaml:
+          avg: 324765626
+          min: 314354622
+          p75: 323428280
+          p99: 326232816
+          max: 378377567
+        lightning-yaml:
+          avg: 17514685
+          min: 15656506
+          p75: 17799119
+          p99: 22748277
+          max: 22976453
+    - workload: xlarge-records
+      values:
+        JSON:
+          avg: 42019206
+          min: 41061559
+          p75: 42289212
+          p99: 42361278
+          max: 42451947
+        js-yaml:
+          avg: 1317961241
+          min: 1268133843
+          p75: 1344859025
+          p99: 1401128511
+          max: 1413372175
+        js-yaml-tuned:
+          avg: 968261289
+          min: 940591206
+          p75: 970595245
+          p99: 1021884909
+          max: 1032726624
+        yaml:
+          avg: 2920368600
+          min: 2846702582
+          p75: 2972099186
+          p99: 2975821561
+          max: 2981806271
+        lightning-yaml:
+          avg: 235336069
+          min: 218424828
+          p75: 232322468
+          p99: 260752950
+          max: 273537856
+    - workload: medium-nested
+      values:
+        JSON:
+          avg: 845154
+          min: 759700
+          p75: 860398
+          p99: 922283
+          max: 1379908
+        js-yaml:
+          avg: 14874487
+          min: 14296643
+          p75: 14852541
+          p99: 16415371
+          max: 16557838
+        js-yaml-tuned:
+          avg: 11010660
+          min: 10421322
+          p75: 11146887
+          p99: 12590224
+          max: 12774368
+        yaml:
+          avg: 43661332
+          min: 42664676
+          p75: 44280274
+          p99: 44434032
+          max: 44607255
+        lightning-yaml:
+          avg: 1885679
+          min: 1803239
+          p75: 1863993
+          p99: 3006167
+          max: 3087599
+    - workload: large-nested
+      values:
+        JSON:
+          avg: 5595751
+          min: 5479337
+          p75: 5611885
+          p99: 5788886
+          max: 6806537
+        js-yaml:
+          avg: 137229518
+          min: 128551313
+          p75: 141260178
+          p99: 145276752
+          max: 146081736
+        js-yaml-tuned:
+          avg: 109021497
+          min: 100492021
+          p75: 113473734
+          p99: 114914125
+          max: 120704934
+        yaml:
+          avg: 331452997
+          min: 323047918
+          p75: 328706115
+          p99: 330832989
+          max: 384423272
+        lightning-yaml:
+          avg: 17298135
+          min: 15559902
+          p75: 17484238
+          p99: 21744999
+          max: 21942487
+    - workload: yaml-plain-small-records
+      values:
+        JSON:
+          avg: 2636
+          min: 2615
+          p75: 2640
+          p99: 2704
+          max: 2731
+        js-yaml:
+          avg: 75867
+          min: 67015
+          p75: 69980
+          p99: 176259
+          max: 632251
+        js-yaml-tuned:
+          avg: 47670
+          min: 46619
+          p75: 46917
+          p99: 51102
+          max: 52816
+        yaml:
+          avg: 208774
+          min: 182962
+          p75: 202799
+          p99: 429162
+          max: 1092020
+        lightning-yaml:
+          avg: 8823
+          min: 8717
+          p75: 8855
+          p99: 8875
+          max: 8883
+    - workload: yaml-plain-medium-records
+      values:
+        JSON:
+          avg: 370925
+          min: 345666
+          p75: 362538
+          p99: 724835
+          max: 1190223
+        js-yaml:
+          avg: 9095279
+          min: 8794401
+          p75: 9119178
+          p99: 10295396
+          max: 10601017
+        js-yaml-tuned:
+          avg: 6063070
+          min: 5885366
+          p75: 6023775
+          p99: 7189302
+          max: 7524669
+        yaml:
+          avg: 25199428
+          min: 23806079
+          p75: 25703013
+          p99: 27396928
+          max: 29747810
+        lightning-yaml:
+          avg: 1078896
+          min: 1034763
+          p75: 1057075
+          p99: 1906863
+          max: 2379556
+    - workload: yaml-plain-large-records
+      values:
+        JSON:
+          avg: 4245127
+          min: 4172046
+          p75: 4254008
+          p99: 4530535
+          max: 5974603
+        js-yaml:
+          avg: 114946498
+          min: 105905634
+          p75: 115707625
+          p99: 126399043
+          max: 138636378
+        js-yaml-tuned:
+          avg: 84943415
+          min: 76987102
+          p75: 86751617
+          p99: 92964925
+          max: 100265385
+        yaml:
+          avg: 264369737
+          min: 256075401
+          p75: 260542778
+          p99: 264284895
+          max: 315706372
+        lightning-yaml:
+          avg: 14015156
+          min: 12798933
+          p75: 13791097
+          p99: 19005651
+          max: 19105837
+    - workload: yaml-plain-medium-nested
+      values:
+        JSON:
+          avg: 159605
+          min: 154288
+          p75: 158677
+          p99: 179535
+          max: 328323
+        js-yaml:
+          avg: 3683773
+          min: 3510229
+          p75: 3569480
+          p99: 6539332
+          max: 6901334
+        js-yaml-tuned:
+          avg: 2681155
+          min: 2552910
+          p75: 2607672
+          p99: 4614412
+          max: 5344706
+        yaml:
+          avg: 10554998
+          min: 10018388
+          p75: 10644769
+          p99: 14128228
+          max: 16177456
+        lightning-yaml:
+          avg: 432831
+          min: 413302
+          p75: 432758
+          p99: 512337
+          max: 1047417
+    - workload: yaml-rich-small
+      values:
+        js-yaml:
+          avg: 93433
+          min: 83636
+          p75: 87173
+          p99: 229488
+          max: 617694
+        yaml:
+          avg: 369606
+          min: 325779
+          p75: 353330
+          p99: 836594
+          max: 1290922
+        lightning-yaml:
+          avg: 14918
+          min: 14669
+          p75: 14832
+          p99: 14973
+          max: 16514
+    - workload: yaml-rich-medium
+      values:
+        js-yaml:
+          avg: 6564817
+          min: 6223005
+          p75: 6487511
+          p99: 7890020
+          max: 12021148
+        yaml:
+          avg: 29540823
+          min: 28400930
+          p75: 29854355
+          p99: 31144235
+          max: 31474482
+        lightning-yaml:
+          avg: 1222242
+          min: 1169244
+          p75: 1209760
+          p99: 1953660
+          max: 2215299
+    - workload: yaml-rich-large
+      values:
+        js-yaml:
+          avg: 79521700
+          min: 75635848
+          p75: 79890258
+          p99: 80650128
+          max: 92368860
+        yaml:
+          avg: 304860241
+          min: 296789709
+          p75: 300443275
+          p99: 305354132
+          max: 369843906
+        lightning-yaml:
+          avg: 14329234
+          min: 13337027
+          p75: 14600338
+          p99: 16168748
+          max: 16533629
+---
+suite: speed
+scope: competition
+tool: mitata
+unit: ns/iter
+lower_is_better: true
+schema_version: 1
+generated: 2026-10-08
+generated_at: 2026-10-08T15:30:55.492Z
+source: 2d02fd834f6d766a424f42981562b8e2a864f5a8
+env:
+  clk: unknown
+  cpu: unknown
+  runtime: chromium 141.0.7390.37 (x64-linux)
+libraries:
+  - id: JSON
+    label: JSON
+    baseline: true
+  - id: js-yaml
+    label: js-yaml
+    version: 5.2.1
+  - id: js-yaml-tuned
+    label: js-yaml (tuned)
+    version: 5.2.1
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    version: 0.1.1
+operations:
+  parse:
+    - workload: small-records
+      values:
+        JSON:
+          avg: 3501
+          min: 3375
+          p75: 3444
+          p99: 4037
+          max: 4056
+        js-yaml:
+          avg: 40511
+          min: 30000
+          p75: 40000
+          p99: 140000
+          max: 545000
+        yaml:
+          avg: 370777
+          min: 270000
+          p75: 345000
+          p99: 1040000
+          max: 1540000
+        lightning-yaml:
+          avg: 12101
+          min: 12017
+          p75: 12152
+          p99: 12155
+          max: 12155
+    - workload: medium-records
+      values:
+        JSON:
+          avg: 383782
+          min: 370000
+          p75: 390000
+          p99: 430000
+          max: 770000
+        js-yaml:
+          avg: 3714819
+          min: 3595000
+          p75: 3700000
+          p99: 4545000
+          max: 4600000
+        yaml:
+          avg: 36533462
+          min: 35135000
+          p75: 37435000
+          p99: 37590000
+          max: 38215000
+        lightning-yaml:
+          avg: 1186521
+          min: 1150000
+          p75: 1195000
+          p99: 1425000
+          max: 1620000
+    - workload: large-records
+      values:
+        JSON:
+          avg: 4537445
+          min: 4440000
+          p75: 4515000
+          p99: 5815000
+          max: 5850000
+        js-yaml:
+          avg: 48366000
+          min: 45765000
+          p75: 49415000
+          p99: 50920000
+          max: 50965000
+        yaml:
+          avg: 432743750
+          min: 418860000
+          p75: 434725000
+          p99: 457920000
+          max: 462215000
+        lightning-yaml:
+          avg: 13393953
+          min: 13150000
+          p75: 13290000
+          p99: 15860000
+          max: 16030000
+    - workload: medium-nested
+      values:
+        JSON:
+          avg: 746146
+          min: 725000
+          p75: 745000
+          p99: 805000
+          max: 1235000
+        js-yaml:
+          avg: 6566237
+          min: 6345000
+          p75: 6500000
+          p99: 7585000
+          max: 7755000
+        yaml:
+          avg: 63821250
+          min: 58755000
+          p75: 62470000
+          p99: 66895000
+          max: 92205000
+        lightning-yaml:
+          avg: 2097193
+          min: 2065000
+          p75: 2095000
+          p99: 2470000
+          max: 2645000
+    - workload: large-nested
+      values:
+        JSON:
+          avg: 5473673
+          min: 5380000
+          p75: 5455000
+          p99: 6540000
+          max: 7425000
+        js-yaml:
+          avg: 51311667
+          min: 49495000
+          p75: 51680000
+          p99: 53210000
+          max: 54110000
+        yaml:
+          avg: 433927083
+          min: 420180000
+          p75: 430060000
+          p99: 463680000
+          max: 467165000
+        lightning-yaml:
+          avg: 15240263
+          min: 15080000
+          p75: 15175000
+          p99: 16105000
+          max: 17440000
+    - workload: yaml-plain-small-records
+      values:
+        js-yaml:
+          avg: 45881
+          min: 35000
+          p75: 45000
+          p99: 90000
+          max: 350000
+        yaml:
+          avg: 411402
+          min: 305000
+          p75: 415000
+          p99: 1085000
+          max: 1430000
+        lightning-yaml:
+          avg: 16588
+          min: 16271
+          p75: 16373
+          p99: 16472
+          max: 19197
+    - workload: yaml-plain-medium-records
+      values:
+        js-yaml:
+          avg: 5327435
+          min: 5205000
+          p75: 5320000
+          p99: 6010000
+          max: 6050000
+        yaml:
+          avg: 49207222
+          min: 47145000
+          p75: 49180000
+          p99: 51375000
+          max: 55195000
+        lightning-yaml:
+          avg: 1943077
+          min: 1900000
+          p75: 1925000
+          p99: 2295000
+          max: 3805000
+    - workload: yaml-plain-large-records
+      values:
+        js-yaml:
+          avg: 59560417
+          min: 55250000
+          p75: 59355000
+          p99: 60650000
+          max: 77380000
+        yaml:
+          avg: 479278750
+          min: 467815000
+          p75: 484075000
+          p99: 494475000
+          max: 495560000
+        lightning-yaml:
+          avg: 19320345
+          min: 19185000
+          p75: 19280000
+          p99: 19415000
+          max: 21250000
+    - workload: yaml-plain-medium-nested
+      values:
+        js-yaml:
+          avg: 2555685
+          min: 2480000
+          p75: 2535000
+          p99: 3095000
+          max: 5005000
+        yaml:
+          avg: 20729600
+          min: 18240000
+          p75: 19910000
+          p99: 29235000
+          max: 31230000
+        lightning-yaml:
+          avg: 1003299
+          min: 985000
+          p75: 1000000
+          p99: 1100000
+          max: 1390000
+    - workload: yaml-rich-small
+      values:
+        js-yaml:
+          avg: 68399
+          min: 55000
+          p75: 65000
+          p99: 165000
+          max: 390000
+        yaml:
+          avg: 606019
+          min: 435000
+          p75: 605000
+          p99: 1560000
+          max: 2695000
+        lightning-yaml:
+          avg: 26391
+          min: 25812
+          p75: 26481
+          p99: 26527
+          max: 29968
+    - workload: yaml-rich-medium
+      values:
+        js-yaml:
+          avg: 4767132
+          min: 4660000
+          p75: 4780000
+          p99: 5305000
+          max: 5350000
+        yaml:
+          avg: 40899091
+          min: 37705000
+          p75: 39575000
+          p99: 44225000
+          max: 54005000
+        lightning-yaml:
+          avg: 1924514
+          min: 1895000
+          p75: 1920000
+          p99: 2050000
+          max: 2375000
+    - workload: yaml-rich-large
+      values:
+        js-yaml:
+          avg: 49693889
+          min: 47235000
+          p75: 51265000
+          p99: 51730000
+          max: 52005000
+        yaml:
+          avg: 576057917
+          min: 540170000
+          p75: 582855000
+          p99: 595175000
+          max: 609020000
+        lightning-yaml:
+          avg: 18529500
+          min: 18365000
+          p75: 18505000
+          p99: 18815000
+          max: 19915000
+  stringify:
+    - workload: small-records
+      values:
+        JSON:
+          avg: 1791
+          min: 1765
+          p75: 1799
+          p99: 1844
+          max: 1844
+        js-yaml:
+          avg: 94354
+          min: 75000
+          p75: 90000
+          p99: 220000
+          max: 4095000
+        js-yaml-tuned:
+          avg: 61187
+          min: 58595
+          p75: 62690
+          p99: 64362
+          max: 68030
+        yaml:
+          avg: 239749
+          min: 200000
+          p75: 230000
+          p99: 585000
+          max: 950000
+        lightning-yaml:
+          avg: 10480
+          min: 10413
+          p75: 10493
+          p99: 10542
+          max: 10555
+    - workload: medium-records
+      values:
+        JSON:
+          avg: 201903
+          min: 190000
+          p75: 205000
+          p99: 240000
+          max: 385000
+        js-yaml:
+          avg: 9859667
+          min: 8940000
+          p75: 9340000
+          p99: 15820000
+          max: 16105000
+        js-yaml-tuned:
+          avg: 6482796
+          min: 6135000
+          p75: 6335000
+          p99: 10290000
+          max: 10380000
+        yaml:
+          avg: 23670909
+          min: 22710000
+          p75: 23785000
+          p99: 25075000
+          max: 28370000
+        lightning-yaml:
+          avg: 1052064
+          min: 1010000
+          p75: 1035000
+          p99: 1710000
+          max: 1890000
+    - workload: large-records
+      values:
+        JSON:
+          avg: 3299211
+          min: 3195000
+          p75: 3255000
+          p99: 5655000
+          max: 5660000
+        js-yaml:
+          avg: 111464167
+          min: 108810000
+          p75: 110590000
+          p99: 114255000
+          max: 121660000
+        js-yaml-tuned:
+          avg: 79297500
+          min: 76705000
+          p75: 78290000
+          p99: 85370000
+          max: 89790000
+        yaml:
+          avg: 286230000
+          min: 278025000
+          p75: 288410000
+          p99: 298240000
+          max: 302070000
+        lightning-yaml:
+          avg: 15098553
+          min: 13455000
+          p75: 17870000
+          p99: 18595000
+          max: 18675000
+    - workload: medium-nested
+      values:
+        JSON:
+          avg: 459413
+          min: 420000
+          p75: 445000
+          p99: 670000
+          max: 4600000
+        js-yaml:
+          avg: 14221538
+          min: 13190000
+          p75: 13970000
+          p99: 16595000
+          max: 17475000
+        js-yaml-tuned:
+          avg: 10706818
+          min: 9865000
+          p75: 10510000
+          p99: 13275000
+          max: 13325000
+        yaml:
+          avg: 37892692
+          min: 37270000
+          p75: 38320000
+          p99: 38635000
+          max: 38705000
+        lightning-yaml:
+          avg: 1819038
+          min: 1735000
+          p75: 1790000
+          p99: 2810000
+          max: 3385000
+    - workload: large-nested
+      values:
+        JSON:
+          avg: 3762590
+          min: 3630000
+          p75: 3715000
+          p99: 6205000
+          max: 6215000
+        js-yaml:
+          avg: 108912500
+          min: 105595000
+          p75: 107925000
+          p99: 116620000
+          max: 117875000
+        js-yaml-tuned:
+          avg: 81717083
+          min: 78355000
+          p75: 80750000
+          p99: 90395000
+          max: 94010000
+        yaml:
+          avg: 286379167
+          min: 281425000
+          p75: 286270000
+          p99: 296305000
+          max: 299005000
+        lightning-yaml:
+          avg: 16266143
+          min: 14045000
+          p75: 20490000
+          p99: 21120000
+          max: 21145000
+    - workload: yaml-plain-small-records
+      values:
+        JSON:
+          avg: 2517
+          min: 2479
+          p75: 2533
+          p99: 2581
+          max: 2594
+        js-yaml:
+          avg: 69713
+          min: 55000
+          p75: 65000
+          p99: 130000
+          max: 3770000
+        js-yaml-tuned:
+          avg: 46645
+          min: 45587
+          p75: 46974
+          p99: 47633
+          max: 48209
+        yaml:
+          avg: 183612
+          min: 160000
+          p75: 180000
+          p99: 325000
+          max: 970000
+        lightning-yaml:
+          avg: 8502
+          min: 8453
+          p75: 8517
+          p99: 8529
+          max: 8562
+    - workload: yaml-plain-medium-records
+      values:
+        JSON:
+          avg: 321968
+          min: 295000
+          p75: 330000
+          p99: 395000
+          max: 560000
+        js-yaml:
+          avg: 8806343
+          min: 8250000
+          p75: 8540000
+          p99: 13460000
+          max: 13815000
+        js-yaml-tuned:
+          avg: 5936127
+          min: 5570000
+          p75: 5780000
+          p99: 9515000
+          max: 9965000
+        yaml:
+          avg: 22190833
+          min: 21415000
+          p75: 22465000
+          p99: 24090000
+          max: 24855000
+        lightning-yaml:
+          avg: 1013086
+          min: 975000
+          p75: 1000000
+          p99: 1540000
+          max: 1715000
+    - workload: yaml-plain-large-records
+      values:
+        JSON:
+          avg: 4234864
+          min: 4000000
+          p75: 4235000
+          p99: 6635000
+          max: 6755000
+        js-yaml:
+          avg: 93163750
+          min: 86910000
+          p75: 93115000
+          p99: 98345000
+          max: 107420000
+        js-yaml-tuned:
+          avg: 65470833
+          min: 60735000
+          p75: 66610000
+          p99: 67135000
+          max: 72040000
+        yaml:
+          avg: 233179167
+          min: 228800000
+          p75: 231955000
+          p99: 242915000
+          max: 246440000
+        lightning-yaml:
+          avg: 12683587
+          min: 11545000
+          p75: 13430000
+          p99: 14800000
+          max: 15295000
+    - workload: yaml-plain-medium-nested
+      values:
+        JSON:
+          avg: 128789
+          min: 115000
+          p75: 135000
+          p99: 180000
+          max: 310000
+        js-yaml:
+          avg: 3613853
+          min: 3265000
+          p75: 3450000
+          p99: 6495000
+          max: 6945000
+        js-yaml-tuned:
+          avg: 2642106
+          min: 2430000
+          p75: 2555000
+          p99: 5350000
+          max: 5715000
+        yaml:
+          avg: 9769167
+          min: 9040000
+          p75: 9660000
+          p99: 13520000
+          max: 16000000
+        lightning-yaml:
+          avg: 414040
+          min: 385000
+          p75: 415000
+          p99: 780000
+          max: 905000
+    - workload: yaml-rich-small
+      values:
+        js-yaml:
+          avg: 86836
+          min: 70000
+          p75: 85000
+          p99: 165000
+          max: 3690000
+        yaml:
+          avg: 334057
+          min: 285000
+          p75: 325000
+          p99: 740000
+          max: 1320000
+        lightning-yaml:
+          avg: 14691
+          min: 14308
+          p75: 14437
+          p99: 14612
+          max: 17916
+    - workload: yaml-rich-medium
+      values:
+        js-yaml:
+          avg: 6327947
+          min: 5845000
+          p75: 6080000
+          p99: 10245000
+          max: 10475000
+        yaml:
+          avg: 26446750
+          min: 25210000
+          p75: 26565000
+          p99: 28095000
+          max: 30430000
+        lightning-yaml:
+          avg: 1138773
+          min: 1100000
+          p75: 1125000
+          p99: 1640000
+          max: 1850000
+    - workload: yaml-rich-large
+      values:
+        js-yaml:
+          avg: 66186667
+          min: 61280000
+          p75: 67220000
+          p99: 72940000
+          max: 75215000
+        yaml:
+          avg: 258382917
+          min: 254355000
+          p75: 257640000
+          p99: 264850000
+          max: 269045000
+        lightning-yaml:
+          avg: 12591277
+          min: 11730000
+          p75: 13175000
+          p99: 14330000
+          max: 14355000
+---
+suite: speed
+scope: competition
+tool: mitata
+unit: ns/iter
+lower_is_better: true
+schema_version: 1
+generated: 2026-10-08
+generated_at: 2026-10-08T15:33:16.281Z
+source: 2d02fd834f6d766a424f42981562b8e2a864f5a8
+env:
+  clk: unknown
+  cpu: unknown
+  runtime: webkit 26.0 (x64-linux)
+libraries:
+  - id: JSON
+    label: JSON
+    baseline: true
+  - id: js-yaml
+    label: js-yaml
+    version: 5.2.1
+  - id: js-yaml-tuned
+    label: js-yaml (tuned)
+    version: 5.2.1
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    version: 0.1.1
+operations:
+  parse:
+    - workload: small-records
+      values:
+        JSON:
+          avg: 3160
+          min: 3125
+          p75: 3169
+          p99: 3213
+          max: 3218
+        js-yaml:
+          avg: 37125
+          min: 36094
+          p75: 37573
+          p99: 38267
+          max: 40757
+        yaml:
+          avg: 387188
+          min: 280000
+          p75: 420000
+          p99: 840000
+          max: 1180000
+        lightning-yaml:
+          avg: 9337
+          min: 8882
+          p75: 9780
+          p99: 9824
+          max: 10259
+    - workload: medium-records
+      values:
+        JSON:
+          avg: 382932
+          min: 340000
+          p75: 380000
+          p99: 520000
+          max: 820000
+        js-yaml:
+          avg: 3714762
+          min: 3460000
+          p75: 3680000
+          p99: 5220000
+          max: 5520000
+        yaml:
+          avg: 34670667
+          min: 33580000
+          p75: 34620000
+          p99: 36900000
+          max: 36940000
+        lightning-yaml:
+          avg: 862493
+          min: 800000
+          p75: 880000
+          p99: 1100000
+          max: 2360000
+    - workload: large-records
+      values:
+        JSON:
+          avg: 4222973
+          min: 4140000
+          p75: 4240000
+          p99: 4640000
+          max: 4860000
+        js-yaml:
+          avg: 43032727
+          min: 40080000
+          p75: 44080000
+          p99: 44960000
+          max: 46740000
+        yaml:
+          avg: 506085000
+          min: 416020000
+          p75: 543540000
+          p99: 546540000
+          max: 555920000
+        lightning-yaml:
+          avg: 9377846
+          min: 9180000
+          p75: 9480000
+          p99: 9660000
+          max: 9680000
+    - workload: medium-nested
+      values:
+        JSON:
+          avg: 520765
+          min: 480000
+          p75: 520000
+          p99: 640000
+          max: 660000
+        js-yaml:
+          avg: 6270612
+          min: 5920000
+          p75: 6260000
+          p99: 8060000
+          max: 8100000
+        yaml:
+          avg: 54398333
+          min: 53020000
+          p75: 55360000
+          p99: 55500000
+          max: 57000000
+        lightning-yaml:
+          avg: 1543961
+          min: 1460000
+          p75: 1540000
+          p99: 1840000
+          max: 3140000
+    - workload: large-nested
+      values:
+        JSON:
+          avg: 3750659
+          min: 3680000
+          p75: 3760000
+          p99: 4020000
+          max: 4140000
+        js-yaml:
+          avg: 47054000
+          min: 44200000
+          p75: 48640000
+          p99: 49540000
+          max: 49940000
+        yaml:
+          avg: 488241667
+          min: 388820000
+          p75: 525800000
+          p99: 532660000
+          max: 537340000
+        lightning-yaml:
+          avg: 10580702
+          min: 10400000
+          p75: 10660000
+          p99: 10820000
+          max: 10820000
+    - workload: yaml-plain-small-records
+      values:
+        js-yaml:
+          avg: 43380
+          min: 42412
+          p75: 44082
+          p99: 44243
+          max: 44424
+        yaml:
+          avg: 393469
+          min: 320000
+          p75: 380000
+          p99: 960000
+          max: 1700000
+        lightning-yaml:
+          avg: 12071
+          min: 11680
+          p75: 12280
+          p99: 12651
+          max: 12769
+    - workload: yaml-plain-medium-records
+      values:
+        js-yaml:
+          avg: 5487857
+          min: 5140000
+          p75: 5460000
+          p99: 8420000
+          max: 8740000
+        yaml:
+          avg: 47332000
+          min: 46820000
+          p75: 47180000
+          p99: 47880000
+          max: 49920000
+        lightning-yaml:
+          avg: 1394349
+          min: 1320000
+          p75: 1400000
+          p99: 1500000
+          max: 3100000
+    - workload: yaml-plain-large-records
+      values:
+        js-yaml:
+          avg: 145533333
+          min: 139860000
+          p75: 147940000
+          p99: 149120000
+          max: 150760000
+        yaml:
+          avg: 579856667
+          min: 528720000
+          p75: 601380000
+          p99: 611060000
+          max: 613080000
+        lightning-yaml:
+          avg: 13984286
+          min: 13500000
+          p75: 14100000
+          p99: 14340000
+          max: 14360000
+    - workload: yaml-plain-medium-nested
+      values:
+        js-yaml:
+          avg: 2480079
+          min: 2320000
+          p75: 2480000
+          p99: 3100000
+          max: 5520000
+        yaml:
+          avg: 19208000
+          min: 18260000
+          p75: 19660000
+          p99: 20300000
+          max: 20820000
+        lightning-yaml:
+          avg: 742954
+          min: 700000
+          p75: 740000
+          p99: 1000000
+          max: 1760000
+    - workload: yaml-rich-small
+      values:
+        js-yaml:
+          avg: 70570
+          min: 40000
+          p75: 80000
+          p99: 160000
+          max: 640000
+        yaml:
+          avg: 633181
+          min: 560000
+          p75: 640000
+          p99: 800000
+          max: 1160000
+        lightning-yaml:
+          avg: 19989
+          min: 19082
+          p75: 19380
+          p99: 23564
+          max: 23735
+    - workload: yaml-rich-medium
+      values:
+        js-yaml:
+          avg: 5096694
+          min: 4680000
+          p75: 5080000
+          p99: 7960000
+          max: 8120000
+        yaml:
+          avg: 41506667
+          min: 40840000
+          p75: 42020000
+          p99: 42400000
+          max: 42420000
+        lightning-yaml:
+          avg: 1375411
+          min: 1320000
+          p75: 1380000
+          p99: 1600000
+          max: 1920000
+    - workload: yaml-rich-large
+      values:
+        js-yaml:
+          avg: 48344000
+          min: 46180000
+          p75: 49200000
+          p99: 50300000
+          max: 50700000
+        yaml:
+          avg: 517855000
+          min: 481400000
+          p75: 536580000
+          p99: 537400000
+          max: 540820000
+        lightning-yaml:
+          avg: 12878696
+          min: 12500000
+          p75: 13100000
+          p99: 13560000
+          max: 13760000
+  stringify:
+    - workload: small-records
+      values:
+        JSON:
+          avg: 1393
+          min: 1367
+          p75: 1396
+          p99: 1450
+          max: 1504
+        js-yaml:
+          avg: 109220
+          min: 80000
+          p75: 120000
+          p99: 240000
+          max: 300000
+        js-yaml-tuned:
+          avg: 67364
+          min: 40000
+          p75: 80000
+          p99: 100000
+          max: 740000
+        yaml:
+          avg: 314194
+          min: 260000
+          p75: 320000
+          p99: 460000
+          max: 720000
+        lightning-yaml:
+          avg: 10242
+          min: 9966
+          p75: 10435
+          p99: 10684
+          max: 10728
+    - workload: medium-records
+      values:
+        JSON:
+          avg: 179473
+          min: 160000
+          p75: 180000
+          p99: 280000
+          max: 820000
+        js-yaml:
+          avg: 11318868
+          min: 10800000
+          p75: 11340000
+          p99: 13280000
+          max: 13280000
+        js-yaml-tuned:
+          avg: 7455122
+          min: 7020000
+          p75: 7500000
+          p99: 9500000
+          max: 9580000
+        yaml:
+          avg: 31202353
+          min: 30360000
+          p75: 32080000
+          p99: 32160000
+          max: 32660000
+        lightning-yaml:
+          avg: 1202614
+          min: 1040000
+          p75: 1240000
+          p99: 2280000
+          max: 2560000
+    - workload: large-records
+      values:
+        JSON:
+          avg: 2076656
+          min: 1960000
+          p75: 2100000
+          p99: 2580000
+          max: 2760000
+        js-yaml:
+          avg: 149411667
+          min: 142500000
+          p75: 151380000
+          p99: 153520000
+          max: 156520000
+        js-yaml-tuned:
+          avg: 102120000
+          min: 93720000
+          p75: 105220000
+          p99: 108360000
+          max: 108920000
+        yaml:
+          avg: 376146667
+          min: 362660000
+          p75: 381560000
+          p99: 384800000
+          max: 386640000
+        lightning-yaml:
+          avg: 19166207
+          min: 16260000
+          p75: 20180000
+          p99: 25720000
+          max: 26380000
+    - workload: medium-nested
+      values:
+        JSON:
+          avg: 322067
+          min: 300000
+          p75: 320000
+          p99: 440000
+          max: 920000
+        js-yaml:
+          avg: 18292903
+          min: 16720000
+          p75: 18660000
+          p99: 20780000
+          max: 20880000
+        js-yaml-tuned:
+          avg: 13468182
+          min: 12400000
+          p75: 13640000
+          p99: 15640000
+          max: 16080000
+        yaml:
+          avg: 78843333
+          min: 76080000
+          p75: 79620000
+          p99: 80400000
+          max: 85060000
+        lightning-yaml:
+          avg: 2412923
+          min: 2160000
+          p75: 2460000
+          p99: 4140000
+          max: 4920000
+    - workload: large-nested
+      values:
+        JSON:
+          avg: 2367068
+          min: 2220000
+          p75: 2420000
+          p99: 3000000
+          max: 3280000
+        js-yaml:
+          avg: 145536667
+          min: 140340000
+          p75: 145960000
+          p99: 152000000
+          max: 152420000
+        js-yaml-tuned:
+          avg: 108318333
+          min: 100200000
+          p75: 110900000
+          p99: 112960000
+          max: 115160000
+        yaml:
+          avg: 564033333
+          min: 552180000
+          p75: 569580000
+          p99: 573620000
+          max: 577180000
+        lightning-yaml:
+          avg: 23835652
+          min: 21200000
+          p75: 23820000
+          p99: 31080000
+          max: 32160000
+    - workload: yaml-plain-small-records
+      values:
+        JSON:
+          avg: 1131
+          min: 1099
+          p75: 1147
+          p99: 1191
+          max: 1196
+        js-yaml:
+          avg: 82952
+          min: 60000
+          p75: 80000
+          p99: 140000
+          max: 860000
+        js-yaml-tuned:
+          avg: 54103
+          min: 51943
+          p75: 54849
+          p99: 56113
+          max: 58164
+        yaml:
+          avg: 251197
+          min: 200000
+          p75: 260000
+          p99: 540000
+          max: 940000
+        lightning-yaml:
+          avg: 8905
+          min: 8716
+          p75: 8911
+          p99: 9185
+          max: 9258
+    - workload: yaml-plain-medium-records
+      values:
+        JSON:
+          avg: 200175
+          min: 180000
+          p75: 200000
+          p99: 320000
+          max: 900000
+        js-yaml:
+          avg: 10620000
+          min: 10060000
+          p75: 10700000
+          p99: 12780000
+          max: 12940000
+        js-yaml-tuned:
+          avg: 6921124
+          min: 6540000
+          p75: 6940000
+          p99: 8800000
+          max: 8880000
+        yaml:
+          avg: 28626316
+          min: 27900000
+          p75: 28800000
+          p99: 30060000
+          max: 30140000
+        lightning-yaml:
+          avg: 1173087
+          min: 1000000
+          p75: 1220000
+          p99: 1860000
+          max: 2800000
+    - workload: yaml-plain-large-records
+      values:
+        JSON:
+          avg: 2020000
+          min: 1840000
+          p75: 2220000
+          p99: 2840000
+          max: 4340000
+        js-yaml:
+          avg: 129415000
+          min: 120160000
+          p75: 135140000
+          p99: 139340000
+          max: 139460000
+        js-yaml-tuned:
+          avg: 86100000
+          min: 78880000
+          p75: 89800000
+          p99: 90640000
+          max: 93740000
+        yaml:
+          avg: 312856667
+          min: 299880000
+          p75: 317080000
+          p99: 321540000
+          max: 324080000
+        lightning-yaml:
+          avg: 18563871
+          min: 13620000
+          p75: 20780000
+          p99: 22460000
+          max: 23240000
+    - workload: yaml-plain-medium-nested
+      values:
+        JSON:
+          avg: 88902
+          min: 60000
+          p75: 80000
+          p99: 220000
+          max: 380000
+        js-yaml:
+          avg: 4589559
+          min: 4220000
+          p75: 4640000
+          p99: 6360000
+          max: 7020000
+        js-yaml-tuned:
+          avg: 3209333
+          min: 2920000
+          p75: 3240000
+          p99: 4760000
+          max: 5020000
+        yaml:
+          avg: 19733793
+          min: 18740000
+          p75: 20840000
+          p99: 21180000
+          max: 21220000
+        lightning-yaml:
+          avg: 619396
+          min: 500000
+          p75: 640000
+          p99: 1240000
+          max: 1760000
+    - workload: yaml-rich-small
+      values:
+        js-yaml:
+          avg: 111363
+          min: 80000
+          p75: 120000
+          p99: 180000
+          max: 260000
+        yaml:
+          avg: 483159
+          min: 420000
+          p75: 500000
+          p99: 640000
+          max: 940000
+        lightning-yaml:
+          avg: 14305
+          min: 13848
+          p75: 14336
+          p99: 14370
+          max: 16035
+    - workload: yaml-rich-medium
+      values:
+        js-yaml:
+          avg: 7765823
+          min: 7200000
+          p75: 7880000
+          p99: 9620000
+          max: 9940000
+        yaml:
+          avg: 37386154
+          min: 36480000
+          p75: 37880000
+          p99: 38200000
+          max: 40480000
+        lightning-yaml:
+          avg: 1192906
+          min: 1000000
+          p75: 1220000
+          p99: 2360000
+          max: 3260000
+    - workload: yaml-rich-large
+      values:
+        js-yaml:
+          avg: 87380000
+          min: 80520000
+          p75: 89860000
+          p99: 91480000
+          max: 98500000
+        yaml:
+          avg: 376138333
+          min: 369260000
+          p75: 379020000
+          p99: 381620000
+          max: 390340000
+        lightning-yaml:
+          avg: 15398947
+          min: 12760000
+          p75: 15980000
+          p99: 19100000
+          max: 20040000
