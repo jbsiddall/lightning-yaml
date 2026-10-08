@@ -34,9 +34,10 @@ pathological fuzz sweep:
   throws `YAMLParseError`. Deep nesting hits the `MAX_DEPTH` cap as a controlled
   throw — not a stack overflow.
 - **Conformance unchanged at 364/373 (97.6%)** of the yaml-test-suite — ahead of
-  js-yaml (94.9%) and the `yaml` oracle (97.1%). All 9 of our failures are cases
-  the oracle *also* fails ("spec-corner non-goal"); there are **0** cases where we
-  fail and both js-yaml and `yaml` pass.
+  js-yaml (94.9%) and `yaml` (97.1%) in this snapshot. All 9 of our failures
+  also fail in `yaml`; that overlap does not establish whether any are spec
+  exceptions. There are **0** cases where we fail and both js-yaml and `yaml`
+  pass. <!-- bench:f84dcc6a32b9c9691e69d0355e293254fcba5051 js-yaml:5.2.1 yaml:2.9.0 ly:6b0c56e -->
 - **Resource bombs are cheap, not catastrophic.** An exponential "billion laughs"
   alias bomb (10 levels, ~387M logical nodes if expanded) parses in <1 ms because
   aliases resolve to the **same reference** (structural sharing, O(1) `Map.get`),
