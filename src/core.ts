@@ -1820,7 +1820,10 @@ function plainKey(start: number, end: number): string {
 /** A flow mapping key: an anchor/alias, tag, double-quoted, single-quoted, or a plain scalar. */
 function parseFlowKey(): string {
   const c = src.charCodeAt(pos);
-  if (c === COLON && flowSeparatorAt(pos + 1)) return "";
+  if (c === COLON) {
+    const next = src.charCodeAt(pos + 1);
+    if (next === SPACE || next === TAB || next === LF || next === CR || next === COMMA || next === RBRACE) return "";
+  }
   if (c === AMP) return parseFlowKeyAnchored();
   if (c === EXCLAIM) return parseFlowKeyTagged();
   if (c === STAR) return internKey(keyToString(parseAlias()));
@@ -4869,6 +4872,14 @@ function writeStringScalar(s: string): string {
   return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
 }
 
+/** Root-only quoting for strings that would be read as a document end marker. */
+function writeRootStringScalar(s: string): string {
+  if (s === "..." || s.startsWith("... ")) {
+    return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+  }
+  return writeStringScalar(s);
+}
+
 // ---------------------------------------------------------------------------
 // Numbers.
 // ---------------------------------------------------------------------------
@@ -5050,7 +5061,7 @@ function writeEntryValue(value: unknown, indent: number): void {
  */
 function writeDocumentValue(value: unknown): void {
   if (value === null || typeof value !== "object") {
-    out += writeScalar(value) + "\n";
+    out += (typeof value === "string" ? writeRootStringScalar(value) : writeScalar(value)) + "\n";
     return;
   }
   const obj = value as object;
