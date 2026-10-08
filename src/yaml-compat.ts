@@ -1,7 +1,7 @@
 /**
  * @packageDocumentation
  *
- * yaml-compat.ts — a drop-in-ish replacement for the `yaml` v2 public API
+ * yaml-compat.ts — a partial compatibility shim for selected `yaml` v2 calls
  * (github.com/eemeli/yaml — also this repo's own correctness reference /
  * oracle, see bench/oracle.ts), backed by lightning-yaml's own parser
  * (./core.ts).
@@ -12,12 +12,15 @@
  *
  * ## Compatibility level TODAY
  *
- * **API-level, not behaviour-complete.** The exports and call signatures match
- * the real `yaml` library, so `import { parse } from "yaml"` (or the default
- * import) can swap to this module and keep running. Options are honoured on a
- * growing allowlist, and anything not yet honoured **throws** rather than
- * silently diverging. Today only the `parse` reviver runs, plus `schema` /
- * `version` accepted *as the 1.2-core defaults* (`"core"` / `"1.2"`), and any
+ * **Partial API compatibility, not a drop-in replacement.** This module
+ * exports `parse`, `parseAllDocuments`, `parseDocument`, and `stringify`, plus
+ * the `CompatDocument` and `Reviver` types and a convenience default object.
+ * It does not mirror the full `yaml` export surface or every call signature;
+ * the package's AST/CST classes, error classes, and visitor helpers are not
+ * provided. Options are honoured on a growing allowlist, and anything not yet
+ * honoured **throws** rather than silently diverging. Today only the `parse`
+ * reviver runs, plus `schema` / `version` accepted *as the 1.2-core defaults*
+ * (`"core"` / `"1.2"`), and any
  * boolean flag left at the value lightning-yaml already produces (usually
  * `false`, e.g. `mapAsMap: false`) — e.g. `parse(text, { mapAsMap: true })` or
  * `stringify(value, { indent: 4 })` throws until that option's sub-task lands. A
@@ -27,8 +30,9 @@
  *
  * ## Goal
  *
- * Maximise drop-in compatibility **without ever compromising the two things
- * that outrank it: YAML-1.2-spec correctness and core (./core.ts) speed.**
+ * Improve compatibility for these entry points **without ever compromising
+ * the two things that outrank it: YAML-1.2-spec correctness and core
+ * (./core.ts) speed.**
  * Per-option cost is paid either in this shim (pre-/post-processing the
  * plain-JS value, as the reviver already does — proof a hook here costs the
  * core nothing) or behind a gated core seam that leaves the options-free fast

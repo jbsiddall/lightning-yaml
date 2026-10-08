@@ -12,9 +12,11 @@
 lightning-yaml is a pure-JS YAML 1.2 parser and stringifier that parses and
 writes at speeds approaching native `JSON.parse`/`JSON.stringify` — while faithfully
 implementing YAML 1.2, passing ~97.6% (364/373) of the official
-[yaml-test-suite](https://github.com/yaml/yaml-test-suite). It's an API-level drop-in for either —
-same exports and call signatures, ESM + CJS + full TypeScript types, and **zero
-runtime dependencies**. No more trading YAML's readability for JSON's performance.
+[yaml-test-suite](https://github.com/yaml/yaml-test-suite). It includes partial
+compatibility shims for common `yaml` and `js-yaml` calls, ESM + CJS,
+TypeScript types, and **zero runtime dependencies**. See the module references
+for the supported calls and current gaps.
+<!-- js-yaml:5.2.1 yaml:2.9.0 ly:6598b78 -->
 
 **Two goals, in priority order:** (1) full YAML 1.2 spec compliance, then
 (2) speed and memory within reach of native `JSON.parse`/`JSON.stringify`.
@@ -26,12 +28,12 @@ Everything else is secondary to those two.
   <!-- bench:4ca6140 js-yaml:5.2.1 -->
 - **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~97.6% (364/373) of
   the official yaml-test-suite.
-- **Drop-in (API-level).** Same exports and signatures as `yaml` and `js-yaml` —
-  swap the import and your code runs. An option we don't yet honour (`schema`,
-  `sortKeys`, `indent`, …) **throws a clear error** rather than silently changing
-  your output; see [Drop-in](#drop-in-for-js-yaml-or-yaml).
-- **Lean.** Zero runtime dependencies, small bundle; ships ESM + CJS + full
-  TypeScript types.
+- **Compatibility shims.** Common calls are available through `lightning-yaml/yaml`
+  and `lightning-yaml/js-yaml`. The shims support selected calls and options;
+  unsupported options throw instead of being silently ignored. See
+  [Compatibility](#compatibility-with-js-yaml-or-yaml) for details.
+- **Lean.** Zero runtime dependencies, small bundle; ships ESM + CJS + TypeScript
+  types.
 - **Complete.** Full YAML 1.2 core — flow & block syntax, anchors/aliases, tags
   incl. `!!binary`, multi-document streams, and more.
 
@@ -92,12 +94,12 @@ import { parse, parseAll, stringify } from 'lightning-yaml';
 parse(`
 name: lightning-yaml
 version: 0.1.0
-features: [fast, spec-compliant, drop-in]
+features: [fast, spec-compliant, compat-shims]
 `);
 // → {
 //     name: 'lightning-yaml',
 //     version: '0.1.0',
-//     features: ['fast', 'spec-compliant', 'drop-in'],
+//     features: ['fast', 'spec-compliant', 'compat-shims'],
 //   }
 
 stringify({ hello: 'world', list: [1, 2, 3] });
@@ -119,30 +121,31 @@ b: 2
 **Full API reference and function signatures →
 [lightning-yaml.dev](https://lightning-yaml.dev)**
 
-### Drop-in for `js-yaml` or `yaml`
+<a id="drop-in-for-js-yaml-or-yaml"></a>
 
-Already using another YAML library? Swap one import, keep your code.
+### Compatibility with `js-yaml` or `yaml`
+
+The shims expose selected entry points under separate subpaths; check their
+supported calls and options before switching.
 
 ```ts
 // Coming from js-yaml — comment out the old import:
 // import { load, dump } from 'js-yaml';
 import { load, dump } from 'lightning-yaml/js-yaml';
 
-// Using the `yaml` library — same idea:
+// Using the `yaml` package:
 // import { parse, stringify } from 'yaml';
 import { parse, stringify } from 'lightning-yaml/yaml';
 ```
 
-> **Status — surface-level today.** The shims are a TypeScript drop-in (same
-> exports and signatures), so your code compiles and runs — but an option we
-> don't yet honour (`schema`, `sortKeys`, `indent`, …) **throws** instead of
-> silently leaving your output unchanged, so you find out at the call site (a
-> boolean flag left at the value lightning-yaml already produces — usually
-> `false` — still works).
-> Full option compatibility is the goal; each shim's **option-support matrix**
+> **Status — partial compatibility.** The subpaths provide selected functions,
+> not the full `yaml` or `js-yaml` export surfaces or every call signature.
+> Unsupported options throw instead of being silently ignored. Each shim's
+> **option-support matrix**
 > ([js-yaml](https://lightning-yaml.dev/api/js-yaml-compat/readme/#option-support-matrix),
 > [yaml](https://lightning-yaml.dev/api/yaml-compat/readme/#option-support-matrix))
 > lists which options are easy or hard to support next.
+<!-- js-yaml:5.2.1 yaml:2.9.0 ly:6598b78 -->
 
 ## Project priorities
 
