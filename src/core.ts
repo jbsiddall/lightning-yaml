@@ -2070,6 +2070,10 @@ function trimTrailingWs(from: number, end: number): number {
  * `flowFolded` up front, so a single-line scalar (the hot path) leaves it null.
  */
 function scanFlowPlainEnd(): number {
+  const c = src.charCodeAt(pos);
+  if (c === PERCENT || c === AT || c === BACKTICK || c === PIPE || c === GT) {
+    fail("a plain scalar cannot start with '%', '@', '`', '|', or '>'");
+  }
   flowFolded = null;
   const start = pos;
   const p = scanFlowPlainLine(start);
@@ -4868,6 +4872,14 @@ function writeStringScalar(s: string): string {
   return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
 }
 
+/** Root-only quoting for strings that would be read as a document end marker. */
+function writeRootStringScalar(s: string): string {
+  if (s === "..." || s.startsWith("... ")) {
+    return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+  }
+  return writeStringScalar(s);
+}
+
 // ---------------------------------------------------------------------------
 // Numbers.
 // ---------------------------------------------------------------------------
@@ -5049,7 +5061,7 @@ function writeEntryValue(value: unknown, indent: number): void {
  */
 function writeDocumentValue(value: unknown): void {
   if (value === null || typeof value !== "object") {
-    out += writeScalar(value) + "\n";
+    out += (typeof value === "string" ? writeRootStringScalar(value) : writeScalar(value)) + "\n";
     return;
   }
   const obj = value as object;
