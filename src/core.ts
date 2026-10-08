@@ -4753,13 +4753,6 @@ function looksLikeTypedScalar(s: string): boolean {
 function isPlainScalarSafe(s: string): boolean {
   const n = s.length;
   if (n === 0) return false;
-  // Document end marker `...` (or `...` followed by whitespace/end-of-line)
-  // must be quoted so stringify("...") doesn't emit an unquoted marker that parses as null.
-  if (n >= 3 && s.charCodeAt(0) === DOT && s.charCodeAt(1) === DOT && s.charCodeAt(2) === DOT) {
-    if (n === 3) return false;
-    const c3 = s.charCodeAt(3);
-    if (c3 === SPACE || c3 === TAB || c3 === LF || c3 === CR) return false;
-  }
   const c0 = s.charCodeAt(0);
   if (c0 === SPACE || isPlainLeadingIndicator(c0)) return false;
   const cLast = s.charCodeAt(n - 1);
@@ -4873,6 +4866,14 @@ function encodeDoubleQuoted(s: string): string {
 function writeStringScalar(s: string): string {
   if (isPlainScalarSafe(s)) return s;
   return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+}
+
+/** Root-only quoting for strings that would be read as a document end marker. */
+function writeRootStringScalar(s: string): string {
+  if (s === "..." || s.startsWith("... ")) {
+    return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+  }
+  return writeStringScalar(s);
 }
 
 // ---------------------------------------------------------------------------
@@ -5056,7 +5057,7 @@ function writeEntryValue(value: unknown, indent: number): void {
  */
 function writeDocumentValue(value: unknown): void {
   if (value === null || typeof value !== "object") {
-    out += writeScalar(value) + "\n";
+    out += (typeof value === "string" ? writeRootStringScalar(value) : writeScalar(value)) + "\n";
     return;
   }
   const obj = value as object;
