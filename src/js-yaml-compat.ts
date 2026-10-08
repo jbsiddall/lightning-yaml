@@ -1,8 +1,8 @@
 /**
  * @packageDocumentation
  *
- * js-yaml-compat.ts — a drop-in-ish replacement for the `js-yaml` v5 public
- * API (`load`/`loadAll`/`dump`), backed by lightning-yaml's own parser
+ * js-yaml-compat.ts — a partial compatibility shim for selected `js-yaml` v5
+ * calls (`load`/`loadAll`/`dump`), backed by lightning-yaml's own parser
  * (./core.ts).
  *
  * This module doc block is the MASTER SOURCE for js-yaml compatibility: it is
@@ -11,9 +11,10 @@
  *
  * ## Compatibility level TODAY
  *
- * **API-level, not behaviour-complete.** Every export and call signature the
- * real `js-yaml` exposes exists here, so code that imports `load`/`loadAll`/
- * `dump` compiles and runs unchanged. Options are honoured on a growing
+ * **Partial API compatibility, not a drop-in replacement.** This module
+ * exposes `load`, `loadAll`, and `dump`, plus `YAMLException` and a subset of
+ * schema and tag helpers. It does not mirror the full `js-yaml` export surface
+ * or every call signature. Options are honoured on a growing
  * allowlist, and anything not yet honoured **throws a `YAMLException`** rather
  * than silently diverging. Today only `filename` (threaded into a thrown
  * error's mark), `loadAll`'s iterator, `json: true`, and `schema` *as the
@@ -25,8 +26,9 @@
  *
  * ## Goal
  *
- * Maximise drop-in compatibility **without ever compromising the two things
- * that outrank it: YAML-1.2-spec correctness and core (./core.ts) speed.**
+ * Improve compatibility for these entry points **without ever compromising
+ * the two things that outrank it: YAML-1.2-spec correctness and core
+ * (./core.ts) speed.**
  * Per-option cost is therefore paid either in this shim (pre-/post-processing
  * the plain-JS value, the way the `yaml` shim's reviver already does) or behind
  * a gated core seam that leaves the options-free fast path byte-identical. An

@@ -33,7 +33,7 @@ export default defineConfig({
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/jbsiddall/lightning-yaml' }],
       plugins: [
         starlightTypeDoc({
-          entryPoints: ['../src/index.ts', '../src/yaml-compat.ts', '../src/js-yaml-compat.ts'], // the real parser + drop-in compat shims — API reference is generated from their TSDoc
+          entryPoints: ['../src/index.ts', '../src/yaml-compat.ts', '../src/js-yaml-compat.ts'], // the parser + selected compat shims — API reference is generated from their TSDoc
           tsconfig: '../tsconfig.json',
           output: 'api',
           sidebar: { label: 'API reference', collapsed: false },
