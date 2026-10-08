@@ -1620,11 +1620,19 @@ function parseFlowExplicitEntry(): Record<string, unknown> {
   pos++; // past '?'
   skipFlowWs();
   const c = src.charCodeAt(pos);
-  const key = c === COLON || c === COMMA || c === RBRACKET || c === RBRACE ? "" : keyToString(parseFlowValue());
+  const hasKey = c !== COLON && c !== COMMA && c !== RBRACKET && c !== RBRACE;
+  const keyNode = hasKey ? parseFlowValue() : "";
+  const key = keyToString(keyNode);
+  const keyIsCollection = hasKey && isCollectionNode(keyNode);
   skipFlowWs();
-  if (src.charCodeAt(pos) === COLON) return makeSinglePair(key); // consumes ':' + value
+  if (src.charCodeAt(pos) === COLON) {
+    const pair = makeSinglePair(key); // consumes ':' + value
+    if (keyIsCollection) updateComplexKeyMeta(pair, key, KEY_FLAG_COLLECTION, undefined);
+    return pair;
+  }
   const pair: Record<string, unknown> = {};
   storeKey(pair, key, null); // `? key` with no value
+  updateComplexKeyMeta(pair, key, KEY_FLAG_ABSENT | (keyIsCollection ? KEY_FLAG_COLLECTION : 0), undefined);
   return pair;
 }
 
@@ -1645,6 +1653,7 @@ function parseFlowMap(): Record<string, unknown> {
   let produced: string[] | null = expected;
   let matched = true; // produced[0..kc) === expected[0..kc) so far
   let kc = 0; // keys produced so far
+  let keyMeta: Map<string, number> | undefined;
   for (;;) {
     skipFlowWs();
     let c = src.charCodeAt(pos);
@@ -1653,12 +1662,18 @@ function parseFlowMap(): Record<string, unknown> {
       break;
     }
     let key: string;
+    let keyIsCollection = false;
     if (c === QUESTION && flowSeparatorAt(pos + 1)) {
       // Explicit `? key` (cold): the key is a full node up to ':'/','/'}'.
       pos++;
       skipFlowWs();
       c = src.charCodeAt(pos);
-      key = c === COLON || c === COMMA || c === RBRACE ? "" : keyToString(parseFlowValue());
+      if (c === COLON || c === COMMA || c === RBRACE) key = "";
+      else {
+        const keyNode = parseFlowValue();
+        key = keyToString(keyNode);
+        keyIsCollection = isCollectionNode(keyNode);
+      }
     } else {
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchFlowKey(c, ek) ? ek : parseFlowKey();
@@ -1677,13 +1692,16 @@ function parseFlowMap(): Record<string, unknown> {
     kc++;
     skipFlowWs();
     let value: unknown = null;
-    if (src.charCodeAt(pos) === COLON) {
+    const hasValue = src.charCodeAt(pos) === COLON;
+    if (hasValue) {
       pos++;
       skipFlowWs();
       c = src.charCodeAt(pos);
       if (c !== COMMA && c !== RBRACE) value = parseFlowValue();
     }
     storeKey(obj, key, value);
+    const flags = (keyIsCollection ? KEY_FLAG_COLLECTION : 0) | (hasValue ? 0 : KEY_FLAG_ABSENT);
+    if (flags !== 0 || keyMeta !== undefined) keyMeta = updateComplexKeyMeta(obj, key, flags, keyMeta);
     skipFlowWs();
     c = src.charCodeAt(pos);
     if (c === COMMA) {
@@ -1733,6 +1751,33 @@ function keyToString(node: unknown): string {
   return String(node);
 }
 
+const KEY_FLAG_COLLECTION = 1;
+const KEY_FLAG_ABSENT = 2;
+
+// A JS property string loses whether its YAML key was a collection and whether
+// its explicit value was absent. Keep those facts only while a parsed mapping
+// may itself be rendered as a complex key.
+const complexKeyMeta = new WeakMap<object, Map<string, number>>();
+
+function updateComplexKeyMeta(
+  obj: object,
+  key: string,
+  flags: number,
+  current: Map<string, number> | undefined,
+): Map<string, number> | undefined {
+  if (flags === 0 && current === undefined) return undefined;
+  const meta = current ?? new Map<string, number>();
+  if (flags === 0) meta.delete(key);
+  else meta.set(key, flags);
+  if (current === undefined) complexKeyMeta.set(obj, meta);
+  return meta;
+}
+
+function stringifyKeyPair(key: string, value: unknown, flags: number): string {
+  const keyText = (flags & KEY_FLAG_COLLECTION) !== 0 ? "? " + key : stringifyKeyScalar(key);
+  return (flags & KEY_FLAG_ABSENT) !== 0 ? keyText : `${keyText}: ${stringifyKeyValue(value)}`;
+}
+
 // ---------------------------------------------------------------------------
 // Complex (collection) mapping keys — cold, rare: only an EXPLICIT `? key`
 // can ever resolve to a non-scalar (a sequence or mapping), which is the
@@ -1755,11 +1800,21 @@ function stringifyKeyNode(node: object): string {
   }
   if (node instanceof Map) {
     const entries = [...node.entries()];
-    return stringifyKeyItems(entries.length, (i) => `${stringifyKeyScalar(keyToString(entries[i]![0]))}: ${stringifyKeyValue(entries[i]![1])}`, "{", "}");
+    const meta = complexKeyMeta.get(node);
+    return stringifyKeyItems(entries.length, (i) => {
+      const [rawKey, value] = entries[i]!;
+      const key = keyToString(rawKey);
+      return stringifyKeyPair(key, value, meta?.get(key) ?? 0);
+    }, "{", "}");
   }
   if (node instanceof Uint8Array) return stringifyKeyNode(Array.from(node)); // best-effort, rare (a binary key)
-  const keys = Object.keys(node as Record<string, unknown>);
-  return stringifyKeyItems(keys.length, (i) => `${stringifyKeyScalar(keys[i]!)}: ${stringifyKeyValue((node as Record<string, unknown>)[keys[i]!])}`, "{", "}");
+  const obj = node as Record<string, unknown>;
+  const keys = Object.keys(obj);
+  const meta = complexKeyMeta.get(node);
+  return stringifyKeyItems(keys.length, (i) => {
+    const key = keys[i]!;
+    return stringifyKeyPair(key, obj[key], meta?.get(key) ?? 0);
+  }, "{", "}");
 }
 
 /** Shared flow-padding join for `stringifyKeyNode`'s array/object branches: `"[]"`/`"{}"` empty, else `"X item, item Y"`. */
@@ -3570,7 +3625,7 @@ function parseBlockSeq(col: number): unknown[] {
     }
     const inlineTab = sawTab && sp < len && src.charCodeAt(sp) !== LF && src.charCodeAt(sp) !== CR && src.charCodeAt(sp) !== HASH;
     const value = parseBlockValue(col, false); // a seq entry's value: same-col `-` is a sibling
-    if (inlineTab && isTabRestrictedCollection(value)) fail("a tab cannot indent a block sequence entry that opens a new collection");
+    if (inlineTab && isCollectionNode(value)) fail("a tab cannot indent a block sequence entry that opens a new collection");
     arr.push(value);
     if (pos >= len) break;
     if (pos - lineStart !== col) break;
@@ -3597,13 +3652,15 @@ function parseBlockSeq(col: number): unknown[] {
  * values are not interchangeable (an inline compact sequence is legal after
  * an explicit ':' but not an implicit one, calibrated against both oracles).
  */
-function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firstIsExplicit = false): Record<string, unknown> {
+function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firstIsExplicit = false, firstKeyIsCollection = false): Record<string, unknown> {
   if (++depth > MAX_DEPTH) fail("maximum nesting depth exceeded");
   const obj: Record<string, unknown> = {};
   registerPendingAnchor(obj); // before children (see parseFlowMap's identical call)
   let key = firstKey;
   let hasValue = firstHasValue;
   let isExplicit = firstIsExplicit;
+  let keyIsCollection = firstKeyIsCollection;
+  let keyMeta: Map<string, number> | undefined;
   // FastKeyMatch (M7) — see parseFlowMap for the shared scheme. `firstKey` was
   // already parsed by the caller (block maps enter with their first key in
   // hand), so it is only RECORDED here, never byte-matched; the loop fast-paths
@@ -3632,6 +3689,8 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
     } else {
       storeKey(obj, key, null); // explicit key with no ': value' at all
     }
+    const flags = (keyIsCollection ? KEY_FLAG_COLLECTION : 0) | (hasValue ? 0 : KEY_FLAG_ABSENT);
+    if (flags !== 0 || keyMeta !== undefined) keyMeta = updateComplexKeyMeta(obj, key, flags, keyMeta);
     if (pos >= len) break;
     const nc = pos - lineStart;
     // A col-0 document marker always ends the mapping — including when
@@ -3650,12 +3709,15 @@ function parseBlockMap(col: number, firstKey: string, firstHasValue = true, firs
     if (!SKIP_STRICT_VALIDATION) checkNoTabIndent(col - 1);
     if (src.charCodeAt(pos) === QUESTION && isSpaceOrEolAt(pos + 1)) {
       pos++; // past '?'
-      key = internKey(keyToString(parseExplicitKey(col)));
+      const keyNode = parseExplicitKey(col);
+      key = internKey(keyToString(keyNode));
+      keyIsCollection = isCollectionNode(keyNode);
       hasValue = explicitValueFollows(col);
       isExplicit = true;
     } else {
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchBlockKey(ek) ? ek : parseBlockMapKey();
+      keyIsCollection = false;
       hasValue = true;
       isExplicit = false;
     }
@@ -3694,8 +3756,9 @@ function explicitValueFollows(col: number): boolean {
  */
 function parseBlockMapExplicit(col: number): Record<string, unknown> {
   pos++; // past '?'
-  const key = internKey(keyToString(parseExplicitKey(col)));
-  return parseBlockMap(col, key, explicitValueFollows(col), true);
+  const keyNode = parseExplicitKey(col);
+  const key = internKey(keyToString(keyNode));
+  return parseBlockMap(col, key, explicitValueFollows(col), true, isCollectionNode(keyNode));
 }
 
 /**
@@ -3711,7 +3774,7 @@ function parseBlockMapExplicit(col: number): Record<string, unknown> {
  * against both oracles: `?\tsimple` parses fine; `?\t- x` / `?\tkey: 1` both
  * error on js-yaml AND `yaml` — yaml-test-suite Y79Y/006-009).
  */
-function isTabRestrictedCollection(value: unknown): boolean {
+function isCollectionNode(value: unknown): boolean {
   return Array.isArray(value) || (value !== null && typeof value === "object" && !(value instanceof Uint8Array));
 }
 
@@ -3763,7 +3826,7 @@ function checkNoTabIndent(parentCol: number): void {
  * NOT exempt (`a:\n \t&x b: 1` is a tab-indented block map and errors).
  */
 function rejectBlockCollectionTabIndent(wsStart: number, contentPos: number, firstChar: number, value: unknown): void {
-  if (!isTabRestrictedCollection(value)) return;
+  if (!isCollectionNode(value)) return;
   if (firstChar === LBRACKET || firstChar === LBRACE || firstChar === DQUOTE || firstChar === SQUOTE || firstChar === STAR) return;
   for (let i = wsStart; i < contentPos; i++) {
     if (src.charCodeAt(i) === TAB) {
@@ -3797,7 +3860,7 @@ function parseExplicitValue(col: number): unknown {
     return parseDeferredBlockNode(col, true);
   }
   const value = parseBlockNode(col, false); // inline: NOT gated by the implicit-value inline-seq restriction
-  if (tabRightAfterIndicator && isTabRestrictedCollection(value)) fail("a tab cannot separate ':' from a value that opens a new collection");
+  if (tabRightAfterIndicator && isCollectionNode(value)) fail("a tab cannot separate ':' from a value that opens a new collection");
   return value;
 }
 
@@ -3822,7 +3885,7 @@ function parseExplicitKey(col: number): unknown {
     return parseDeferredBlockNode(col, true);
   }
   const keyNode = parseBlockNode(col, false); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
-  if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
+  if (tabRightAfterIndicator && isCollectionNode(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
   return keyNode;
 }
 

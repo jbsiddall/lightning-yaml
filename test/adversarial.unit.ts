@@ -229,6 +229,54 @@ test("complex keys: IMPLICIT flow collection key is a spec error — we reject i
   deepStrictEqual(oracleParse("{[1, 2]: v}"), { "[ 1, 2 ]": "v" });
 });
 
+test("issue #15: nested block complex keys compose without re-escaping", () => {
+  const input = "? ? [1, 2]\n";
+  deepStrictEqual(parse(input), { "{ ? [ 1, 2 ] }": null });
+  deepStrictEqual(parse(input), oracleParse(input));
+
+  for (const n of [30, 40, 120]) {
+    const result = parse("? ".repeat(n) + "[1, 2]\n") as Record<string, unknown>;
+    const keys = Object.keys(result);
+    strictEqual(keys.length, 1);
+    strictEqual(result[keys[0]!], null);
+    strictEqual(keys[0]!.length, 8 + 6 * (n - 1), `n=${n} key length must grow linearly`);
+  }
+});
+
+test("issue #15: nested flow collection keys retain collection and absent-value shape", () => {
+  const cases: Array<[string, Record<string, unknown>]> = [
+    ["? {? a}\n", { "{ a }": null }],
+    ["? {? [1, 2]}\n", { "{ ? [ 1, 2 ] }": null }],
+    ["? [{? a}]\n", { "[ { a } ]": null }],
+    ["? [{? [1, 2]}]\n", { "[ { ? [ 1, 2 ] } ]": null }],
+    ['? {x: "1: 2"}\n', { '{ x: "1: 2" }': null }],
+    ['? ["a: b"]\n', { '[ "a: b" ]': null }],
+  ];
+  for (const [input, expected] of cases) {
+    deepStrictEqual(parse(input), expected, input);
+    deepStrictEqual(parse(input), oracleParse(input), input);
+  }
+
+  const realNull = "?\n  ? a\n  : null\n";
+  deepStrictEqual(parse(realNull), { "{ a: null }": null });
+  deepStrictEqual(parse(realNull), oracleParse(realNull));
+});
+
+test("issue #15: duplicate properties replace complex-key metadata in block and flow maps", () => {
+  const cases: Array<[string, Record<string, unknown>]> = [
+    // A scalar key with the same JS property string replaces the prior collection key.
+    ["?\n  ? [a]\n  : first\n  ? \"[ a ]\"\n  : second\n", { '{ "[ a ]": second }': null }],
+    // In the reverse order, the final collection key must restore the explicit marker.
+    ["?\n  ? \"[ a ]\"\n  : first\n  ? [a]\n  : second\n", { "{ ? [ a ]: second }": null }],
+    // Absent and present values on the same complex property are both last-wins.
+    ["?\n  ? [a]\n  ? [a]\n  : second\n", { "{ ? [ a ]: second }": null }],
+    ["?\n  ? [a]\n  : first\n  ? [a]\n", { "{ ? [ a ] }": null }],
+    ["? {? [a], ? \"[ a ]\": second}\n", { '{ "[ a ]": second }': null }],
+    ["? {? \"[ a ]\", ? [a]: second}\n", { "{ ? [ a ]: second }": null }],
+  ];
+  for (const [input, expected] of cases) deepStrictEqual(parse(input), expected, input);
+});
+
 // --------------------------------------------------------------------------
 // §4.10 Anchor/alias resource bombs (billion laughs, quadratic blowup).
 // lightning-yaml resolves an alias to the SAME reference (structural sharing,
