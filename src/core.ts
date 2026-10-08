@@ -3764,8 +3764,8 @@ function parseBlockMapExplicit(col: number): Record<string, unknown> {
 /**
  * Whether `value` is a collection (array, plain object, or a `!!set`/`!!omap`
  * `Set`/`Map` — never a scalar; `Uint8Array` from `!!binary` is scalar
- * CONTENT, not a collection). Used only by the tab checks in
- * `parseBlockMapExplicit`/`parseExplicitValue`: real YAML disallows a bare
+ * CONTENT, not a collection). Used for complex-key metadata and by the
+ * tab checks in `parseBlockMapExplicit`/`parseExplicitValue`: real YAML disallows a bare
  * TAB as the separator immediately after `?`/explicit `:` when what follows
  * opens a NEW block collection at the column the tab reaches (that column
  * becomes a structural indentation reference other lines must align to —
