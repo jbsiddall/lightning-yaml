@@ -46,9 +46,8 @@ async function main(): Promise<void> {
     const ready = ours.filter((c) => candidateSupports(c, "parse") || candidateSupports(c, "stringify"));
     if (ready.length === 0) {
       console.log(
-        "lightning-yaml is still a stub (parse/stringify throw) — nothing to benchmark.\n" +
-          "This refreshes automatically once src/index.ts implements them; until then, " +
-          "`pnpm test` runs the consistency suite that specifies what \"correct\" means.",
+        "No lightning-yaml operation passed the readiness check — nothing to benchmark.\n" +
+          "The consistency suite checks correctness for implemented operations.",
       );
       return;
     }
