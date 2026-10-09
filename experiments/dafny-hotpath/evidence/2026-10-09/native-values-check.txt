@@ -1,0 +1,45 @@
+
+Dafny program verifier finished with 28 verified, 0 errors
+{"outputGuard":"passed","checkedFiles":7,"roots":["NativeValues.__default.Demo","NativeValues.__default.BuildNumbers","NativeValues.__default.ObjectKeyCount"]}
+✔ native arrays, objects, maps, sentinels and primitive coercions pass (14.238863ms)
+✔ comments and literal text cannot trigger any or boxing findings (1.756992ms)
+✔ explicit any is rejected in TS and public declarations (3.390992ms)
+✔ primitive wrapper constructors fail while native coercion calls pass (2.65831ms)
+✔ big integers, Dafny collections, codepoints and equality runtime fail (3.899786ms)
+✔ datatype constructors and unaudited constructors fail (2.362526ms)
+✔ unknown calls and indirect aliases fail closed (3.382528ms)
+✔ audited external calls are explicit and still cannot permit known boxing (1.176033ms)
+✔ shadowed builtin spelling fails closed (1.836059ms)
+✔ parameter alias cannot masquerade as a same-file helper (0.926366ms)
+✔ local variable cannot masquerade as a harmless same-file helper (4.056679ms)
+✔ block-local helper declarations, variables and destructuring fail closed (6.29425ms)
+✔ rebinding an outer callable cannot hide its replacement implementation (1.530257ms)
+✔ top-level callable rebinding cannot escape a generated-root scan (1.44162ms)
+✔ generated roots exclude embedded unused Dafny runtime (0.980736ms)
+✔ generated reachable helpers are traversed after new boxing regression (2.28484ms)
+✔ renamed or missing roots fail rather than skip the generated code (1.213473ms)
+✔ renamed helper that still boxes is found through its callsite (4.418157ms)
+✔ new unresolved helper is a failure (0.975689ms)
+✔ boxing alias outside the selected generated body cannot hide its call (1.000695ms)
+✔ recursive helper graph terminates and scans all helper bodies (1.150976ms)
+✔ malformed source, missing files and empty scan fail (1.705333ms)
+✔ same-file allowlisted helper still has its implementation checked (0.534072ms)
+✔ source and emitted modules resolve their own helper implementation without ambiguity (2.625308ms)
+✔ boxing regression in emitted imported helper is detected (1.280388ms)
+✔ missing, nonlocal and dynamic require never receives a general exemption (4.919866ms)
+✔ required file must be explicitly included even if it exists (0.456144ms)
+✔ unknown imported member and nonstandard comma call fail (1.708421ms)
+✔ import alias rebinding fails before it can hide a new implementation (1.11527ms)
+✔ local declarations cannot shadow named or namespace imports (1.724781ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 367.27349
+Native runtime: primitives, dense arrays, own object properties, aliases/cycles passed
+Strict API: native reference retention and malformed boundary rejection passed
+Generated integration: native graph/array identity, scalar values, key count and emitted-code regressions passed
+{"nativeValuePath":"passed","wrapperAllocations":"none observed in values","output":"plain cyclic object, shared child, native dense arrays and primitives","sourceProof":"conditional on trusted JS extern contracts","outputGuard":"syntactic regression guard; not a performance proof"}

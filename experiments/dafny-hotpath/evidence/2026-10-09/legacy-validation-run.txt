@@ -1,0 +1,18 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+
+Dafny program verifier finished with 3 verified, 0 errors
+
+Dafny program verifier finished with 5 verified, 0 errors
+
+Dafny program verifier finished with 8 verified, 0 errors
+{"length":64,"iterations":1000,"nsPerCallMedian":{"js":192.5,"dafnyInt":39636.9,"dafnyNative":6369.6,"dafnyNativeWithConversion":8955.8,"dafnyCodeUnits":197.6,"dafnyCodeUnitsWithConversion":3862.4,"dafnyCodeUnitsWithNodeBuffer":672.8},"nativeOverJs":33.1,"intOverJs":205.9}
+{"length":1024,"iterations":1000,"nsPerCallMedian":{"js":2707.8,"dafnyInt":572157.3,"dafnyNative":104608.7,"dafnyNativeWithConversion":148139,"dafnyCodeUnits":3811.8,"dafnyCodeUnitsWithConversion":57468.6,"dafnyCodeUnitsWithNodeBuffer":4940.9},"nativeOverJs":38.6,"intOverJs":211.3}
+{"kernel":"block","length":64,"iterations":1000,"nsPerCallMedian":{"js":354.5,"dafny":192.5,"withBuffer":456.4},"generatedOverJs":0.5,"withBufferOverJs":1.3}
+{"kernel":"key","length":64,"iterations":1000,"nsPerCallMedian":{"js":253.8,"dafny":137,"withBuffer":486.4},"generatedOverJs":0.5,"withBufferOverJs":1.9}
+{"kernel":"quote","length":64,"iterations":1000,"nsPerCallMedian":{"js":46.5,"dafny":145.6,"withBuffer":390.4,"typedArrayIndexOf":149.8},"generatedOverJs":3.1,"withBufferOverJs":8.4}
+{"kernel":"quote-varied","length":64,"iterations":1000,"nsPerCallMedian":{"js":71.5,"dafny":115.8,"withBuffer":401.8,"typedArrayIndexOf":174.7},"generatedOverJs":1.6}
+{"kernel":"block","length":1024,"iterations":1000,"nsPerCallMedian":{"js":6376.1,"dafny":2168.7,"withBuffer":2528.1},"generatedOverJs":0.3,"withBufferOverJs":0.4}
+{"kernel":"key","length":1024,"iterations":1000,"nsPerCallMedian":{"js":3712.7,"dafny":1328.9,"withBuffer":1776.3},"generatedOverJs":0.4,"withBufferOverJs":0.5}
+{"kernel":"quote","length":1024,"iterations":1000,"nsPerCallMedian":{"js":69.4,"dafny":1736.6,"withBuffer":3234.4,"typedArrayIndexOf":1289.7},"generatedOverJs":25,"withBufferOverJs":46.6}
+{"kernel":"quote-varied","length":1024,"iterations":1000,"nsPerCallMedian":{"js":95.9,"dafny":1754.8,"withBuffer":2263.9,"typedArrayIndexOf":1117.4},"generatedOverJs":18.3}
