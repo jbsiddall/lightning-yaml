@@ -83,6 +83,41 @@ test('parameter alias cannot masquerade as a same-file helper', () => {
   rejects('function safe(v) { return v; } function run(safe) { return safe(1); }', /indirect call through parameter safe/);
 });
 
+test('local variable cannot masquerade as a harmless same-file helper', () => {
+  const result = checkGenerated(`
+    function safe(v) { return v; }
+    function hidden(v) { return new Number(v); }
+    ${generated('const safe = hidden; return safe(v);')}
+  `);
+  assert.equal(result.ok, false);
+  assert.match(result.diagnostics.join('\n'), /unsupported local binding safe/);
+});
+
+test('block-local helper declarations, variables and destructuring fail closed', () => {
+  for (const body of [
+    'if (v) { const safe = hidden; return safe(v); } return v;',
+    'if (v) { function safe(x) { return hidden(x); } return safe(v); } return v;',
+    'const { safe } = aliases; return safe(v);',
+  ]) {
+    const result = checkGenerated(`function safe(v) { return v; } function hidden(v) { return new Number(v); } ${generated(body)}`);
+    assert.equal(result.ok, false);
+    assert.match(result.diagnostics.join('\n'), /unsupported local binding safe/);
+  }
+  rejects('function safe(v) { return v; } { const safe = hidden; safe(1); }', /unsupported local binding safe/);
+});
+
+test('rebinding an outer callable cannot hide its replacement implementation', () => {
+  const result = checkGenerated(`function safe(v) { return v; } function hidden(v) { return new Number(v); } ${generated('safe = hidden; return safe(v);')}`);
+  assert.equal(result.ok, false);
+  assert.match(result.diagnostics.join('\n'), /rebinding of callable safe/);
+});
+
+test('top-level callable rebinding cannot escape a generated-root scan', () => {
+  const result = checkGenerated(`function safe(v) { return v; } function hidden(v) { return new Number(v); } safe = hidden; ${generated('return safe(v);')}`);
+  assert.equal(result.ok, false);
+  assert.match(result.diagnostics.join('\n'), /rebinding of callable safe/);
+});
+
 function generated(body, helpers = '') {
   return `
     const BigNumber = require('bignumber.js');
@@ -214,4 +249,13 @@ test('import alias rebinding fails before it can hide a new implementation', () 
   const result = moduleFixture({ 'api.js': 'const runtime_1 = require("./runtime"); runtime_1.createHeap = sneaky; (0, runtime_1.createHeap)();' });
   assert.equal(result.ok, false);
   assert.match(result.diagnostics.join('\n'), /mutation of imported binding runtime_1/);
+});
+
+test('local declarations cannot shadow named or namespace imports', () => {
+  const named = moduleFixture({ 'api.ts': 'import { createHeap } from "./runtime"; function run() { const createHeap = hidden; return createHeap(); }' });
+  assert.equal(named.ok, false);
+  assert.match(named.diagnostics.join('\n'), /unsupported local binding createHeap/);
+  const namespace = moduleFixture({ 'api.js': 'const runtime_1 = require("./runtime"); function run() { const runtime_1 = hidden; return (0, runtime_1.createHeap)(); }' });
+  assert.equal(namespace.ok, false);
+  assert.match(namespace.diagnostics.join('\n'), /unsupported local binding runtime_1/);
 });

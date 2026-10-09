@@ -3,8 +3,6 @@ module Shapes {
   newtype {:nativeType "number"} Index = x: int | 0 <= x < 2147483647
   newtype {:nativeType "number"} Unit = x: int | 0 <= x < 65536
 
-  // Same flattened branches, but no char -> int -> native-number casts.
-  // This also removes the FlowIndicator helper call used by Native.dfy.
   method FlowPlainChars(s: string, from: Index) returns (p: Index)
     requires |s| < 2147483647
     requires from as int <= |s|
@@ -52,7 +50,6 @@ module Shapes {
     end := n;
   }
 
-  // Flattened stop conditions, with characters explicitly converted to units.
   method FlowPlainLine(s: string, from: Index) returns (p: Index)
     requires |s| < 2147483647
     requires from as int <= |s|

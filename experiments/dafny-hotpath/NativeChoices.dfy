@@ -1,5 +1,4 @@
 module NativeChoices {
-  // The exact unannotated range shown in the screenshot.
   newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
   newtype {:nativeType "number"} Unit = x: int | 0 <= x < 65536
 

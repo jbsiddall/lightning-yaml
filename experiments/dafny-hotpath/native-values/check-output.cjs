@@ -208,15 +208,50 @@ function audit({ generated = [], wholeFiles = [], allowedCalls = [], allowedCons
     }
     return undefined;
   }
+  function localBinding(call, name) {
+    for (let scope = call.parent; scope && !ts.isSourceFile(scope); scope = scope.parent) {
+      if (!ts.isBlock(scope)) continue;
+      let found = false;
+      function visit(node) {
+        if ((ts.isVariableDeclaration(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name) {
+          function hasName(binding) {
+            if (ts.isIdentifier(binding)) return binding.text === name;
+            if (ts.isObjectBindingPattern(binding) || ts.isArrayBindingPattern(binding)) return binding.elements.some(element => ts.isBindingElement(element) && hasName(element.name));
+            return false;
+          }
+          if (hasName(node.name)) found = true;
+        }
+        if (ts.isFunctionLike(node) || ts.isClassLike(node)) return;
+        ts.forEachChild(node, visit);
+      }
+      visit(scope);
+      if (found) return true;
+    }
+    return false;
+  }
+  function rejectRebinding(node, source, owner = '') {
+    if (!ts.isBinaryExpression(node) || node.operatorToken.kind < ts.SyntaxKind.FirstAssignment || node.operatorToken.kind > ts.SyntaxKind.LastAssignment) return;
+    const name = expressionName(node.left, source);
+    const target = name.split('.')[0];
+    if (imports.get(source).has(target)) report(source, node, `mutation of imported binding ${target}; static module call resolution requires immutable bindings`);
+    else {
+      const helper = resolve(name, owner, source);
+      if (helper && helper.node !== node.right) report(source, node, `rebinding of callable ${name}; static helper resolution requires immutable bindings`);
+    }
+  }
+  for (const source of sources.values()) {
+    function visit(node) {
+      rejectRebinding(node, source);
+      ts.forEachChild(node, visit);
+    }
+    visit(source);
+  }
   function scan(node, source, owner = '') {
     if (indexedNodes.has(node)) owner = indexedNodes.get(node).owner;
     if (ts.isImportDeclaration(node) && (!ts.isStringLiteral(node.moduleSpecifier) || !moduleSource(node.moduleSpecifier.text, source))) {
       report(source, node, 'import must resolve to an explicitly audited local source/declaration file');
     }
-    if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) {
-      const target = expressionName(node.left, source).split('.')[0];
-      if (imports.get(source).has(target)) report(source, node, `mutation of imported binding ${target}; static module call resolution requires immutable bindings`);
-    }
+    rejectRebinding(node, source, owner);
     if ((ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name && ts.isIdentifier(node.name) && PROTECTED_NAMES.has(node.name.text)) {
       report(source, node.name, `redefinition of protected native/runtime name ${node.name.text}`);
     }
@@ -233,9 +268,15 @@ function audit({ generated = [], wholeFiles = [], allowedCalls = [], allowedCons
         report(source, node, `primitive/object boxing via new ${name}`);
       } else {
         let shadowed = false;
-        if (ts.isIdentifier(node.expression)) {
+        const firstName = name.split('.')[0];
+        if (!name.includes('.') || imports.get(source).has(firstName)) {
           for (let parent = node.parent; parent; parent = parent.parent) {
-            if (ts.isFunctionLike(parent) && parent.parameters.some(parameter => ts.isIdentifier(parameter.name) && parameter.name.text === name)) shadowed = true;
+            if (ts.isFunctionLike(parent) && parent.parameters.some(parameter => ts.isIdentifier(parameter.name) && parameter.name.text === firstName)) shadowed = true;
+          }
+          if (localBinding(node, firstName)) {
+            report(source, node, `unsupported local binding ${firstName}; aliases and locally shadowed helpers/imports require an explicitly named immutable call`);
+            ts.forEachChild(node, child => scan(child, source, owner));
+            return;
           }
         }
         if (shadowed) {

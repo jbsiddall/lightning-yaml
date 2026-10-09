@@ -1,5 +1,4 @@
 // Equivalent to src/core.ts:scanFlowPlainLine for one flow-scalar line.
-// The loop uses only Dafny strings/chars/indices, with no JavaScript externs.
 module Scan {
   function FlowIndicator(c: char): bool {
     c == ',' || c == '[' || c == ']' || c == '{' || c == '}'

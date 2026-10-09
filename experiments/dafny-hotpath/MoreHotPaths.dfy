@@ -40,7 +40,6 @@ module MoreHotPaths {
     }
   }
 
-  // Returns the original offset on miss; on hit, the offset after the quote.
   method MatchFlowKey(s: seq<CodeUnit>, pos: Index, key: seq<CodeUnit>)
       returns (nextPos: Index)
     requires |s| + |key| + 2 < 2147483647
@@ -63,8 +62,6 @@ module MoreHotPaths {
     }
   }
 
-  // Common double-quoted fast case: return the closing quote index when no
-  // backslash or LF appears first; otherwise return the input length.
   method SimpleQuoteEnd(s: seq<CodeUnit>, from: Index) returns (end: Index)
     requires |s| < 2147483647
     requires from as int <= |s|

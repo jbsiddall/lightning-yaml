@@ -1,4 +1,4 @@
-import { createHeap } from './runtime';
+import { assertIndex, createHeap } from './runtime';
 import type { Heap } from './runtime';
 
 export interface DemoChild {
@@ -84,9 +84,7 @@ export function createNativeApi(candidate: unknown): NativeApi {
       return value;
     },
     numbers(count: number): number[] {
-      if (!Number.isInteger(count) || count < 0 || count >= 2147483647) {
-        throw new RangeError('Expected a bounded nonnegative integer count');
-      }
+      assertIndex(count);
       const value = kernel.BuildNumbers(createHeap(), count);
       if (!isNumbers(value) || value.length !== count) throw new TypeError('Generated BuildNumbers violated the native ABI');
       return value;

@@ -1,4 +1,3 @@
-// Same scan, using a bounded native JS number for offsets.
 module Native {
   newtype {:nativeType "number"} Index = x: int | 0 <= x < 2147483647
 

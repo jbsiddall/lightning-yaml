@@ -87,7 +87,6 @@ for (let sample = 0; sample < 512; sample++) {
   cases.push(s);
 }
 for (const s of cases) for (let from = 0; from <= s.length; from++) check(s, from);
-// Exhaustive single-unit input, including every surrogate code unit.
 for (let unit = 0; unit < 65536; unit++) check(String.fromCharCode(unit), 0);
 console.log(JSON.stringify({validation: 'passed', checks,
   scope: 'differential tests + all single UTF-16 units; not an all-string proof'}));

@@ -14,14 +14,16 @@ export interface Heap { readonly [heapBrand]: true }
 
 export function createHeap(): Heap { return { [heapBrand]: true }; }
 
-function index(value: number): void {
-  if (!Number.isInteger(value) || value < 0 || value >= 2147483647) {
+const INDEX_LIMIT = 2147483647;
+
+export function assertIndex(value: number): void {
+  if (!Number.isInteger(value) || value < 0 || value >= INDEX_LIMIT) {
     throw new RangeError('Expected a bounded nonnegative integer');
   }
 }
 
 function arrayIndex(array: NativeArray, value: number): void {
-  index(value);
+  assertIndex(value);
   if (value >= array.length) throw new RangeError('Array index out of bounds');
 }
 
@@ -30,7 +32,7 @@ export const NativeValues = Object.freeze({
   nullValue: null,
   undefinedValue: undefined,
   numberFromIndex(_heap: Heap, value: number): number {
-    index(value);
+    assertIndex(value);
     return value;
   },
   parseNumber(_heap: Heap, text: string): number { return Number(text); },
@@ -44,7 +46,7 @@ export const NativeValues = Object.freeze({
   },
   createArray(_heap: Heap): NativeArray { return []; },
   arrayPush(_heap: Heap, array: NativeArray, value: NativeValue): void {
-    if (array.length >= 2147483646) throw new RangeError('Array length limit reached');
+    if (array.length >= INDEX_LIMIT - 1) throw new RangeError('Array length limit reached');
     array.push(value);
   },
   arrayGet(_heap: Heap, array: NativeArray, at: number): NativeValue {
@@ -59,7 +61,7 @@ export const NativeValues = Object.freeze({
     array[at] = value;
   },
   arrayLength(_heap: Heap, array: NativeArray): number {
-    index(array.length);
+    assertIndex(array.length);
     return array.length;
   },
   createObject(_heap: Heap): NativeRecord { return {}; },

@@ -1,7 +1,7 @@
 # Native JS values inside verified Dafny control flow
 
 <!-- dafny:4.11.0 typescript:5.9.3 node:24.19.0 ly:70f5f41147b90df25e7572678593ec1036d85bbe -->
-<!-- bench:b9ab8139bdcde32e307e4d5a30060c9e384f21683146a2fe839cee055c29adf8 -->
+<!-- bench:54509f8c19f2257cd4cc0c63d3053c7152d5dc63e8cc412f515e306c7a571371 -->
 
 This is an executable starting point for the rewrite in
 [issue #231](https://github.com/jbsiddall/lightning-yaml/issues/231). Dafny code
@@ -117,6 +117,9 @@ and generated datatype constructors on inspected paths. Unknown reachable calls,
 unsupported aliases/imports, and missing/ambiguous entry points fail the check.
 Named helper calls are followed, so putting boxing into a new helper does not
 hide it from a checked entry point.
+Locally shadowed helpers/imports and callable rebinding are rejected; put shared
+helpers in immutable named functions. Callable/import rebinding is checked
+across each supplied file, including statements outside generated entry paths.
 
 Ordinary `Array(n)`, array literals, native `Map`/`WeakMap`, and primitive coercion
 calls `Number(text)`/`String(value)` are allowed. `Array` is native storage, not a
