@@ -1,0 +1,170 @@
+# Kubernetes Deployment manifest
+# Generated for baseline benchmarks — do not hand-edit
+# Maintainer: platform-team@example.com
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # The name must be DNS-compatible and <=63 chars
+  name: baseline-workload
+  namespace: production
+  labels:
+    # Used by Service selector — keep in sync
+    app: baseline
+    tier: backend
+    env: prod
+spec:
+  # Replica count tuned for the POC baseline
+  replicas: 4
+  selector:
+    matchLabels:
+      app: baseline
+  strategy:
+    # RollingUpdate keeps the old pod alive until the new one is Ready
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: baseline
+        # Hash the config to trigger rollout on change
+        config-hash: abc123def456
+    spec:
+      # Prefer spread across nodes for resilience
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: [baseline]
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: app
+          # Pinned image tag — do not use :latest in prod
+          image: registry.example.com/baseline:v2.9.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # Liveness must be forgiving on cold starts
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            # Requests = guaranteed; limits = hard cap
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          env:
+            # volume config
+            - name: BRAVO_JEB
+              value: "build-272"
+            # bravo config
+            - name: UNIFORM_EDY
+              value: "cache-456"
+            # victor config
+            - name: PORT_CEE
+              value: "job-356"
+            # sierra config
+            - name: DELTA_KIC
+              value: "tango-573"
+            # image config
+            - name: NOVEMBER_NNS
+              value: "bravo-40"
+            # quebec config
+            - name: VOLUME_UTE
+              value: "juliet-32"
+            # queue config
+            - name: KILO_HMO
+              value: "lima-502"
+            # queue config
+            - name: MIKE_AGT
+              value: "job-338"
+            # alpha config
+            - name: ZULU_OWY
+              value: "network-310"
+            # client config
+            - name: PORT_LUV
+              value: "test-141"
+            # romeo config
+            - name: CONFIG_SEO
+              value: "papa-594"
+            # service config
+            - name: SERVICE_HLK
+              value: "echo-428"
+            # november config
+            - name: CACHE_MPP
+              value: "papa-182"
+            # zulu config
+            - name: NODE_LNF
+              value: "port-379"
+            # bravo config
+            - name: INDIA_KPA
+              value: "victor-739"
+            # quebec config
+            - name: INDIA_QDE
+              value: "tango-941"
+            # xray config
+            - name: OSCAR_NOK
+              value: "stage-584"
+            # image config
+            - name: XRAY_EHM
+              value: "service-541"
+            # bravo config
+            - name: TASK_CRM
+              value: "whiskey-444"
+            # romeo config
+            - name: YANKEE_OGR
+              value: "whiskey-582"
+            # client config
+            - name: TASK_URJ
+              value: "uniform-925"
+            # server config
+            - name: CLIENT_FOM
+              value: "bravo-657"
+            # replica config
+            - name: HOTEL_EQL
+              value: "task-72"
+            # job config
+            - name: CHARLIE_DHR
+              value: "task-853"
+            # network config
+            - name: STAGE_WYX
+              value: "charlie-362"
+            # zulu config
+            - name: QUEBEC_EAV
+              value: "november-596"
+            # port config
+            - name: VOLUME_HRT
+              value: "tango-640"
+            # node config
+            - name: TANGO_ATO
+              value: "job-86"
+            # alpha config
+            - name: LIMA_EYE
+              value: "lima-979"
+            # delta config
+            - name: CONFIG_WVL
+              value: "xray-312"
+      # Always pull the secret for the private registry
+      imagePullSecrets:
+        - name: registry-cred
+      terminationGracePeriodSeconds: 60

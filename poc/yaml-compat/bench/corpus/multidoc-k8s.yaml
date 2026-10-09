@@ -1,0 +1,5765 @@
+# Document 0: Deployment worker-tles
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: worker-tles
+  namespace: production
+  labels:
+    app: bravo
+    version: "v5.19"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: worker-tles
+  template:
+    spec:
+      containers:
+        - name: worker-tles
+          image: registry.example.com/worker-tles:latest
+          ports:
+            - containerPort: 27912
+---
+# Document 1: Service india-zlqn
+apiVersion: v1
+kind: Service
+metadata:
+  name: india-zlqn
+  namespace: staging
+  labels:
+    app: server
+    version: "v8.2"
+spec:
+  type: ClusterIP
+  selector:
+    app: india-zlqn
+  ports:
+    - port: 653
+      targetPort: 4440
+---
+# Document 2: ConfigMap alpha-jsvz
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alpha-jsvz
+  namespace: default
+  labels:
+    app: mike
+    version: "v6.19"
+data:
+  pod_jl: "india oscar"
+  whiskey_pp: "foxtrot sierra"
+  stage_yw: "november build"
+  volume_pu: "papa volume"
+---
+# Document 3: Secret pod-fmzm
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pod-fmzm
+  namespace: kube-system
+  labels:
+    app: server
+    version: "v3.3"
+data:
+  note: "placeholder 3"
+---
+# Document 4: Ingress papa-vccz
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: papa-vccz
+  namespace: staging
+  labels:
+    app: foxtrot
+    version: "v3.18"
+data:
+  note: "placeholder 4"
+---
+# Document 5: ServiceAccount xray-uidn
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: xray-uidn
+  namespace: kube-system
+  labels:
+    app: queue
+    version: "v3.6"
+data:
+  note: "placeholder 5"
+---
+# Document 6: Deployment network-lhrn
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: network-lhrn
+  namespace: staging
+  labels:
+    app: alpha
+    version: "v6.13"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: network-lhrn
+  template:
+    spec:
+      containers:
+        - name: network-lhrn
+          image: registry.example.com/network-lhrn:latest
+          ports:
+            - containerPort: 42208
+---
+# Document 7: Service foxtrot-vdor
+apiVersion: v1
+kind: Service
+metadata:
+  name: foxtrot-vdor
+  namespace: default
+  labels:
+    app: bravo
+    version: "v5.13"
+spec:
+  type: ClusterIP
+  selector:
+    app: foxtrot-vdor
+  ports:
+    - port: 1027
+      targetPort: 5559
+---
+# Document 8: ConfigMap sierra-tfbw
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sierra-tfbw
+  namespace: production
+  labels:
+    app: bravo
+    version: "v5.10"
+data:
+  alpha_oc: "xray november"
+  job_eu: "mike xray"
+  hotel_di: "delta port"
+  tango_hm: "foxtrot xray"
+---
+# Document 9: Secret image-fpfm
+apiVersion: v1
+kind: Secret
+metadata:
+  name: image-fpfm
+  namespace: default
+  labels:
+    app: config
+    version: "v2.13"
+data:
+  note: "placeholder 9"
+---
+# Document 10: Ingress service-tflu
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: service-tflu
+  namespace: default
+  labels:
+    app: whiskey
+    version: "v8.19"
+data:
+  note: "placeholder 10"
+---
+# Document 11: ServiceAccount oscar-xmcw
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oscar-xmcw
+  namespace: kube-system
+  labels:
+    app: lima
+    version: "v8.10"
+data:
+  note: "placeholder 11"
+---
+# Document 12: Deployment yankee-flhf
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: yankee-flhf
+  namespace: staging
+  labels:
+    app: sierra
+    version: "v3.16"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: yankee-flhf
+  template:
+    spec:
+      containers:
+        - name: yankee-flhf
+          image: registry.example.com/yankee-flhf:latest
+          ports:
+            - containerPort: 63699
+---
+# Document 13: Service build-slgt
+apiVersion: v1
+kind: Service
+metadata:
+  name: build-slgt
+  namespace: kube-system
+  labels:
+    app: alpha
+    version: "v5.15"
+spec:
+  type: ClusterIP
+  selector:
+    app: build-slgt
+  ports:
+    - port: 288
+      targetPort: 7103
+---
+# Document 14: ConfigMap oscar-fyrn
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oscar-fyrn
+  namespace: kube-system
+  labels:
+    app: client
+    version: "v9.7"
+data:
+  charlie_bh: "test client"
+  sierra_zw: "test charlie"
+  hotel_zk: "replica volume"
+  cache_hf: "cache yankee"
+---
+# Document 15: Secret test-fisl
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-fisl
+  namespace: production
+  labels:
+    app: task
+    version: "v8.10"
+data:
+  note: "placeholder 15"
+---
+# Document 16: Ingress sierra-lrtt
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: sierra-lrtt
+  namespace: staging
+  labels:
+    app: alpha
+    version: "v6.9"
+data:
+  note: "placeholder 16"
+---
+# Document 17: ServiceAccount service-jjsf
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: service-jjsf
+  namespace: production
+  labels:
+    app: juliet
+    version: "v6.13"
+data:
+  note: "placeholder 17"
+---
+# Document 18: Deployment test-xfdl
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: test-xfdl
+  namespace: production
+  labels:
+    app: india
+    version: "v6.16"
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: test-xfdl
+  template:
+    spec:
+      containers:
+        - name: test-xfdl
+          image: registry.example.com/test-xfdl:latest
+          ports:
+            - containerPort: 45831
+---
+# Document 19: Service kilo-hcxs
+apiVersion: v1
+kind: Service
+metadata:
+  name: kilo-hcxs
+  namespace: staging
+  labels:
+    app: victor
+    version: "v9.15"
+spec:
+  type: ClusterIP
+  selector:
+    app: kilo-hcxs
+  ports:
+    - port: 1044
+      targetPort: 5272
+---
+# Document 20: ConfigMap quebec-egds
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quebec-egds
+  namespace: staging
+  labels:
+    app: cache
+    version: "v6.8"
+data:
+  image_um: "worker kilo"
+  whiskey_xl: "cache config"
+  dev_ff: "port config"
+  sierra_is: "volume queue"
+  mike_jr: "papa cache"
+  oscar_bx: "config romeo"
+  echo_lv: "golf server"
+---
+# Document 21: Secret task-rnwd
+apiVersion: v1
+kind: Secret
+metadata:
+  name: task-rnwd
+  namespace: default
+  labels:
+    app: build
+    version: "v5.6"
+data:
+  note: "placeholder 21"
+---
+# Document 22: Ingress papa-mlpv
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: papa-mlpv
+  namespace: default
+  labels:
+    app: charlie
+    version: "v5.2"
+data:
+  note: "placeholder 22"
+---
+# Document 23: ServiceAccount foxtrot-zvtt
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: foxtrot-zvtt
+  namespace: default
+  labels:
+    app: bravo
+    version: "v1.10"
+data:
+  note: "placeholder 23"
+---
+# Document 24: Deployment zulu-cqgf
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: zulu-cqgf
+  namespace: default
+  labels:
+    app: hotel
+    version: "v8.1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zulu-cqgf
+  template:
+    spec:
+      containers:
+        - name: zulu-cqgf
+          image: registry.example.com/zulu-cqgf:latest
+          ports:
+            - containerPort: 43750
+---
+# Document 25: Service papa-dvig
+apiVersion: v1
+kind: Service
+metadata:
+  name: papa-dvig
+  namespace: production
+  labels:
+    app: build
+    version: "v9.13"
+spec:
+  type: ClusterIP
+  selector:
+    app: papa-dvig
+  ports:
+    - port: 94
+      targetPort: 6039
+---
+# Document 26: ConfigMap whiskey-qarz
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whiskey-qarz
+  namespace: kube-system
+  labels:
+    app: task
+    version: "v3.0"
+data:
+  whiskey_yq: "dev deploy"
+  oscar_zu: "client sierra"
+  sierra_fx: "port build"
+  job_xs: "whiskey echo"
+  romeo_zj: "charlie whiskey"
+  task_ho: "yankee deploy"
+  november_xu: "bravo build"
+  quebec_lb: "bravo uniform"
+  replica_zz: "deploy replica"
+  test_mk: "yankee stage"
+---
+# Document 27: Secret whiskey-ubil
+apiVersion: v1
+kind: Secret
+metadata:
+  name: whiskey-ubil
+  namespace: default
+  labels:
+    app: golf
+    version: "v8.9"
+data:
+  note: "placeholder 27"
+---
+# Document 28: Ingress cache-akzs
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: cache-akzs
+  namespace: staging
+  labels:
+    app: prod
+    version: "v7.14"
+data:
+  note: "placeholder 28"
+---
+# Document 29: ServiceAccount network-prdz
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: network-prdz
+  namespace: production
+  labels:
+    app: server
+    version: "v4.2"
+data:
+  note: "placeholder 29"
+---
+# Document 30: Deployment quebec-wels
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: quebec-wels
+  namespace: staging
+  labels:
+    app: task
+    version: "v6.10"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: quebec-wels
+  template:
+    spec:
+      containers:
+        - name: quebec-wels
+          image: registry.example.com/quebec-wels:latest
+          ports:
+            - containerPort: 56390
+---
+# Document 31: Service alpha-xxjq
+apiVersion: v1
+kind: Service
+metadata:
+  name: alpha-xxjq
+  namespace: production
+  labels:
+    app: romeo
+    version: "v1.10"
+spec:
+  type: ClusterIP
+  selector:
+    app: alpha-xxjq
+  ports:
+    - port: 996
+      targetPort: 8157
+---
+# Document 32: ConfigMap config-hmlc
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-hmlc
+  namespace: staging
+  labels:
+    app: zulu
+    version: "v1.9"
+data:
+  test_ob: "victor india"
+  dev_sw: "replica job"
+  yankee_yo: "whiskey hotel"
+  delta_xf: "charlie job"
+  tango_re: "replica alpha"
+  worker_ld: "server prod"
+  stage_gf: "zulu port"
+  node_df: "november task"
+  romeo_pa: "image foxtrot"
+  network_gu: "test tango"
+---
+# Document 33: Secret xray-nshh
+apiVersion: v1
+kind: Secret
+metadata:
+  name: xray-nshh
+  namespace: staging
+  labels:
+    app: lima
+    version: "v6.16"
+data:
+  note: "placeholder 33"
+---
+# Document 34: Ingress stage-birs
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: stage-birs
+  namespace: staging
+  labels:
+    app: victor
+    version: "v3.9"
+data:
+  note: "placeholder 34"
+---
+# Document 35: ServiceAccount queue-mtxb
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: queue-mtxb
+  namespace: kube-system
+  labels:
+    app: worker
+    version: "v7.2"
+data:
+  note: "placeholder 35"
+---
+# Document 36: Deployment mike-rfrs
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: mike-rfrs
+  namespace: kube-system
+  labels:
+    app: build
+    version: "v4.16"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mike-rfrs
+  template:
+    spec:
+      containers:
+        - name: mike-rfrs
+          image: registry.example.com/mike-rfrs:latest
+          ports:
+            - containerPort: 8480
+---
+# Document 37: Service mike-vxtz
+apiVersion: v1
+kind: Service
+metadata:
+  name: mike-vxtz
+  namespace: production
+  labels:
+    app: echo
+    version: "v5.17"
+spec:
+  type: ClusterIP
+  selector:
+    app: mike-vxtz
+  ports:
+    - port: 187
+      targetPort: 8768
+---
+# Document 38: ConfigMap client-iovp
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: client-iovp
+  namespace: production
+  labels:
+    app: uniform
+    version: "v3.4"
+data:
+  task_sm: "build network"
+  xray_aq: "job foxtrot"
+  sierra_uv: "foxtrot queue"
+  node_nb: "sierra zulu"
+  port_fi: "oscar charlie"
+  delta_cd: "queue whiskey"
+  job_hf: "deploy test"
+  kilo_np: "dev mike"
+  queue_mu: "lima foxtrot"
+  lima_fc: "alpha job"
+  oscar_dp: "volume sierra"
+---
+# Document 39: Secret node-vjlh
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node-vjlh
+  namespace: kube-system
+  labels:
+    app: config
+    version: "v1.15"
+data:
+  note: "placeholder 39"
+---
+# Document 40: Ingress bravo-abjp
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: bravo-abjp
+  namespace: staging
+  labels:
+    app: pod
+    version: "v7.10"
+data:
+  note: "placeholder 40"
+---
+# Document 41: ServiceAccount client-xeox
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: client-xeox
+  namespace: kube-system
+  labels:
+    app: quebec
+    version: "v8.11"
+data:
+  note: "placeholder 41"
+---
+# Document 42: Deployment zulu-ervr
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: zulu-ervr
+  namespace: kube-system
+  labels:
+    app: foxtrot
+    version: "v6.13"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: zulu-ervr
+  template:
+    spec:
+      containers:
+        - name: zulu-ervr
+          image: registry.example.com/zulu-ervr:latest
+          ports:
+            - containerPort: 48618
+---
+# Document 43: Service yankee-lmmm
+apiVersion: v1
+kind: Service
+metadata:
+  name: yankee-lmmm
+  namespace: staging
+  labels:
+    app: november
+    version: "v5.16"
+spec:
+  type: ClusterIP
+  selector:
+    app: yankee-lmmm
+  ports:
+    - port: 220
+      targetPort: 3944
+---
+# Document 44: ConfigMap port-kvhk
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: port-kvhk
+  namespace: kube-system
+  labels:
+    app: volume
+    version: "v4.9"
+data:
+  papa_yy: "alpha job"
+  build_xa: "client romeo"
+  sierra_vg: "replica mike"
+  bravo_bf: "config volume"
+  xray_zj: "oscar test"
+  cache_gl: "pod november"
+  replica_ja: "volume server"
+  job_wm: "network xray"
+  build_di: "golf port"
+---
+# Document 45: Secret node-ifuk
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node-ifuk
+  namespace: production
+  labels:
+    app: job
+    version: "v8.5"
+data:
+  note: "placeholder 45"
+---
+# Document 46: Ingress stage-djaf
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: stage-djaf
+  namespace: staging
+  labels:
+    app: golf
+    version: "v8.8"
+data:
+  note: "placeholder 46"
+---
+# Document 47: ServiceAccount server-cubh
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: server-cubh
+  namespace: default
+  labels:
+    app: task
+    version: "v7.7"
+data:
+  note: "placeholder 47"
+---
+# Document 48: Deployment bravo-iyyv
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: bravo-iyyv
+  namespace: default
+  labels:
+    app: yankee
+    version: "v3.1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bravo-iyyv
+  template:
+    spec:
+      containers:
+        - name: bravo-iyyv
+          image: registry.example.com/bravo-iyyv:latest
+          ports:
+            - containerPort: 28584
+---
+# Document 49: Service mike-wvam
+apiVersion: v1
+kind: Service
+metadata:
+  name: mike-wvam
+  namespace: default
+  labels:
+    app: network
+    version: "v7.8"
+spec:
+  type: ClusterIP
+  selector:
+    app: mike-wvam
+  ports:
+    - port: 913
+      targetPort: 4079
+---
+# Document 50: ConfigMap deploy-qgpc
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deploy-qgpc
+  namespace: staging
+  labels:
+    app: zulu
+    version: "v2.9"
+data:
+  delta_pj: "kilo config"
+  november_dg: "kilo node"
+  yankee_zx: "build stage"
+  charlie_zg: "golf sierra"
+  golf_qk: "node prod"
+  hotel_bm: "victor network"
+  juliet_mo: "dev worker"
+  alpha_fz: "kilo mike"
+  network_qg: "image task"
+---
+# Document 51: Secret whiskey-hjwi
+apiVersion: v1
+kind: Secret
+metadata:
+  name: whiskey-hjwi
+  namespace: default
+  labels:
+    app: deploy
+    version: "v1.5"
+data:
+  note: "placeholder 51"
+---
+# Document 52: Ingress papa-oekr
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: papa-oekr
+  namespace: staging
+  labels:
+    app: service
+    version: "v9.10"
+data:
+  note: "placeholder 52"
+---
+# Document 53: ServiceAccount server-hjio
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: server-hjio
+  namespace: default
+  labels:
+    app: oscar
+    version: "v2.7"
+data:
+  note: "placeholder 53"
+---
+# Document 54: Deployment charlie-qdsp
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: charlie-qdsp
+  namespace: staging
+  labels:
+    app: worker
+    version: "v7.2"
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: charlie-qdsp
+  template:
+    spec:
+      containers:
+        - name: charlie-qdsp
+          image: registry.example.com/charlie-qdsp:latest
+          ports:
+            - containerPort: 38057
+---
+# Document 55: Service victor-jxth
+apiVersion: v1
+kind: Service
+metadata:
+  name: victor-jxth
+  namespace: kube-system
+  labels:
+    app: network
+    version: "v6.7"
+spec:
+  type: ClusterIP
+  selector:
+    app: victor-jxth
+  ports:
+    - port: 832
+      targetPort: 7279
+---
+# Document 56: ConfigMap deploy-xesg
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deploy-xesg
+  namespace: staging
+  labels:
+    app: charlie
+    version: "v5.12"
+data:
+  dev_og: "client client"
+  hotel_wc: "cache node"
+  dev_wg: "delta server"
+  yankee_hz: "hotel prod"
+  victor_sm: "deploy pod"
+  india_jl: "mike india"
+  job_mb: "bravo charlie"
+  network_ps: "uniform service"
+  service_zw: "quebec replica"
+  echo_cq: "network pod"
+---
+# Document 57: Secret service-wkkt
+apiVersion: v1
+kind: Secret
+metadata:
+  name: service-wkkt
+  namespace: default
+  labels:
+    app: mike
+    version: "v2.18"
+data:
+  note: "placeholder 57"
+---
+# Document 58: Ingress service-hdvr
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: service-hdvr
+  namespace: kube-system
+  labels:
+    app: uniform
+    version: "v6.8"
+data:
+  note: "placeholder 58"
+---
+# Document 59: ServiceAccount golf-tbhj
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: golf-tbhj
+  namespace: staging
+  labels:
+    app: volume
+    version: "v9.19"
+data:
+  note: "placeholder 59"
+---
+# Document 60: Deployment service-lgbi
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: service-lgbi
+  namespace: kube-system
+  labels:
+    app: network
+    version: "v3.2"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: service-lgbi
+  template:
+    spec:
+      containers:
+        - name: service-lgbi
+          image: registry.example.com/service-lgbi:latest
+          ports:
+            - containerPort: 3596
+---
+# Document 61: Service config-auri
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-auri
+  namespace: production
+  labels:
+    app: service
+    version: "v6.4"
+spec:
+  type: ClusterIP
+  selector:
+    app: config-auri
+  ports:
+    - port: 934
+      targetPort: 4533
+---
+# Document 62: ConfigMap lima-eczn
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lima-eczn
+  namespace: kube-system
+  labels:
+    app: victor
+    version: "v4.1"
+data:
+  india_wr: "port charlie"
+  prod_wc: "romeo romeo"
+  charlie_ec: "kilo stage"
+  sierra_kv: "dev yankee"
+  volume_ja: "node image"
+  config_tb: "juliet node"
+  test_cg: "job whiskey"
+  bravo_qr: "deploy cache"
+---
+# Document 63: Secret volume-kvts
+apiVersion: v1
+kind: Secret
+metadata:
+  name: volume-kvts
+  namespace: default
+  labels:
+    app: alpha
+    version: "v7.17"
+data:
+  note: "placeholder 63"
+---
+# Document 64: Ingress pod-jefh
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: pod-jefh
+  namespace: production
+  labels:
+    app: service
+    version: "v5.16"
+data:
+  note: "placeholder 64"
+---
+# Document 65: ServiceAccount kilo-sbtj
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kilo-sbtj
+  namespace: kube-system
+  labels:
+    app: alpha
+    version: "v5.16"
+data:
+  note: "placeholder 65"
+---
+# Document 66: Deployment sierra-esuc
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: sierra-esuc
+  namespace: default
+  labels:
+    app: papa
+    version: "v9.17"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: sierra-esuc
+  template:
+    spec:
+      containers:
+        - name: sierra-esuc
+          image: registry.example.com/sierra-esuc:latest
+          ports:
+            - containerPort: 9198
+---
+# Document 67: Service volume-gfnu
+apiVersion: v1
+kind: Service
+metadata:
+  name: volume-gfnu
+  namespace: default
+  labels:
+    app: deploy
+    version: "v5.8"
+spec:
+  type: ClusterIP
+  selector:
+    app: volume-gfnu
+  ports:
+    - port: 1025
+      targetPort: 4813
+---
+# Document 68: ConfigMap worker-fnhx
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: worker-fnhx
+  namespace: staging
+  labels:
+    app: pod
+    version: "v3.15"
+data:
+  replica_fj: "golf delta"
+  config_mc: "alpha port"
+  volume_gm: "xray service"
+  golf_uy: "replica image"
+  kilo_rv: "deploy pod"
+  worker_gj: "hotel test"
+  zulu_nc: "quebec alpha"
+  build_zo: "image node"
+  victor_vw: "volume whiskey"
+  config_yl: "pod cache"
+---
+# Document 69: Secret delta-vumj
+apiVersion: v1
+kind: Secret
+metadata:
+  name: delta-vumj
+  namespace: staging
+  labels:
+    app: november
+    version: "v2.11"
+data:
+  note: "placeholder 69"
+---
+# Document 70: Ingress volume-kaxw
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: volume-kaxw
+  namespace: kube-system
+  labels:
+    app: juliet
+    version: "v6.6"
+data:
+  note: "placeholder 70"
+---
+# Document 71: ServiceAccount port-crhu
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: port-crhu
+  namespace: staging
+  labels:
+    app: foxtrot
+    version: "v1.6"
+data:
+  note: "placeholder 71"
+---
+# Document 72: Deployment romeo-xdql
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: romeo-xdql
+  namespace: default
+  labels:
+    app: yankee
+    version: "v2.12"
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: romeo-xdql
+  template:
+    spec:
+      containers:
+        - name: romeo-xdql
+          image: registry.example.com/romeo-xdql:latest
+          ports:
+            - containerPort: 53584
+---
+# Document 73: Service oscar-ztdd
+apiVersion: v1
+kind: Service
+metadata:
+  name: oscar-ztdd
+  namespace: kube-system
+  labels:
+    app: kilo
+    version: "v5.12"
+spec:
+  type: ClusterIP
+  selector:
+    app: oscar-ztdd
+  ports:
+    - port: 569
+      targetPort: 8913
+---
+# Document 74: ConfigMap deploy-kwyp
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deploy-kwyp
+  namespace: default
+  labels:
+    app: job
+    version: "v5.14"
+data:
+  zulu_jg: "test lima"
+  tango_yg: "queue mike"
+  charlie_ii: "job job"
+  client_br: "november task"
+  worker_zk: "task test"
+  zulu_sk: "stage quebec"
+  node_gj: "prod papa"
+  xray_ig: "zulu lima"
+  alpha_hw: "volume golf"
+  prod_xp: "build deploy"
+  quebec_bj: "port config"
+---
+# Document 75: Secret victor-tnxw
+apiVersion: v1
+kind: Secret
+metadata:
+  name: victor-tnxw
+  namespace: kube-system
+  labels:
+    app: hotel
+    version: "v7.1"
+data:
+  note: "placeholder 75"
+---
+# Document 76: Ingress zulu-mvdh
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: zulu-mvdh
+  namespace: production
+  labels:
+    app: yankee
+    version: "v5.15"
+data:
+  note: "placeholder 76"
+---
+# Document 77: ServiceAccount kilo-afln
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kilo-afln
+  namespace: kube-system
+  labels:
+    app: test
+    version: "v4.6"
+data:
+  note: "placeholder 77"
+---
+# Document 78: Deployment sierra-uhte
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: sierra-uhte
+  namespace: kube-system
+  labels:
+    app: papa
+    version: "v4.1"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sierra-uhte
+  template:
+    spec:
+      containers:
+        - name: sierra-uhte
+          image: registry.example.com/sierra-uhte:latest
+          ports:
+            - containerPort: 26988
+---
+# Document 79: Service worker-jghc
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker-jghc
+  namespace: production
+  labels:
+    app: xray
+    version: "v8.16"
+spec:
+  type: ClusterIP
+  selector:
+    app: worker-jghc
+  ports:
+    - port: 557
+      targetPort: 7782
+---
+# Document 80: ConfigMap papa-pngk
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: papa-pngk
+  namespace: kube-system
+  labels:
+    app: delta
+    version: "v6.12"
+data:
+  network_cs: "service deploy"
+  quebec_zf: "charlie yankee"
+  network_fh: "pod bravo"
+  mike_nl: "replica hotel"
+  victor_dj: "kilo pod"
+  uniform_ss: "deploy volume"
+  lima_qf: "prod echo"
+  hotel_or: "charlie port"
+---
+# Document 81: Secret cache-rsjr
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cache-rsjr
+  namespace: kube-system
+  labels:
+    app: queue
+    version: "v7.0"
+data:
+  note: "placeholder 81"
+---
+# Document 82: Ingress india-cavc
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: india-cavc
+  namespace: production
+  labels:
+    app: oscar
+    version: "v8.4"
+data:
+  note: "placeholder 82"
+---
+# Document 83: ServiceAccount lima-wlzn
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: lima-wlzn
+  namespace: kube-system
+  labels:
+    app: delta
+    version: "v6.6"
+data:
+  note: "placeholder 83"
+---
+# Document 84: Deployment victor-traj
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: victor-traj
+  namespace: default
+  labels:
+    app: alpha
+    version: "v2.3"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: victor-traj
+  template:
+    spec:
+      containers:
+        - name: victor-traj
+          image: registry.example.com/victor-traj:latest
+          ports:
+            - containerPort: 62338
+---
+# Document 85: Service juliet-nror
+apiVersion: v1
+kind: Service
+metadata:
+  name: juliet-nror
+  namespace: production
+  labels:
+    app: victor
+    version: "v1.8"
+spec:
+  type: ClusterIP
+  selector:
+    app: juliet-nror
+  ports:
+    - port: 491
+      targetPort: 5032
+---
+# Document 86: ConfigMap dev-xcwy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-xcwy
+  namespace: kube-system
+  labels:
+    app: victor
+    version: "v6.1"
+data:
+  india_cx: "oscar prod"
+  xray_cr: "bravo server"
+  alpha_lc: "cache november"
+  tango_zg: "client india"
+  hotel_at: "charlie client"
+  hotel_qd: "client build"
+  hotel_ph: "uniform romeo"
+  november_zu: "client deploy"
+  prod_eq: "client echo"
+  uniform_wh: "worker tango"
+  zulu_pg: "romeo zulu"
+---
+# Document 87: Secret delta-pazz
+apiVersion: v1
+kind: Secret
+metadata:
+  name: delta-pazz
+  namespace: default
+  labels:
+    app: replica
+    version: "v2.1"
+data:
+  note: "placeholder 87"
+---
+# Document 88: Ingress romeo-izee
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: romeo-izee
+  namespace: default
+  labels:
+    app: romeo
+    version: "v3.11"
+data:
+  note: "placeholder 88"
+---
+# Document 89: ServiceAccount mike-wwok
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mike-wwok
+  namespace: staging
+  labels:
+    app: mike
+    version: "v4.11"
+data:
+  note: "placeholder 89"
+---
+# Document 90: Deployment image-egpz
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: image-egpz
+  namespace: kube-system
+  labels:
+    app: xray
+    version: "v6.19"
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: image-egpz
+  template:
+    spec:
+      containers:
+        - name: image-egpz
+          image: registry.example.com/image-egpz:latest
+          ports:
+            - containerPort: 62371
+---
+# Document 91: Service mike-ceky
+apiVersion: v1
+kind: Service
+metadata:
+  name: mike-ceky
+  namespace: kube-system
+  labels:
+    app: oscar
+    version: "v5.12"
+spec:
+  type: ClusterIP
+  selector:
+    app: mike-ceky
+  ports:
+    - port: 254
+      targetPort: 8820
+---
+# Document 92: ConfigMap deploy-mbsy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deploy-mbsy
+  namespace: production
+  labels:
+    app: server
+    version: "v7.18"
+data:
+  prod_xo: "lima xray"
+  dev_lx: "mike cache"
+  mike_nm: "lima node"
+  mike_qu: "job dev"
+  deploy_ti: "papa stage"
+  november_wp: "papa romeo"
+  juliet_xj: "task dev"
+  replica_ed: "golf kilo"
+  job_wl: "cache victor"
+---
+# Document 93: Secret oscar-kebl
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oscar-kebl
+  namespace: kube-system
+  labels:
+    app: stage
+    version: "v3.13"
+data:
+  note: "placeholder 93"
+---
+# Document 94: Ingress prod-njpo
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: prod-njpo
+  namespace: production
+  labels:
+    app: papa
+    version: "v5.14"
+data:
+  note: "placeholder 94"
+---
+# Document 95: ServiceAccount mike-zoki
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mike-zoki
+  namespace: production
+  labels:
+    app: pod
+    version: "v3.18"
+data:
+  note: "placeholder 95"
+---
+# Document 96: Deployment node-lqag
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: node-lqag
+  namespace: default
+  labels:
+    app: job
+    version: "v1.9"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: node-lqag
+  template:
+    spec:
+      containers:
+        - name: node-lqag
+          image: registry.example.com/node-lqag:latest
+          ports:
+            - containerPort: 40612
+---
+# Document 97: Service pod-mjiv
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-mjiv
+  namespace: production
+  labels:
+    app: echo
+    version: "v2.18"
+spec:
+  type: ClusterIP
+  selector:
+    app: pod-mjiv
+  ports:
+    - port: 293
+      targetPort: 7792
+---
+# Document 98: ConfigMap pod-fvsm
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pod-fvsm
+  namespace: production
+  labels:
+    app: worker
+    version: "v9.10"
+data:
+  yankee_dy: "config uniform"
+  client_wr: "build victor"
+  kilo_un: "client yankee"
+  zulu_bb: "volume image"
+  papa_mz: "cache yankee"
+  pod_st: "mike juliet"
+---
+# Document 99: Secret romeo-prle
+apiVersion: v1
+kind: Secret
+metadata:
+  name: romeo-prle
+  namespace: default
+  labels:
+    app: pod
+    version: "v5.2"
+data:
+  note: "placeholder 99"
+---
+# Document 100: Ingress service-edoa
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: service-edoa
+  namespace: staging
+  labels:
+    app: papa
+    version: "v9.18"
+data:
+  note: "placeholder 100"
+---
+# Document 101: ServiceAccount golf-dvyf
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: golf-dvyf
+  namespace: default
+  labels:
+    app: whiskey
+    version: "v9.10"
+data:
+  note: "placeholder 101"
+---
+# Document 102: Deployment test-tnim
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: test-tnim
+  namespace: kube-system
+  labels:
+    app: papa
+    version: "v9.3"
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: test-tnim
+  template:
+    spec:
+      containers:
+        - name: test-tnim
+          image: registry.example.com/test-tnim:latest
+          ports:
+            - containerPort: 38389
+---
+# Document 103: Service golf-dpsv
+apiVersion: v1
+kind: Service
+metadata:
+  name: golf-dpsv
+  namespace: kube-system
+  labels:
+    app: hotel
+    version: "v2.14"
+spec:
+  type: ClusterIP
+  selector:
+    app: golf-dpsv
+  ports:
+    - port: 994
+      targetPort: 8312
+---
+# Document 104: ConfigMap node-vhjf
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-vhjf
+  namespace: default
+  labels:
+    app: cache
+    version: "v8.16"
+data:
+  uniform_fu: "port node"
+  network_ob: "november network"
+  victor_rb: "node mike"
+  kilo_ep: "sierra port"
+---
+# Document 105: Secret port-pbkj
+apiVersion: v1
+kind: Secret
+metadata:
+  name: port-pbkj
+  namespace: staging
+  labels:
+    app: alpha
+    version: "v9.1"
+data:
+  note: "placeholder 105"
+---
+# Document 106: Ingress image-hcat
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: image-hcat
+  namespace: production
+  labels:
+    app: echo
+    version: "v9.2"
+data:
+  note: "placeholder 106"
+---
+# Document 107: ServiceAccount server-uiff
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: server-uiff
+  namespace: staging
+  labels:
+    app: deploy
+    version: "v5.10"
+data:
+  note: "placeholder 107"
+---
+# Document 108: Deployment image-imcb
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: image-imcb
+  namespace: kube-system
+  labels:
+    app: replica
+    version: "v4.7"
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: image-imcb
+  template:
+    spec:
+      containers:
+        - name: image-imcb
+          image: registry.example.com/image-imcb:latest
+          ports:
+            - containerPort: 61850
+---
+# Document 109: Service hotel-vprp
+apiVersion: v1
+kind: Service
+metadata:
+  name: hotel-vprp
+  namespace: kube-system
+  labels:
+    app: dev
+    version: "v7.0"
+spec:
+  type: ClusterIP
+  selector:
+    app: hotel-vprp
+  ports:
+    - port: 1016
+      targetPort: 5705
+---
+# Document 110: ConfigMap node-wohh
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-wohh
+  namespace: default
+  labels:
+    app: test
+    version: "v7.9"
+data:
+  pod_bw: "lima volume"
+  november_nd: "india uniform"
+  image_re: "whiskey replica"
+  foxtrot_ug: "config dev"
+  prod_ha: "server dev"
+  juliet_dr: "juliet mike"
+  uniform_eq: "build delta"
+  delta_wf: "tango server"
+  foxtrot_gn: "sierra cache"
+---
+# Document 111: Secret kilo-axyq
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kilo-axyq
+  namespace: production
+  labels:
+    app: test
+    version: "v8.13"
+data:
+  note: "placeholder 111"
+---
+# Document 112: Ingress image-yksa
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: image-yksa
+  namespace: kube-system
+  labels:
+    app: queue
+    version: "v5.14"
+data:
+  note: "placeholder 112"
+---
+# Document 113: ServiceAccount india-lwyp
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: india-lwyp
+  namespace: production
+  labels:
+    app: hotel
+    version: "v9.8"
+data:
+  note: "placeholder 113"
+---
+# Document 114: Deployment golf-jshp
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: golf-jshp
+  namespace: kube-system
+  labels:
+    app: network
+    version: "v8.15"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: golf-jshp
+  template:
+    spec:
+      containers:
+        - name: golf-jshp
+          image: registry.example.com/golf-jshp:latest
+          ports:
+            - containerPort: 63636
+---
+# Document 115: Service charlie-lytf
+apiVersion: v1
+kind: Service
+metadata:
+  name: charlie-lytf
+  namespace: kube-system
+  labels:
+    app: romeo
+    version: "v8.3"
+spec:
+  type: ClusterIP
+  selector:
+    app: charlie-lytf
+  ports:
+    - port: 369
+      targetPort: 7333
+---
+# Document 116: ConfigMap deploy-qjwx
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deploy-qjwx
+  namespace: default
+  labels:
+    app: romeo
+    version: "v4.7"
+data:
+  hotel_nm: "quebec node"
+  node_tz: "prod juliet"
+  bravo_ck: "dev replica"
+  uniform_ze: "papa node"
+  alpha_wd: "papa task"
+  papa_fi: "network kilo"
+  foxtrot_tz: "mike india"
+---
+# Document 117: Secret cache-ydwg
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cache-ydwg
+  namespace: default
+  labels:
+    app: mike
+    version: "v8.14"
+data:
+  note: "placeholder 117"
+---
+# Document 118: Ingress server-esxm
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: server-esxm
+  namespace: kube-system
+  labels:
+    app: image
+    version: "v2.7"
+data:
+  note: "placeholder 118"
+---
+# Document 119: ServiceAccount prod-axwu
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prod-axwu
+  namespace: default
+  labels:
+    app: victor
+    version: "v7.6"
+data:
+  note: "placeholder 119"
+---
+# Document 120: Deployment pod-yofj
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: pod-yofj
+  namespace: kube-system
+  labels:
+    app: zulu
+    version: "v5.0"
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: pod-yofj
+  template:
+    spec:
+      containers:
+        - name: pod-yofj
+          image: registry.example.com/pod-yofj:latest
+          ports:
+            - containerPort: 2076
+---
+# Document 121: Service prod-rgxs
+apiVersion: v1
+kind: Service
+metadata:
+  name: prod-rgxs
+  namespace: production
+  labels:
+    app: cache
+    version: "v4.7"
+spec:
+  type: ClusterIP
+  selector:
+    app: prod-rgxs
+  ports:
+    - port: 127
+      targetPort: 6978
+---
+# Document 122: ConfigMap golf-hkif
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: golf-hkif
+  namespace: default
+  labels:
+    app: service
+    version: "v6.8"
+data:
+  lima_ct: "alpha mike"
+  juliet_co: "worker prod"
+  lima_aq: "romeo node"
+  whiskey_zy: "image test"
+  hotel_zo: "server network"
+  port_qr: "replica tango"
+  job_fl: "config dev"
+  build_ru: "port tango"
+  prod_cx: "client bravo"
+---
+# Document 123: Secret bravo-fzqe
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bravo-fzqe
+  namespace: default
+  labels:
+    app: cache
+    version: "v3.13"
+data:
+  note: "placeholder 123"
+---
+# Document 124: Ingress port-cses
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: port-cses
+  namespace: default
+  labels:
+    app: bravo
+    version: "v8.14"
+data:
+  note: "placeholder 124"
+---
+# Document 125: ServiceAccount deploy-kovn
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deploy-kovn
+  namespace: default
+  labels:
+    app: romeo
+    version: "v3.16"
+data:
+  note: "placeholder 125"
+---
+# Document 126: Deployment job-tywq
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: job-tywq
+  namespace: production
+  labels:
+    app: tango
+    version: "v3.10"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: job-tywq
+  template:
+    spec:
+      containers:
+        - name: job-tywq
+          image: registry.example.com/job-tywq:latest
+          ports:
+            - containerPort: 44767
+---
+# Document 127: Service job-muvd
+apiVersion: v1
+kind: Service
+metadata:
+  name: job-muvd
+  namespace: default
+  labels:
+    app: foxtrot
+    version: "v9.15"
+spec:
+  type: ClusterIP
+  selector:
+    app: job-muvd
+  ports:
+    - port: 223
+      targetPort: 4238
+---
+# Document 128: ConfigMap volume-irbt
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volume-irbt
+  namespace: production
+  labels:
+    app: client
+    version: "v8.2"
+data:
+  lima_lw: "job uniform"
+  juliet_wc: "alpha whiskey"
+  network_sj: "prod config"
+  job_ot: "whiskey test"
+---
+# Document 129: Secret india-fscb
+apiVersion: v1
+kind: Secret
+metadata:
+  name: india-fscb
+  namespace: default
+  labels:
+    app: node
+    version: "v4.16"
+data:
+  note: "placeholder 129"
+---
+# Document 130: Ingress lima-fhvj
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: lima-fhvj
+  namespace: default
+  labels:
+    app: cache
+    version: "v7.10"
+data:
+  note: "placeholder 130"
+---
+# Document 131: ServiceAccount job-wpyq
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: job-wpyq
+  namespace: default
+  labels:
+    app: xray
+    version: "v5.19"
+data:
+  note: "placeholder 131"
+---
+# Document 132: Deployment mike-taqm
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: mike-taqm
+  namespace: default
+  labels:
+    app: delta
+    version: "v8.1"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: mike-taqm
+  template:
+    spec:
+      containers:
+        - name: mike-taqm
+          image: registry.example.com/mike-taqm:latest
+          ports:
+            - containerPort: 6500
+---
+# Document 133: Service delta-wwha
+apiVersion: v1
+kind: Service
+metadata:
+  name: delta-wwha
+  namespace: staging
+  labels:
+    app: hotel
+    version: "v5.1"
+spec:
+  type: ClusterIP
+  selector:
+    app: delta-wwha
+  ports:
+    - port: 351
+      targetPort: 8044
+---
+# Document 134: ConfigMap job-joex
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: job-joex
+  namespace: default
+  labels:
+    app: volume
+    version: "v7.10"
+data:
+  cache_xv: "pod echo"
+  victor_xc: "golf romeo"
+  pod_uj: "volume golf"
+  deploy_rc: "lima client"
+  yankee_el: "mike india"
+  zulu_nn: "prod zulu"
+  network_lu: "mike bravo"
+  stage_ec: "alpha dev"
+  queue_er: "build service"
+---
+# Document 135: Secret golf-bgnf
+apiVersion: v1
+kind: Secret
+metadata:
+  name: golf-bgnf
+  namespace: staging
+  labels:
+    app: build
+    version: "v1.12"
+data:
+  note: "placeholder 135"
+---
+# Document 136: Ingress test-tqts
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: test-tqts
+  namespace: staging
+  labels:
+    app: worker
+    version: "v1.0"
+data:
+  note: "placeholder 136"
+---
+# Document 137: ServiceAccount build-lewb
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: build-lewb
+  namespace: staging
+  labels:
+    app: image
+    version: "v7.7"
+data:
+  note: "placeholder 137"
+---
+# Document 138: Deployment quebec-cpgf
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: quebec-cpgf
+  namespace: staging
+  labels:
+    app: golf
+    version: "v5.6"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: quebec-cpgf
+  template:
+    spec:
+      containers:
+        - name: quebec-cpgf
+          image: registry.example.com/quebec-cpgf:latest
+          ports:
+            - containerPort: 59510
+---
+# Document 139: Service alpha-obgl
+apiVersion: v1
+kind: Service
+metadata:
+  name: alpha-obgl
+  namespace: staging
+  labels:
+    app: lima
+    version: "v4.7"
+spec:
+  type: ClusterIP
+  selector:
+    app: alpha-obgl
+  ports:
+    - port: 183
+      targetPort: 3020
+---
+# Document 140: ConfigMap delta-nntx
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: delta-nntx
+  namespace: kube-system
+  labels:
+    app: xray
+    version: "v6.12"
+data:
+  network_pj: "delta romeo"
+  golf_ya: "quebec cache"
+  alpha_pb: "november deploy"
+  sierra_jl: "image stage"
+  volume_gl: "job volume"
+  queue_sy: "india network"
+  xray_vz: "bravo prod"
+  mike_sb: "build prod"
+  server_zz: "india oscar"
+  server_kv: "sierra echo"
+  delta_oj: "oscar stage"
+---
+# Document 141: Secret stage-dutq
+apiVersion: v1
+kind: Secret
+metadata:
+  name: stage-dutq
+  namespace: staging
+  labels:
+    app: replica
+    version: "v5.16"
+data:
+  note: "placeholder 141"
+---
+# Document 142: Ingress quebec-sakt
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: quebec-sakt
+  namespace: production
+  labels:
+    app: prod
+    version: "v3.8"
+data:
+  note: "placeholder 142"
+---
+# Document 143: ServiceAccount network-dsry
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: network-dsry
+  namespace: kube-system
+  labels:
+    app: volume
+    version: "v8.6"
+data:
+  note: "placeholder 143"
+---
+# Document 144: Deployment kilo-bwhg
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: kilo-bwhg
+  namespace: default
+  labels:
+    app: node
+    version: "v9.14"
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: kilo-bwhg
+  template:
+    spec:
+      containers:
+        - name: kilo-bwhg
+          image: registry.example.com/kilo-bwhg:latest
+          ports:
+            - containerPort: 48412
+---
+# Document 145: Service uniform-asks
+apiVersion: v1
+kind: Service
+metadata:
+  name: uniform-asks
+  namespace: production
+  labels:
+    app: queue
+    version: "v2.2"
+spec:
+  type: ClusterIP
+  selector:
+    app: uniform-asks
+  ports:
+    - port: 997
+      targetPort: 4669
+---
+# Document 146: ConfigMap node-jgmj
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-jgmj
+  namespace: production
+  labels:
+    app: cache
+    version: "v2.5"
+data:
+  prod_yo: "test volume"
+  volume_go: "mike oscar"
+  service_hy: "deploy charlie"
+  juliet_kh: "client quebec"
+  port_ti: "volume hotel"
+  lima_to: "build foxtrot"
+---
+# Document 147: Secret hotel-boam
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hotel-boam
+  namespace: kube-system
+  labels:
+    app: kilo
+    version: "v1.12"
+data:
+  note: "placeholder 147"
+---
+# Document 148: Ingress november-xzbc
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: november-xzbc
+  namespace: staging
+  labels:
+    app: alpha
+    version: "v1.16"
+data:
+  note: "placeholder 148"
+---
+# Document 149: ServiceAccount tango-tfey
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tango-tfey
+  namespace: default
+  labels:
+    app: india
+    version: "v8.3"
+data:
+  note: "placeholder 149"
+---
+# Document 150: Deployment network-hjmm
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: network-hjmm
+  namespace: production
+  labels:
+    app: service
+    version: "v6.4"
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: network-hjmm
+  template:
+    spec:
+      containers:
+        - name: network-hjmm
+          image: registry.example.com/network-hjmm:latest
+          ports:
+            - containerPort: 55309
+---
+# Document 151: Service mike-aplm
+apiVersion: v1
+kind: Service
+metadata:
+  name: mike-aplm
+  namespace: default
+  labels:
+    app: quebec
+    version: "v6.15"
+spec:
+  type: ClusterIP
+  selector:
+    app: mike-aplm
+  ports:
+    - port: 369
+      targetPort: 5406
+---
+# Document 152: ConfigMap uniform-zdhk
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: uniform-zdhk
+  namespace: default
+  labels:
+    app: charlie
+    version: "v9.6"
+data:
+  build_tu: "zulu mike"
+  test_kx: "prod build"
+  deploy_qn: "alpha server"
+  test_wt: "prod victor"
+  alpha_pu: "volume yankee"
+  tango_hi: "oscar node"
+  romeo_ks: "victor alpha"
+---
+# Document 153: Secret hotel-mhun
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hotel-mhun
+  namespace: production
+  labels:
+    app: alpha
+    version: "v6.17"
+data:
+  note: "placeholder 153"
+---
+# Document 154: Ingress sierra-ncbu
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: sierra-ncbu
+  namespace: kube-system
+  labels:
+    app: papa
+    version: "v9.11"
+data:
+  note: "placeholder 154"
+---
+# Document 155: ServiceAccount queue-zfuk
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: queue-zfuk
+  namespace: default
+  labels:
+    app: whiskey
+    version: "v5.6"
+data:
+  note: "placeholder 155"
+---
+# Document 156: Deployment port-xktz
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: port-xktz
+  namespace: staging
+  labels:
+    app: india
+    version: "v6.7"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: port-xktz
+  template:
+    spec:
+      containers:
+        - name: port-xktz
+          image: registry.example.com/port-xktz:latest
+          ports:
+            - containerPort: 39126
+---
+# Document 157: Service build-jsdo
+apiVersion: v1
+kind: Service
+metadata:
+  name: build-jsdo
+  namespace: staging
+  labels:
+    app: quebec
+    version: "v5.13"
+spec:
+  type: ClusterIP
+  selector:
+    app: build-jsdo
+  ports:
+    - port: 964
+      targetPort: 3660
+---
+# Document 158: ConfigMap port-hmfy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: port-hmfy
+  namespace: kube-system
+  labels:
+    app: papa
+    version: "v6.8"
+data:
+  test_vt: "uniform mike"
+  hotel_lv: "replica client"
+  zulu_wh: "india yankee"
+  volume_rh: "alpha service"
+---
+# Document 159: Secret india-vhrt
+apiVersion: v1
+kind: Secret
+metadata:
+  name: india-vhrt
+  namespace: production
+  labels:
+    app: prod
+    version: "v6.17"
+data:
+  note: "placeholder 159"
+---
+# Document 160: Ingress cache-xyhh
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: cache-xyhh
+  namespace: staging
+  labels:
+    app: foxtrot
+    version: "v3.19"
+data:
+  note: "placeholder 160"
+---
+# Document 161: ServiceAccount foxtrot-rjyc
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: foxtrot-rjyc
+  namespace: staging
+  labels:
+    app: network
+    version: "v5.0"
+data:
+  note: "placeholder 161"
+---
+# Document 162: Deployment mike-tsof
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: mike-tsof
+  namespace: staging
+  labels:
+    app: pod
+    version: "v8.8"
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: mike-tsof
+  template:
+    spec:
+      containers:
+        - name: mike-tsof
+          image: registry.example.com/mike-tsof:latest
+          ports:
+            - containerPort: 48481
+---
+# Document 163: Service network-ynfi
+apiVersion: v1
+kind: Service
+metadata:
+  name: network-ynfi
+  namespace: production
+  labels:
+    app: cache
+    version: "v6.4"
+spec:
+  type: ClusterIP
+  selector:
+    app: network-ynfi
+  ports:
+    - port: 721
+      targetPort: 6173
+---
+# Document 164: ConfigMap uniform-wkam
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: uniform-wkam
+  namespace: kube-system
+  labels:
+    app: oscar
+    version: "v4.15"
+data:
+  hotel_ry: "server hotel"
+  xray_we: "quebec hotel"
+  task_aq: "papa test"
+  prod_wm: "mike romeo"
+  build_sj: "replica worker"
+  job_io: "volume job"
+  oscar_vb: "delta pod"
+  image_uo: "bravo victor"
+---
+# Document 165: Secret victor-mqne
+apiVersion: v1
+kind: Secret
+metadata:
+  name: victor-mqne
+  namespace: default
+  labels:
+    app: golf
+    version: "v2.10"
+data:
+  note: "placeholder 165"
+---
+# Document 166: Ingress network-nkvp
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: network-nkvp
+  namespace: staging
+  labels:
+    app: november
+    version: "v2.17"
+data:
+  note: "placeholder 166"
+---
+# Document 167: ServiceAccount queue-vrqh
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: queue-vrqh
+  namespace: staging
+  labels:
+    app: india
+    version: "v3.11"
+data:
+  note: "placeholder 167"
+---
+# Document 168: Deployment port-jzrw
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: port-jzrw
+  namespace: production
+  labels:
+    app: yankee
+    version: "v8.1"
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: port-jzrw
+  template:
+    spec:
+      containers:
+        - name: port-jzrw
+          image: registry.example.com/port-jzrw:latest
+          ports:
+            - containerPort: 9954
+---
+# Document 169: Service xray-zumr
+apiVersion: v1
+kind: Service
+metadata:
+  name: xray-zumr
+  namespace: production
+  labels:
+    app: juliet
+    version: "v3.10"
+spec:
+  type: ClusterIP
+  selector:
+    app: xray-zumr
+  ports:
+    - port: 589
+      targetPort: 4827
+---
+# Document 170: ConfigMap india-yfpe
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: india-yfpe
+  namespace: kube-system
+  labels:
+    app: test
+    version: "v8.14"
+data:
+  papa_yg: "whiskey build"
+  tango_ur: "image image"
+  whiskey_mm: "alpha papa"
+  uniform_eb: "build xray"
+  echo_zf: "papa pod"
+  client_fb: "xray india"
+  charlie_xf: "alpha charlie"
+  victor_gs: "service uniform"
+  hotel_di: "india cache"
+  volume_sc: "uniform victor"
+  deploy_xj: "quebec golf"
+---
+# Document 171: Secret romeo-duiz
+apiVersion: v1
+kind: Secret
+metadata:
+  name: romeo-duiz
+  namespace: default
+  labels:
+    app: kilo
+    version: "v7.9"
+data:
+  note: "placeholder 171"
+---
+# Document 172: Ingress hotel-fpcn
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: hotel-fpcn
+  namespace: default
+  labels:
+    app: test
+    version: "v7.6"
+data:
+  note: "placeholder 172"
+---
+# Document 173: ServiceAccount india-mamt
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: india-mamt
+  namespace: default
+  labels:
+    app: service
+    version: "v3.11"
+data:
+  note: "placeholder 173"
+---
+# Document 174: Deployment volume-upnx
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: volume-upnx
+  namespace: kube-system
+  labels:
+    app: charlie
+    version: "v1.13"
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: volume-upnx
+  template:
+    spec:
+      containers:
+        - name: volume-upnx
+          image: registry.example.com/volume-upnx:latest
+          ports:
+            - containerPort: 21069
+---
+# Document 175: Service queue-labl
+apiVersion: v1
+kind: Service
+metadata:
+  name: queue-labl
+  namespace: staging
+  labels:
+    app: image
+    version: "v7.5"
+spec:
+  type: ClusterIP
+  selector:
+    app: queue-labl
+  ports:
+    - port: 1025
+      targetPort: 4640
+---
+# Document 176: ConfigMap dev-rvfn
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-rvfn
+  namespace: default
+  labels:
+    app: charlie
+    version: "v7.0"
+data:
+  server_fm: "zulu job"
+  bravo_tj: "lima romeo"
+  yankee_xd: "client november"
+  server_xo: "build kilo"
+  pod_px: "yankee tango"
+  juliet_bi: "tango charlie"
+  server_tx: "alpha charlie"
+  zulu_vf: "task deploy"
+  sierra_wm: "whiskey alpha"
+  delta_di: "bravo xray"
+---
+# Document 177: Secret network-qyut
+apiVersion: v1
+kind: Secret
+metadata:
+  name: network-qyut
+  namespace: production
+  labels:
+    app: node
+    version: "v3.13"
+data:
+  note: "placeholder 177"
+---
+# Document 178: Ingress stage-spsg
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: stage-spsg
+  namespace: default
+  labels:
+    app: mike
+    version: "v8.15"
+data:
+  note: "placeholder 178"
+---
+# Document 179: ServiceAccount test-pcdb
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-pcdb
+  namespace: default
+  labels:
+    app: job
+    version: "v7.9"
+data:
+  note: "placeholder 179"
+---
+# Document 180: Deployment oscar-egru
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: oscar-egru
+  namespace: default
+  labels:
+    app: dev
+    version: "v9.1"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: oscar-egru
+  template:
+    spec:
+      containers:
+        - name: oscar-egru
+          image: registry.example.com/oscar-egru:latest
+          ports:
+            - containerPort: 14705
+---
+# Document 181: Service test-lnds
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-lnds
+  namespace: default
+  labels:
+    app: queue
+    version: "v4.12"
+spec:
+  type: ClusterIP
+  selector:
+    app: test-lnds
+  ports:
+    - port: 565
+      targetPort: 4876
+---
+# Document 182: ConfigMap network-pdew
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-pdew
+  namespace: kube-system
+  labels:
+    app: romeo
+    version: "v5.10"
+data:
+  sierra_hr: "romeo node"
+  alpha_ph: "echo pod"
+  job_cb: "dev queue"
+  test_yi: "cache service"
+  yankee_pd: "charlie charlie"
+  charlie_pz: "network kilo"
+  whiskey_xk: "lima client"
+  bravo_wl: "queue port"
+  xray_qb: "client lima"
+  worker_pz: "delta service"
+  november_vd: "kilo dev"
+---
+# Document 183: Secret yankee-oiji
+apiVersion: v1
+kind: Secret
+metadata:
+  name: yankee-oiji
+  namespace: kube-system
+  labels:
+    app: stage
+    version: "v1.6"
+data:
+  note: "placeholder 183"
+---
+# Document 184: Ingress xray-cixr
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: xray-cixr
+  namespace: kube-system
+  labels:
+    app: golf
+    version: "v2.1"
+data:
+  note: "placeholder 184"
+---
+# Document 185: ServiceAccount test-otfu
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-otfu
+  namespace: production
+  labels:
+    app: task
+    version: "v2.3"
+data:
+  note: "placeholder 185"
+---
+# Document 186: Deployment replica-gbqc
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: replica-gbqc
+  namespace: production
+  labels:
+    app: delta
+    version: "v1.2"
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: replica-gbqc
+  template:
+    spec:
+      containers:
+        - name: replica-gbqc
+          image: registry.example.com/replica-gbqc:latest
+          ports:
+            - containerPort: 57083
+---
+# Document 187: Service papa-xcwr
+apiVersion: v1
+kind: Service
+metadata:
+  name: papa-xcwr
+  namespace: kube-system
+  labels:
+    app: bravo
+    version: "v2.8"
+spec:
+  type: ClusterIP
+  selector:
+    app: papa-xcwr
+  ports:
+    - port: 362
+      targetPort: 4415
+---
+# Document 188: ConfigMap zulu-wkhu
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zulu-wkhu
+  namespace: staging
+  labels:
+    app: mike
+    version: "v3.2"
+data:
+  kilo_hd: "lima config"
+  prod_ez: "oscar delta"
+  test_za: "queue pod"
+  oscar_vu: "prod pod"
+  india_uu: "mike service"
+  tango_zo: "worker yankee"
+---
+# Document 189: Secret config-obsy
+apiVersion: v1
+kind: Secret
+metadata:
+  name: config-obsy
+  namespace: staging
+  labels:
+    app: queue
+    version: "v1.10"
+data:
+  note: "placeholder 189"
+---
+# Document 190: Ingress queue-xjaf
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: queue-xjaf
+  namespace: staging
+  labels:
+    app: sierra
+    version: "v5.9"
+data:
+  note: "placeholder 190"
+---
+# Document 191: ServiceAccount deploy-nljw
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deploy-nljw
+  namespace: kube-system
+  labels:
+    app: port
+    version: "v6.2"
+data:
+  note: "placeholder 191"
+---
+# Document 192: Deployment hotel-vtax
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: hotel-vtax
+  namespace: default
+  labels:
+    app: dev
+    version: "v7.2"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hotel-vtax
+  template:
+    spec:
+      containers:
+        - name: hotel-vtax
+          image: registry.example.com/hotel-vtax:latest
+          ports:
+            - containerPort: 58421
+---
+# Document 193: Service romeo-njue
+apiVersion: v1
+kind: Service
+metadata:
+  name: romeo-njue
+  namespace: production
+  labels:
+    app: sierra
+    version: "v1.17"
+spec:
+  type: ClusterIP
+  selector:
+    app: romeo-njue
+  ports:
+    - port: 1048
+      targetPort: 6659
+---
+# Document 194: ConfigMap zulu-svwy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zulu-svwy
+  namespace: staging
+  labels:
+    app: sierra
+    version: "v2.0"
+data:
+  golf_jf: "delta whiskey"
+  worker_uu: "image server"
+  network_qp: "lima image"
+  image_zu: "build yankee"
+  pod_kc: "deploy juliet"
+  volume_gl: "port lima"
+  delta_gk: "port bravo"
+---
+# Document 195: Secret cache-eoen
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cache-eoen
+  namespace: kube-system
+  labels:
+    app: pod
+    version: "v2.8"
+data:
+  note: "placeholder 195"
+---
+# Document 196: Ingress stage-uhnq
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: stage-uhnq
+  namespace: production
+  labels:
+    app: client
+    version: "v9.8"
+data:
+  note: "placeholder 196"
+---
+# Document 197: ServiceAccount charlie-kpsp
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: charlie-kpsp
+  namespace: default
+  labels:
+    app: queue
+    version: "v7.10"
+data:
+  note: "placeholder 197"
+---
+# Document 198: Deployment november-turl
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: november-turl
+  namespace: kube-system
+  labels:
+    app: quebec
+    version: "v3.9"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: november-turl
+  template:
+    spec:
+      containers:
+        - name: november-turl
+          image: registry.example.com/november-turl:latest
+          ports:
+            - containerPort: 34398
+---
+# Document 199: Service server-zbad
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-zbad
+  namespace: default
+  labels:
+    app: deploy
+    version: "v9.19"
+spec:
+  type: ClusterIP
+  selector:
+    app: server-zbad
+  ports:
+    - port: 624
+      targetPort: 7238
+---
+# Document 200: ConfigMap whiskey-vsqc
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whiskey-vsqc
+  namespace: default
+  labels:
+    app: volume
+    version: "v3.2"
+data:
+  echo_hl: "build test"
+  worker_lf: "lima image"
+  image_km: "volume build"
+  port_bi: "server sierra"
+  node_fq: "echo uniform"
+  foxtrot_dr: "juliet uniform"
+  network_ee: "pod job"
+  victor_ge: "sierra test"
+  foxtrot_fu: "bravo mike"
+---
+# Document 201: Secret papa-kkkd
+apiVersion: v1
+kind: Secret
+metadata:
+  name: papa-kkkd
+  namespace: default
+  labels:
+    app: foxtrot
+    version: "v3.7"
+data:
+  note: "placeholder 201"
+---
+# Document 202: Ingress golf-gbza
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: golf-gbza
+  namespace: staging
+  labels:
+    app: echo
+    version: "v3.8"
+data:
+  note: "placeholder 202"
+---
+# Document 203: ServiceAccount queue-jtxm
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: queue-jtxm
+  namespace: kube-system
+  labels:
+    app: zulu
+    version: "v6.5"
+data:
+  note: "placeholder 203"
+---
+# Document 204: Deployment juliet-qtdn
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: juliet-qtdn
+  namespace: staging
+  labels:
+    app: india
+    version: "v2.11"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: juliet-qtdn
+  template:
+    spec:
+      containers:
+        - name: juliet-qtdn
+          image: registry.example.com/juliet-qtdn:latest
+          ports:
+            - containerPort: 24754
+---
+# Document 205: Service kilo-pltd
+apiVersion: v1
+kind: Service
+metadata:
+  name: kilo-pltd
+  namespace: production
+  labels:
+    app: build
+    version: "v5.11"
+spec:
+  type: ClusterIP
+  selector:
+    app: kilo-pltd
+  ports:
+    - port: 789
+      targetPort: 7633
+---
+# Document 206: ConfigMap volume-xpia
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volume-xpia
+  namespace: production
+  labels:
+    app: romeo
+    version: "v1.0"
+data:
+  dev_fh: "delta prod"
+  victor_ma: "image echo"
+  port_ht: "echo november"
+  romeo_zw: "lima alpha"
+  network_uj: "lima xray"
+  romeo_sg: "build prod"
+  replica_yk: "india worker"
+  oscar_ts: "echo server"
+---
+# Document 207: Secret test-rvsy
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-rvsy
+  namespace: production
+  labels:
+    app: pod
+    version: "v6.8"
+data:
+  note: "placeholder 207"
+---
+# Document 208: Ingress service-kxad
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: service-kxad
+  namespace: production
+  labels:
+    app: oscar
+    version: "v5.17"
+data:
+  note: "placeholder 208"
+---
+# Document 209: ServiceAccount job-xtsb
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: job-xtsb
+  namespace: staging
+  labels:
+    app: alpha
+    version: "v9.12"
+data:
+  note: "placeholder 209"
+---
+# Document 210: Deployment config-sgpc
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: config-sgpc
+  namespace: kube-system
+  labels:
+    app: prod
+    version: "v6.15"
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: config-sgpc
+  template:
+    spec:
+      containers:
+        - name: config-sgpc
+          image: registry.example.com/config-sgpc:latest
+          ports:
+            - containerPort: 3587
+---
+# Document 211: Service victor-uqnz
+apiVersion: v1
+kind: Service
+metadata:
+  name: victor-uqnz
+  namespace: kube-system
+  labels:
+    app: xray
+    version: "v3.17"
+spec:
+  type: ClusterIP
+  selector:
+    app: victor-uqnz
+  ports:
+    - port: 296
+      targetPort: 6281
+---
+# Document 212: ConfigMap test-llul
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-llul
+  namespace: default
+  labels:
+    app: node
+    version: "v2.4"
+data:
+  bravo_la: "worker echo"
+  india_ok: "job mike"
+  echo_xw: "whiskey service"
+  golf_hr: "worker charlie"
+  job_wm: "task mike"
+  build_if: "echo quebec"
+  zulu_ml: "dev network"
+  charlie_cj: "deploy queue"
+  tango_mg: "client network"
+  service_vc: "build dev"
+---
+# Document 213: Secret xray-weje
+apiVersion: v1
+kind: Secret
+metadata:
+  name: xray-weje
+  namespace: default
+  labels:
+    app: service
+    version: "v2.4"
+data:
+  note: "placeholder 213"
+---
+# Document 214: Ingress bravo-bmim
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: bravo-bmim
+  namespace: staging
+  labels:
+    app: foxtrot
+    version: "v1.13"
+data:
+  note: "placeholder 214"
+---
+# Document 215: ServiceAccount bravo-rhmf
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bravo-rhmf
+  namespace: default
+  labels:
+    app: oscar
+    version: "v9.11"
+data:
+  note: "placeholder 215"
+---
+# Document 216: Deployment golf-nrci
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: golf-nrci
+  namespace: default
+  labels:
+    app: image
+    version: "v2.19"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: golf-nrci
+  template:
+    spec:
+      containers:
+        - name: golf-nrci
+          image: registry.example.com/golf-nrci:latest
+          ports:
+            - containerPort: 26519
+---
+# Document 217: Service victor-hldc
+apiVersion: v1
+kind: Service
+metadata:
+  name: victor-hldc
+  namespace: kube-system
+  labels:
+    app: image
+    version: "v2.9"
+spec:
+  type: ClusterIP
+  selector:
+    app: victor-hldc
+  ports:
+    - port: 131
+      targetPort: 6183
+---
+# Document 218: ConfigMap config-dvie
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-dvie
+  namespace: staging
+  labels:
+    app: juliet
+    version: "v5.18"
+data:
+  romeo_lz: "papa xray"
+  prod_xc: "worker server"
+  service_lr: "victor tango"
+  task_lx: "image server"
+  test_nl: "port server"
+  service_nr: "foxtrot queue"
+  echo_zk: "queue echo"
+  india_rd: "november stage"
+  stage_rd: "pod task"
+  client_ch: "india alpha"
+---
+# Document 219: Secret xray-qhdd
+apiVersion: v1
+kind: Secret
+metadata:
+  name: xray-qhdd
+  namespace: kube-system
+  labels:
+    app: papa
+    version: "v8.5"
+data:
+  note: "placeholder 219"
+---
+# Document 220: Ingress hotel-pkqa
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: hotel-pkqa
+  namespace: production
+  labels:
+    app: romeo
+    version: "v8.3"
+data:
+  note: "placeholder 220"
+---
+# Document 221: ServiceAccount task-fscs
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: task-fscs
+  namespace: staging
+  labels:
+    app: image
+    version: "v6.6"
+data:
+  note: "placeholder 221"
+---
+# Document 222: Deployment config-uyhe
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: config-uyhe
+  namespace: staging
+  labels:
+    app: build
+    version: "v7.8"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: config-uyhe
+  template:
+    spec:
+      containers:
+        - name: config-uyhe
+          image: registry.example.com/config-uyhe:latest
+          ports:
+            - containerPort: 10028
+---
+# Document 223: Service task-zlxh
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-zlxh
+  namespace: staging
+  labels:
+    app: yankee
+    version: "v9.19"
+spec:
+  type: ClusterIP
+  selector:
+    app: task-zlxh
+  ports:
+    - port: 80
+      targetPort: 3620
+---
+# Document 224: ConfigMap hotel-mlgw
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hotel-mlgw
+  namespace: staging
+  labels:
+    app: node
+    version: "v1.15"
+data:
+  prod_kc: "client build"
+  volume_tf: "alpha port"
+  delta_rx: "november foxtrot"
+  build_bt: "queue build"
+---
+# Document 225: Secret xray-uwgn
+apiVersion: v1
+kind: Secret
+metadata:
+  name: xray-uwgn
+  namespace: default
+  labels:
+    app: service
+    version: "v3.4"
+data:
+  note: "placeholder 225"
+---
+# Document 226: Ingress hotel-uhsx
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: hotel-uhsx
+  namespace: staging
+  labels:
+    app: uniform
+    version: "v1.1"
+data:
+  note: "placeholder 226"
+---
+# Document 227: ServiceAccount india-zvop
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: india-zvop
+  namespace: staging
+  labels:
+    app: prod
+    version: "v4.5"
+data:
+  note: "placeholder 227"
+---
+# Document 228: Deployment echo-rgvi
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: echo-rgvi
+  namespace: kube-system
+  labels:
+    app: oscar
+    version: "v3.3"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: echo-rgvi
+  template:
+    spec:
+      containers:
+        - name: echo-rgvi
+          image: registry.example.com/echo-rgvi:latest
+          ports:
+            - containerPort: 36520
+---
+# Document 229: Service prod-wykx
+apiVersion: v1
+kind: Service
+metadata:
+  name: prod-wykx
+  namespace: kube-system
+  labels:
+    app: client
+    version: "v6.16"
+spec:
+  type: ClusterIP
+  selector:
+    app: prod-wykx
+  ports:
+    - port: 94
+      targetPort: 4456
+---
+# Document 230: ConfigMap lima-owpn
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lima-owpn
+  namespace: kube-system
+  labels:
+    app: yankee
+    version: "v9.12"
+data:
+  quebec_oe: "romeo replica"
+  service_bh: "config port"
+  delta_ro: "echo config"
+  victor_ry: "bravo delta"
+  victor_jo: "test oscar"
+  whiskey_vk: "november server"
+  xray_py: "pod deploy"
+  golf_cp: "task victor"
+  deploy_bl: "india charlie"
+  task_ym: "replica job"
+---
+# Document 231: Secret job-iakb
+apiVersion: v1
+kind: Secret
+metadata:
+  name: job-iakb
+  namespace: kube-system
+  labels:
+    app: tango
+    version: "v1.15"
+data:
+  note: "placeholder 231"
+---
+# Document 232: Ingress charlie-pgpd
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: charlie-pgpd
+  namespace: staging
+  labels:
+    app: server
+    version: "v1.18"
+data:
+  note: "placeholder 232"
+---
+# Document 233: ServiceAccount uniform-nlzb
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: uniform-nlzb
+  namespace: default
+  labels:
+    app: juliet
+    version: "v9.14"
+data:
+  note: "placeholder 233"
+---
+# Document 234: Deployment task-qdtn
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: task-qdtn
+  namespace: default
+  labels:
+    app: romeo
+    version: "v6.0"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: task-qdtn
+  template:
+    spec:
+      containers:
+        - name: task-qdtn
+          image: registry.example.com/task-qdtn:latest
+          ports:
+            - containerPort: 57312
+---
+# Document 235: Service echo-vhgm
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-vhgm
+  namespace: staging
+  labels:
+    app: stage
+    version: "v8.1"
+spec:
+  type: ClusterIP
+  selector:
+    app: echo-vhgm
+  ports:
+    - port: 741
+      targetPort: 8179
+---
+# Document 236: ConfigMap golf-numx
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: golf-numx
+  namespace: staging
+  labels:
+    app: stage
+    version: "v7.6"
+data:
+  job_fg: "network quebec"
+  uniform_hz: "tango romeo"
+  replica_bu: "charlie dev"
+  india_ka: "oscar charlie"
+  pod_qt: "foxtrot mike"
+---
+# Document 237: Secret queue-bsho
+apiVersion: v1
+kind: Secret
+metadata:
+  name: queue-bsho
+  namespace: production
+  labels:
+    app: charlie
+    version: "v9.2"
+data:
+  note: "placeholder 237"
+---
+# Document 238: Ingress whiskey-elxy
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: whiskey-elxy
+  namespace: staging
+  labels:
+    app: service
+    version: "v8.13"
+data:
+  note: "placeholder 238"
+---
+# Document 239: ServiceAccount delta-sadv
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: delta-sadv
+  namespace: kube-system
+  labels:
+    app: volume
+    version: "v7.3"
+data:
+  note: "placeholder 239"
+---
+# Document 240: Deployment config-divt
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: config-divt
+  namespace: production
+  labels:
+    app: prod
+    version: "v2.1"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: config-divt
+  template:
+    spec:
+      containers:
+        - name: config-divt
+          image: registry.example.com/config-divt:latest
+          ports:
+            - containerPort: 55703
+---
+# Document 241: Service india-xhbv
+apiVersion: v1
+kind: Service
+metadata:
+  name: india-xhbv
+  namespace: kube-system
+  labels:
+    app: hotel
+    version: "v7.9"
+spec:
+  type: ClusterIP
+  selector:
+    app: india-xhbv
+  ports:
+    - port: 151
+      targetPort: 8307
+---
+# Document 242: ConfigMap replica-exrg
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: replica-exrg
+  namespace: staging
+  labels:
+    app: stage
+    version: "v3.14"
+data:
+  romeo_uq: "task node"
+  bravo_oi: "kilo replica"
+  dev_bv: "delta delta"
+  romeo_vv: "golf kilo"
+  juliet_uo: "november stage"
+---
+# Document 243: Secret server-gtur
+apiVersion: v1
+kind: Secret
+metadata:
+  name: server-gtur
+  namespace: kube-system
+  labels:
+    app: dev
+    version: "v7.9"
+data:
+  note: "placeholder 243"
+---
+# Document 244: Ingress network-slsu
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: network-slsu
+  namespace: kube-system
+  labels:
+    app: stage
+    version: "v8.13"
+data:
+  note: "placeholder 244"
+---
+# Document 245: ServiceAccount deploy-ucga
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deploy-ucga
+  namespace: production
+  labels:
+    app: lima
+    version: "v1.1"
+data:
+  note: "placeholder 245"
+---
+# Document 246: Deployment lima-lvhr
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: lima-lvhr
+  namespace: staging
+  labels:
+    app: romeo
+    version: "v2.5"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: lima-lvhr
+  template:
+    spec:
+      containers:
+        - name: lima-lvhr
+          image: registry.example.com/lima-lvhr:latest
+          ports:
+            - containerPort: 6585
+---
+# Document 247: Service golf-dbvm
+apiVersion: v1
+kind: Service
+metadata:
+  name: golf-dbvm
+  namespace: staging
+  labels:
+    app: uniform
+    version: "v2.14"
+spec:
+  type: ClusterIP
+  selector:
+    app: golf-dbvm
+  ports:
+    - port: 432
+      targetPort: 7675
+---
+# Document 248: ConfigMap foxtrot-utyv
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: foxtrot-utyv
+  namespace: kube-system
+  labels:
+    app: job
+    version: "v4.7"
+data:
+  build_ta: "bravo tango"
+  india_hp: "client delta"
+  echo_an: "uniform charlie"
+  zulu_dc: "stage stage"
+  prod_bu: "deploy replica"
+  port_cb: "server mike"
+  alpha_cm: "task build"
+  stage_bq: "dev prod"
+  zulu_ug: "alpha test"
+  foxtrot_kw: "charlie stage"
+  xray_vb: "pod papa"
+---
+# Document 249: Secret india-awsh
+apiVersion: v1
+kind: Secret
+metadata:
+  name: india-awsh
+  namespace: kube-system
+  labels:
+    app: uniform
+    version: "v2.11"
+data:
+  note: "placeholder 249"
+---
+# Document 250: Ingress kilo-eyrx
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: kilo-eyrx
+  namespace: kube-system
+  labels:
+    app: foxtrot
+    version: "v1.18"
+data:
+  note: "placeholder 250"
+---
+# Document 251: ServiceAccount sierra-sinh
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sierra-sinh
+  namespace: kube-system
+  labels:
+    app: golf
+    version: "v2.16"
+data:
+  note: "placeholder 251"
+---
+# Document 252: Deployment network-zetm
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: network-zetm
+  namespace: staging
+  labels:
+    app: service
+    version: "v7.11"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: network-zetm
+  template:
+    spec:
+      containers:
+        - name: network-zetm
+          image: registry.example.com/network-zetm:latest
+          ports:
+            - containerPort: 25446
+---
+# Document 253: Service volume-rexd
+apiVersion: v1
+kind: Service
+metadata:
+  name: volume-rexd
+  namespace: default
+  labels:
+    app: papa
+    version: "v8.14"
+spec:
+  type: ClusterIP
+  selector:
+    app: volume-rexd
+  ports:
+    - port: 975
+      targetPort: 7903
+---
+# Document 254: ConfigMap india-vwdq
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: india-vwdq
+  namespace: default
+  labels:
+    app: india
+    version: "v8.6"
+data:
+  queue_pd: "lima juliet"
+  build_zk: "yankee alpha"
+  job_gl: "volume dev"
+  replica_yk: "pod quebec"
+  quebec_yz: "oscar task"
+  prod_wl: "node mike"
+  test_ej: "papa task"
+---
+# Document 255: Secret tango-jjns
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tango-jjns
+  namespace: staging
+  labels:
+    app: lima
+    version: "v9.17"
+data:
+  note: "placeholder 255"
+---
+# Document 256: Ingress foxtrot-efxx
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: foxtrot-efxx
+  namespace: default
+  labels:
+    app: prod
+    version: "v7.14"
+data:
+  note: "placeholder 256"
+---
+# Document 257: ServiceAccount replica-zafd
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: replica-zafd
+  namespace: production
+  labels:
+    app: deploy
+    version: "v1.13"
+data:
+  note: "placeholder 257"
+---
+# Document 258: Deployment zulu-ilqx
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: zulu-ilqx
+  namespace: production
+  labels:
+    app: cache
+    version: "v2.16"
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: zulu-ilqx
+  template:
+    spec:
+      containers:
+        - name: zulu-ilqx
+          image: registry.example.com/zulu-ilqx:latest
+          ports:
+            - containerPort: 63715
+---
+# Document 259: Service bravo-dyvi
+apiVersion: v1
+kind: Service
+metadata:
+  name: bravo-dyvi
+  namespace: production
+  labels:
+    app: mike
+    version: "v9.16"
+spec:
+  type: ClusterIP
+  selector:
+    app: bravo-dyvi
+  ports:
+    - port: 865
+      targetPort: 5546
+---
+# Document 260: ConfigMap service-zhxa
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-zhxa
+  namespace: staging
+  labels:
+    app: pod
+    version: "v2.7"
+data:
+  queue_gb: "tango server"
+  echo_no: "foxtrot foxtrot"
+  worker_af: "pod build"
+  foxtrot_ju: "papa volume"
+  dev_aj: "oscar xray"
+  job_wg: "queue port"
+  network_xi: "image worker"
+---
+# Document 261: Secret sierra-nhqv
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sierra-nhqv
+  namespace: production
+  labels:
+    app: papa
+    version: "v6.14"
+data:
+  note: "placeholder 261"
+---
+# Document 262: Ingress service-rtte
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: service-rtte
+  namespace: default
+  labels:
+    app: test
+    version: "v6.15"
+data:
+  note: "placeholder 262"
+---
+# Document 263: ServiceAccount sierra-gkqi
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sierra-gkqi
+  namespace: production
+  labels:
+    app: volume
+    version: "v8.12"
+data:
+  note: "placeholder 263"
+---
+# Document 264: Deployment cache-jlep
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: cache-jlep
+  namespace: production
+  labels:
+    app: port
+    version: "v9.17"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-jlep
+  template:
+    spec:
+      containers:
+        - name: cache-jlep
+          image: registry.example.com/cache-jlep:latest
+          ports:
+            - containerPort: 16889
+---
+# Document 265: Service oscar-utqf
+apiVersion: v1
+kind: Service
+metadata:
+  name: oscar-utqf
+  namespace: staging
+  labels:
+    app: stage
+    version: "v3.18"
+spec:
+  type: ClusterIP
+  selector:
+    app: oscar-utqf
+  ports:
+    - port: 110
+      targetPort: 6096
+---
+# Document 266: ConfigMap india-tcqa
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: india-tcqa
+  namespace: staging
+  labels:
+    app: hotel
+    version: "v8.3"
+data:
+  alpha_bs: "queue cache"
+  config_kt: "node delta"
+  whiskey_ts: "uniform dev"
+  pod_iu: "client network"
+  alpha_qd: "sierra charlie"
+  config_vm: "juliet oscar"
+  worker_lz: "foxtrot deploy"
+---
+# Document 267: Secret build-hffo
+apiVersion: v1
+kind: Secret
+metadata:
+  name: build-hffo
+  namespace: staging
+  labels:
+    app: network
+    version: "v1.0"
+data:
+  note: "placeholder 267"
+---
+# Document 268: Ingress victor-rewx
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: victor-rewx
+  namespace: default
+  labels:
+    app: volume
+    version: "v6.2"
+data:
+  note: "placeholder 268"
+---
+# Document 269: ServiceAccount pod-qtjq
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-qtjq
+  namespace: default
+  labels:
+    app: stage
+    version: "v7.13"
+data:
+  note: "placeholder 269"
+---
+# Document 270: Deployment stage-lstf
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: stage-lstf
+  namespace: kube-system
+  labels:
+    app: bravo
+    version: "v2.10"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: stage-lstf
+  template:
+    spec:
+      containers:
+        - name: stage-lstf
+          image: registry.example.com/stage-lstf:latest
+          ports:
+            - containerPort: 55851
+---
+# Document 271: Service job-wazy
+apiVersion: v1
+kind: Service
+metadata:
+  name: job-wazy
+  namespace: staging
+  labels:
+    app: server
+    version: "v9.8"
+spec:
+  type: ClusterIP
+  selector:
+    app: job-wazy
+  ports:
+    - port: 968
+      targetPort: 8371
+---
+# Document 272: ConfigMap test-gzxi
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-gzxi
+  namespace: kube-system
+  labels:
+    app: victor
+    version: "v6.18"
+data:
+  tango_uq: "server whiskey"
+  delta_de: "quebec romeo"
+  hotel_tc: "quebec uniform"
+  server_el: "zulu tango"
+  foxtrot_vz: "bravo papa"
+  build_sq: "dev echo"
+  job_sx: "charlie pod"
+  kilo_mh: "yankee lima"
+  tango_qn: "echo golf"
+  whiskey_vh: "alpha service"
+  task_dq: "quebec network"
+---
+# Document 273: Secret config-hlex
+apiVersion: v1
+kind: Secret
+metadata:
+  name: config-hlex
+  namespace: production
+  labels:
+    app: job
+    version: "v2.19"
+data:
+  note: "placeholder 273"
+---
+# Document 274: Ingress worker-jtoj
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: worker-jtoj
+  namespace: kube-system
+  labels:
+    app: mike
+    version: "v4.3"
+data:
+  note: "placeholder 274"
+---
+# Document 275: ServiceAccount config-lgck
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: config-lgck
+  namespace: kube-system
+  labels:
+    app: delta
+    version: "v1.13"
+data:
+  note: "placeholder 275"
+---
+# Document 276: Deployment job-azzp
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: job-azzp
+  namespace: default
+  labels:
+    app: port
+    version: "v3.6"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: job-azzp
+  template:
+    spec:
+      containers:
+        - name: job-azzp
+          image: registry.example.com/job-azzp:latest
+          ports:
+            - containerPort: 6669
+---
+# Document 277: Service uniform-meix
+apiVersion: v1
+kind: Service
+metadata:
+  name: uniform-meix
+  namespace: staging
+  labels:
+    app: uniform
+    version: "v7.9"
+spec:
+  type: ClusterIP
+  selector:
+    app: uniform-meix
+  ports:
+    - port: 559
+      targetPort: 4204
+---
+# Document 278: ConfigMap stage-uqic
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stage-uqic
+  namespace: production
+  labels:
+    app: romeo
+    version: "v8.3"
+data:
+  node_qu: "romeo prod"
+  queue_tw: "whiskey zulu"
+  queue_kc: "echo quebec"
+  image_ig: "bravo yankee"
+  victor_xw: "quebec juliet"
+  client_rh: "port hotel"
+  pod_oj: "image network"
+  alpha_ks: "build yankee"
+---
+# Document 279: Secret hotel-onky
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hotel-onky
+  namespace: staging
+  labels:
+    app: tango
+    version: "v2.5"
+data:
+  note: "placeholder 279"
+---
+# Document 280: Ingress network-qbwt
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: network-qbwt
+  namespace: kube-system
+  labels:
+    app: foxtrot
+    version: "v9.1"
+data:
+  note: "placeholder 280"
+---
+# Document 281: ServiceAccount mike-gjcu
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mike-gjcu
+  namespace: production
+  labels:
+    app: juliet
+    version: "v2.3"
+data:
+  note: "placeholder 281"
+---
+# Document 282: Deployment network-yrua
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: network-yrua
+  namespace: staging
+  labels:
+    app: worker
+    version: "v3.16"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: network-yrua
+  template:
+    spec:
+      containers:
+        - name: network-yrua
+          image: registry.example.com/network-yrua:latest
+          ports:
+            - containerPort: 8312
+---
+# Document 283: Service sierra-cjgw
+apiVersion: v1
+kind: Service
+metadata:
+  name: sierra-cjgw
+  namespace: staging
+  labels:
+    app: build
+    version: "v6.18"
+spec:
+  type: ClusterIP
+  selector:
+    app: sierra-cjgw
+  ports:
+    - port: 522
+      targetPort: 7954
+---
+# Document 284: ConfigMap network-hulp
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-hulp
+  namespace: production
+  labels:
+    app: november
+    version: "v2.0"
+data:
+  echo_ya: "delta cache"
+  node_bt: "quebec lima"
+  dev_ui: "stage hotel"
+  network_yq: "november image"
+  service_pt: "golf volume"
+---
+# Document 285: Secret juliet-jkyc
+apiVersion: v1
+kind: Secret
+metadata:
+  name: juliet-jkyc
+  namespace: production
+  labels:
+    app: port
+    version: "v2.15"
+data:
+  note: "placeholder 285"
+---
+# Document 286: Ingress kilo-mvnz
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: kilo-mvnz
+  namespace: production
+  labels:
+    app: november
+    version: "v9.13"
+data:
+  note: "placeholder 286"
+---
+# Document 287: ServiceAccount kilo-wavm
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kilo-wavm
+  namespace: default
+  labels:
+    app: delta
+    version: "v7.6"
+data:
+  note: "placeholder 287"
+---
+# Document 288: Deployment queue-qhiz
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: queue-qhiz
+  namespace: default
+  labels:
+    app: server
+    version: "v5.14"
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: queue-qhiz
+  template:
+    spec:
+      containers:
+        - name: queue-qhiz
+          image: registry.example.com/queue-qhiz:latest
+          ports:
+            - containerPort: 10185
+---
+# Document 289: Service pod-wfgy
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-wfgy
+  namespace: production
+  labels:
+    app: pod
+    version: "v9.14"
+spec:
+  type: ClusterIP
+  selector:
+    app: pod-wfgy
+  ports:
+    - port: 683
+      targetPort: 4622
+---
+# Document 290: ConfigMap charlie-ynhk
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: charlie-ynhk
+  namespace: production
+  labels:
+    app: papa
+    version: "v1.19"
+data:
+  victor_ad: "golf stage"
+  stage_aq: "mike stage"
+  echo_qu: "mike image"
+  service_ny: "network port"
+  golf_yg: "pod juliet"
+  deploy_ji: "mike juliet"
+  mike_sf: "alpha mike"
+---
+# Document 291: Secret echo-ioku
+apiVersion: v1
+kind: Secret
+metadata:
+  name: echo-ioku
+  namespace: default
+  labels:
+    app: network
+    version: "v6.14"
+data:
+  note: "placeholder 291"
+---
+# Document 292: Ingress server-qthc
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: server-qthc
+  namespace: staging
+  labels:
+    app: kilo
+    version: "v1.0"
+data:
+  note: "placeholder 292"
+---
+# Document 293: ServiceAccount cache-iwtt
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cache-iwtt
+  namespace: kube-system
+  labels:
+    app: zulu
+    version: "v7.16"
+data:
+  note: "placeholder 293"
+---
+# Document 294: Deployment volume-vlnt
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: volume-vlnt
+  namespace: default
+  labels:
+    app: client
+    version: "v4.9"
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: volume-vlnt
+  template:
+    spec:
+      containers:
+        - name: volume-vlnt
+          image: registry.example.com/volume-vlnt:latest
+          ports:
+            - containerPort: 13512
+---
+# Document 295: Service uniform-tqkf
+apiVersion: v1
+kind: Service
+metadata:
+  name: uniform-tqkf
+  namespace: kube-system
+  labels:
+    app: network
+    version: "v7.6"
+spec:
+  type: ClusterIP
+  selector:
+    app: uniform-tqkf
+  ports:
+    - port: 983
+      targetPort: 4433
+---
+# Document 296: ConfigMap india-ukrc
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: india-ukrc
+  namespace: production
+  labels:
+    app: delta
+    version: "v7.9"
+data:
+  india_mq: "test service"
+  config_fj: "client bravo"
+  victor_fk: "config replica"
+  papa_hi: "lima stage"
+  xray_qj: "xray volume"
+---
+# Document 297: Secret uniform-hxar
+apiVersion: v1
+kind: Secret
+metadata:
+  name: uniform-hxar
+  namespace: staging
+  labels:
+    app: yankee
+    version: "v2.10"
+data:
+  note: "placeholder 297"
+---
+# Document 298: Ingress network-aoig
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: network-aoig
+  namespace: default
+  labels:
+    app: uniform
+    version: "v8.12"
+data:
+  note: "placeholder 298"
+---
+# Document 299: ServiceAccount golf-ysna
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: golf-ysna
+  namespace: production
+  labels:
+    app: quebec
+    version: "v3.4"
+data:
+  note: "placeholder 299"
+---
+# Document 300: Deployment pod-xvrk
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: pod-xvrk
+  namespace: staging
+  labels:
+    app: india
+    version: "v8.8"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: pod-xvrk
+  template:
+    spec:
+      containers:
+        - name: pod-xvrk
+          image: registry.example.com/pod-xvrk:latest
+          ports:
+            - containerPort: 47898
+---
+# Document 301: Service task-bita
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-bita
+  namespace: staging
+  labels:
+    app: pod
+    version: "v5.17"
+spec:
+  type: ClusterIP
+  selector:
+    app: task-bita
+  ports:
+    - port: 355
+      targetPort: 5551
+---
+# Document 302: ConfigMap india-todq
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: india-todq
+  namespace: kube-system
+  labels:
+    app: tango
+    version: "v5.12"
+data:
+  kilo_kg: "job romeo"
+  stage_pg: "port cache"
+  deploy_mf: "sierra november"
+  november_di: "lima stage"
+  job_pq: "port uniform"
+---
+# Document 303: Secret service-xtan
+apiVersion: v1
+kind: Secret
+metadata:
+  name: service-xtan
+  namespace: default
+  labels:
+    app: tango
+    version: "v9.14"
+data:
+  note: "placeholder 303"
+---
+# Document 304: Ingress queue-umjn
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: queue-umjn
+  namespace: staging
+  labels:
+    app: config
+    version: "v5.5"
+data:
+  note: "placeholder 304"
+---
+# Document 305: ServiceAccount november-qmau
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: november-qmau
+  namespace: staging
+  labels:
+    app: queue
+    version: "v9.6"
+data:
+  note: "placeholder 305"
+---
+# Document 306: Deployment juliet-jcqf
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: juliet-jcqf
+  namespace: kube-system
+  labels:
+    app: node
+    version: "v8.11"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: juliet-jcqf
+  template:
+    spec:
+      containers:
+        - name: juliet-jcqf
+          image: registry.example.com/juliet-jcqf:latest
+          ports:
+            - containerPort: 58306
+---
+# Document 307: Service pod-zngn
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-zngn
+  namespace: production
+  labels:
+    app: quebec
+    version: "v7.3"
+spec:
+  type: ClusterIP
+  selector:
+    app: pod-zngn
+  ports:
+    - port: 914
+      targetPort: 8405
+---
+# Document 308: ConfigMap uniform-hoft
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: uniform-hoft
+  namespace: default
+  labels:
+    app: test
+    version: "v8.5"
+data:
+  config_ie: "client tango"
+  client_qb: "client replica"
+  oscar_yy: "papa foxtrot"
+  zulu_bt: "mike server"
+  volume_ql: "quebec volume"
+  service_ox: "quebec dev"
+  build_bh: "mike port"
+  task_ha: "deploy yankee"
+  volume_tz: "test xray"
+  service_rb: "queue november"
+---
+# Document 309: Secret india-iqjo
+apiVersion: v1
+kind: Secret
+metadata:
+  name: india-iqjo
+  namespace: staging
+  labels:
+    app: cache
+    version: "v7.15"
+data:
+  note: "placeholder 309"
+---
+# Document 310: Ingress config-dahd
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: config-dahd
+  namespace: production
+  labels:
+    app: echo
+    version: "v2.1"
+data:
+  note: "placeholder 310"
+---
+# Document 311: ServiceAccount november-nguz
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: november-nguz
+  namespace: default
+  labels:
+    app: alpha
+    version: "v6.8"
+data:
+  note: "placeholder 311"
+---
+# Document 312: Deployment november-yzbs
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: november-yzbs
+  namespace: default
+  labels:
+    app: quebec
+    version: "v8.15"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: november-yzbs
+  template:
+    spec:
+      containers:
+        - name: november-yzbs
+          image: registry.example.com/november-yzbs:latest
+          ports:
+            - containerPort: 26732
+---
+# Document 313: Service build-wcev
+apiVersion: v1
+kind: Service
+metadata:
+  name: build-wcev
+  namespace: production
+  labels:
+    app: tango
+    version: "v6.10"
+spec:
+  type: ClusterIP
+  selector:
+    app: build-wcev
+  ports:
+    - port: 543
+      targetPort: 5625
+---
+# Document 314: ConfigMap sierra-gwih
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sierra-gwih
+  namespace: default
+  labels:
+    app: sierra
+    version: "v1.9"
+data:
+  bravo_hm: "november golf"
+  cache_zq: "prod sierra"
+  kilo_qj: "tango victor"
+  job_gf: "build papa"
+---
+# Document 315: Secret foxtrot-dwps
+apiVersion: v1
+kind: Secret
+metadata:
+  name: foxtrot-dwps
+  namespace: staging
+  labels:
+    app: node
+    version: "v8.6"
+data:
+  note: "placeholder 315"
+---
+# Document 316: Ingress dev-peqy
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: dev-peqy
+  namespace: kube-system
+  labels:
+    app: bravo
+    version: "v6.12"
+data:
+  note: "placeholder 316"
+---
+# Document 317: ServiceAccount build-yscq
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: build-yscq
+  namespace: kube-system
+  labels:
+    app: whiskey
+    version: "v1.11"
+data:
+  note: "placeholder 317"
+---
+# Document 318: Deployment echo-xgek
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: echo-xgek
+  namespace: kube-system
+  labels:
+    app: config
+    version: "v6.3"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: echo-xgek
+  template:
+    spec:
+      containers:
+        - name: echo-xgek
+          image: registry.example.com/echo-xgek:latest
+          ports:
+            - containerPort: 9544
+---
+# Document 319: Service yankee-inzi
+apiVersion: v1
+kind: Service
+metadata:
+  name: yankee-inzi
+  namespace: production
+  labels:
+    app: client
+    version: "v2.16"
+spec:
+  type: ClusterIP
+  selector:
+    app: yankee-inzi
+  ports:
+    - port: 570
+      targetPort: 4653
+---
+# Document 320: ConfigMap kilo-dkyp
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kilo-dkyp
+  namespace: staging
+  labels:
+    app: yankee
+    version: "v2.15"
+data:
+  delta_yl: "test golf"
+  mike_do: "golf port"
+  sierra_bn: "test golf"
+  victor_pt: "uniform zulu"
+---
+# Document 321: Secret whiskey-rzgh
+apiVersion: v1
+kind: Secret
+metadata:
+  name: whiskey-rzgh
+  namespace: production
+  labels:
+    app: queue
+    version: "v6.14"
+data:
+  note: "placeholder 321"
+---
+# Document 322: Ingress dev-gygg
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: dev-gygg
+  namespace: kube-system
+  labels:
+    app: replica
+    version: "v1.1"
+data:
+  note: "placeholder 322"
+---
+# Document 323: ServiceAccount job-uusj
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: job-uusj
+  namespace: production
+  labels:
+    app: tango
+    version: "v7.16"
+data:
+  note: "placeholder 323"
+---
+# Document 324: Deployment config-grcp
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: config-grcp
+  namespace: staging
+  labels:
+    app: port
+    version: "v6.16"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-grcp
+  template:
+    spec:
+      containers:
+        - name: config-grcp
+          image: registry.example.com/config-grcp:latest
+          ports:
+            - containerPort: 50526
+---
+# Document 325: Service yankee-jvbn
+apiVersion: v1
+kind: Service
+metadata:
+  name: yankee-jvbn
+  namespace: staging
+  labels:
+    app: juliet
+    version: "v3.9"
+spec:
+  type: ClusterIP
+  selector:
+    app: yankee-jvbn
+  ports:
+    - port: 686
+      targetPort: 5501
+---
+# Document 326: ConfigMap replica-kktz
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: replica-kktz
+  namespace: kube-system
+  labels:
+    app: task
+    version: "v7.6"
+data:
+  queue_er: "lima alpha"
+  config_xz: "uniform network"
+  tango_mj: "xray kilo"
+  xray_su: "delta task"
+---
+# Document 327: Secret golf-dbgh
+apiVersion: v1
+kind: Secret
+metadata:
+  name: golf-dbgh
+  namespace: default
+  labels:
+    app: oscar
+    version: "v2.14"
+data:
+  note: "placeholder 327"
+---
+# Document 328: Ingress deploy-mqix
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: deploy-mqix
+  namespace: production
+  labels:
+    app: alpha
+    version: "v3.13"
+data:
+  note: "placeholder 328"
+---
+# Document 329: ServiceAccount quebec-qzra
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quebec-qzra
+  namespace: production
+  labels:
+    app: lima
+    version: "v5.0"
+data:
+  note: "placeholder 329"
+---
+# Document 330: Deployment test-wlds
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: test-wlds
+  namespace: production
+  labels:
+    app: foxtrot
+    version: "v5.18"
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: test-wlds
+  template:
+    spec:
+      containers:
+        - name: test-wlds
+          image: registry.example.com/test-wlds:latest
+          ports:
+            - containerPort: 55034
+---
+# Document 331: Service volume-frif
+apiVersion: v1
+kind: Service
+metadata:
+  name: volume-frif
+  namespace: default
+  labels:
+    app: lima
+    version: "v7.4"
+spec:
+  type: ClusterIP
+  selector:
+    app: volume-frif
+  ports:
+    - port: 561
+      targetPort: 6028
+---
+# Document 332: ConfigMap yankee-shho
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: yankee-shho
+  namespace: kube-system
+  labels:
+    app: zulu
+    version: "v6.14"
+data:
+  job_gr: "server sierra"
+  image_cw: "golf victor"
+  server_bi: "xray mike"
+  build_ai: "port romeo"
+  echo_ps: "foxtrot tango"
+---
+# Document 333: Secret task-bcat
+apiVersion: v1
+kind: Secret
+metadata:
+  name: task-bcat
+  namespace: production
+  labels:
+    app: prod
+    version: "v7.19"
+data:
+  note: "placeholder 333"
+---
+# Document 334: Ingress build-nzcc
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: build-nzcc
+  namespace: staging
+  labels:
+    app: network
+    version: "v6.19"
+data:
+  note: "placeholder 334"
+---
+# Document 335: ServiceAccount job-eebr
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: job-eebr
+  namespace: default
+  labels:
+    app: golf
+    version: "v6.18"
+data:
+  note: "placeholder 335"
+---
+# Document 336: Deployment mike-gyky
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: mike-gyky
+  namespace: default
+  labels:
+    app: november
+    version: "v7.5"
+spec:
+  replicas: 7
+  selector:
+    matchLabels:
+      app: mike-gyky
+  template:
+    spec:
+      containers:
+        - name: mike-gyky
+          image: registry.example.com/mike-gyky:latest
+          ports:
+            - containerPort: 58443
+---
+# Document 337: Service quebec-nxkw
+apiVersion: v1
+kind: Service
+metadata:
+  name: quebec-nxkw
+  namespace: default
+  labels:
+    app: golf
+    version: "v4.11"
+spec:
+  type: ClusterIP
+  selector:
+    app: quebec-nxkw
+  ports:
+    - port: 1024
+      targetPort: 8133
+---
+# Document 338: ConfigMap queue-vvjb
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: queue-vvjb
+  namespace: staging
+  labels:
+    app: zulu
+    version: "v2.1"
+data:
+  pod_jg: "foxtrot uniform"
+  dev_kr: "pod dev"
+  charlie_bz: "zulu quebec"
+  port_kx: "job replica"
+  kilo_kl: "cache uniform"
+  pod_mb: "client november"
+  foxtrot_sa: "task charlie"
+  oscar_pq: "build kilo"
+  golf_fd: "delta image"
+  juliet_fj: "lima server"
+---
+# Document 339: Secret prod-mjsp
+apiVersion: v1
+kind: Secret
+metadata:
+  name: prod-mjsp
+  namespace: kube-system
+  labels:
+    app: yankee
+    version: "v3.2"
+data:
+  note: "placeholder 339"
+---
+# Document 340: Ingress server-ajcc
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: server-ajcc
+  namespace: kube-system
+  labels:
+    app: lima
+    version: "v9.17"
+data:
+  note: "placeholder 340"
+---
+# Document 341: ServiceAccount tango-ptrd
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tango-ptrd
+  namespace: kube-system
+  labels:
+    app: image
+    version: "v1.4"
+data:
+  note: "placeholder 341"
+---
+# Document 342: Deployment service-idxa
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: service-idxa
+  namespace: kube-system
+  labels:
+    app: stage
+    version: "v4.9"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-idxa
+  template:
+    spec:
+      containers:
+        - name: service-idxa
+          image: registry.example.com/service-idxa:latest
+          ports:
+            - containerPort: 22849
+---
+# Document 343: Service deploy-ljzd
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploy-ljzd
+  namespace: production
+  labels:
+    app: romeo
+    version: "v2.11"
+spec:
+  type: ClusterIP
+  selector:
+    app: deploy-ljzd
+  ports:
+    - port: 260
+      targetPort: 7472
+---
+# Document 344: ConfigMap zulu-syja
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zulu-syja
+  namespace: production
+  labels:
+    app: echo
+    version: "v4.7"
+data:
+  romeo_ak: "server client"
+  juliet_au: "image config"
+  task_ju: "prod image"
+  xray_jm: "stage hotel"
+  xray_tb: "prod november"
+  node_yi: "quebec hotel"
+  pod_dh: "prod build"
+  quebec_wk: "task node"
+  november_gn: "node golf"
+---
+# Document 345: Secret bravo-xcnq
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bravo-xcnq
+  namespace: default
+  labels:
+    app: prod
+    version: "v5.18"
+data:
+  note: "placeholder 345"
+---
+# Document 346: Ingress hotel-wjok
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: hotel-wjok
+  namespace: default
+  labels:
+    app: cache
+    version: "v8.14"
+data:
+  note: "placeholder 346"
+---
+# Document 347: ServiceAccount whiskey-pibh
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: whiskey-pibh
+  namespace: kube-system
+  labels:
+    app: client
+    version: "v5.13"
+data:
+  note: "placeholder 347"
+---
+# Document 348: Deployment image-hutm
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: image-hutm
+  namespace: staging
+  labels:
+    app: juliet
+    version: "v9.17"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: image-hutm
+  template:
+    spec:
+      containers:
+        - name: image-hutm
+          image: registry.example.com/image-hutm:latest
+          ports:
+            - containerPort: 50394
+---
+# Document 349: Service yankee-tyhy
+apiVersion: v1
+kind: Service
+metadata:
+  name: yankee-tyhy
+  namespace: staging
+  labels:
+    app: job
+    version: "v1.10"
+spec:
+  type: ClusterIP
+  selector:
+    app: yankee-tyhy
+  ports:
+    - port: 590
+      targetPort: 5048
+---
+# Document 350: ConfigMap bravo-btiw
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bravo-btiw
+  namespace: production
+  labels:
+    app: echo
+    version: "v6.3"
+data:
+  sierra_tq: "sierra delta"
+  victor_gz: "alpha replica"
+  network_gm: "cache network"
+  sierra_gy: "job replica"
+  replica_vn: "echo stage"
+---
+# Document 351: Secret papa-ngza
+apiVersion: v1
+kind: Secret
+metadata:
+  name: papa-ngza
+  namespace: production
+  labels:
+    app: image
+    version: "v2.1"
+data:
+  note: "placeholder 351"
+---
+# Document 352: Ingress papa-hkpf
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: papa-hkpf
+  namespace: default
+  labels:
+    app: lima
+    version: "v8.15"
+data:
+  note: "placeholder 352"
+---
+# Document 353: ServiceAccount quebec-apse
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quebec-apse
+  namespace: staging
+  labels:
+    app: bravo
+    version: "v6.4"
+data:
+  note: "placeholder 353"
+---
+# Document 354: Deployment echo-jrnf
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: echo-jrnf
+  namespace: default
+  labels:
+    app: lima
+    version: "v3.6"
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: echo-jrnf
+  template:
+    spec:
+      containers:
+        - name: echo-jrnf
+          image: registry.example.com/echo-jrnf:latest
+          ports:
+            - containerPort: 35065
+---
+# Document 355: Service tango-vltb
+apiVersion: v1
+kind: Service
+metadata:
+  name: tango-vltb
+  namespace: kube-system
+  labels:
+    app: cache
+    version: "v1.12"
+spec:
+  type: ClusterIP
+  selector:
+    app: tango-vltb
+  ports:
+    - port: 749
+      targetPort: 4242
+---
+# Document 356: ConfigMap victor-fgjm
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: victor-fgjm
+  namespace: staging
+  labels:
+    app: stage
+    version: "v9.19"
+data:
+  juliet_jc: "cache victor"
+  node_ci: "lima stage"
+  deploy_ip: "build volume"
+  volume_wb: "queue bravo"
+  kilo_nh: "build xray"
+  zulu_vr: "node kilo"
+---
+# Document 357: Secret port-nlxj
+apiVersion: v1
+kind: Secret
+metadata:
+  name: port-nlxj
+  namespace: default
+  labels:
+    app: stage
+    version: "v2.1"
+data:
+  note: "placeholder 357"
+---
+# Document 358: Ingress echo-yarv
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: echo-yarv
+  namespace: staging
+  labels:
+    app: bravo
+    version: "v9.18"
+data:
+  note: "placeholder 358"
+---
+# Document 359: ServiceAccount yankee-xgrp
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: yankee-xgrp
+  namespace: production
+  labels:
+    app: xray
+    version: "v3.2"
+data:
+  note: "placeholder 359"
+---
+# Document 360: Deployment echo-bsqb
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: echo-bsqb
+  namespace: production
+  labels:
+    app: image
+    version: "v2.10"
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: echo-bsqb
+  template:
+    spec:
+      containers:
+        - name: echo-bsqb
+          image: registry.example.com/echo-bsqb:latest
+          ports:
+            - containerPort: 63976
+---
+# Document 361: Service task-lhkf
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-lhkf
+  namespace: kube-system
+  labels:
+    app: charlie
+    version: "v2.9"
+spec:
+  type: ClusterIP
+  selector:
+    app: task-lhkf
+  ports:
+    - port: 932
+      targetPort: 6773
+---
+# Document 362: ConfigMap juliet-xhvt
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: juliet-xhvt
+  namespace: default
+  labels:
+    app: test
+    version: "v1.5"
+data:
+  pod_mj: "stage build"
+  tango_db: "port juliet"
+  yankee_ek: "kilo job"
+  romeo_zr: "replica stage"
+  echo_mw: "worker port"
+  volume_yu: "cache kilo"
+---
+# Document 363: Secret test-ojkx
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-ojkx
+  namespace: production
+  labels:
+    app: november
+    version: "v2.4"
+data:
+  note: "placeholder 363"
+---
+# Document 364: Ingress prod-jvvr
+apiVersion: v1
+kind: Ingress
+metadata:
+  name: prod-jvvr
+  namespace: kube-system
+  labels:
+    app: golf
+    version: "v9.11"
+data:
+  note: "placeholder 364"
+---
+# Document 365: ServiceAccount echo-cpuw
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: echo-cpuw
+  namespace: default
+  labels:
+    app: node
+    version: "v3.3"
+data:
+  note: "placeholder 365"
+---
+# Document 366: Deployment lima-jfce
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: lima-jfce
+  namespace: production
+  labels:
+    app: tango
+    version: "v1.3"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: lima-jfce
+  template:
+    spec:
+      containers:
+        - name: lima-jfce
+          image: registry.example.com/lima-jfce:latest
+          ports:
+            - containerPort: 59985
+---
+# Document 367: Service build-lxhr
+apiVersion: v1
+kind: Service
+metadata:
+  name: build-lxhr
+  namespace: staging
+  labels:
+    app: oscar
+    version: "v3.15"
+spec:
+  type: ClusterIP
+  selector:
+    app: build-lxhr
+  ports:
+    - port: 885
+      targetPort: 3590
+---
+# Document 368: ConfigMap quebec-fmbp
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quebec-fmbp
+  namespace: default
+  labels:
+    app: task
+    version: "v2.4"
+data:
+  xray_oe: "november romeo"
+  victor_yb: "volume build"
+  zulu_jv: "node romeo"
+  quebec_cv: "juliet node"
+  server_kd: "queue queue"
+  hotel_uh: "mike dev"
+  kilo_ne: "port quebec"
+  india_nm: "job oscar"
+  task_aa: "tango oscar"
