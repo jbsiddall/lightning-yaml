@@ -650,3 +650,34 @@ test("special keys: constructor / prototype as ordinary map keys", () => {
   const value = { constructor: 1, prototype: 2 };
   assertRoundTrips(value, "constructor/prototype keys");
 });
+
+test("undefined object properties are omitted while array entries become null", () => {
+  strictEqual(stringify({ only: undefined }), "{}\n");
+  strictEqual(stringify({ drop: undefined, keep: 1 }), "keep: 1\n");
+  strictEqual(stringify({ nested: { drop: undefined } }), "nested: {}\n");
+  strictEqual(stringify([undefined]), "- null\n");
+  strictEqual(stringify({ values: [undefined, { drop: undefined }] }), "values:\n  - null\n  - {}\n");
+});
+
+test("shared containers with omitted properties retain their anchor", () => {
+  const shared = { omitted: undefined };
+  const text = stringify({ first: shared, second: shared });
+  strictEqual(text, "first: &a1 {}\nsecond: *a1\n");
+  const parsed = parse(text) as { first: object; second: object };
+  ok(parsed.first === parsed.second, "shared container identity survives omission");
+  const oracleParsed = oracleParse(text) as { first: object; second: object };
+  ok(oracleParsed.first === oracleParsed.second, "oracle preserves shared container identity");
+});
+
+test("omitting an undefined getter does not add an extra property read", () => {
+  let reads = 0;
+  const value = Object.defineProperty({}, "omitted", {
+    enumerable: true,
+    get() {
+      reads++;
+      return undefined;
+    },
+  });
+  strictEqual(stringify(value), "{}\n");
+  strictEqual(reads, 2);
+});
