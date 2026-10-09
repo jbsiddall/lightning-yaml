@@ -29,6 +29,7 @@ bubblewrap with network disabled, the host read-only, and this worktree writable
 | [evidence/2026-10-09](evidence/2026-10-09) | Saved raw measurements; subsequent runs write separate local result files. |
 | [STRUCTURED_VALUES.md](STRUCTURED_VALUES.md), `Structures.dfy`, `OpaqueValue.dfy`, `structures-check.cjs`, `structures-run.sh` | Runtime collection costs, native nested objects/arrays, wrapper erasure, opaque JS values, and a verified toy native-tree reader/builder with trusted extern contracts. |
 | [type-audit.cjs](type-audit.cjs) | Official generated JS declaration inference, community emitter-derived type fixtures, and strict consumer checks for a small typed facade. |
+| [native-values/README.md](native-values/README.md) | Runnable native-value bridge with explicit ghost graph/heap effects, checked TS facade, generated-output guard, and combined build/check/test command. |
 
 ## Measured results
 

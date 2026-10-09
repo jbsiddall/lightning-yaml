@@ -204,6 +204,17 @@ Require strict consumer checks against the built package and matching runtime
 boundary tests for callbacks, overloads, omission, null and undefined. A typed
 facade does not itself prove the generated/foreign-code boundary sound.
 
+The [native-value bridge](https://github.com/jbsiddall/lightning-yaml/blob/research/dafny-performance/experiments/dafny-hotpath/native-values/README.md)
+now supplies executable extern operations for native primitives, arrays and
+objects, a ghost graph model with mutation/frame contracts, and verified examples
+of shared references and a self-cycle. Its `run.sh` combines Dafny build,
+TypeScript/declaration checks, an AST output guard and runtime tests. Use this as
+the integration starting point, extend its contracts for the production supported
+domain, and add every new generated public entry point to the guard manifest.
+Its number formatting and object enumeration contracts do not yet establish YAML
+semantics or enumeration order, and caller-owned graph snapshots need a boundary
+model. Continue measuring runtime startup, dispatch, validation and allocations.
+
 Quick checks after compilation:
 
 ```bash
