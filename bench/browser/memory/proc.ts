@@ -42,33 +42,19 @@ function cmdlineOf(pid: number): string {
   }
 }
 
-/** Descendants of `rootPid` whose cmdline contains any of `needles`. Snapshot this before opening a page, then pass it to `selectPageProcess`. */
-export function matchingDescendants(rootPid: number, needles: readonly string[]): number[] {
-  return descendantPids(rootPid).filter((pid) => needles.some((n) => cmdlineOf(pid).includes(n)));
-}
-
-/**
- * Peak-RSS growth of the browser's busiest content process while `body` runs.
- *
- * Every candidate is reset and read rather than one being picked, because picking is
- * unreliable and fails silently: WebKit keeps a prewarmed content process alive beside the
- * one serving the page (measured locally: two WPEWebProcess children, where the idle one
- * grew 0 KB while the active one grew 174 MB), and neither "the newest" nor "the heaviest
- * right now" reliably tells them apart. The process that served the page is simply the one
- * that grew, so take the largest growth and let the idle ones contribute their ~0.
- */
+/** Largest peak-RSS growth across the browser's content processes while `body` runs — WebKit keeps a prewarmed sibling that neither "newest" nor "heaviest right now" tells from the active one (measured: idle grew 0 KB, active 174 MB), so reset and read every match and let the idle ones contribute their ~0. */
 export async function peakRssGrowthDuring(rootPid: number, needles: readonly string[], body: () => Promise<void>): Promise<number> {
-  const pids = matchingDescendants(rootPid, needles);
+  const all = descendantPids(rootPid);
+  const pids = all.filter((pid) => needles.some((n) => cmdlineOf(pid).includes(n)));
   if (pids.length === 0) {
-    // Print the tree: the one time this fired, the needle was just the wrong name for the
-    // port in use (Linux runs WPE, not GTK), and a bare "not found" said nothing useful.
-    const tree = descendantPids(rootPid).map((pid) => `    ${pid}  ${cmdlineOf(pid).trim().slice(0, 120)}`);
+    // Print the tree: the one time this fired, the needle was just the wrong process name for this port, and a bare "not found" said nothing useful.
+    const tree = all.map((pid) => `    ${pid}  ${cmdlineOf(pid).trim().slice(0, 120)}`);
     throw new Error(
       `no descendant of pid ${rootPid} matches ${needles.map((n) => `"${n}"`).join(" or ")}. Descendants:\n${tree.join("\n") || "    (none)"}`,
     );
   }
 
-  await waitForRssStabilization(pids.reduce((a, b) => (readVmFieldBytes(a, "VmRSS") >= readVmFieldBytes(b, "VmRSS") ? a : b)));
+  await Promise.all(pids.map((pid) => waitForRssStabilization(pid)));
   const baselines = pids.map((pid) => {
     resetPeakRss(pid);
     return [pid, readVmHwmBytes(pid)] as const;
@@ -97,12 +83,12 @@ function readVmFieldBytes(pid: number, field: "VmRSS" | "VmHWM"): number {
 }
 
 /** Peak resident set size since the process started, or since the last `resetPeakRss`. */
-export function readVmHwmBytes(pid: number): number {
+function readVmHwmBytes(pid: number): number {
   return readVmFieldBytes(pid, "VmHWM");
 }
 
 /** Drops the kernel's peak-RSS counter back to current RSS (`man 5 proc`, /proc/pid/clear_refs). */
-export function resetPeakRss(pid: number): void {
+function resetPeakRss(pid: number): void {
   writeFileSync(`/proc/${pid}/clear_refs`, "5");
 }
 
@@ -113,7 +99,7 @@ const SETTLE_TIMEOUT_MS = 10_000;
  * Waits out a fresh page process's startup and JIT churn so it isn't counted as parse memory.
  * Gives up at the timeout rather than failing the run — a noisier baseline beats no measurement.
  */
-export async function waitForRssStabilization(pid: number): Promise<void> {
+async function waitForRssStabilization(pid: number): Promise<void> {
   const deadline = Date.now() + SETTLE_TIMEOUT_MS;
   let settled = 0;
   let last = readVmFieldBytes(pid, "VmRSS");
