@@ -20,6 +20,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { assertExactRows } from "./rowset.mjs";
+import { builtProfileKeys, sourceProfileKeys } from "./profile-workloads.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TOOL_ROOT = resolve(HERE, "../..");
@@ -65,19 +66,21 @@ function sha256(data) {
 
 function treeHash(root) {
   const files = [];
+  const excludedDirectories = new Set([".git", "node_modules", "results", "dist"]);
+  const excludedPaths = ["bench/fixtures/data", "bench/yaml-test-suite/data", "bench/browser/generated"];
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       const absolute = join(dir, entry.name);
       const rel = relative(root, absolute).replaceAll("\\", "/");
-      if ([".git", "node_modules", "results", "dist", "bench/fixtures/data", "bench/yaml-test-suite/data", "bench/browser/generated"].includes(rel)) continue;
+      if (excludedDirectories.has(entry.name) || excludedPaths.some((path) => rel === path || rel.startsWith(`${path}/`))) continue;
       if (entry.isDirectory()) walk(absolute);
-      else if (entry.isFile() && /\.(?:dfy|ts|mts|cts|js|mjs|cjs|json)$/.test(entry.name)) {
+      else if (entry.isFile() && /\.(?:dfy|dtr|ts|mts|cts|js|mjs|cjs|json|yaml|yml|sh|toml)$/.test(entry.name)) {
         files.push([relative(root, absolute).replaceAll("\\", "/"), sha256(readFileSync(absolute))]);
       }
     }
   };
-  for (const dir of ["src", "bench", "test"]) if (existsSync(join(root, dir))) walk(join(root, dir));
-  for (const file of ["package.json", "pnpm-lock.yaml", "tsup.config.ts", "bench/bundlesize/package.json", "bench/bundlesize/pnpm-lock.yaml"]) {
+  for (const dir of ["src", "bench", "test", "scripts"]) if (existsSync(join(root, dir))) walk(join(root, dir));
+  for (const file of ["package.json", "pnpm-lock.yaml", "tsup.config.ts", "tsconfig.json", "vitest.config.ts", "scripts/dafny-build.sh", "scripts/build-dafny.cjs", "scripts/check-dafny-output.cjs", "scripts/dafny-output-guard.json", "bench/bundlesize/package.json", "bench/bundlesize/pnpm-lock.yaml"]) {
     if (existsSync(join(root, file))) files.push([file, sha256(readFileSync(join(root, file)))]);
   }
   files.sort((a, b) => a[0].localeCompare(b[0]));
@@ -188,7 +191,7 @@ function validateInputs(baseline, candidate) {
     nodeExecutable: process.execPath,
     dependencies: base.dependencies,
   };
-  return { baseline: base, candidate: next, env };
+  return { baseline: base, candidate: next, env, acceptanceHarnessSha256: directoryHash(HERE) };
 }
 
 function newestYaml(root, name) {
@@ -283,7 +286,7 @@ async function main() {
 
   if (mode === "plan") {
     const inputs = validateInputs(baseline, candidate);
-    console.log(JSON.stringify({ mode, runs, outDir, inputs, schedule: ["semantic preflight", "build outputs", "7 × rotated full speed matrix", "7 × rotated facade/option profiles", "7 × rotated 25-iteration memory matrix", "7 × fresh ESM/CJS import pairs", "one sequential bundle-size matrix per tree", "paired row validation and summary"], cpuBenchmarksRun: false }, null, 2));
+    console.log(JSON.stringify({ mode, runs, outDir, inputs, schedule: ["semantic preflight", "build outputs", "built ESM/CJS semantic preflight", "7 × rotated full speed matrix", "7 × rotated facade/option/diagnostic profiles", "7 × rotated built ESM/CJS warm-facade profiles", "7 × rotated 25-iteration memory matrix", "7 × fresh ESM/CJS import pairs", "one sequential bundle-size matrix per tree", "paired row validation and summary"], cpuBenchmarksRun: false }, null, 2));
     return;
   }
   if (mode === "preflight") {
@@ -301,7 +304,7 @@ async function main() {
   mkdirSync(outDir, { recursive: true });
   ensureCandidateFixtures(candidate, baseline);
   ensureCandidateBundleToolchain(candidate, baseline);
-  writeFileSync(join(outDir, "input-manifest.json"), `${JSON.stringify({ startedAt: new Date().toISOString(), runs, inputs }, null, 2)}\n`);
+  writeFileSync(join(outDir, "input-manifest.json"), `${JSON.stringify({ startedAt: new Date().toISOString(), runs, inputs, acceptanceHarnessSha256: inputs.acceptanceHarnessSha256, sourceProfileKeys: sourceProfileKeys(), builtProfileKeys: builtProfileKeys() }, null, 2)}\n`);
 
   const preflight = runSample(sampleCommand(TOOL_ROOT, join(HERE, "preflight.mjs"), [baseline, candidate]));
   writeFileSync(join(outDir, "preflight.log"), preflight.stdout + preflight.stderr);
@@ -319,15 +322,21 @@ async function main() {
     candidate: directoryHash(join(candidate, "dist")),
   };
   writeFileSync(join(outDir, "built-artifacts.json"), `${JSON.stringify({ generatedAt: new Date().toISOString(), ...builtArtifacts }, null, 2)}\n`);
+  const builtPreflight = runSample(sampleCommand(TOOL_ROOT, join(HERE, "built-profile-preflight.mjs"), [baseline, candidate]));
+  writeFileSync(join(outDir, "built-profile-preflight.log"), builtPreflight.stdout + builtPreflight.stderr);
 
   const sampleRows = {};
-  const suites = ["speed", "profiles", "memory"];
+  const suites = ["speed", "profiles", "built-profiles", "memory"];
   for (let i = 0; i < runs; i++) {
     for (const suite of suites) {
       const order = (i + suites.indexOf(suite)) % 2 === 0 ? ["baseline", "candidate"] : ["candidate", "baseline"];
       for (const side of order) {
         const root = side === "baseline" ? baseline : candidate;
-        const script = join(HERE, `${suite === "speed" ? "speed" : suite === "profiles" ? "profile" : "memory"}-sample.mjs`);
+        const scriptName = suite === "speed" ? "speed-sample.mjs"
+          : suite === "profiles" ? "profile-sample.mjs"
+          : suite === "built-profiles" ? "built-profile-sample.mjs"
+          : "memory-sample.mjs";
+        const script = join(HERE, scriptName);
         const env = { ...process.env, BENCH_SCOPE: "ours", BENCH_ITERS: "25" };
         const argsForScript = [root];
         const command = sampleCommand(root, script, argsForScript);
@@ -340,9 +349,13 @@ async function main() {
           for (const op of ["parse", "stringify"]) {
             assertExactRows(payload.results.filter((r) => r.candidate === "lightning-yaml" && r.op === op).map((r) => r.dataset), fixtureNamesExpected, `${side} memory ${op}`);
           }
+        } else if (suite === "profiles") {
+          assertExactRows(payload.rows.map((r) => `${r.profile} · ${r.workload}`), sourceProfileKeys(), `${side} source profile`);
+        } else if (suite === "built-profiles") {
+          assertExactRows(payload.rows.map((r) => `${r.profile} · ${r.workload}`), builtProfileKeys(), `${side} built profile`);
         }
         sampleRows[`${suite}-${i}-${side}`] = payload.rows ?? payload.results;
-        saveSample(outDir, suite, i, side, payload, result.stdout, result.stderr, command, inputs[side]);
+        saveSample(outDir, suite, i, side, payload, result.stdout, result.stderr, command, { ...inputs[side], acceptanceHarnessSha256: inputs.acceptanceHarnessSha256 });
       }
     }
     for (const kind of ["esm", "cjs"]) {
@@ -355,7 +368,7 @@ async function main() {
         const key = `startup-${kind}-${side}`;
         sampleRows[key] ??= [];
         sampleRows[key].push(payload.importNs);
-        saveSample(outDir, `startup-${kind}`, i, side, payload, result.stdout, result.stderr, command, inputs[side]);
+        saveSample(outDir, `startup-${kind}`, i, side, payload, result.stdout, result.stderr, command, { ...inputs[side], acceptanceHarnessSha256: inputs.acceptanceHarnessSha256 });
       }
     }
   }
@@ -407,18 +420,21 @@ async function main() {
       speedSummary.push({ operation: op, workload, baselineMedianNs: median(speedPair.map((p) => p.base)), candidateMedianNs: median(speedPair.map((p) => p.candidate)), ...ratiosFromPairs(speedPair) });
     }
   }
-  for (let i = 0; i < runs; i++) {
-    const b = sampleRows[`profiles-${i}-baseline`].rows;
-    const c = sampleRows[`profiles-${i}-candidate`].rows;
-    assert.deepEqual(c.map((r) => [r.workload, r.profile]), b.map((r) => [r.workload, r.profile]), "facade/profile row set differs");
-  }
-  for (const ref of sampleRows["profiles-0-baseline"].rows) {
-    const pairs = [];
+  for (const suite of ["profiles", "built-profiles"]) {
     for (let i = 0; i < runs; i++) {
-      const find = (side) => sampleRows[`profiles-${i}-${side}`].rows.find((r) => r.workload === ref.workload && r.profile === ref.profile).avg;
-      pairs.push({ base: find("baseline"), candidate: find("candidate") });
+      const b = sampleRows[`${suite}-${i}-baseline`];
+      const c = sampleRows[`${suite}-${i}-candidate`];
+      const keys = (rows) => rows.map((r) => `${r.profile} · ${r.workload}`);
+      assertExactRows(keys(c), keys(b), `${suite} paired row set`);
     }
-    profileSummary.push({ profile: ref.profile, workload: ref.workload, baselineMedianNs: median(pairs.map((p) => p.base)), candidateMedianNs: median(pairs.map((p) => p.candidate)), ...ratiosFromPairs(pairs) });
+    for (const ref of sampleRows[`${suite}-0-baseline`]) {
+      const pairs = [];
+      for (let i = 0; i < runs; i++) {
+        const find = (side) => sampleRows[`${suite}-${i}-${side}`].find((r) => r.workload === ref.workload && r.profile === ref.profile).avg;
+        pairs.push({ base: find("baseline"), candidate: find("candidate") });
+      }
+      profileSummary.push({ suite, profile: ref.profile, workload: ref.workload, baselineMedianNs: median(pairs.map((p) => p.base)), candidateMedianNs: median(pairs.map((p) => p.candidate)), ...ratiosFromPairs(pairs) });
+    }
   }
   const memoryRows = {};
   for (let i = 0; i < runs; i++) {
@@ -465,6 +481,21 @@ async function main() {
   }
   for (const row of startupSummary) if (row.medianRatio > 1.15) misses.push({ metric: "cold-import", ...row });
   for (const row of bundleSummary) if (row.candidateGzip / row.baselineGzip > 1.15) misses.push({ metric: "gzip-size", ...row, medianRatio: row.candidateGzip / row.baselineGzip });
+
+  const finalInputs = validateInputs(baseline, candidate);
+  for (const side of ["baseline", "candidate"]) {
+    for (const field of ["gitHead", "sourceTreeSha256", "packageSha256", "lockfileSha256", "bundleLockfileSha256", "dependencies", "fixtures"]) {
+      assert.deepEqual(finalInputs[side][field], inputs[side][field], `${side} ${field} changed during measurement`);
+    }
+  }
+  assert.deepEqual(finalInputs.env, inputs.env, "benchmark runtime/environment changed during measurement");
+  assert.equal(finalInputs.acceptanceHarnessSha256, inputs.acceptanceHarnessSha256, "acceptance harness changed during measurement");
+  const finalBuiltArtifacts = {
+    baseline: directoryHash(join(baseline, "dist")),
+    candidate: directoryHash(join(candidate, "dist")),
+  };
+  assert.deepEqual(finalBuiltArtifacts, builtArtifacts, "built dist artifacts changed during measurement");
+  summary.finalIntegrityCheck = { sourceTreesUnchanged: true, builtArtifactsUnchanged: true, acceptanceHarnessSha256: inputs.acceptanceHarnessSha256 };
   summary.over15Percent = misses;
   summary.acceptance = misses.length === 0 ? "pass" : "fail: investigate every over-threshold row; no aggregate score substitutes for row-level review";
   writeFileSync(join(outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);

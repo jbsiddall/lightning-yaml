@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import { resolve, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { bench, do_not_optimize, group, run } from "mitata";
+import { assertExactRows } from "./rowset.mjs";
+import { diagnosticInputs, sourceProfileKeys } from "./profile-workloads.mjs";
 
 const root = resolve(process.argv[2] ?? process.cwd());
 const [api, yamlCompat, jsCompat, fixtures] = await Promise.all([
@@ -48,6 +50,10 @@ for (const name of ["medium-records", "yaml-plain-medium-records"]) {
   add("jsYamlCompat.dump", dataset, () => jsCompat.dump(value));
 }
 
+for (const { name, text, options } of diagnosticInputs) {
+  add("diagnostic.parse", { name }, () => api.parse(text, options));
+}
+
 const trial = await run({ format: "quiet", throw: true });
 const rows = [];
 for (const result of trial.benchmarks) {
@@ -59,6 +65,8 @@ for (const result of trial.benchmarks) {
   assert.ok(run?.stats, `missing timing for ${label}`);
   rows.push({ workload: label.slice(sep + 3), profile: result.alias, ...run.stats });
 }
+assertExactRows(records.map((r) => r.workload), sourceProfileKeys(), "source profile manifest");
+assertExactRows(rows.map((r) => `${r.profile} · ${r.workload}`), sourceProfileKeys(), "source profile results");
 assert.equal(rows.length, records.length, "a profile row was omitted");
 for (const row of rows) {
   for (const field of ["avg", "min", "p75", "p99", "max"]) {

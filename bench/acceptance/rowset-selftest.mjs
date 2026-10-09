@@ -1,9 +1,21 @@
 import assert from "node:assert/strict";
 import { assertExactRows } from "./rowset.mjs";
+import { builtProfileKeys, diagnosticInputs, sourceProfileKeys } from "./profile-workloads.mjs";
 
 const expected = ["parse/a", "parse/b", "stringify/a", "stringify/b"];
 assertExactRows(expected, expected, "complete synthetic matrix");
 assert.throws(() => assertExactRows(expected.slice(1), expected, "missing operation"), /row set differs/);
 assert.throws(() => assertExactRows([...expected, "parse/a"], expected, "duplicate row"), /duplicate rows/);
 assert.throws(() => assertExactRows([...expected, "stringify/c"], expected, "extra row"), /row set differs/);
+assertExactRows(sourceProfileKeys(), sourceProfileKeys(), "declared source profile manifest");
+assertExactRows(builtProfileKeys(), builtProfileKeys(), "declared built profile manifest");
+assert.equal(new Set(sourceProfileKeys()).size, sourceProfileKeys().length);
+assert.equal(new Set(builtProfileKeys()).size, builtProfileKeys().length);
+assert.equal(sourceProfileKeys().length, 42);
+assert.equal(builtProfileKeys().length, 8);
+assert.equal(diagnosticInputs.length, 8);
+assert.deepEqual(diagnosticInputs.map((p) => p.name), ["supplementary", "lone-surrogate", "unescaped-longquotes", "escaped-longquotes", "blockscalar", "alias-cycle", "repeated-keys", "unique-keys"]);
+assert.ok(diagnosticInputs.find((p) => p.name === "supplementary").text.includes("🚀"));
+assert.ok(diagnosticInputs.find((p) => p.name === "lone-surrogate").text.includes("\\uD800"));
+assert.ok(diagnosticInputs.every((p) => Buffer.byteLength(p.text) < 32 * 1024), "diagnostic profile input grew unexpectedly");
 console.log("row-set integrity self-test passed (complete, missing, duplicate, extra)");
