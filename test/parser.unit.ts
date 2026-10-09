@@ -467,6 +467,20 @@ test("block scalar: explicit indentation indicator in either order (|2- vs |-2)"
   ]);
 });
 
+test("block scalar: explicit indentation at the document root counts from column zero", () => {
+  const cases: Array<[string, string]> = [
+    ["|1\n one\n", "one\n"],
+    ["|2\n  two\n", "two\n"],
+    [">2\n  folded\n  text\n", "folded text\n"],
+    ["--- |2\n  after marker\n", "after marker\n"],
+    ["--- |1\n one\n  more-indented\n", "one\n more-indented\n"],
+  ];
+  for (const [input, expected] of cases) {
+    deepStrictEqual(parse(input), expected, input);
+    deepStrictEqual(parse(input), oracleParse(input), input);
+  }
+});
+
 test("block scalar: a more-indented folded line is kept literally and its surrounding breaks are not folded", () => {
   deepStrictEqual(parse("key: >\n  a\n   more\n  b\n"), { key: "a\n more\nb\n" });
 });
