@@ -182,6 +182,28 @@ loading before adding it, especially on frequent calls.
 
 ### 5. Inspect generated output after compiler or source changes
 
+#### Native structured values and checked TypeScript boundaries
+
+The follow-up [structured-value research](https://github.com/jbsiddall/lightning-yaml/blob/research/dafny-performance/experiments/dafny-hotpath/STRUCTURED_VALUES.md)
+demonstrates plain native objects/arrays and opaque JS values without a second
+tree conversion, plus the costs of default datatypes/sequences/maps. Start from
+its native representation experiments when designing collections; the verified
+toy tree and extern contracts are not a complete YAML graph model.
+
+Keep runtime values native and define ghost semantics separately. Model identity,
+alias cycles, allocation, mutable heap effects and mapping properties explicitly.
+Use specified host builders/readers for dynamic native collections as needed;
+avoid constructing a wrapped datatype tree and converting it on every call.
+Stringify should read the caller's graph directly. Keep any extern mutation
+visible in the model, and audit its implementation and generated ABI.
+
+Keep the public API in checked TypeScript and emit declarations from it. The
+official JS output loses argument types under declaration inference; community
+emitter signatures and converters have optionality/generic/`any` limitations.
+Require strict consumer checks against the built package and matching runtime
+boundary tests for callbacks, overloads, omission, null and undefined. A typed
+facade does not itself prove the generated/foreign-code boundary sound.
+
 Quick checks after compilation:
 
 ```bash
@@ -231,6 +253,8 @@ in end-to-end measurements.
 - [ ] CI reruns verification after every change, with explicit tracking of axioms/extern assumptions.
 - [ ] Pinned, reproducible JS generation and inspection; no unexpected arbitrary precision, wrappers, conversions or allocations in critical paths.
 - [ ] Extern contracts, ABI loading and focused runtime checks documented; no claim that trusted JS has been proved by Dafny.
+- [ ] Native output/input graph handling preserves aliases, cycles, property behaviour and null/undefined semantics, with explicit heap/effect contracts and no unmeasured full-tree conversion.
+- [ ] Declarations emitted from the checked TS public API; strict built-package consumer checks and runtime boundary tests cover optionality, overloads, callbacks and generated ABI changes.
 - [ ] Existing typecheck, consistency, parser, stringify, adversarial and yaml-test-suite gates pass, with no conformance regression.
 - [ ] Versioned compatibility checks cover supported options and observable behaviour.
 - [ ] Full parse/stringify throughput, startup, peak memory and shipped bundle/runtime dependency measurements meet the project's performance goals across representative workloads.
