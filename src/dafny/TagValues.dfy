@@ -9,11 +9,31 @@ module TagValues {
 
   class Helpers {
     var lastError: string
+    var base64Inv: Value
 
     constructor ()
     {
       new;
       lastError := "";
+      base64Inv := CreateUint8Array(256);
+      var i: Index := 0;
+      while i < 256 {
+        ByteSet(base64Inv, i, 255 as Unit);
+        i := i + 1;
+      }
+      i := 0;
+      while i < 26 {
+        ByteSet(base64Inv, i + 65, i as Unit);
+        ByteSet(base64Inv, i + 97, (i + 26) as Unit);
+        i := i + 1;
+      }
+      i := 0;
+      while i < 10 {
+        ByteSet(base64Inv, i + 48, (i + 52) as Unit);
+        i := i + 1;
+      }
+      ByteSet(base64Inv, 43, 62 as Unit);
+      ByteSet(base64Inv, 47, 63 as Unit);
     }
 
     method ErrorMessage() returns (error: string)
@@ -23,12 +43,10 @@ module TagValues {
 
     method BASE64_INV(code: Counter) returns (digit: Counter)
     {
-      if 65 <= code && code <= 90 { digit := code - 65; return; }
-      if 97 <= code && code <= 122 { digit := code - 71; return; }
-      if 48 <= code && code <= 57 { digit := code + 4; return; }
-      if code == 43 { digit := 62; return; }
-      if code == 47 { digit := 63; return; }
       digit := -1;
+      if code < 0 || code >= 256 { return; }
+      var value := ByteGet(base64Inv, code as Index) as Counter;
+      if value != 255 { digit := value; }
     }
 
     method IsBase64Whitespace(code: Counter) returns (yes: bool)

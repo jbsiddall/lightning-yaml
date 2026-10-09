@@ -30,8 +30,18 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.408
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install pinned Dafny compiler
+        run: dotnet tool install --tool-path .tools/dafny --add-source https://api.nuget.org/v3/index.json Dafny --version 4.11.0
+
+      - name: Check generated Dafny output and boundary
+        run: DAFNY="$GITHUB_WORKSPACE/.tools/dafny/dafny" pnpm dafny:check
 
       - name: Typecheck
         run: pnpm typecheck
@@ -46,7 +56,12 @@ jobs:
         run: pnpm test:stringify
 
       - name: Build
-        run: pnpm build
+        run: DAFNY="$GITHUB_WORKSPACE/.tools/dafny/dafny" pnpm build
+
+      - name: Check built package ESM, CommonJS, browser, and declarations
+        run: |
+          node --test test/built-package.test.mjs
+          pnpm exec tsc --noEmit -p test/consumer-types/tsconfig.json
 
       - name: Smoke test built dist (ESM + CJS + compat subpaths)
         run: |

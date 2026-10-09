@@ -51,9 +51,9 @@ module Serializer {
     {
       new;
       indentCache := CreateArray();
-      dumpRefCounts := MapCreate();
-      dumpAnchors := MapCreate();
-      dumpKeyCache := MapCreate();
+      dumpRefCounts := EmptyMap;
+      dumpAnchors := EmptyMap;
+      dumpKeyCache := EmptyMap;
       dumpAnchorSeq := 0;
       dumpDepth := 0;
       dumpHasShared := false;
@@ -81,9 +81,8 @@ module Serializer {
     method DumpScanRefs(value: Value)
     {
       if !IsObject(value) || IsNull(value) { return; }
-      var present := MapHas(dumpRefCounts, value);
-      if present {
-        var oldValue := MapGet(dumpRefCounts, value);
+      var oldValue := MapGet(dumpRefCounts, value);
+      if !IsUndefined(oldValue) {
         var oldCount := NumberAsCounter(oldValue);
         MapSet(dumpRefCounts, value, NumberValue(oldCount + 1));
         dumpHasShared := true;
@@ -100,6 +99,7 @@ module Serializer {
           var child := ArrayGet(value, i);
           DumpScanRefs(child);
           i := i + 1;
+          n := ArrayLength(value);
         }
       } else {
         var keys := ObjectKeys(value);
@@ -119,7 +119,8 @@ module Serializer {
     method DumpNeedsAnchor(obj: Value) returns (needs: bool)
     {
       var refCount := MapGet(dumpRefCounts, obj);
-      needs := NumberAsCounter(refCount) > 1;
+      if IsUndefined(refCount) { needs := false; }
+      else { needs := NumberAsCounter(refCount) > 1; }
     }
 
     method DumpAssignAnchor(obj: Value) returns (name: string)
@@ -469,6 +470,7 @@ module Serializer {
           var value := ArrayGet(obj, i);
           WriteEntryValue(value, indent);
           i := i + 1;
+          n := ArrayLength(obj);
         }
       } else {
         var keys := ObjectKeys(obj);
@@ -479,9 +481,8 @@ module Serializer {
           var k := StringValueOf(keyValue);
           keyValue := StringValue(k);
           var keyColon := "";
-          var cached := MapHas(dumpKeyCache, keyValue);
-          if cached {
-            var cacheValue := MapGet(dumpKeyCache, keyValue);
+          var cacheValue := MapGet(dumpKeyCache, keyValue);
+          if !IsUndefined(cacheValue) {
             keyColon := StringValueOf(cacheValue);
           } else {
             var rendered := WriteStringScalar(k);
@@ -508,9 +509,12 @@ module Serializer {
         return;
       }
       var hasExistingAnchor := false;
-      if dumpHasShared { hasExistingAnchor := MapHas(dumpAnchors, value); }
+      var anchorValue := Undefined;
+      if dumpHasShared {
+        anchorValue := MapGet(dumpAnchors, value);
+        hasExistingAnchor := !IsUndefined(anchorValue);
+      }
       if hasExistingAnchor {
-        var anchorValue := MapGet(dumpAnchors, value);
         var already := StringValueOf(anchorValue);
         out := Concat(out, Concat(" *", Concat(already, "\n")));
         return;
@@ -586,9 +590,9 @@ module Serializer {
       result := out;
       out := "";
       if StringLength(result) != 0 { dumpFlattenSink := dumpFlattenSink + CodeUnitAt(result, 0); }
-      dumpRefCounts := MapCreate();
-      dumpAnchors := MapCreate();
-      dumpKeyCache := MapCreate();
+      dumpRefCounts := EmptyMap;
+      dumpAnchors := EmptyMap;
+      dumpKeyCache := EmptyMap;
     }
 
     method Stringify(value: Value) returns (text: string)
@@ -598,7 +602,7 @@ module Serializer {
       dumpDepth := 0;
       dumpHasShared := false;
       DumpScanRefs(value);
-      if !dumpHasShared { dumpRefCounts := MapCreate(); }
+      if !dumpHasShared { dumpRefCounts := EmptyMap; }
       dumpAnchors := MapCreate();
       dumpAnchorSeq := 0;
       out := "";
@@ -606,5 +610,11 @@ module Serializer {
       WriteDocumentValue(value);
       text := DumpFinish();
     }
+  }
+
+  method Stringify(value: Value) returns (text: string)
+  {
+    var writer := new Writer();
+    text := writer.Stringify(value);
   }
 }

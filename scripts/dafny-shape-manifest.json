@@ -1,0 +1,1019 @@
+{
+  "version": 1,
+  "nativeSha256": "9261b15bd765a07c5aacf9ce37267e6fe966b23ec6bdb596617c7d9b28424ce2",
+  "nativeIdentityHelpers": [
+    "boolValue",
+    "booleanValue",
+    "mapFromValue",
+    "mapValue",
+    "numberAsCounter",
+    "numberValue",
+    "setValue",
+    "stringValue",
+    "stringValueOf"
+  ],
+  "identitySites": {
+    "stringValueOf": {
+      "TagValues.Helpers.BuildSet": 1,
+      "TagValues.Helpers.BuildOmap": 1,
+      "DafnyCore.Engine.StringifyKeyValue": 1,
+      "DafnyCore.Engine.StringifyKeyMapping": 2,
+      "DafnyCore.Engine.KeyToString": 1,
+      "DafnyCore.Engine.InternKey": 1,
+      "DafnyCore.Engine.ParseFlowKey": 2,
+      "DafnyCore.Engine.ParseTaggedFlowKeyRaw": 2,
+      "DafnyCore.Engine.ScanTag": 3,
+      "DafnyCore.Engine.ParseTaggedFlowContent": 2,
+      "DafnyCore.Engine.ParseFlowMap": 3,
+      "DafnyCore.Engine.ParseTaggedBlockNode": 6,
+      "DafnyCore.Engine.ParseTaggedBlockMapKeyRaw": 2,
+      "DafnyCore.Engine.ParseBlockMapBody": 2,
+      "Serializer.Writer.IndentSpaces": 2,
+      "Serializer.Writer.DumpScanRefs": 1,
+      "Serializer.Writer.WriteScalar": 1,
+      "Serializer.Writer.WriteCollectionBody": 2,
+      "Serializer.Writer.WriteEntryValue": 1,
+      "Serializer.Writer.WriteDocumentValue": 1
+    },
+    "setValue": {
+      "TagValues.Helpers.BuildSet": 1
+    },
+    "mapValue": {
+      "TagValues.Helpers.BuildOmap": 1,
+      "DafnyCore.Engine.RegisterPendingAnchor": 1,
+      "DafnyCore.Engine.InternValue": 1,
+      "DafnyCore.Engine.ParseTagDirectiveArgs": 1
+    },
+    "numberValue": {
+      "DafnyCore.__default.Parse": 1,
+      "DafnyCore.__default.ParseAll": 1,
+      "DafnyCore.Engine.__ctor": 1,
+      "DafnyCore.Engine.Reset": 1,
+      "DafnyCore.Engine.HexValueGeneric": 1,
+      "DafnyCore.Engine.OctalValueGeneric": 1,
+      "DafnyCore.Engine.HexValue": 1,
+      "DafnyCore.Engine.OctalValue": 1,
+      "DafnyCore.Engine.TryNumber": 1,
+      "DafnyCore.Engine.TryNumberGeneric": 1,
+      "DafnyCore.Engine.Fail": 2,
+      "DafnyCore.Engine.StringifyKeyNode": 1,
+      "DafnyCore.Engine.InternKey": 1,
+      "DafnyCore.Engine.TryFlowNumber": 2,
+      "DafnyCore.Engine.ParseYamlDirectiveArgs": 1,
+      "DafnyCore.Engine.EndStream": 1,
+      "Serializer.Writer.DumpScanRefs": 2,
+      "Serializer.Writer.FormatCounter": 1
+    },
+    "boolValue": {
+      "DafnyCore.Engine.IsBoolWord": 2
+    },
+    "stringValue": {
+      "DafnyCore.Engine.ResolvePlain": 1,
+      "DafnyCore.Engine.ResolvePlainText": 1,
+      "DafnyCore.Engine.ParseFlowPlain": 1,
+      "DafnyCore.Engine.InternKey": 1,
+      "DafnyCore.Engine.ParseFlowKeyAnchored": 1,
+      "DafnyCore.Engine.RegisterPendingAnchor": 1,
+      "DafnyCore.Engine.ParseAlias": 1,
+      "DafnyCore.Engine.ScanTag": 3,
+      "DafnyCore.Engine.ApplyScalarTag": 2,
+      "DafnyCore.Engine.ParseFlowMap": 3,
+      "DafnyCore.Engine.InternValue": 1,
+      "DafnyCore.Engine.ParseDoubleQuotedSlow": 1,
+      "DafnyCore.Engine.ParseSingleQuotedSlow": 1,
+      "DafnyCore.Engine.ParseBlockScalar": 5,
+      "DafnyCore.Engine.ParseTagDirectiveArgs": 2,
+      "DafnyCore.Engine.ResolveBlockPlain": 1,
+      "DafnyCore.Engine.ParseTaggedBlockNode": 2,
+      "DafnyCore.Engine.ParseBlockMapBody": 3,
+      "Serializer.Writer.__ctor": 1,
+      "Serializer.Writer.IndentSpaces": 1,
+      "Serializer.Writer.DumpAssignAnchor": 1,
+      "Serializer.Writer.EncodeSingleQuoted": 5,
+      "Serializer.Writer.EncodeDoubleQuoted": 5,
+      "Serializer.Writer.EncodeBase64": 12,
+      "Serializer.Writer.WriteCollectionBody": 2
+    },
+    "booleanValue": {
+      "DafnyCore.Engine.StringifyKeyValue": 1,
+      "Serializer.Writer.WriteScalar": 1
+    },
+    "mapFromValue": {
+      "DafnyCore.Engine.StringifyKeyMapping": 1,
+      "DafnyCore.Engine.RegisterPendingAnchor": 1,
+      "DafnyCore.Engine.ParseAlias": 1,
+      "DafnyCore.Engine.ScanTag": 3,
+      "DafnyCore.Engine.InternValue": 1,
+      "DafnyCore.Engine.ParseTagDirectiveArgs": 1
+    },
+    "numberAsCounter": {
+      "DafnyCore.Engine.ParseYamlDirectiveArgs": 1,
+      "Serializer.Writer.DumpScanRefs": 1,
+      "Serializer.Writer.DumpNeedsAnchor": 1
+    }
+  },
+  "simpleNativeSites": {
+    "calls": {
+      "stringLength": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Helpers.DecodeBinary": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.ResolvePlainText": 1,
+        "Engine.StringifyKeyScalar": 1,
+        "Engine.FastMatchBlockKey": 1,
+        "Engine.InternKey": 1,
+        "Engine.DecodeTagPercent": 1,
+        "Engine.FastMatchFlowKey": 1,
+        "Engine.IsYamlVersionToken": 1,
+        "Engine.ApplyCollectionTag": 1,
+        "Writer.TryNumberGeneric": 1,
+        "Writer.IsPlainScalarSafe": 1,
+        "Writer.NeedsDoubleQuoting": 1,
+        "Writer.EncodeSingleQuoted": 1,
+        "Writer.EncodeDoubleQuoted": 1,
+        "Writer.WriteRootStringScalar": 1,
+        "Writer.DumpFinish": 1
+      },
+      "concat": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Engine.Fail": 6,
+        "Engine.FoldFlowPlain": 3,
+        "Engine.StringifyKeyArray": 6,
+        "Engine.StringifyKeyMapping": 5,
+        "Engine.ParseAlias": 4,
+        "Engine.DecodeTagPercent": 3,
+        "Engine.ScanTag": 7,
+        "Engine.ApplyScalarTag": 10,
+        "Engine.ParseDoubleQuotedSlow": 26,
+        "Engine.ParseSingleQuotedSlow": 6,
+        "Engine.ParseBlockScalar": 12,
+        "Engine.ParseYamlDirectiveArgs": 1,
+        "Engine.ParseTagDirectiveArgs": 2,
+        "Engine.ResolveBlockPlain": 3,
+        "Engine.ResolveBlockPlainRaw": 3,
+        "Engine.ApplyCollectionTag": 3,
+        "Writer.IndentSpaces": 1,
+        "Writer.DumpAssignAnchor": 1,
+        "Writer.HexEscape": 3,
+        "Writer.WriteBinaryScalar": 1,
+        "Writer.WriteCollectionBody": 5,
+        "Writer.WriteEntryValue": 22,
+        "Writer.WriteDocumentValue": 15
+      },
+      "slice": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Engine.TryNumber": 1,
+        "Engine.ResolvePlain": 1,
+        "Engine.FoldFlowPlain": 2,
+        "Engine.TryFlowNumber": 1,
+        "Engine.ParseTaggedFlowKeyRaw": 1,
+        "Engine.ScanAnchorOrAliasName": 1,
+        "Engine.ScanTagSuffixRaw": 1,
+        "Engine.DecodeTagPercent": 2,
+        "Engine.ScanTag": 2,
+        "Engine.ParseTaggedFlowContent": 1,
+        "Engine.ParseDoubleQuoted": 1,
+        "Engine.ParseDoubleQuotedSlow": 3,
+        "Engine.ParseSingleQuoted": 1,
+        "Engine.ParseSingleQuotedSlow": 3,
+        "Engine.ParseBlockScalar": 1,
+        "Engine.ReadDirectiveToken": 1,
+        "Engine.ParseYamlDirectiveArgs": 1,
+        "Engine.ResolveBlockPlain": 2,
+        "Engine.ResolveBlockPlainRaw": 3,
+        "Engine.ApplyCollectionTag": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Engine.ParseTaggedBlockMapKeyRaw": 1,
+        "Writer.EncodeSingleQuoted": 2,
+        "Writer.HexEscape": 2,
+        "Writer.EncodeDoubleQuoted": 2,
+        "Writer.WriteRootStringScalar": 1,
+        "Writer.EncodeBase64": 9
+      },
+      "numberMulAdd": {
+        "Engine.HexValueGeneric": 1,
+        "Engine.OctalValueGeneric": 1,
+        "Engine.HexValue": 1,
+        "Engine.OctalValue": 1,
+        "Engine.TryNumber": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.InternKey": 1,
+        "Engine.TryFlowNumber": 2
+      },
+      "numberNegate": {
+        "Engine.TryNumber": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.TryFlowNumber": 1
+      },
+      "numberAdd": {
+        "Engine.InternKey": 1
+      },
+      "numberLessEqual": {
+        "Engine.InternKey": 1
+      }
+    },
+    "inline": {
+      "stringLength": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Helpers.DecodeBinary": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.ResolvePlainText": 1,
+        "Engine.StringifyKeyScalar": 1,
+        "Engine.FastMatchBlockKey": 1,
+        "Engine.InternKey": 1,
+        "Engine.DecodeTagPercent": 1,
+        "Engine.FastMatchFlowKey": 1,
+        "Engine.IsYamlVersionToken": 1,
+        "Engine.ApplyCollectionTag": 1,
+        "Writer.TryNumberGeneric": 1,
+        "Writer.IsPlainScalarSafe": 1,
+        "Writer.NeedsDoubleQuoting": 1,
+        "Writer.EncodeSingleQuoted": 1,
+        "Writer.EncodeDoubleQuoted": 1,
+        "Writer.WriteRootStringScalar": 1,
+        "Writer.DumpFinish": 1
+      },
+      "slice": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Engine.DecodeTagPercent": 2,
+        "Engine.ParseYamlDirectiveArgs": 1,
+        "Writer.EncodeSingleQuoted": 2,
+        "Writer.EncodeDoubleQuoted": 2,
+        "Writer.WriteRootStringScalar": 1
+      },
+      "numberMulAdd": {
+        "Engine.HexValueGeneric": 1,
+        "Engine.HexValue": 1,
+        "Engine.TryNumber": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.TryFlowNumber": 2
+      },
+      "numberNegate": {
+        "Engine.TryNumber": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.TryFlowNumber": 1
+      },
+      "concat": {
+        "Engine.Fail": 2,
+        "Engine.FoldFlowPlain": 1,
+        "Engine.StringifyKeyArray": 5,
+        "Engine.StringifyKeyMapping": 4,
+        "Engine.ParseAlias": 2,
+        "Engine.ScanTag": 4,
+        "Engine.ApplyScalarTag": 4,
+        "Engine.ParseDoubleQuotedSlow": 19,
+        "Engine.ParseSingleQuotedSlow": 1,
+        "Engine.ParseBlockScalar": 7,
+        "Engine.ParseTagDirectiveArgs": 1,
+        "Engine.ResolveBlockPlain": 1,
+        "Engine.ResolveBlockPlainRaw": 1,
+        "Engine.ApplyCollectionTag": 1,
+        "Writer.IndentSpaces": 1,
+        "Writer.DumpAssignAnchor": 1,
+        "Writer.HexEscape": 2,
+        "Writer.WriteBinaryScalar": 1,
+        "Writer.WriteCollectionBody": 3,
+        "Writer.WriteEntryValue": 7,
+        "Writer.WriteDocumentValue": 6
+      }
+    }
+  },
+  "charCodeSites": {
+    "Engine.Reset": {
+      "_this.src": 1
+    },
+    "Engine.FlowSeparatorAt": {
+      "_this.src": 1
+    },
+    "Engine.ScanFlowPlainLine": {
+      "_this.src": 3
+    },
+    "Engine.TrimTrailingWs": {
+      "_this.src": 1
+    },
+    "Engine.HexValueGeneric": {
+      "s": 1
+    },
+    "Engine.OctalValueGeneric": {
+      "s": 1
+    },
+    "Engine.HexValue": {
+      "_this.src": 1
+    },
+    "Engine.OctalValue": {
+      "_this.src": 1
+    },
+    "Engine.TryNumber": {
+      "_this.src": 14
+    },
+    "Engine.TryNumberGeneric": {
+      "s": 14
+    },
+    "Engine.ResolvePlain": {
+      "_this.src": 1
+    },
+    "Engine.ResolvePlainText": {
+      "text": 1
+    },
+    "Engine.SkipInlineSpaces": {
+      "_this.src": 2
+    },
+    "Engine.Fail": {
+      "_this.src": 1
+    },
+    "Engine.SkipFlowWs": {
+      "_this.src": 1
+    },
+    "Engine.SkipFlowWsSlow": {
+      "_this.src": 4
+    },
+    "Engine.ScanFlowPlainEnd": {
+      "_this.src": 3
+    },
+    "Engine.FoldFlowPlain": {
+      "_this.src": 8
+    },
+    "Engine.StringifyKeyScalar": {
+      "text": 1
+    },
+    "Engine.FastMatchBlockKey": {
+      "_this.src": 3,
+      "expected": 1
+    },
+    "Engine.NumberBoundary": {
+      "_this.src": 5
+    },
+    "Engine.TryFlowNumber": {
+      "_this.src": 15
+    },
+    "Engine.ParseFlowValue": {
+      "_this.src": 1
+    },
+    "Engine.ParseFlowKey": {
+      "_this.src": 1
+    },
+    "Engine.ParseFlowKeyAnchored": {
+      "_this.src": 7
+    },
+    "Engine.ParseFlowKeyTagged": {
+      "_this.src": 5
+    },
+    "Engine.ParseTaggedFlowKeyRaw": {
+      "_this.src": 4
+    },
+    "Engine.ScanAnchorOrAliasName": {
+      "_this.src": 1
+    },
+    "Engine.ScanTagSuffixRaw": {
+      "_this.src": 1
+    },
+    "Engine.DecodeTagPercent": {
+      "s": 3
+    },
+    "Engine.ScanTag": {
+      "_this.src": 4
+    },
+    "Engine.CheckTagSeparator": {
+      "_this.src": 1
+    },
+    "Engine.ParseTaggedFlowValue": {
+      "_this.src": 5
+    },
+    "Engine.ParseTaggedFlowContent": {
+      "_this.src": 4
+    },
+    "Engine.MakeSinglePair": {
+      "_this.src": 3
+    },
+    "Engine.ParseFlowExplicitEntry": {
+      "_this.src": 5
+    },
+    "Engine.ParseFlowSeq": {
+      "_this.src": 8
+    },
+    "Engine.ParseFlowMap": {
+      "_this.src": 11
+    },
+    "Engine.FastMatchFlowKey": {
+      "_this.src": 3,
+      "expected": 1
+    },
+    "Engine.LooksLikeDocMarkerAt": {
+      "_this.src": 4
+    },
+    "Engine.FoldFlowBreak": {
+      "_this.src": 5
+    },
+    "Engine.ParseDoubleQuotedSlow": {
+      "_this.src": 9
+    },
+    "Engine.ReadHex": {
+      "_this.src": 1
+    },
+    "Engine.ParseSingleQuoted": {
+      "_this.src": 1
+    },
+    "Engine.ParseSingleQuotedSlow": {
+      "_this.src": 4
+    },
+    "Engine.DetectBlockScalarIndent": {
+      "_this.src": 4
+    },
+    "Engine.SkipBlockScalarBlankLines": {
+      "_this.src": 4
+    },
+    "Engine.ParseBlockScalar": {
+      "_this.src": 11
+    },
+    "Engine.SkipBlankLines": {
+      "_this.src": 8
+    },
+    "Engine.EndLine": {
+      "_this.src": 7
+    },
+    "Engine.ReadDirectiveToken": {
+      "_this.src": 1
+    },
+    "Engine.IsYamlVersionToken": {
+      "s": 3
+    },
+    "Engine.ParseYamlDirectiveArgs": {
+      "_this.src": 1
+    },
+    "Engine.ParseTagDirectiveArgs": {
+      "_0_handle": 1
+    },
+    "Engine.ParseDirectives": {
+      "_this.src": 1
+    },
+    "Engine.IsSpaceOrEolAt": {
+      "_this.src": 1
+    },
+    "Engine.ScanBlockPlainEnd": {
+      "_this.src": 5
+    },
+    "Engine.AdvanceCountingBreaks": {
+      "_this.src": 6
+    },
+    "Engine.ParseBlockValue": {
+      "_this.src": 2
+    },
+    "Engine.CheckNoTabIndent": {
+      "_this.src": 1
+    },
+    "Engine.RejectBlockCollectionTabIndent": {
+      "_this.src": 1
+    },
+    "Engine.ParseRootBlockNode": {
+      "_this.src": 1
+    },
+    "Engine.ParseBlockNode": {
+      "_this.src": 7
+    },
+    "Engine.ParseTaggedBlockNode": {
+      "_this.src": 20
+    },
+    "Engine.ParseBlockSeqBody": {
+      "_this.src": 11
+    },
+    "Engine.ParseExplicitKey": {
+      "_this.src": 6
+    },
+    "Engine.ParseExplicitKeyBody": {
+      "_this.src": 3
+    },
+    "Engine.ParseExplicitValue": {
+      "_this.src": 6
+    },
+    "Engine.ParseExplicitValueBody": {
+      "_this.src": 3
+    },
+    "Engine.ExplicitPairHasValue": {
+      "_this.src": 1
+    },
+    "Engine.ParseBlockMapKey": {
+      "_this.src": 3
+    },
+    "Engine.ParseBlockMapKeyAnchored": {
+      "_this.src": 2
+    },
+    "Engine.ParseBlockMapKeyTagged": {
+      "_this.src": 2
+    },
+    "Engine.ParseTaggedBlockMapKeyRaw": {
+      "_this.src": 1
+    },
+    "Engine.ParseBlockMapBody": {
+      "_this.src": 8
+    },
+    "Engine.IsDocMarkerAt": {
+      "_this.src": 3
+    },
+    "Engine.ConsumeDocStartMarker": {
+      "_this.src": 3
+    },
+    "Engine.ParseNextDocument": {
+      "_this.src": 3
+    }
+  },
+  "getters": {
+    "TagValues.__default.SPACE": {
+      "kind": "number",
+      "value": "32",
+      "uses": 1
+    },
+    "TagValues.__default.TAB": {
+      "kind": "number",
+      "value": "9",
+      "uses": 1
+    },
+    "TagValues.__default.LF": {
+      "kind": "number",
+      "value": "10",
+      "uses": 1
+    },
+    "TagValues.__default.CR": {
+      "kind": "number",
+      "value": "13",
+      "uses": 1
+    },
+    "TagValues.__default.BASE64__PADDING": {
+      "kind": "number",
+      "value": "61",
+      "uses": 4
+    },
+    "Serializer.__default.MAX__DEPTH": {
+      "kind": "number",
+      "value": "1000",
+      "uses": 2
+    },
+    "Serializer.__default.BACKSLASH": {
+      "kind": "number",
+      "value": "92",
+      "uses": 1
+    },
+    "Serializer.__default.DQUOTE": {
+      "kind": "number",
+      "value": "34",
+      "uses": 2
+    },
+    "Serializer.__default.HEX": {
+      "kind": "string",
+      "value": "0123456789ABCDEF",
+      "uses": 2
+    },
+    "Serializer.__default.SQUOTE": {
+      "kind": "number",
+      "value": "39",
+      "uses": 2
+    },
+    "Serializer.__default.SPACE": {
+      "kind": "number",
+      "value": "32",
+      "uses": 4
+    },
+    "Serializer.__default.MINUS": {
+      "kind": "number",
+      "value": "45",
+      "uses": 3
+    },
+    "Serializer.__default.QUESTION": {
+      "kind": "number",
+      "value": "63",
+      "uses": 1
+    },
+    "Serializer.__default.COLON": {
+      "kind": "number",
+      "value": "58",
+      "uses": 3
+    },
+    "Serializer.__default.COMMA": {
+      "kind": "number",
+      "value": "44",
+      "uses": 1
+    },
+    "Serializer.__default.LBRACKET": {
+      "kind": "number",
+      "value": "91",
+      "uses": 1
+    },
+    "Serializer.__default.RBRACKET": {
+      "kind": "number",
+      "value": "93",
+      "uses": 1
+    },
+    "Serializer.__default.LBRACE": {
+      "kind": "number",
+      "value": "123",
+      "uses": 1
+    },
+    "Serializer.__default.RBRACE": {
+      "kind": "number",
+      "value": "125",
+      "uses": 1
+    },
+    "Serializer.__default.HASH": {
+      "kind": "number",
+      "value": "35",
+      "uses": 2
+    },
+    "Serializer.__default.AMP": {
+      "kind": "number",
+      "value": "38",
+      "uses": 1
+    },
+    "Serializer.__default.STAR": {
+      "kind": "number",
+      "value": "42",
+      "uses": 1
+    },
+    "Serializer.__default.EXCLAIM": {
+      "kind": "number",
+      "value": "33",
+      "uses": 1
+    },
+    "Serializer.__default.PIPE": {
+      "kind": "number",
+      "value": "124",
+      "uses": 1
+    },
+    "Serializer.__default.GT": {
+      "kind": "number",
+      "value": "62",
+      "uses": 1
+    },
+    "Serializer.__default.PERCENT": {
+      "kind": "number",
+      "value": "37",
+      "uses": 1
+    },
+    "Serializer.__default.AT": {
+      "kind": "number",
+      "value": "64",
+      "uses": 1
+    },
+    "Serializer.__default.BACKTICK": {
+      "kind": "number",
+      "value": "96",
+      "uses": 1
+    },
+    "Serializer.__default.PLUS": {
+      "kind": "number",
+      "value": "43",
+      "uses": 2
+    },
+    "Serializer.__default.ZERO": {
+      "kind": "number",
+      "value": "48",
+      "uses": 7
+    },
+    "Serializer.__default.DOT": {
+      "kind": "number",
+      "value": "46",
+      "uses": 2
+    },
+    "Serializer.__default.LOWER__E": {
+      "kind": "number",
+      "value": "101",
+      "uses": 1
+    },
+    "Serializer.__default.UPPER__E": {
+      "kind": "number",
+      "value": "69",
+      "uses": 1
+    },
+    "Serializer.__default.ALPHABET": {
+      "kind": "string",
+      "value": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+      "uses": 9
+    },
+    "Serializer.__default.INDENT__STEP": {
+      "kind": "number",
+      "value": "2",
+      "uses": 1
+    },
+    "Serializer.__default.MAX__DUMP__KEY__CACHE": {
+      "kind": "number",
+      "value": "10000",
+      "uses": 1
+    },
+    "Serializer.__default.TAB": {
+      "kind": "number",
+      "value": "9",
+      "uses": 0
+    },
+    "Serializer.__default.LF": {
+      "kind": "number",
+      "value": "10",
+      "uses": 0
+    },
+    "Serializer.__default.CR": {
+      "kind": "number",
+      "value": "13",
+      "uses": 0
+    }
+  },
+  "metadata": {
+    "parentTraits": 6,
+    "typeNames": 6,
+    "otherRefs": 0
+  },
+  "methodRenames": {
+    "DafnyCore.Engine": {
+      "__ctor": "__ctor",
+      "Reset": "Reset",
+      "FlowIndicator": "m0",
+      "IsDigit": "m1",
+      "FlowSeparatorAt": "m2",
+      "ScanFlowPlainLine": "m3",
+      "TrimTrailingWs": "m4",
+      "IsNullWord": "m5",
+      "IsBoolWord": "m6",
+      "HexValueGeneric": "m7",
+      "OctalValueGeneric": "m8",
+      "HexValue": "m9",
+      "OctalValue": "ma",
+      "TryNumber": "mb",
+      "TryNumberGeneric": "mc",
+      "ResolvePlain": "md",
+      "ResolvePlainText": "me",
+      "SkipInlineSpaces": "mf",
+      "Fail": "mg",
+      "SkipFlowWs": "mh",
+      "SkipFlowWsSlow": "mi",
+      "ScanFlowPlainEnd": "mj",
+      "FoldFlowPlain": "mk",
+      "ParseFlowPlain": "ml",
+      "StringifyKeyScalar": "mm",
+      "StringifyKeyValue": "mn",
+      "StringifyKeyArray": "mo",
+      "StringifyKeyMapping": "mp",
+      "StringifyKeyNode": "mq",
+      "FastMatchBlockKey": "mr",
+      "KeyToString": "ms",
+      "InternNodeKey": "mt",
+      "InternKey": "mu",
+      "StoreKey": "mv",
+      "NumberBoundary": "mw",
+      "TryFlowNumber": "mx",
+      "ParseFlowValue": "my",
+      "ParseFlowKey": "mz",
+      "ParseFlowKeyAnchored": "m10",
+      "ParseFlowKeyTagged": "m11",
+      "ParseTaggedFlowKeyRaw": "m12",
+      "ScanAnchorOrAliasName": "m13",
+      "RegisterPendingAnchor": "m14",
+      "ParseAlias": "m15",
+      "IsTagWordChar": "m16",
+      "IsTagSuffixChar": "m17",
+      "ScanTagSuffixRaw": "m18",
+      "HexDigit": "m19",
+      "DecodeTagPercent": "m1a",
+      "ScanTag": "m1b",
+      "CheckTagSeparator": "m1c",
+      "ApplyScalarTag": "m1d",
+      "ParseTaggedFlowValue": "m1e",
+      "ParseTaggedFlowContent": "m1f",
+      "ParseAnchoredFlowValue": "m1g",
+      "MakeSinglePair": "m1h",
+      "ParseFlowExplicitEntry": "m1i",
+      "ParseFlowSeq": "m1j",
+      "ParseFlowMap": "m1k",
+      "FastMatchFlowKey": "m1l",
+      "PublishRecordKeys": "m1m",
+      "IsSpaceOrEol": "m1n",
+      "LooksLikeDocMarkerAt": "m1o",
+      "InternValue": "m1p",
+      "FoldFlowBreak": "m1q",
+      "ParseDoubleQuoted": "m1r",
+      "ParseDoubleQuotedSlow": "m1s",
+      "ReadHex": "m1t",
+      "HexVal": "m1u",
+      "ParseSingleQuoted": "m1v",
+      "ParseSingleQuotedSlow": "m1w",
+      "DetectBlockScalarIndent": "m1x",
+      "SkipBlockScalarBlankLines": "m1y",
+      "ParseBlockScalar": "m1z",
+      "SkipBlankLines": "m20",
+      "EndLine": "m21",
+      "NextLine": "m22",
+      "FinishDirectiveLine": "m23",
+      "ReadDirectiveToken": "m24",
+      "IsYamlVersionToken": "m25",
+      "ParseYamlDirectiveArgs": "m26",
+      "ParseTagDirectiveArgs": "m27",
+      "ParseDirectives": "m28",
+      "IsSpaceOrEolAt": "m29",
+      "ScanBlockPlainEnd": "m2a",
+      "AdvanceCountingBreaks": "m2b",
+      "ResolveBlockPlain": "m2c",
+      "ResolveBlockPlainRaw": "m2d",
+      "ParseBlockValue": "m2e",
+      "IsTabRestrictedCollection": "m2f",
+      "IsPlainMapping": "m2g",
+      "CheckNoTabIndent": "m2h",
+      "RejectBlockCollectionTabIndent": "m2i",
+      "ParseRootBlockNode": "m2j",
+      "ParseBlockNode": "m2k",
+      "ApplyCollectionTag": "m2l",
+      "ParseTaggedBlockNode": "m2m",
+      "ParseBlockSeq": "m2n",
+      "ParseBlockSeqBody": "m2o",
+      "ParseExplicitKey": "m2p",
+      "ParseExplicitKeyBody": "m2q",
+      "ParseExplicitValue": "m2r",
+      "ParseExplicitValueBody": "m2s",
+      "ExplicitPairHasValue": "m2t",
+      "ParseBlockMapExplicit": "m2u",
+      "ParseBlockMapExplicitBody": "m2v",
+      "ParseBlockMap": "m2w",
+      "ParseBlockMapKey": "m2x",
+      "ParseBlockMapKeyAnchored": "m2y",
+      "ParseBlockMapKeyTagged": "m2z",
+      "ParseTaggedBlockMapKeyRaw": "m30",
+      "ParseBlockMapBody": "m31",
+      "ParseSingle": "ParseSingle",
+      "ParseAll": "ParseAll",
+      "EndStream": "EndStream",
+      "IsDocMarkerAt": "IsDocMarkerAt",
+      "ConsumeDocStartMarker": "ConsumeDocStartMarker",
+      "ConsumeDocEndMarker": "ConsumeDocEndMarker",
+      "ParseNextDocument": "ParseNextDocument"
+    },
+    "Serializer.Writer": {
+      "__ctor": "__ctor",
+      "IndentSpaces": "m0",
+      "DumpScanRefs": "m1",
+      "DumpNeedsAnchor": "m2",
+      "DumpAssignAnchor": "m3",
+      "IsPlainLeadingIndicator": "m4",
+      "LooksLikeTypedScalar": "m5",
+      "TryNumberGeneric": "m6",
+      "HexDigits": "m7",
+      "OctalDigits": "m8",
+      "IsInfWord": "m9",
+      "IsNanWord": "ma",
+      "IsPlainScalarSafe": "mb",
+      "NeedsDoubleQuoting": "mc",
+      "EncodeSingleQuoted": "md",
+      "HexEscape": "me",
+      "EncodeDoubleQuoted": "mf",
+      "WriteStringScalar": "mg",
+      "WriteRootStringScalar": "mh",
+      "FormatCounter": "mi",
+      "FormatNumberValue": "mj",
+      "WriteScalar": "mk",
+      "EncodeBase64": "ml",
+      "WriteBinaryScalar": "mm",
+      "IsEmptyContainer": "mn",
+      "WriteCollectionBody": "mo",
+      "WriteEntryValue": "mp",
+      "WriteDocumentValue": "mq",
+      "DumpFinish": "mr",
+      "Stringify": "Stringify"
+    }
+  },
+  "methodAccessSites": {
+    "Engine": {
+      "FlowIndicator": 8,
+      "HexDigit": 4,
+      "HexValue": 1,
+      "OctalValue": 1,
+      "IsDigit": 13,
+      "HexValueGeneric": 1,
+      "OctalValueGeneric": 1,
+      "TryNumber": 1,
+      "IsNullWord": 3,
+      "IsBoolWord": 4,
+      "TryNumberGeneric": 3,
+      "SkipFlowWsSlow": 1,
+      "Fail": 134,
+      "LooksLikeDocMarkerAt": 4,
+      "ScanFlowPlainLine": 2,
+      "TrimTrailingWs": 2,
+      "FoldFlowPlain": 1,
+      "ScanFlowPlainEnd": 5,
+      "ResolvePlain": 6,
+      "StringifyKeyScalar": 2,
+      "StringifyKeyNode": 2,
+      "StringifyKeyValue": 2,
+      "KeyToString": 20,
+      "StringifyKeyArray": 3,
+      "StringifyKeyMapping": 2,
+      "IsSpaceOrEolAt": 18,
+      "InternKey": 16,
+      "NumberBoundary": 3,
+      "ParseFlowMap": 5,
+      "ParseFlowSeq": 5,
+      "ParseDoubleQuoted": 9,
+      "ParseSingleQuoted": 9,
+      "ParseAnchoredFlowValue": 1,
+      "ParseTaggedFlowValue": 1,
+      "ParseAlias": 4,
+      "TryFlowNumber": 1,
+      "FlowSeparatorAt": 6,
+      "ParseFlowPlain": 1,
+      "ParseFlowKeyAnchored": 1,
+      "ParseFlowKeyTagged": 1,
+      "RegisterPendingAnchor": 26,
+      "ScanAnchorOrAliasName": 9,
+      "SkipFlowWs": 21,
+      "ScanTag": 6,
+      "CheckTagSeparator": 6,
+      "ParseTaggedFlowKeyRaw": 2,
+      "ApplyScalarTag": 19,
+      "ApplyCollectionTag": 9,
+      "SkipInlineSpaces": 23,
+      "IsTagSuffixChar": 1,
+      "ScanTagSuffixRaw": 3,
+      "DecodeTagPercent": 3,
+      "IsTagWordChar": 1,
+      "ParseTaggedFlowContent": 1,
+      "ParseFlowValue": 9,
+      "StoreKey": 4,
+      "MakeSinglePair": 4,
+      "ParseFlowExplicitEntry": 1,
+      "FastMatchFlowKey": 2,
+      "ParseFlowKey": 2,
+      "PublishRecordKeys": 6,
+      "IsSpaceOrEol": 2,
+      "InternValue": 2,
+      "ParseDoubleQuotedSlow": 1,
+      "ReadHex": 3,
+      "FoldFlowBreak": 2,
+      "HexVal": 1,
+      "ParseSingleQuotedSlow": 2,
+      "DetectBlockScalarIndent": 1,
+      "SkipBlockScalarBlankLines": 1,
+      "EndLine": 1,
+      "SkipBlankLines": 5,
+      "ReadDirectiveToken": 4,
+      "IsYamlVersionToken": 1,
+      "ParseYamlDirectiveArgs": 1,
+      "ParseTagDirectiveArgs": 1,
+      "FinishDirectiveLine": 1,
+      "AdvanceCountingBreaks": 4,
+      "ScanBlockPlainEnd": 7,
+      "CheckNoTabIndent": 3,
+      "ParseBlockNode": 8,
+      "RejectBlockCollectionTabIndent": 2,
+      "ParseBlockSeq": 3,
+      "IsTabRestrictedCollection": 4,
+      "NextLine": 10,
+      "ParseBlockValue": 5,
+      "IsPlainMapping": 1,
+      "ParseBlockMap": 5,
+      "ParseBlockScalar": 2,
+      "ParseBlockMapExplicit": 1,
+      "ParseTaggedBlockNode": 1,
+      "ResolveBlockPlain": 1,
+      "ResolveBlockPlainRaw": 2,
+      "ParseBlockSeqBody": 1,
+      "ParseExplicitKeyBody": 1,
+      "ParseExplicitValueBody": 1,
+      "ParseBlockMapExplicitBody": 1,
+      "ParseExplicitKey": 2,
+      "ExplicitPairHasValue": 2,
+      "ParseBlockMapBody": 1,
+      "ParseBlockMapKeyAnchored": 1,
+      "ParseBlockMapKeyTagged": 1,
+      "InternNodeKey": 5,
+      "ParseTaggedBlockMapKeyRaw": 2,
+      "ParseBlockMapKey": 2,
+      "ParseExplicitValue": 1,
+      "FastMatchBlockKey": 1,
+      "ParseDirectives": 1,
+      "ParseRootBlockNode": 3
+    },
+    "Writer": {
+      "DumpScanRefs": 3,
+      "FormatCounter": 1,
+      "TryNumberGeneric": 1,
+      "HexDigits": 1,
+      "OctalDigits": 1,
+      "IsInfWord": 1,
+      "IsNanWord": 1,
+      "IsPlainLeadingIndicator": 1,
+      "LooksLikeTypedScalar": 1,
+      "HexEscape": 1,
+      "IsPlainScalarSafe": 1,
+      "NeedsDoubleQuoting": 2,
+      "EncodeDoubleQuoted": 2,
+      "EncodeSingleQuoted": 2,
+      "WriteStringScalar": 4,
+      "FormatNumberValue": 1,
+      "EncodeBase64": 1,
+      "IndentSpaces": 1,
+      "WriteEntryValue": 2,
+      "WriteScalar": 2,
+      "DumpNeedsAnchor": 4,
+      "DumpAssignAnchor": 4,
+      "WriteBinaryScalar": 2,
+      "IsEmptyContainer": 2,
+      "WriteCollectionBody": 2,
+      "WriteRootStringScalar": 1,
+      "WriteDocumentValue": 1,
+      "DumpFinish": 1
+    }
+  }
+}

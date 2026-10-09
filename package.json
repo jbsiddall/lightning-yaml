@@ -64,6 +64,7 @@
   },
   "files": [
     "dist",
+    "Dafny-LICENSE.txt",
     "README.md",
     "LICENSE"
   ],
@@ -77,6 +78,8 @@
   "scripts": {
     "gen:fixtures": "node --import tsx bench/fixtures/generate.ts",
     "gen:suite": "bash bench/yaml-test-suite/fetch.sh",
+    "dafny:generate": "bash scripts/dafny-build.sh",
+    "dafny:check": "bash scripts/dafny-build.sh --check && node scripts/check-dafny-output.cjs --manifest scripts/dafny-output-guard.json && node --test scripts/dafny-output-guard.test.cjs scripts/dafny-shape-transform.test.cjs && node --import tsx --test test/generated-runtime.test.mjs",
     "bench:speed": "node --expose-gc --import tsx bench/speed/parse.bench.ts && node --expose-gc --import tsx bench/speed/stringify.bench.ts",
     "bench:memory": "node --expose-gc --import tsx bench/memory/run.ts",
     "bench:self": "node --expose-gc --import tsx bench/report.ts self",
@@ -85,7 +88,7 @@
     "bench:browser": "node --import tsx bench/browser/run.ts",
     "bench:browser:memory": "node --import tsx bench/browser/memoryRun.ts",
     "bench": "pnpm gen:fixtures && pnpm bench:competition && pnpm bench:self",
-    "build": "tsup",
+    "build": "pnpm dafny:check && tsup",
     "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "test:unit": "node --import tsx --test test/parser.unit.ts test/adversarial.unit.ts test/compat.unit.ts test/bench.memory.unit.ts",
