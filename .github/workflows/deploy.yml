@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     # pull-requests: write lets the job post the preview link back onto the PR.
     # (Overrides the default read-only GITHUB_TOKEN, so contents: read is restated
-    # for checkout. Fork PRs get a read-only token and skip the comment gracefully.)
+    # for checkout. Fork and Dependabot PRs skip this job above.)
     permissions:
       contents: read
       pull-requests: write
