@@ -1,0 +1,3437 @@
+{
+  "version": 1,
+  "sourceSnapshot": "d81cd69d4cc385d2aeaea7ea73441cbed18f7a80",
+  "proofSummary": "The five executable options selector/decision methods are routed through the generated SurfaceOptions module and have conditional Dafny proofs under declared host-classifier correspondence premises. Host classification, validation effects, thrown-value behavior, and whole public operations remain outside the proof scope.",
+  "entries": [
+    {
+      "id": "root:runtime:parse",
+      "kind": "runtime-export",
+      "source": "src/index.ts",
+      "name": "parse",
+      "route": "TS:src/index.ts#parse",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/native.md for current behavior of parse and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "root:runtime:stringify",
+      "kind": "runtime-export",
+      "source": "src/index.ts",
+      "name": "stringify",
+      "route": "TS:src/index.ts#stringify",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/native.md for current behavior of stringify and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "root:runtime:parseAll",
+      "kind": "runtime-export",
+      "source": "src/index.ts",
+      "name": "parseAll",
+      "route": "TS:src/index.ts#parseAll",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/native.md for current behavior of parseAll and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "root:runtime:YAMLParseError",
+      "kind": "runtime-export",
+      "source": "src/index.ts",
+      "name": "YAMLParseError",
+      "route": "TS:src/errors.ts#YAMLParseError",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/native.md for current behavior of YAMLParseError and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "root:runtime:NotImplementedError",
+      "kind": "runtime-export",
+      "source": "src/index.ts",
+      "name": "NotImplementedError",
+      "route": "TS:src/errors.ts#NotImplementedError",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/native.md for current behavior of NotImplementedError and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "root:type:ParseOptions",
+      "kind": "type-export",
+      "source": "src/index.ts",
+      "name": "ParseOptions",
+      "route": "TypeScript:src/index.ts#ParseOptions",
+      "status": "deferred-global-proof",
+      "contract": "Type-only declaration ParseOptions, erased at runtime; see source signature and surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "root:type:ParseOptimizations",
+      "kind": "type-export",
+      "source": "src/index.ts",
+      "name": "ParseOptimizations",
+      "route": "TypeScript:src/index.ts#ParseOptimizations",
+      "status": "deferred-global-proof",
+      "contract": "Type-only declaration ParseOptimizations, erased at runtime; see source signature and surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:runtime:parse",
+      "kind": "runtime-export",
+      "source": "src/yaml-compat.ts",
+      "name": "parse",
+      "route": "TS:src/yaml-compat.ts#parse",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/yaml.md for current behavior of parse and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:runtime:parseAllDocuments",
+      "kind": "runtime-export",
+      "source": "src/yaml-compat.ts",
+      "name": "parseAllDocuments",
+      "route": "TS:src/yaml-compat.ts#parseAllDocuments",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/yaml.md for current behavior of parseAllDocuments and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:runtime:parseDocument",
+      "kind": "runtime-export",
+      "source": "src/yaml-compat.ts",
+      "name": "parseDocument",
+      "route": "TS:src/yaml-compat.ts#parseDocument",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/yaml.md for current behavior of parseDocument and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:runtime:stringify",
+      "kind": "runtime-export",
+      "source": "src/yaml-compat.ts",
+      "name": "stringify",
+      "route": "TS:src/yaml-compat.ts#stringify",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/yaml.md for current behavior of stringify and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:type:Reviver",
+      "kind": "type-export",
+      "source": "src/yaml-compat.ts",
+      "name": "Reviver",
+      "route": "TypeScript:src/yaml-compat.ts#Reviver",
+      "status": "deferred-global-proof",
+      "contract": "Type-only declaration Reviver, erased at runtime; see source signature and surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:type:CompatDocument",
+      "kind": "type-export",
+      "source": "src/yaml-compat.ts",
+      "name": "CompatDocument",
+      "route": "TypeScript:src/yaml-compat.ts#CompatDocument",
+      "status": "deferred-global-proof",
+      "contract": "Type-only declaration CompatDocument, erased at runtime; see source signature and surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:default:parse",
+      "kind": "default-alias",
+      "source": "src/yaml-compat.ts",
+      "name": "parse",
+      "route": "TS:src/yaml-compat.ts#yamlCompat.parse",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.parse is the same reference as named parse; later default-object mutation is local.",
+      "alias": "yamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "parse"
+    },
+    {
+      "id": "yaml:default:parseAllDocuments",
+      "kind": "default-alias",
+      "source": "src/yaml-compat.ts",
+      "name": "parseAllDocuments",
+      "route": "TS:src/yaml-compat.ts#yamlCompat.parseAllDocuments",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.parseAllDocuments is the same reference as named parseAllDocuments; later default-object mutation is local.",
+      "alias": "yamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "parseAllDocuments"
+    },
+    {
+      "id": "yaml:default:parseDocument",
+      "kind": "default-alias",
+      "source": "src/yaml-compat.ts",
+      "name": "parseDocument",
+      "route": "TS:src/yaml-compat.ts#yamlCompat.parseDocument",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.parseDocument is the same reference as named parseDocument; later default-object mutation is local.",
+      "alias": "yamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "parseDocument"
+    },
+    {
+      "id": "yaml:default:stringify",
+      "kind": "default-alias",
+      "source": "src/yaml-compat.ts",
+      "name": "stringify",
+      "route": "TS:src/yaml-compat.ts#yamlCompat.stringify",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.stringify is the same reference as named stringify; later default-object mutation is local.",
+      "alias": "yamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "stringify"
+    },
+    {
+      "id": "js-yaml:runtime:YAMLException",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/js-yaml.md for current behavior of YAMLException and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:defineScalarTag",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "defineScalarTag",
+      "route": "TS:src/js-yaml-compat.ts#defineScalarTag",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/js-yaml.md for current behavior of defineScalarTag and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:defineSequenceTag",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "defineSequenceTag",
+      "route": "TS:src/js-yaml-compat.ts#defineSequenceTag",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/js-yaml.md for current behavior of defineSequenceTag and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:defineMappingTag",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "defineMappingTag",
+      "route": "TS:src/js-yaml-compat.ts#defineMappingTag",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/js-yaml.md for current behavior of defineMappingTag and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:Schema",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Schema",
+      "route": "TS:src/js-yaml-compat.ts#Schema",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/js-yaml.md for current behavior of Schema and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:load",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "load",
+      "route": "TS:src/js-yaml-compat.ts#load",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/js-yaml.md for current behavior of load and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:loadAll",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "loadAll",
+      "route": "TS:src/js-yaml-compat.ts#loadAll",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/js-yaml.md for current behavior of loadAll and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:dump",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "dump",
+      "route": "TS:src/js-yaml-compat.ts#dump",
+      "status": "deferred-global-proof",
+      "contract": "See docs/contracts/js-yaml.md for current behavior of dump and its specified versus proved status.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:type:Mark",
+      "kind": "type-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Mark",
+      "route": "TypeScript:src/js-yaml-compat.ts#Mark",
+      "status": "deferred-global-proof",
+      "contract": "Type-only declaration Mark, erased at runtime; see source signature and surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:type:TagDefinition",
+      "kind": "type-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "TagDefinition",
+      "route": "TypeScript:src/js-yaml-compat.ts#TagDefinition",
+      "status": "deferred-global-proof",
+      "contract": "Type-only declaration TagDefinition, erased at runtime; see source signature and surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:type:LoadOptions",
+      "kind": "type-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "LoadOptions",
+      "route": "TypeScript:src/js-yaml-compat.ts#LoadOptions",
+      "status": "deferred-global-proof",
+      "contract": "Type-only declaration LoadOptions, erased at runtime; see source signature and surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:type:DumpOptions",
+      "kind": "type-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions",
+      "route": "TypeScript:src/js-yaml-compat.ts#DumpOptions",
+      "status": "deferred-global-proof",
+      "contract": "Type-only declaration DumpOptions, erased at runtime; see source signature and surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:default:load",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "load",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.load",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.load is the same reference as named load; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "load"
+    },
+    {
+      "id": "js-yaml:default:loadAll",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "loadAll",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.loadAll",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.loadAll is the same reference as named loadAll; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "loadAll"
+    },
+    {
+      "id": "js-yaml:default:dump",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "dump",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.dump",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.dump is the same reference as named dump; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "dump"
+    },
+    {
+      "id": "js-yaml:default:YAMLException",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.YAMLException",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.YAMLException is the same reference as named YAMLException; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "YAMLException"
+    },
+    {
+      "id": "js-yaml:default:defineScalarTag",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "defineScalarTag",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.defineScalarTag",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.defineScalarTag is the same reference as named defineScalarTag; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "defineScalarTag"
+    },
+    {
+      "id": "js-yaml:default:defineSequenceTag",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "defineSequenceTag",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.defineSequenceTag",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.defineSequenceTag is the same reference as named defineSequenceTag; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "defineSequenceTag"
+    },
+    {
+      "id": "js-yaml:default:defineMappingTag",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "defineMappingTag",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.defineMappingTag",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.defineMappingTag is the same reference as named defineMappingTag; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "defineMappingTag"
+    },
+    {
+      "id": "js-yaml:default:Schema",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Schema",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.Schema",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.Schema is the same reference as named Schema; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "Schema"
+    },
+    {
+      "id": "js-yaml:default:FAILSAFE_SCHEMA",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "FAILSAFE_SCHEMA",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.FAILSAFE_SCHEMA",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.FAILSAFE_SCHEMA is the same reference as named FAILSAFE_SCHEMA; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "FAILSAFE_SCHEMA"
+    },
+    {
+      "id": "js-yaml:default:JSON_SCHEMA",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "JSON_SCHEMA",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.JSON_SCHEMA",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.JSON_SCHEMA is the same reference as named JSON_SCHEMA; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "JSON_SCHEMA"
+    },
+    {
+      "id": "js-yaml:default:CORE_SCHEMA",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "CORE_SCHEMA",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.CORE_SCHEMA",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.CORE_SCHEMA is the same reference as named CORE_SCHEMA; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "CORE_SCHEMA"
+    },
+    {
+      "id": "js-yaml:default:YAML11_SCHEMA",
+      "kind": "default-alias",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAML11_SCHEMA",
+      "route": "TS:src/js-yaml-compat.ts#jsYamlCompat.YAML11_SCHEMA",
+      "status": "deferred-global-proof",
+      "contract": "At initialization default.YAML11_SCHEMA is the same reference as named YAML11_SCHEMA; later default-object mutation is local.",
+      "alias": "jsYamlCompat",
+      "specificationStatus": "behavior-summary-only",
+      "aliasTarget": "YAML11_SCHEMA"
+    },
+    {
+      "id": "js-yaml:property:Mark.buffer",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Mark.buffer",
+      "route": "TS:src/js-yaml-compat.ts#Mark.buffer",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field Mark.buffer; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:Mark.column",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Mark.column",
+      "route": "TS:src/js-yaml-compat.ts#Mark.column",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field Mark.column; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:Mark.line",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Mark.line",
+      "route": "TS:src/js-yaml-compat.ts#Mark.line",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field Mark.line; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:Mark.name",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Mark.name",
+      "route": "TS:src/js-yaml-compat.ts#Mark.name",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field Mark.name; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:Mark.position",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Mark.position",
+      "route": "TS:src/js-yaml-compat.ts#Mark.position",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field Mark.position; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:Mark.snippet",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Mark.snippet",
+      "route": "TS:src/js-yaml-compat.ts#Mark.snippet",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field Mark.snippet; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:YAMLException.name",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException.name",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException.name",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field YAMLException.name; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:YAMLException.reason",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException.reason",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException.reason",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field YAMLException.reason; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:YAMLException.mark",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException.mark",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException.mark",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field YAMLException.mark; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:member:YAMLException.name",
+      "kind": "public-member",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException.name",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException.name",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field YAMLException.name; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:member:YAMLException.reason",
+      "kind": "public-member",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException.reason",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException.reason",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field YAMLException.reason; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:member:YAMLException.mark",
+      "kind": "public-member",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException.mark",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException.mark",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field YAMLException.mark; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:member:YAMLException.constructor",
+      "kind": "public-member",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException.constructor",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException.constructor",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field YAMLException.constructor; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:member:YAMLException.toString",
+      "kind": "public-member",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAMLException.toString",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException.toString",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field YAMLException.toString; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:member:Schema.constructor",
+      "kind": "public-member",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Schema.constructor",
+      "route": "TS:src/js-yaml-compat.ts#Schema.constructor",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field Schema.constructor; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:member:Schema.withTags",
+      "kind": "public-member",
+      "source": "src/js-yaml-compat.ts",
+      "name": "Schema.withTags",
+      "route": "TS:src/js-yaml-compat.ts#Schema.withTags",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field Schema.withTags; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:TagDefinition.tagName",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "TagDefinition.tagName",
+      "route": "TS:src/js-yaml-compat.ts#TagDefinition.tagName",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field TagDefinition.tagName; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:property:TagDefinition.nodeKind",
+      "kind": "public-property",
+      "source": "src/js-yaml-compat.ts",
+      "name": "TagDefinition.nodeKind",
+      "route": "TS:src/js-yaml-compat.ts#TagDefinition.nodeKind",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field TagDefinition.nodeKind; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:LoadOptions.filename",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "LoadOptions.filename",
+      "route": "TS:src/js-yaml-compat.ts#LoadOptions.filename",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field LoadOptions.filename; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:LoadOptions.schema",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "LoadOptions.schema",
+      "route": "TS:src/js-yaml-compat.ts#LoadOptions.schema",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field LoadOptions.schema; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:LoadOptions.json",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "LoadOptions.json",
+      "route": "TS:src/js-yaml-compat.ts#LoadOptions.json",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field LoadOptions.json; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:LoadOptions.maxDepth",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "LoadOptions.maxDepth",
+      "route": "TS:src/js-yaml-compat.ts#LoadOptions.maxDepth",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field LoadOptions.maxDepth; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:LoadOptions.maxTotalMergeKeys",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "LoadOptions.maxTotalMergeKeys",
+      "route": "TS:src/js-yaml-compat.ts#LoadOptions.maxTotalMergeKeys",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field LoadOptions.maxTotalMergeKeys; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:LoadOptions.maxAliases",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "LoadOptions.maxAliases",
+      "route": "TS:src/js-yaml-compat.ts#LoadOptions.maxAliases",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field LoadOptions.maxAliases; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.indent",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.indent",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.indent",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.indent; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.seqNoIndent",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.seqNoIndent",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.seqNoIndent",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.seqNoIndent; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.seqInlineFirst",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.seqInlineFirst",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.seqInlineFirst",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.seqInlineFirst; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.skipInvalid",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.skipInvalid",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.skipInvalid",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.skipInvalid; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.flowLevel",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.flowLevel",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.flowLevel",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.flowLevel; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.schema",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.schema",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.schema",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.schema; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.sortKeys",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.sortKeys",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.sortKeys",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.sortKeys; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.lineWidth",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.lineWidth",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.lineWidth",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.lineWidth; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.noRefs",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.noRefs",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.noRefs",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.noRefs; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.quoteStyle",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.quoteStyle",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.quoteStyle",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.quoteStyle; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.forceQuotes",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.forceQuotes",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.forceQuotes",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.forceQuotes; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.flowBracketPadding",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.flowBracketPadding",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.flowBracketPadding",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.flowBracketPadding; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.flowSkipCommaSpace",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.flowSkipCommaSpace",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.flowSkipCommaSpace",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.flowSkipCommaSpace; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.flowSkipColonSpace",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.flowSkipColonSpace",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.flowSkipColonSpace",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.flowSkipColonSpace; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.quoteFlowKeys",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.quoteFlowKeys",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.quoteFlowKeys",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.quoteFlowKeys; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.tagBeforeAnchor",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.tagBeforeAnchor",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.tagBeforeAnchor",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.tagBeforeAnchor; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:option:DumpOptions.transform",
+      "kind": "option-field",
+      "source": "src/js-yaml-compat.ts",
+      "name": "DumpOptions.transform",
+      "route": "TS:src/js-yaml-compat.ts#DumpOptions.transform",
+      "status": "deferred-global-proof",
+      "contract": "Typed option field DumpOptions.transform; behavior is captured by matching option-rule rows and overload policy.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:document-property:CompatDocument.contents",
+      "kind": "document-property",
+      "source": "src/yaml-compat.ts",
+      "name": "CompatDocument.contents",
+      "route": "TS:src/yaml-compat.ts#CompatDocument.contents",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field CompatDocument.contents; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:document-property:CompatDocument.errors",
+      "kind": "document-property",
+      "source": "src/yaml-compat.ts",
+      "name": "CompatDocument.errors",
+      "route": "TS:src/yaml-compat.ts#CompatDocument.errors",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field CompatDocument.errors; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:document-property:CompatDocument.warnings",
+      "kind": "document-property",
+      "source": "src/yaml-compat.ts",
+      "name": "CompatDocument.warnings",
+      "route": "TS:src/yaml-compat.ts#CompatDocument.warnings",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field CompatDocument.warnings; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:document-property:CompatDocument.toJS",
+      "kind": "document-property",
+      "source": "src/yaml-compat.ts",
+      "name": "CompatDocument.toJS",
+      "route": "TS:src/yaml-compat.ts#CompatDocument.toJS",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field CompatDocument.toJS; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "yaml:document-property:CompatDocument.toJSON",
+      "kind": "document-property",
+      "source": "src/yaml-compat.ts",
+      "name": "CompatDocument.toJSON",
+      "route": "TS:src/yaml-compat.ts#CompatDocument.toJSON",
+      "status": "deferred-global-proof",
+      "contract": "Public member/field CompatDocument.toJSON; shape, receiver, prototype, descriptor, and side effects are specified on the owning surface page.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:load-rule:filename",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "filename",
+      "route": "TS:src/js-yaml-compat.ts#LOAD_OPTION_RULES.filename",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key filename; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsLoad",
+      "policyCode": 1,
+      "policyName": "AcceptAny",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:load-rule:schema",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "schema",
+      "route": "TS:src/js-yaml-compat.ts#LOAD_OPTION_RULES.schema",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key schema; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsLoad",
+      "policyCode": 2,
+      "policyName": "RequireCoreSchemaIdentity",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:load-rule:json",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "json",
+      "route": "TS:src/js-yaml-compat.ts#LOAD_OPTION_RULES.json",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key json; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsLoad",
+      "policyCode": 3,
+      "policyName": "RequireExactlyTrue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:load-rule:maxAliases",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "maxAliases",
+      "route": "TS:src/js-yaml-compat.ts#LOAD_OPTION_RULES.maxAliases",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key maxAliases; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsLoad",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:load-rule:maxDepth",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "maxDepth",
+      "route": "TS:src/js-yaml-compat.ts#LOAD_OPTION_RULES.maxDepth",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key maxDepth; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsLoad",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:load-rule:maxTotalMergeKeys",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "maxTotalMergeKeys",
+      "route": "TS:src/js-yaml-compat.ts#LOAD_OPTION_RULES.maxTotalMergeKeys",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key maxTotalMergeKeys; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsLoad",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:schema",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "schema",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.schema",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key schema; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 2,
+      "policyName": "RequireCoreSchemaIdentity",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:sortKeys",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "sortKeys",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.sortKeys",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key sortKeys; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:skipInvalid",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "skipInvalid",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.skipInvalid",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key skipInvalid; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:noRefs",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "noRefs",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.noRefs",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key noRefs; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:forceQuotes",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "forceQuotes",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.forceQuotes",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key forceQuotes; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:seqNoIndent",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "seqNoIndent",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.seqNoIndent",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key seqNoIndent; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:seqInlineFirst",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "seqInlineFirst",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.seqInlineFirst",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key seqInlineFirst; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:flowBracketPadding",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "flowBracketPadding",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.flowBracketPadding",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key flowBracketPadding; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:flowSkipCommaSpace",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "flowSkipCommaSpace",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.flowSkipCommaSpace",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key flowSkipCommaSpace; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:flowSkipColonSpace",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "flowSkipColonSpace",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.flowSkipColonSpace",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key flowSkipColonSpace; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:quoteFlowKeys",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "quoteFlowKeys",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.quoteFlowKeys",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key quoteFlowKeys; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:tagBeforeAnchor",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "tagBeforeAnchor",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.tagBeforeAnchor",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key tagBeforeAnchor; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:indent",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "indent",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.indent",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key indent; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:flowLevel",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "flowLevel",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.flowLevel",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key flowLevel; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:lineWidth",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "lineWidth",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.lineWidth",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key lineWidth; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:quoteStyle",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "quoteStyle",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.quoteStyle",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key quoteStyle; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:dump-rule:transform",
+      "kind": "option-rule",
+      "source": "src/js-yaml-compat.ts",
+      "name": "transform",
+      "route": "TS:src/js-yaml-compat.ts#DUMP_OPTION_RULES.transform",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key transform; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "JsDump",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:schema",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "schema",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.schema",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key schema; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 6,
+      "policyName": "RequireCoreText",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:version",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "version",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.version",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key version; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 7,
+      "policyName": "RequireVersion12Text",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:prettyErrors",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "prettyErrors",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.prettyErrors",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key prettyErrors; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 1,
+      "policyName": "AcceptAny",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:mapAsMap",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "mapAsMap",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.mapAsMap",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key mapAsMap; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:intAsBigInt",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "intAsBigInt",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.intAsBigInt",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key intAsBigInt; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:uniqueKeys",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "uniqueKeys",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.uniqueKeys",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key uniqueKeys; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:stringKeys",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "stringKeys",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.stringKeys",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key stringKeys; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:merge",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "merge",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.merge",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key merge; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:maxAliasCount",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "maxAliasCount",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.maxAliasCount",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key maxAliasCount; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:customTags",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "customTags",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.customTags",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key customTags; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:resolveKnownTags",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "resolveKnownTags",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.resolveKnownTags",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key resolveKnownTags; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:keepSourceTokens",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "keepSourceTokens",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.keepSourceTokens",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key keepSourceTokens; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:lineCounter",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "lineCounter",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.lineCounter",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key lineCounter; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:parse-rule:onAnchor",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "onAnchor",
+      "route": "TS:src/yaml-compat.ts#PARSE_OPTION_RULES.onAnchor",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key onAnchor; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlRead",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:schema",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "schema",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.schema",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key schema; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 6,
+      "policyName": "RequireCoreText",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:version",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "version",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.version",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key version; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 7,
+      "policyName": "RequireVersion12Text",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:singleQuote",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "singleQuote",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.singleQuote",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key singleQuote; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:sortMapEntries",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "sortMapEntries",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.sortMapEntries",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key sortMapEntries; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 5,
+      "policyName": "RejectTruthy",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:indent",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "indent",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.indent",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key indent; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:nullStr",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "nullStr",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.nullStr",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key nullStr; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:trueStr",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "trueStr",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.trueStr",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key trueStr; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:falseStr",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "falseStr",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.falseStr",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key falseStr; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:indentSeq",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "indentSeq",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.indentSeq",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key indentSeq; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:directives",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "directives",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.directives",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key directives; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:lineWidth",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "lineWidth",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.lineWidth",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key lineWidth; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:minContentWidth",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "minContentWidth",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.minContentWidth",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key minContentWidth; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:blockQuote",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "blockQuote",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.blockQuote",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key blockQuote; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:collectionStyle",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "collectionStyle",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.collectionStyle",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key collectionStyle; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:flowCollectionPadding",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "flowCollectionPadding",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.flowCollectionPadding",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key flowCollectionPadding; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:aliasDuplicateObjects",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "aliasDuplicateObjects",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.aliasDuplicateObjects",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key aliasDuplicateObjects; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:anchorPrefix",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "anchorPrefix",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.anchorPrefix",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key anchorPrefix; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:stringify-rule:customTags",
+      "kind": "option-rule",
+      "source": "src/yaml-compat.ts",
+      "name": "customTags",
+      "route": "TS:src/yaml-compat.ts#STRINGIFY_OPTION_RULES.customTags",
+      "status": "deferred-global-proof",
+      "contract": "Own enumerable option key customTags; accepted/rejected values, ignored cases and failure type are specified in docs/contracts/yaml.md.",
+      "specificationStatus": "behavior-summary-only",
+      "surface": "YamlWrite",
+      "policyCode": 4,
+      "policyName": "RejectEveryDefinedValue",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.OwnRuleCode"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "root:route:parse",
+      "kind": "behavioral-route",
+      "source": "src/core.ts",
+      "route": "TS:src/core.ts#parse",
+      "status": "deferred-global-proof",
+      "contract": "Single-document result/error/second-document and cleanup behavior; the route is present but full parser proof is pending. See docs/contracts/native.md.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "root:route:parseAll",
+      "kind": "behavioral-route",
+      "source": "src/core.ts",
+      "route": "TS:src/core.ts#parseAll",
+      "status": "deferred-global-proof",
+      "contract": "Whole-stream ordering, empty stream, failure/no partial result, and cleanup behavior; full parser proof is pending. See docs/contracts/native.md.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "root:route:stringify",
+      "kind": "behavioral-route",
+      "source": "src/core.ts",
+      "route": "TS:src/core.ts#stringify",
+      "status": "deferred-global-proof",
+      "contract": "Exact output, writer state, host effects, and thrown completions remain global proof obligations. See docs/contracts/native.md.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "yaml:mode:parse-no-reviver",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#parse",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.SelectYamlParseOptions"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:mode:parse-reviver",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#parse",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.SelectYamlParseOptions"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:mode:parseAllDocuments-success-error",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#parseAllDocuments",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "yaml:mode:parseDocument-success-error",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#parseDocument",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "yaml:mode:stringify-options",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#stringify",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.SelectYamlStringifyOptions"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:mode:load",
+      "kind": "behavioral-route",
+      "source": "src/js-yaml-compat.ts",
+      "route": "TS:src/js-yaml-compat.ts#load",
+      "status": "blocked-known-defect",
+      "contract": "Behavioral/overload contract; see docs/contracts/js-yaml.md and the linked implementation.",
+      "openDefect": "Empty input currently returns null, unlike upstream js-yaml v5. Source documents the mismatch but README Decisions and deviations does not; keep this unsanctioned/open.",
+      "specificationStatus": "known-defect-described",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "js-yaml:mode:loadAll-no-iterator",
+      "kind": "behavioral-route",
+      "source": "src/js-yaml-compat.ts",
+      "route": "TS:src/js-yaml-compat.ts#loadAll",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/js-yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.SelectJsYamlLoadAllOptions"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:mode:loadAll-iterator",
+      "kind": "behavioral-route",
+      "source": "src/js-yaml-compat.ts",
+      "route": "TS:src/js-yaml-compat.ts#loadAll",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/js-yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.SelectJsYamlLoadAllOptions"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "js-yaml:mode:dump",
+      "kind": "behavioral-route",
+      "source": "src/js-yaml-compat.ts",
+      "route": "TS:src/js-yaml-compat.ts#dump",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/js-yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "cross:validation:prototype-option-lookup",
+      "kind": "behavioral-route",
+      "source": "src/compat-options.ts",
+      "route": "TS:src/compat-options.ts#validateOptions",
+      "status": "blocked-known-defect",
+      "contract": "Behavioral/overload contract; see docs/contracts/native.md and the linked implementation.",
+      "openDefect": "An own __proto__ option can resolve to inherited Object.prototype as the rule and throw raw TypeError; valueOf/toString have related inherited lookup behavior. The current validator uses rules[key].",
+      "specificationStatus": "known-defect-described",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption",
+          "SurfaceOptions.RejectYamlOptionsPrimitive"
+        ],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "cross:validation:own-enumerable-getters",
+      "kind": "behavioral-route",
+      "source": "src/compat-options.ts",
+      "route": "TS:src/compat-options.ts#validateOptions",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/native.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-port-integration",
+        "targetMethods": [
+          "SurfaceOptions.RejectRecognizedOption"
+        ],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "Named options methods cover only policy/slot decisions conditionally; this public operation remains otherwise unproved."
+      }
+    },
+    {
+      "id": "yaml:document:captured-contents",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#makeDocument",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "yaml:document:no-custom-toString",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#makeDocument",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "js-yaml:callback:iterator-order-this-errors",
+      "kind": "behavioral-route",
+      "source": "src/js-yaml-compat.ts",
+      "route": "TS:src/js-yaml-compat.ts#loadAll",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/js-yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "yaml:callback:reviver-order-this-mutation-errors",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#applyReviver",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "js-yaml:helpers:tag-factories",
+      "kind": "behavioral-route",
+      "source": "src/js-yaml-compat.ts",
+      "route": "TS:src/js-yaml-compat.ts#defineScalarTag",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/js-yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "js-yaml:helpers:schema-constructor-withTags-identities",
+      "kind": "behavioral-route",
+      "source": "src/js-yaml-compat.ts",
+      "route": "TS:src/js-yaml-compat.ts#Schema.withTags",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/js-yaml.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "build:package-exports",
+      "kind": "behavioral-route",
+      "source": "package.json",
+      "route": "package.json#exports[\".\"]",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/native.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "build:browser-global",
+      "kind": "behavioral-route",
+      "source": "tsup.config.ts",
+      "route": "TS:tsup.config.ts#globalName",
+      "status": "deferred-global-proof",
+      "contract": "Behavioral/overload contract; see docs/contracts/native.md and the linked implementation.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "package:exports:.",
+      "kind": "package-export",
+      "source": "package.json",
+      "name": ".",
+      "route": "package.json#exports[\".\"]",
+      "status": "deferred-global-proof",
+      "contract": "Package subpath .; ESM/CJS targets are checked against metadata; built artifacts are exercised by test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only",
+      "target": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      }
+    },
+    {
+      "id": "package:exports:./yaml",
+      "kind": "package-export",
+      "source": "package.json",
+      "name": "./yaml",
+      "route": "package.json#exports[\"./yaml\"]",
+      "status": "deferred-global-proof",
+      "contract": "Package subpath ./yaml; ESM/CJS targets are checked against metadata; built artifacts are exercised by test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only",
+      "target": {
+        "import": {
+          "types": "./dist/yaml-compat.d.ts",
+          "default": "./dist/yaml-compat.js"
+        },
+        "require": {
+          "types": "./dist/yaml-compat.d.cts",
+          "default": "./dist/yaml-compat.cjs"
+        }
+      }
+    },
+    {
+      "id": "package:exports:./js-yaml",
+      "kind": "package-export",
+      "source": "package.json",
+      "name": "./js-yaml",
+      "route": "package.json#exports[\"./js-yaml\"]",
+      "status": "deferred-global-proof",
+      "contract": "Package subpath ./js-yaml; ESM/CJS targets are checked against metadata; built artifacts are exercised by test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only",
+      "target": {
+        "import": {
+          "types": "./dist/js-yaml-compat.d.ts",
+          "default": "./dist/js-yaml-compat.js"
+        },
+        "require": {
+          "types": "./dist/js-yaml-compat.d.cts",
+          "default": "./dist/js-yaml-compat.cjs"
+        }
+      }
+    },
+    {
+      "id": "package:exports:./package.json",
+      "kind": "package-export",
+      "source": "package.json",
+      "name": "./package.json",
+      "route": "package.json#exports[\"./package.json\"]",
+      "status": "deferred-global-proof",
+      "contract": "Package subpath ./package.json; ESM/CJS targets are checked against metadata; built artifacts are exercised by test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only",
+      "target": "./package.json"
+    },
+    {
+      "id": "package:metadata:main",
+      "kind": "package-metadata",
+      "source": "package.json",
+      "name": "main",
+      "route": "package.json#main",
+      "status": "deferred-global-proof",
+      "contract": "Published package metadata field main; packaging shape only, not a runtime Dafny proof.",
+      "specificationStatus": "behavior-summary-only",
+      "target": "./dist/index.cjs"
+    },
+    {
+      "id": "package:metadata:module",
+      "kind": "package-metadata",
+      "source": "package.json",
+      "name": "module",
+      "route": "package.json#module",
+      "status": "deferred-global-proof",
+      "contract": "Published package metadata field module; packaging shape only, not a runtime Dafny proof.",
+      "specificationStatus": "behavior-summary-only",
+      "target": "./dist/index.js"
+    },
+    {
+      "id": "package:metadata:types",
+      "kind": "package-metadata",
+      "source": "package.json",
+      "name": "types",
+      "route": "package.json#types",
+      "status": "deferred-global-proof",
+      "contract": "Published package metadata field types; packaging shape only, not a runtime Dafny proof.",
+      "specificationStatus": "behavior-summary-only",
+      "target": "./dist/index.d.ts"
+    },
+    {
+      "id": "package:metadata:unpkg",
+      "kind": "package-metadata",
+      "source": "package.json",
+      "name": "unpkg",
+      "route": "package.json#unpkg",
+      "status": "deferred-global-proof",
+      "contract": "Published package metadata field unpkg; packaging shape only, not a runtime Dafny proof.",
+      "specificationStatus": "behavior-summary-only",
+      "target": "./dist/lightning-yaml.min.js"
+    },
+    {
+      "id": "package:metadata:jsdelivr",
+      "kind": "package-metadata",
+      "source": "package.json",
+      "name": "jsdelivr",
+      "route": "package.json#jsdelivr",
+      "status": "deferred-global-proof",
+      "contract": "Published package metadata field jsdelivr; packaging shape only, not a runtime Dafny proof.",
+      "specificationStatus": "behavior-summary-only",
+      "target": "./dist/lightning-yaml.min.js"
+    },
+    {
+      "id": "package:metadata:files",
+      "kind": "package-metadata",
+      "source": "package.json",
+      "name": "files",
+      "route": "package.json#files",
+      "status": "deferred-global-proof",
+      "contract": "Published package metadata field files; packaging shape only, not a runtime Dafny proof.",
+      "specificationStatus": "behavior-summary-only",
+      "target": [
+        "dist",
+        "docs/contracts",
+        "scripts/public-surface-contract-manifest.json",
+        "Dafny-LICENSE.txt",
+        "README.md",
+        "LICENSE"
+      ]
+    },
+    {
+      "id": "js-yaml:helpers:tag-properties-and-ignored-options",
+      "kind": "behavioral-route",
+      "source": "src/js-yaml-compat.ts",
+      "route": "TS:src/js-yaml-compat.ts#defineScalarTag",
+      "status": "deferred-global-proof",
+      "contract": "tag factory properties are own writable enumerable data fields; opts is unused.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "js-yaml:exception:error-prototype-and-constructor-call",
+      "kind": "behavioral-route",
+      "source": "src/js-yaml-compat.ts",
+      "route": "TS:src/js-yaml-compat.ts#YAMLException.constructor",
+      "status": "deferred-global-proof",
+      "contract": "Class invocation requires new; Error prototype, inherited fields and borrowed methods follow JavaScript.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/js-yaml.md#options-tags-and-schemas — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "yaml:document:property-descriptors",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#makeDocument",
+      "status": "deferred-global-proof",
+      "contract": "contents/errors/warnings are own writable enumerable data properties; toJS/toJSON are own closure functions.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "yaml:reviver:cyclic-graph-native-exhaustion",
+      "kind": "behavioral-route",
+      "source": "src/yaml-compat.ts",
+      "route": "TS:src/yaml-compat.ts#applyReviver",
+      "status": "deferred-global-proof",
+      "contract": "Cyclic alias graphs can recurse without a visited guard; native stack exhaustion behavior is untested.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/yaml.md#options-and-errors — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/yaml.md#options-and-errors — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/yaml.md#options-and-errors — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/yaml.md#options-and-errors — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "root:options:effectful-read-order",
+      "kind": "behavioral-route",
+      "source": "src/dafny/surfaces/NativeSurface.dfy",
+      "route": "Dafny:src/dafny/surfaces/NativeSurface.dfy#NormalizeParseOptions",
+      "status": "deferred-global-proof",
+      "contract": "Option getters are read in internStrings, strict, optimizations/keyCacheMaxKb order; cache size coercion can throw.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "The actual options normalization body is in Dafny, but it has no attached ordered-trace postcondition or selected proof in this snapshot. Host getter and primitive-operation correspondence remains open."
+      }
+    },
+    {
+      "id": "root:writer:two-phase-host-reads",
+      "kind": "behavioral-route",
+      "source": "src/dafny/core/Serializer.dfy",
+      "route": "Dafny:src/dafny/core/Serializer.dfy#Stringify",
+      "status": "deferred-global-proof",
+      "contract": "Writer own-key/value reads can happen in reference scan and emission; host getters/proxies may change state.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "root:errors:error-object-observation",
+      "kind": "behavioral-route",
+      "source": "src/errors.ts",
+      "route": "TS:src/errors.ts#YAMLParseError",
+      "status": "deferred-global-proof",
+      "contract": "Exported classes retain JavaScript Error prototype and inherited message/stack behavior.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "build:export-object-observation",
+      "kind": "behavioral-route",
+      "source": "package.json",
+      "route": "package.json#exports[\".\"]",
+      "status": "deferred-global-proof",
+      "contract": "Built ESM, root CJS, and CDN IIFE are exercised by existing tests; not all subpath CJS resolution is covered.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "root:namespace:no-default-export",
+      "kind": "behavioral-route",
+      "source": "src/index.ts",
+      "route": "TS:src/index.ts#parse",
+      "status": "deferred-global-proof",
+      "contract": "The root has exactly its named runtime exports and no default export.",
+      "specificationStatus": "behavior-summary-only",
+      "formalRequirements": {
+        "status": "pending-design",
+        "targetMethods": [],
+        "preconditions": "docs/contracts/native.md#formal-contract-status — exact argument/heap assumptions; no unsupported-input, pure-callback, or successful-parse precondition may be invented.",
+        "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
+        "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
+        "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
+        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+      }
+    },
+    {
+      "id": "package:export-target:.:import:types",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": ".",
+      "target": "./dist/index.d.ts",
+      "route": "package.json#exports[\".\"].import.types",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:.:import:types; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:.:import:default",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": ".",
+      "target": "./dist/index.js",
+      "route": "package.json#exports[\".\"].import.default",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:.:import:default; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:.:require:types",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": ".",
+      "target": "./dist/index.d.cts",
+      "route": "package.json#exports[\".\"].require.types",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:.:require:types; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:.:require:default",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": ".",
+      "target": "./dist/index.cjs",
+      "route": "package.json#exports[\".\"].require.default",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:.:require:default; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:./yaml:import:types",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": "./yaml",
+      "target": "./dist/yaml-compat.d.ts",
+      "route": "package.json#exports[\"./yaml\"].import.types",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:./yaml:import:types; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:./yaml:import:default",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": "./yaml",
+      "target": "./dist/yaml-compat.js",
+      "route": "package.json#exports[\"./yaml\"].import.default",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:./yaml:import:default; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:./yaml:require:types",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": "./yaml",
+      "target": "./dist/yaml-compat.d.cts",
+      "route": "package.json#exports[\"./yaml\"].require.types",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:./yaml:require:types; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:./yaml:require:default",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": "./yaml",
+      "target": "./dist/yaml-compat.cjs",
+      "route": "package.json#exports[\"./yaml\"].require.default",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:./yaml:require:default; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:./js-yaml:import:types",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": "./js-yaml",
+      "target": "./dist/js-yaml-compat.d.ts",
+      "route": "package.json#exports[\"./js-yaml\"].import.types",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:./js-yaml:import:types; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:./js-yaml:import:default",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": "./js-yaml",
+      "target": "./dist/js-yaml-compat.js",
+      "route": "package.json#exports[\"./js-yaml\"].import.default",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:./js-yaml:import:default; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:./js-yaml:require:types",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": "./js-yaml",
+      "target": "./dist/js-yaml-compat.d.cts",
+      "route": "package.json#exports[\"./js-yaml\"].require.types",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:./js-yaml:require:types; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:./js-yaml:require:default",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": "./js-yaml",
+      "target": "./dist/js-yaml-compat.cjs",
+      "route": "package.json#exports[\"./js-yaml\"].require.default",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:./js-yaml:require:default; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "package:export-target:./package.json:target",
+      "kind": "package-export-target",
+      "source": "package.json",
+      "name": "./package.json",
+      "target": "./package.json",
+      "route": "package.json#exports[\"./package.json\"]",
+      "status": "deferred-global-proof",
+      "contract": "Exact package metadata value for package:export-target:./package.json:target; tested behavior is scoped to test/built-package.test.mjs.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:FAILSAFE_SCHEMA",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "FAILSAFE_SCHEMA",
+      "route": "TS:src/js-yaml-compat.ts#FAILSAFE_SCHEMA",
+      "status": "deferred-global-proof",
+      "contract": "Named schema singleton export FAILSAFE_SCHEMA; module-instance identity and option behavior are summarized in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:JSON_SCHEMA",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "JSON_SCHEMA",
+      "route": "TS:src/js-yaml-compat.ts#JSON_SCHEMA",
+      "status": "deferred-global-proof",
+      "contract": "Named schema singleton export JSON_SCHEMA; module-instance identity and option behavior are summarized in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:CORE_SCHEMA",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "CORE_SCHEMA",
+      "route": "TS:src/js-yaml-compat.ts#CORE_SCHEMA",
+      "status": "deferred-global-proof",
+      "contract": "Named schema singleton export CORE_SCHEMA; module-instance identity and option behavior are summarized in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only"
+    },
+    {
+      "id": "js-yaml:runtime:YAML11_SCHEMA",
+      "kind": "runtime-export",
+      "source": "src/js-yaml-compat.ts",
+      "name": "YAML11_SCHEMA",
+      "route": "TS:src/js-yaml-compat.ts#YAML11_SCHEMA",
+      "status": "deferred-global-proof",
+      "contract": "Named schema singleton export YAML11_SCHEMA; module-instance identity and option behavior are summarized in docs/contracts/js-yaml.md.",
+      "specificationStatus": "behavior-summary-only"
+    }
+  ],
+  "statusLegend": {
+    "specified-complete": "Observable clauses are specified; this does not mean their implementation has been proved.",
+    "verified-local": "Only a named Dafny body and its listed dependencies have local verifier evidence.",
+    "trusted-host": "A narrowly named JavaScript primitive/model correspondence is trusted, not the adapter or YAML semantics.",
+    "blocked-known-defect": "The desired general contract is contradicted by a recorded current defect; do not treat it as approved behavior.",
+    "deferred-global-proof": "Surface or transitive semantic proof is still open."
+  },
+  "verifiedSurfaceClaims": [],
+  "localProofScope": {
+    "claim": "Eight scanner methods have local proof evidence only. The js-yaml markFrom event model has nine declaration well-formedness results but no correctness rows or executed helper. Native normalization/parse flow contracts are attached, but the repository's exact-source Native proof gate is pending; none of these constitutes a complete public-operation proof.",
+    "coverage": "See scripts/verify-dafny-scanner.cjs, scripts/verify-dafny-native.cjs, and src/dafny/Helpers-Errors.audit.md. Scanner caller preconditions, mark helper routing and host authenticity, raw host binding, and transitive Engine/Writer semantics remain open. The conditional budget model covers default, Number, and Boolean outcomes; host numeric representation, string/reference conversion, concatenation allocation failures, and exact BigInt/Symbol throws remain open."
+  },
+  "conditionalNativeAdapterFlow": {
+    "status": "attached-proof-gate-pending",
+    "methods": [
+      "NativeSurface.Adapter.NormalizeParseOptions",
+      "NativeSurface.Adapter.ParseCompletion",
+      "NativeSurface.Adapter.Parse",
+      "NativeSurface.Adapter.ParseAll",
+      "NativeSurface.Adapter.Stringify",
+      "NativeSurface.Adapter.ExceptionToString",
+      "NativeSurface.Adapter.NotImplementedMessage"
+    ],
+    "scope": "Routed method bodies compose conditional event-trace contracts under host-open atomic observations and the protected-context profile. The budget relation covers default, primitive Number, and Boolean result cases; String and reference conversion have weaker result-shape clauses. A combined budget-snapshot run recorded passing selected rows after manual CSV reuse, but was not a standalone reproducible gate. A later supporting-definition run found classifier well-formedness issues; their reads-frame correction is checked separately, while fresh caller-body/dependency replay remains pending.",
+    "open": [
+      "Host authenticity and raw observation-to-JavaScript binding",
+      "Binary64 host encoding and the full raw JavaScript conversion protocol",
+      "JavaScript concatenation allocation and maximum-length RangeError behavior",
+      "Exact BigInt/Symbol TypeError construction and object coercion behavior",
+      "End-to-end parser and writer semantics",
+      "Compatibility facade and constructor completion relations"
+    ],
+    "verifiedPublicOperations": []
+  },
+  "contractCompleteness": {
+    "sourceInventory": "Complete for the checked TypeScript/package export, type, default-alias, class/document member, options field/rule, and package-map sets at the pinned source snapshot.",
+    "behavioralSpecification": "Partial consumer-facing current-behavior summary. No row claims that all call traces, postconditions, failure branches, or host effects are fully specified.",
+    "unresolvedFormalContracts": [
+      "No complete surface-wide Dafny request/completion relation connects every public TypeScript entry, overload, constructor, default alias, and package build to its result, failure, and effects.",
+      "The current heap model does not yet capture all descriptors, prototypes, accessors, proxies, realms, functions, reentrancy, and callback heap edits.",
+      "No complete per-entry validation trace captures Object.keys snapshots, property/getter/proxy completions, inherited rule lookup, failure identity, and cleanup.",
+      "No independent complete YAML syntax witness, scalar conversion, tags, document/alias graph construction, parser errors, numeric conversion, and cache behavior relation is proved.",
+      "No complete exact-text writer relation is proved for all values, code units, host coercions, mutable getters, cyclic/shared graphs, failures, or residual writer state.",
+      "No method-level property/frame proof covers all mutable document/error/helper objects, identity and descriptors, default-object mutation, or every ESM/CJS/CDN realm.",
+      "No atomic JavaScript classification/throw ABI correspondence is verified against Dafny descriptors; the proved option policy bodies are conditional on supplied host observations, while JavaScript classification and throw refinement remain open.",
+      "Existing local scanner proofs do not prove any caller precondition, public adapter route, whole parser, whole writer, or YAML correctness."
+    ],
+    "verifiedPublicOperations": []
+  },
+  "optionsTrancheConstructCoverage": {
+    "scope": "options-tranche-only",
+    "expectedCount": 26,
+    "presentCount": 26,
+    "missingCount": 0,
+    "expected": [
+      {
+        "module": "SurfaceValues",
+        "kind": "datatype",
+        "name": "OptionSurface"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "datatype",
+        "name": "Argument"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "WellFormedArgument"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsUndefinedArgument"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsNullishArgument"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsLooselyNullishArgument"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsFunctionArgument"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsArrayArgument"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsObjectArgument"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsTrueArgument"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsCoreText"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsVersion12Text"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "IsCoreSchema"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "FalsyNumberBits"
+      },
+      {
+        "module": "SurfaceValues",
+        "kind": "predicate",
+        "name": "Truthy"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "function",
+        "name": "YamlParseSlot"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "function",
+        "name": "YamlStringifySlot"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "function",
+        "name": "JsYamlLoadAllSlot"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "predicate",
+        "name": "YamlOptionsPrimitiveRejected"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "predicate",
+        "name": "RuleRejects"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "function",
+        "name": "OwnRuleCode"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "method",
+        "name": "SelectYamlParseOptions"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "method",
+        "name": "SelectYamlStringifyOptions"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "method",
+        "name": "SelectJsYamlLoadAllOptions"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "method",
+        "name": "RejectYamlOptionsPrimitive"
+      },
+      {
+        "module": "SurfaceOptions",
+        "kind": "method",
+        "name": "RejectRecognizedOption"
+      }
+    ],
+    "present": [
+      "SurfaceOptions.JsYamlLoadAllSlot:function",
+      "SurfaceOptions.OwnRuleCode:function",
+      "SurfaceOptions.RejectRecognizedOption:method",
+      "SurfaceOptions.RejectYamlOptionsPrimitive:method",
+      "SurfaceOptions.RuleRejects:predicate",
+      "SurfaceOptions.SelectJsYamlLoadAllOptions:method",
+      "SurfaceOptions.SelectYamlParseOptions:method",
+      "SurfaceOptions.SelectYamlStringifyOptions:method",
+      "SurfaceOptions.YamlOptionsPrimitiveRejected:predicate",
+      "SurfaceOptions.YamlParseSlot:function",
+      "SurfaceOptions.YamlStringifySlot:function",
+      "SurfaceValues.Argument:datatype",
+      "SurfaceValues.FalsyNumberBits:predicate",
+      "SurfaceValues.IsArrayArgument:predicate",
+      "SurfaceValues.IsCoreSchema:predicate",
+      "SurfaceValues.IsCoreText:predicate",
+      "SurfaceValues.IsFunctionArgument:predicate",
+      "SurfaceValues.IsLooselyNullishArgument:predicate",
+      "SurfaceValues.IsNullishArgument:predicate",
+      "SurfaceValues.IsObjectArgument:predicate",
+      "SurfaceValues.IsTrueArgument:predicate",
+      "SurfaceValues.IsUndefinedArgument:predicate",
+      "SurfaceValues.IsVersion12Text:predicate",
+      "SurfaceValues.OptionSurface:datatype",
+      "SurfaceValues.Truthy:predicate",
+      "SurfaceValues.WellFormedArgument:predicate"
+    ]
+  },
+  "conditionalOptionProofCoverage": {
+    "status": "conditional-policy-only",
+    "methodCount": 5,
+    "obligationCount": 6,
+    "methods": [
+      "SurfaceOptions.SelectYamlParseOptions",
+      "SurfaceOptions.SelectYamlStringifyOptions",
+      "SurfaceOptions.SelectJsYamlLoadAllOptions",
+      "SurfaceOptions.RejectYamlOptionsPrimitive",
+      "SurfaceOptions.RejectRecognizedOption"
+    ],
+    "policyDefinitionSymbols": [
+      "SurfaceOptions.OwnRuleCode"
+    ],
+    "scope": "Conditional proofs apply only to selector/recognized-option policy under the declared classifier equalities. Host JavaScript observations, getters/proxies, error completion identity, full validation behavior, and parser/writer semantics are outside this proof scope.",
+    "verificationReport": "results/dafny-options-proof/*/coverage.json",
+    "mutationCount": 10
+  },
+  "surfaceHelperProofCoverage": {
+    "status": "conditional-helper-selection-only",
+    "methodCount": 8,
+    "obligationCount": 9,
+    "methods": [
+      "SurfaceHelpers.TagKindName",
+      "SurfaceHelpers.ReturnSchemaIdentity",
+      "SurfaceHelpers.ReturnCapturedContents",
+      "SurfaceErrors.ParseErrorName",
+      "SurfaceErrors.NotImplementedErrorName",
+      "SurfaceErrors.YamlExceptionName",
+      "SurfaceErrors.ChooseExceptionReason",
+      "SurfaceErrors.ChooseExceptionMark"
+    ],
+    "scope": "Local bodies prove only the returned tag-kind spelling, raw identity forwarding, names, and selection from an explicit nullish flag. The exception defaults are conditional on the caller supplying the exact strict-nullish classification. Public route sentinels show these named generated methods are called; no class allocation, Error conversion/prototype, tag or document descriptors, mark freshness, constructor control flow, host classification, or complete public operation is proved.",
+    "verificationCommand": "Dafny 4.11.0 /unicodeChar:0 /compileTarget:js /compile:0 with /proc:*SurfaceHelpers* and /proc:*SurfaceErrors*",
+    "artifact": "src/dafny/Helpers-Errors.audit.md"
+  }
+}

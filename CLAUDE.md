@@ -45,6 +45,22 @@ much as to `src`. Reserve comments for non-obvious rationale: a constraint, a go
 or why a choice was made (especially where getting it wrong is costly). Prefer
 deleting a redundant or stale comment over keeping it. Don't add unnecessary comments.
 
+## Clean Code — names and functions
+
+Use Robert C. Martin's [*Clean Code: A Handbook of Agile Software
+Craftsmanship*](https://www.informit.com/store/clean-code-a-handbook-of-agile-software-craftsmanship-9780132350884)
+as a reference, especially chapters 2 (Meaningful Names), 3 (Functions), and 4
+(Comments). Choose purpose-revealing, searchable names and use one term
+consistently for one concept. Name methods for their responsibility and keep each
+focused at a coherent level of abstraction. Prefer code that expresses intent; use
+comments for constraints and rationale, not narration. Remove stale or
+commented-out code when safe, while preserving required legal notices.
+
+Apply this guidance to authored Dafny, TypeScript, tests, and tooling. Improve
+generated artifacts through their authored source or generator, then regenerate
+them. Choose extractions that clarify responsibility while preserving behavior and
+measured performance.
+
 ## Audience & voice — write for the reader, not the parser
 
 Every written artifact has a reader; name them and pitch to them. **User-facing

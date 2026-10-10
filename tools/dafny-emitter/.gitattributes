@@ -1,0 +1,2 @@
+# Patch context lines and mail trailers contain required format whitespace.
+*.patch -whitespace

@@ -1,0 +1,2233 @@
+{
+  "protocol": "quick-estimate-v1",
+  "status": "complete",
+  "startedAt": "2026-10-10T21:55:36.978Z",
+  "deadlineMs": 60000,
+  "rows": {
+    "cpu": [
+      {
+        "round": 1,
+        "side": "baseline",
+        "rows": {
+          "parse · medium-records": {
+            "warmupCalls": 196,
+            "warmupElapsedNs": 251293013,
+            "batchCalls": [
+              76,
+              79,
+              78,
+              68,
+              72
+            ],
+            "batchElapsedNs": [
+              80088982,
+              80455339,
+              80293535,
+              81016371,
+              80753367
+            ],
+            "nsPerCall": [
+              1053802.394736842,
+              1018422.0126582278,
+              1029404.2948717949,
+              1191417.2205882352,
+              1121574.5416666667
+            ],
+            "medianNsPerCall": 1053802.394736842
+          },
+          "stringify · medium-records": {
+            "warmupCalls": 189,
+            "warmupElapsedNs": 250246711,
+            "batchCalls": [
+              52,
+              66,
+              66,
+              63,
+              65
+            ],
+            "batchElapsedNs": [
+              80064607,
+              80745182,
+              80818639,
+              80459976,
+              80898789
+            ],
+            "nsPerCall": [
+              1539703.9807692308,
+              1223411.8484848484,
+              1224524.8333333333,
+              1277142.4761904762,
+              1244596.7538461538
+            ],
+            "medianNsPerCall": 1244596.7538461538
+          },
+          "parse · yaml-plain-medium-records": {
+            "warmupCalls": 136,
+            "warmupElapsedNs": 250181388,
+            "batchCalls": [
+              45,
+              47,
+              47,
+              44,
+              35
+            ],
+            "batchElapsedNs": [
+              80632071,
+              80948041,
+              81300822,
+              80007931,
+              80636879
+            ],
+            "nsPerCall": [
+              1791823.8,
+              1722298.744680851,
+              1729804.7234042552,
+              1818362.0681818181,
+              2303910.8285714285
+            ],
+            "medianNsPerCall": 1791823.8
+          },
+          "stringify · yaml-plain-medium-records": {
+            "warmupCalls": 140,
+            "warmupElapsedNs": 250577601,
+            "batchCalls": [
+              65,
+              63,
+              64,
+              62,
+              50
+            ],
+            "batchElapsedNs": [
+              80596884,
+              81197228,
+              80526023,
+              80527344,
+              80197887
+            ],
+            "nsPerCall": [
+              1239952.0615384616,
+              1288844.888888889,
+              1258219.109375,
+              1298828.1290322582,
+              1603957.74
+            ],
+            "medianNsPerCall": 1288844.888888889
+          },
+          "parse · yaml-rich-medium": {
+            "warmupCalls": 126,
+            "warmupElapsedNs": 251185300,
+            "batchCalls": [
+              40,
+              40,
+              37,
+              45,
+              44
+            ],
+            "batchElapsedNs": [
+              81171229,
+              80774667,
+              82842600,
+              81373148,
+              80564964
+            ],
+            "nsPerCall": [
+              2029280.725,
+              2019366.675,
+              2238989.189189189,
+              1808292.177777778,
+              1831021.9090909092
+            ],
+            "medianNsPerCall": 2019366.675
+          },
+          "stringify · yaml-rich-medium": {
+            "warmupCalls": 141,
+            "warmupElapsedNs": 250921996,
+            "batchCalls": [
+              48,
+              48,
+              52,
+              52,
+              50
+            ],
+            "batchElapsedNs": [
+              81141324,
+              81334054,
+              81392645,
+              80035782,
+              81066704
+            ],
+            "nsPerCall": [
+              1690444.25,
+              1694459.4583333333,
+              1565243.173076923,
+              1539149.6538461538,
+              1621334.08
+            ],
+            "medianNsPerCall": 1621334.08
+          },
+          "parse options · yaml-plain-medium-records": {
+            "warmupCalls": 124,
+            "warmupElapsedNs": 251113925,
+            "batchCalls": [
+              46,
+              44,
+              37,
+              45,
+              47
+            ],
+            "batchElapsedNs": [
+              80419112,
+              81577019,
+              80861429,
+              81230050,
+              80451712
+            ],
+            "nsPerCall": [
+              1748241.5652173914,
+              1854023.1590909092,
+              2185444.027027027,
+              1805112.2222222222,
+              1711738.5531914893
+            ],
+            "medianNsPerCall": 1805112.2222222222
+          },
+          "diagnostic.parse · escaped-longquotes": {
+            "warmupCalls": 10556,
+            "warmupElapsedNs": 250010458,
+            "batchCalls": [
+              2862,
+              3433,
+              3898,
+              3616,
+              3624
+            ],
+            "batchElapsedNs": [
+              80015835,
+              80010034,
+              80002831,
+              80007130,
+              80010887
+            ],
+            "nsPerCall": [
+              27958.01362683438,
+              23306.15613166327,
+              20524.071575166752,
+              22125.86559734513,
+              22078.059326710816
+            ],
+            "medianNsPerCall": 22125.86559734513
+          },
+          "diagnostic.parse · unescaped-longquotes": {
+            "warmupCalls": 232067,
+            "warmupElapsedNs": 250000241,
+            "batchCalls": [
+              93641,
+              93346,
+              93187,
+              83625,
+              89813
+            ],
+            "batchElapsedNs": [
+              80000617,
+              80000476,
+              80000166,
+              80000808,
+              80000167
+            ],
+            "nsPerCall": [
+              854.3332194231159,
+              857.0316457052257,
+              858.4906263749235,
+              956.6613811659192,
+              890.7415073541692
+            ],
+            "medianNsPerCall": 858.4906263749235
+          }
+        }
+      },
+      {
+        "round": 1,
+        "side": "candidate",
+        "rows": {
+          "parse · medium-records": {
+            "warmupCalls": 224,
+            "warmupElapsedNs": 250938378,
+            "batchCalls": [
+              74,
+              70,
+              76,
+              67,
+              76
+            ],
+            "batchElapsedNs": [
+              80973319,
+              80425975,
+              80726337,
+              80082910,
+              80299187
+            ],
+            "nsPerCall": [
+              1094234.0405405406,
+              1148942.5,
+              1062188.644736842,
+              1195267.3134328357,
+              1056568.25
+            ],
+            "medianNsPerCall": 1094234.0405405406
+          },
+          "stringify · medium-records": {
+            "warmupCalls": 180,
+            "warmupElapsedNs": 250778667,
+            "batchCalls": [
+              51,
+              60,
+              50,
+              58,
+              67
+            ],
+            "batchElapsedNs": [
+              80715125,
+              80891456,
+              80781379,
+              80579050,
+              80132794
+            ],
+            "nsPerCall": [
+              1582649.5098039217,
+              1348190.9333333333,
+              1615627.58,
+              1389293.9655172413,
+              1196011.8507462686
+            ],
+            "medianNsPerCall": 1389293.9655172413
+          },
+          "parse · yaml-plain-medium-records": {
+            "warmupCalls": 136,
+            "warmupElapsedNs": 251096654,
+            "batchCalls": [
+              48,
+              47,
+              41,
+              38,
+              38
+            ],
+            "batchElapsedNs": [
+              80713772,
+              81960348,
+              80635586,
+              81641089,
+              81310130
+            ],
+            "nsPerCall": [
+              1681536.9166666667,
+              1743837.1914893617,
+              1966721.6097560977,
+              2148449.710526316,
+              2139740.263157895
+            ],
+            "medianNsPerCall": 1966721.6097560977
+          },
+          "stringify · yaml-plain-medium-records": {
+            "warmupCalls": 170,
+            "warmupElapsedNs": 250672279,
+            "batchCalls": [
+              60,
+              68,
+              70,
+              65,
+              69
+            ],
+            "batchElapsedNs": [
+              80960875,
+              80712610,
+              80672786,
+              80789695,
+              80993276
+            ],
+            "nsPerCall": [
+              1349347.9166666667,
+              1186950.1470588236,
+              1152468.3714285714,
+              1242918.3846153845,
+              1173815.5942028984
+            ],
+            "medianNsPerCall": 1186950.1470588236
+          },
+          "parse · yaml-rich-medium": {
+            "warmupCalls": 123,
+            "warmupElapsedNs": 252056963,
+            "batchCalls": [
+              41,
+              38,
+              44,
+              42,
+              39
+            ],
+            "batchElapsedNs": [
+              81679702,
+              80076849,
+              81591767,
+              80776340,
+              80969051
+            ],
+            "nsPerCall": [
+              1992187.8536585367,
+              2107285.5,
+              1854358.3409090908,
+              1923246.1904761905,
+              2076129.5128205128
+            ],
+            "medianNsPerCall": 1992187.8536585367
+          },
+          "stringify · yaml-rich-medium": {
+            "warmupCalls": 123,
+            "warmupElapsedNs": 251547238,
+            "batchCalls": [
+              49,
+              43,
+              49,
+              46,
+              47
+            ],
+            "batchElapsedNs": [
+              80856239,
+              80784614,
+              81167854,
+              80827595,
+              80324525
+            ],
+            "nsPerCall": [
+              1650127.3265306123,
+              1878711.953488372,
+              1656486.8163265307,
+              1757121.6304347827,
+              1709032.4468085107
+            ],
+            "medianNsPerCall": 1709032.4468085107
+          },
+          "parse options · yaml-plain-medium-records": {
+            "warmupCalls": 126,
+            "warmupElapsedNs": 251817613,
+            "batchCalls": [
+              43,
+              44,
+              43,
+              43,
+              43
+            ],
+            "batchElapsedNs": [
+              81514022,
+              81254215,
+              80944715,
+              81582621,
+              81217807
+            ],
+            "nsPerCall": [
+              1895674.9302325582,
+              1846686.7045454546,
+              1882435.2325581396,
+              1897270.2558139535,
+              1888786.2093023255
+            ],
+            "medianNsPerCall": 1888786.2093023255
+          },
+          "diagnostic.parse · escaped-longquotes": {
+            "warmupCalls": 9938,
+            "warmupElapsedNs": 250005330,
+            "batchCalls": [
+              3927,
+              3877,
+              3601,
+              3843,
+              3810
+            ],
+            "batchElapsedNs": [
+              80012330,
+              80001569,
+              80016617,
+              80008382,
+              80015054
+            ],
+            "nsPerCall": [
+              20374.924879042526,
+              20634.91591436678,
+              22220.66564843099,
+              20819.251105906842,
+              21001.32650918635
+            ],
+            "medianNsPerCall": 20819.251105906842
+          },
+          "diagnostic.parse · unescaped-longquotes": {
+            "warmupCalls": 264437,
+            "warmupElapsedNs": 250000830,
+            "batchCalls": [
+              94643,
+              74959,
+              79330,
+              89129,
+              95482
+            ],
+            "batchElapsedNs": [
+              80000195,
+              80001218,
+              80000596,
+              80000657,
+              80000647
+            ],
+            "nsPerCall": [
+              845.2838033452025,
+              1067.2663456022626,
+              1008.4532459347031,
+              897.5827957230531,
+              837.8610313985882
+            ],
+            "medianNsPerCall": 897.5827957230531
+          }
+        }
+      },
+      {
+        "round": 2,
+        "side": "candidate",
+        "rows": {
+          "stringify · medium-records": {
+            "warmupCalls": 181,
+            "warmupElapsedNs": 251033104,
+            "batchCalls": [
+              64,
+              48,
+              60,
+              56,
+              58
+            ],
+            "batchElapsedNs": [
+              80098090,
+              81679883,
+              80664200,
+              80929736,
+              80727288
+            ],
+            "nsPerCall": [
+              1251532.65625,
+              1701664.2291666667,
+              1344403.3333333333,
+              1445173.857142857,
+              1391849.7931034483
+            ],
+            "medianNsPerCall": 1391849.7931034483
+          },
+          "parse · yaml-plain-medium-records": {
+            "warmupCalls": 132,
+            "warmupElapsedNs": 250415687,
+            "batchCalls": [
+              32,
+              44,
+              43,
+              45,
+              46
+            ],
+            "batchElapsedNs": [
+              81884988,
+              81765904,
+              80128798,
+              81574694,
+              81638045
+            ],
+            "nsPerCall": [
+              2558905.875,
+              1858316,
+              1863460.4186046512,
+              1812770.9777777777,
+              1774740.108695652
+            ],
+            "medianNsPerCall": 1858316
+          },
+          "stringify · yaml-plain-medium-records": {
+            "warmupCalls": 182,
+            "warmupElapsedNs": 250297476,
+            "batchCalls": [
+              46,
+              51,
+              62,
+              57,
+              64
+            ],
+            "batchElapsedNs": [
+              80445420,
+              80050491,
+              81410058,
+              80163413,
+              80530961
+            ],
+            "nsPerCall": [
+              1748813.4782608696,
+              1569617.4705882352,
+              1313065.4516129033,
+              1406375.6666666667,
+              1258296.265625
+            ],
+            "medianNsPerCall": 1406375.6666666667
+          },
+          "parse · yaml-rich-medium": {
+            "warmupCalls": 120,
+            "warmupElapsedNs": 251117622,
+            "batchCalls": [
+              40,
+              43,
+              39,
+              37,
+              39
+            ],
+            "batchElapsedNs": [
+              80859977,
+              81560969,
+              82446619,
+              80402570,
+              80789065
+            ],
+            "nsPerCall": [
+              2021499.425,
+              1896766.7209302327,
+              2114015.871794872,
+              2173042.4324324327,
+              2071514.4871794872
+            ],
+            "medianNsPerCall": 2071514.4871794872
+          },
+          "stringify · yaml-rich-medium": {
+            "warmupCalls": 114,
+            "warmupElapsedNs": 252598277,
+            "batchCalls": [
+              25,
+              25,
+              44,
+              48,
+              48
+            ],
+            "batchElapsedNs": [
+              80214909,
+              82254087,
+              80213556,
+              81612266,
+              80990161
+            ],
+            "nsPerCall": [
+              3208596.36,
+              3290163.48,
+              1823035.3636363635,
+              1700255.5416666667,
+              1687295.0208333333
+            ],
+            "medianNsPerCall": 1823035.3636363635
+          },
+          "parse options · yaml-plain-medium-records": {
+            "warmupCalls": 132,
+            "warmupElapsedNs": 251877977,
+            "batchCalls": [
+              43,
+              34,
+              44,
+              46,
+              47
+            ],
+            "batchElapsedNs": [
+              80918276,
+              80609237,
+              81201447,
+              81246060,
+              81576989
+            ],
+            "nsPerCall": [
+              1881820.3720930233,
+              2370859.911764706,
+              1845487.4318181819,
+              1766218.6956521738,
+              1735680.6170212766
+            ],
+            "medianNsPerCall": 1845487.4318181819
+          },
+          "diagnostic.parse · escaped-longquotes": {
+            "warmupCalls": 10048,
+            "warmupElapsedNs": 250017232,
+            "batchCalls": [
+              3474,
+              3136,
+              3570,
+              3666,
+              3251
+            ],
+            "batchElapsedNs": [
+              80022448,
+              80003493,
+              80012830,
+              80008572,
+              80012830
+            ],
+            "nsPerCall": [
+              23034.671272308577,
+              25511.31792091837,
+              22412.55742296919,
+              21824.487725040915,
+              24611.759458628116
+            ],
+            "medianNsPerCall": 23034.671272308577
+          },
+          "diagnostic.parse · unescaped-longquotes": {
+            "warmupCalls": 228319,
+            "warmupElapsedNs": 250000650,
+            "batchCalls": [
+              80322,
+              82799,
+              91001,
+              86643,
+              72302
+            ],
+            "batchElapsedNs": [
+              80000666,
+              80000907,
+              80000717,
+              80001108,
+              80000597
+            ],
+            "nsPerCall": [
+              995.999427305097,
+              966.2061981424896,
+              879.1190975923341,
+              923.341851043939,
+              1106.4783408481094
+            ],
+            "medianNsPerCall": 966.2061981424896
+          },
+          "parse · medium-records": {
+            "warmupCalls": 210,
+            "warmupElapsedNs": 251078259,
+            "batchCalls": [
+              75,
+              63,
+              59,
+              71,
+              74
+            ],
+            "batchElapsedNs": [
+              81257982,
+              80413660,
+              80009714,
+              80175514,
+              80709285
+            ],
+            "nsPerCall": [
+              1083439.76,
+              1276407.3015873015,
+              1356096.847457627,
+              1129232.5915492957,
+              1090666.0135135136
+            ],
+            "medianNsPerCall": 1129232.5915492957
+          }
+        }
+      },
+      {
+        "round": 2,
+        "side": "baseline",
+        "rows": {
+          "stringify · medium-records": {
+            "warmupCalls": 176,
+            "warmupElapsedNs": 250411008,
+            "batchCalls": [
+              65,
+              51,
+              63,
+              61,
+              66
+            ],
+            "batchElapsedNs": [
+              80555086,
+              81545951,
+              80253240,
+              81067886,
+              80682714
+            ],
+            "nsPerCall": [
+              1239309.0153846154,
+              1598940.2156862745,
+              1273860.9523809524,
+              1328981.737704918,
+              1222465.3636363635
+            ],
+            "medianNsPerCall": 1273860.9523809524
+          },
+          "parse · yaml-plain-medium-records": {
+            "warmupCalls": 127,
+            "warmupElapsedNs": 250737812,
+            "batchCalls": [
+              48,
+              48,
+              44,
+              50,
+              45
+            ],
+            "batchElapsedNs": [
+              81531764,
+              81633847,
+              80841592,
+              81487072,
+              81069569
+            ],
+            "nsPerCall": [
+              1698578.4166666667,
+              1700705.1458333333,
+              1837308.9090909092,
+              1629741.44,
+              1801545.9777777777
+            ],
+            "medianNsPerCall": 1700705.1458333333
+          },
+          "stringify · yaml-plain-medium-records": {
+            "warmupCalls": 192,
+            "warmupElapsedNs": 250299609,
+            "batchCalls": [
+              49,
+              61,
+              71,
+              69,
+              61
+            ],
+            "batchElapsedNs": [
+              80895493,
+              80356834,
+              80154025,
+              80009784,
+              81277088
+            ],
+            "nsPerCall": [
+              1650928.4285714286,
+              1317325.1475409835,
+              1128929.9295774647,
+              1159562.0869565217,
+              1332411.2786885246
+            ],
+            "medianNsPerCall": 1317325.1475409835
+          },
+          "parse · yaml-rich-medium": {
+            "warmupCalls": 105,
+            "warmupElapsedNs": 251789762,
+            "batchCalls": [
+              46,
+              45,
+              47,
+              46,
+              45
+            ],
+            "batchElapsedNs": [
+              81188812,
+              81516557,
+              80388493,
+              80255825,
+              81574574
+            ],
+            "nsPerCall": [
+              1764974.1739130435,
+              1811479.0444444444,
+              1710393.4680851065,
+              1744691.847826087,
+              1812768.3111111112
+            ],
+            "medianNsPerCall": 1764974.1739130435
+          },
+          "stringify · yaml-rich-medium": {
+            "warmupCalls": 108,
+            "warmupElapsedNs": 250233667,
+            "batchCalls": [
+              32,
+              37,
+              28,
+              49,
+              47
+            ],
+            "batchElapsedNs": [
+              82992982,
+              80050951,
+              80213756,
+              80857813,
+              80665562
+            ],
+            "nsPerCall": [
+              2593530.6875,
+              2163539.2162162163,
+              2864777,
+              1650159.448979592,
+              1716288.5531914893
+            ],
+            "medianNsPerCall": 2163539.2162162163
+          },
+          "parse options · yaml-plain-medium-records": {
+            "warmupCalls": 102,
+            "warmupElapsedNs": 250239187,
+            "batchCalls": [
+              28,
+              34,
+              47,
+              47,
+              49
+            ],
+            "batchElapsedNs": [
+              82287741,
+              80809011,
+              81551322,
+              80526822,
+              80777582
+            ],
+            "nsPerCall": [
+              2938847.8928571427,
+              2376735.617647059,
+              1735134.5106382978,
+              1713336.6382978724,
+              1648522.081632653
+            ],
+            "medianNsPerCall": 1735134.5106382978
+          },
+          "diagnostic.parse · escaped-longquotes": {
+            "warmupCalls": 10796,
+            "warmupElapsedNs": 250018284,
+            "batchCalls": [
+              3704,
+              3665,
+              3577,
+              3227,
+              3656
+            ],
+            "batchElapsedNs": [
+              80019752,
+              80001999,
+              80016426,
+              80010234,
+              80002600
+            ],
+            "nsPerCall": [
+              21603.60475161987,
+              21828.64911323329,
+              22369.702544031312,
+              24793.99876045863,
+              21882.549234135666
+            ],
+            "medianNsPerCall": 21882.549234135666
+          },
+          "diagnostic.parse · unescaped-longquotes": {
+            "warmupCalls": 284574,
+            "warmupElapsedNs": 250000721,
+            "batchCalls": [
+              99866,
+              98685,
+              91601,
+              87134,
+              93102
+            ],
+            "batchElapsedNs": [
+              80000878,
+              80001849,
+              80000707,
+              80000917,
+              80000337
+            ],
+            "nsPerCall": [
+              801.0822301884525,
+              810.6789177686578,
+              873.3606292507724,
+              918.1366286409439,
+              859.276245408262
+            ],
+            "medianNsPerCall": 859.276245408262
+          },
+          "parse · medium-records": {
+            "warmupCalls": 228,
+            "warmupElapsedNs": 250206337,
+            "batchCalls": [
+              76,
+              79,
+              77,
+              70,
+              55
+            ],
+            "batchElapsedNs": [
+              80999508,
+              80703132,
+              80715295,
+              81260266,
+              80479334
+            ],
+            "nsPerCall": [
+              1065783,
+              1021558.6329113924,
+              1048250.5844155845,
+              1160860.9428571428,
+              1463260.6181818182
+            ],
+            "medianNsPerCall": 1065783
+          }
+        }
+      },
+      {
+        "round": 3,
+        "side": "baseline",
+        "rows": {
+          "parse · yaml-plain-medium-records": {
+            "warmupCalls": 124,
+            "warmupElapsedNs": 251473369,
+            "batchCalls": [
+              44,
+              44,
+              45,
+              38,
+              46
+            ],
+            "batchElapsedNs": [
+              81488424,
+              81093453,
+              81166551,
+              81691335,
+              81421166
+            ],
+            "nsPerCall": [
+              1852009.6363636365,
+              1843033.0227272727,
+              1803701.1333333333,
+              2149771.9736842103,
+              1770025.347826087
+            ],
+            "medianNsPerCall": 1843033.0227272727
+          },
+          "stringify · yaml-plain-medium-records": {
+            "warmupCalls": 161,
+            "warmupElapsedNs": 250103633,
+            "batchCalls": [
+              62,
+              63,
+              58,
+              56,
+              64
+            ],
+            "batchElapsedNs": [
+              80423708,
+              80089635,
+              80733109,
+              80785577,
+              80030563
+            ],
+            "nsPerCall": [
+              1297156.5806451612,
+              1271264.0476190476,
+              1391950.1551724137,
+              1442599.5892857143,
+              1250477.546875
+            ],
+            "medianNsPerCall": 1297156.5806451612
+          },
+          "parse · yaml-rich-medium": {
+            "warmupCalls": 127,
+            "warmupElapsedNs": 250651459,
+            "batchCalls": [
+              44,
+              43,
+              43,
+              45,
+              45
+            ],
+            "batchElapsedNs": [
+              80572188,
+              80359318,
+              81072626,
+              81107019,
+              81189133
+            ],
+            "nsPerCall": [
+              1831186.0909090908,
+              1868821.3488372094,
+              1885409.9069767443,
+              1802378.2,
+              1804202.9555555556
+            ],
+            "medianNsPerCall": 1831186.0909090908
+          },
+          "stringify · yaml-rich-medium": {
+            "warmupCalls": 136,
+            "warmupElapsedNs": 250105477,
+            "batchCalls": [
+              47,
+              45,
+              41,
+              39,
+              33
+            ],
+            "batchElapsedNs": [
+              80054939,
+              81843148,
+              82099308,
+              80400966,
+              82351181
+            ],
+            "nsPerCall": [
+              1703296.574468085,
+              1818736.6222222222,
+              2002422.1463414633,
+              2061563.2307692308,
+              2495490.3333333335
+            ],
+            "medianNsPerCall": 2002422.1463414633
+          },
+          "parse options · yaml-plain-medium-records": {
+            "warmupCalls": 125,
+            "warmupElapsedNs": 251215516,
+            "batchCalls": [
+              47,
+              45,
+              46,
+              45,
+              45
+            ],
+            "batchElapsedNs": [
+              81939790,
+              80027528,
+              80182207,
+              81234868,
+              81026419
+            ],
+            "nsPerCall": [
+              1743399.7872340425,
+              1778389.5111111111,
+              1743091.456521739,
+              1805219.288888889,
+              1800587.088888889
+            ],
+            "medianNsPerCall": 1778389.5111111111
+          },
+          "diagnostic.parse · escaped-longquotes": {
+            "warmupCalls": 10986,
+            "warmupElapsedNs": 250070171,
+            "batchCalls": [
+              3730,
+              3499,
+              3216,
+              3363,
+              3328
+            ],
+            "batchElapsedNs": [
+              80007489,
+              80015404,
+              80037716,
+              80019632,
+              80013170
+            ],
+            "nsPerCall": [
+              21449.728954423594,
+              22868.077736496143,
+              24887.349502487563,
+              23794.121914956882,
+              24042.41887019231
+            ],
+            "medianNsPerCall": 23794.121914956882
+          },
+          "diagnostic.parse · unescaped-longquotes": {
+            "warmupCalls": 275334,
+            "warmupElapsedNs": 250001441,
+            "batchCalls": [
+              94126,
+              94504,
+              96701,
+              94854,
+              84993
+            ],
+            "batchElapsedNs": [
+              80000678,
+              80000546,
+              80000437,
+              80000828,
+              80000597
+            ],
+            "nsPerCall": [
+              849.9317723052079,
+              846.5307923474139,
+              827.2968945512456,
+              843.410167204335,
+              941.2610097302131
+            ],
+            "medianNsPerCall": 846.5307923474139
+          },
+          "parse · medium-records": {
+            "warmupCalls": 223,
+            "warmupElapsedNs": 250877734,
+            "batchCalls": [
+              83,
+              81,
+              64,
+              73,
+              73
+            ],
+            "batchElapsedNs": [
+              80287253,
+              80212945,
+              80638271,
+              80424721,
+              80131451
+            ],
+            "nsPerCall": [
+              967316.3012048192,
+              990283.2716049383,
+              1259972.984375,
+              1101708.506849315,
+              1097691.1095890412
+            ],
+            "medianNsPerCall": 1097691.1095890412
+          },
+          "stringify · medium-records": {
+            "warmupCalls": 184,
+            "warmupElapsedNs": 250848868,
+            "batchCalls": [
+              65,
+              54,
+              68,
+              63,
+              41
+            ],
+            "batchElapsedNs": [
+              80250305,
+              80962458,
+              80284980,
+              82042612,
+              80819450
+            ],
+            "nsPerCall": [
+              1234620.076923077,
+              1499304.7777777778,
+              1180661.4705882352,
+              1302263.6825396826,
+              1971206.0975609757
+            ],
+            "medianNsPerCall": 1302263.6825396826
+          }
+        }
+      },
+      {
+        "round": 3,
+        "side": "candidate",
+        "rows": {
+          "parse · yaml-plain-medium-records": {
+            "warmupCalls": 127,
+            "warmupElapsedNs": 251174238,
+            "batchCalls": [
+              43,
+              44,
+              44,
+              47,
+              47
+            ],
+            "batchElapsedNs": [
+              82097746,
+              81559276,
+              81507501,
+              80238844,
+              81156272
+            ],
+            "nsPerCall": [
+              1909249.9069767443,
+              1853619.9090909092,
+              1852443.2045454546,
+              1707209.4468085107,
+              1726729.1914893617
+            ],
+            "medianNsPerCall": 1852443.2045454546
+          },
+          "stringify · yaml-plain-medium-records": {
+            "warmupCalls": 150,
+            "warmupElapsedNs": 251073660,
+            "batchCalls": [
+              46,
+              53,
+              63,
+              66,
+              55
+            ],
+            "batchElapsedNs": [
+              80559203,
+              80497638,
+              80688526,
+              80383464,
+              81140181
+            ],
+            "nsPerCall": [
+              1751287.0217391304,
+              1518823.358490566,
+              1280770.253968254,
+              1217931.2727272727,
+              1475276.018181818
+            ],
+            "medianNsPerCall": 1475276.018181818
+          },
+          "parse · yaml-rich-medium": {
+            "warmupCalls": 128,
+            "warmupElapsedNs": 250290062,
+            "batchCalls": [
+              46,
+              44,
+              29,
+              35,
+              36
+            ],
+            "batchElapsedNs": [
+              80095475,
+              82516089,
+              80618204,
+              81204042,
+              81954527
+            ],
+            "nsPerCall": [
+              1741205.9782608696,
+              1875365.6590909092,
+              2779938.0689655175,
+              2320115.4857142856,
+              2276514.638888889
+            ],
+            "medianNsPerCall": 2276514.638888889
+          },
+          "stringify · yaml-rich-medium": {
+            "warmupCalls": 141,
+            "warmupElapsedNs": 252712350,
+            "batchCalls": [
+              45,
+              43,
+              40,
+              44,
+              37
+            ],
+            "batchElapsedNs": [
+              80313423,
+              80986654,
+              81028752,
+              82256022,
+              82163408
+            ],
+            "nsPerCall": [
+              1784742.7333333334,
+              1883410.558139535,
+              2025718.8,
+              1869455.0454545454,
+              2220632.6486486485
+            ],
+            "medianNsPerCall": 1883410.558139535
+          },
+          "parse options · yaml-plain-medium-records": {
+            "warmupCalls": 113,
+            "warmupElapsedNs": 251974558,
+            "batchCalls": [
+              38,
+              39,
+              39,
+              35,
+              44
+            ],
+            "batchElapsedNs": [
+              81419405,
+              80283336,
+              81615873,
+              81324778,
+              81531203
+            ],
+            "nsPerCall": [
+              2142615.9210526315,
+              2058547.076923077,
+              2092714.6923076923,
+              2323565.0857142857,
+              1852981.8863636365
+            ],
+            "medianNsPerCall": 2092714.6923076923
+          },
+          "diagnostic.parse · escaped-longquotes": {
+            "warmupCalls": 10175,
+            "warmupElapsedNs": 250021280,
+            "batchCalls": [
+              3594,
+              3534,
+              3280,
+              3494,
+              3291
+            ],
+            "batchElapsedNs": [
+              80013141,
+              80006969,
+              80001939,
+              80011428,
+              80035182
+            ],
+            "nsPerCall": [
+              22262.977462437397,
+              22639.21024335031,
+              24390.83506097561,
+              22899.664567830565,
+              24319.411121239744
+            ],
+            "medianNsPerCall": 22899.664567830565
+          },
+          "diagnostic.parse · unescaped-longquotes": {
+            "warmupCalls": 234284,
+            "warmupElapsedNs": 250001191,
+            "batchCalls": [
+              79172,
+              93763,
+              87290,
+              81423,
+              96752
+            ],
+            "batchElapsedNs": [
+              80000778,
+              80000837,
+              80000487,
+              80000497,
+              80000107
+            ],
+            "nsPerCall": [
+              1010.4680695195271,
+              853.2239476125977,
+              916.4908580593424,
+              982.529469560198,
+              826.857398296676
+            ],
+            "medianNsPerCall": 916.4908580593424
+          },
+          "parse · medium-records": {
+            "warmupCalls": 226,
+            "warmupElapsedNs": 250793915,
+            "batchCalls": [
+              81,
+              79,
+              80,
+              78,
+              78
+            ],
+            "batchElapsedNs": [
+              80763156,
+              81300541,
+              80311299,
+              80408310,
+              80506104
+            ],
+            "nsPerCall": [
+              997076,
+              1029120.7721518987,
+              1003891.2375,
+              1030875.7692307692,
+              1032129.5384615385
+            ],
+            "medianNsPerCall": 1029120.7721518987
+          },
+          "stringify · medium-records": {
+            "warmupCalls": 208,
+            "warmupElapsedNs": 251760947,
+            "batchCalls": [
+              52,
+              65,
+              57,
+              73,
+              68
+            ],
+            "batchElapsedNs": [
+              80891967,
+              80871979,
+              80786198,
+              80387692,
+              80666745
+            ],
+            "nsPerCall": [
+              1555614.75,
+              1244184.2923076923,
+              1417301.7192982456,
+              1101201.2602739725,
+              1186275.6617647058
+            ],
+            "medianNsPerCall": 1244184.2923076923
+          }
+        }
+      }
+    ],
+    "memory": [
+      {
+        "round": 1,
+        "side": "baseline",
+        "key": "parse · small-records",
+        "candidate": "lightning-yaml",
+        "dataset": "small-records",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 94023680,
+        "heapDeltaBytes": 175104
+      },
+      {
+        "round": 1,
+        "side": "baseline",
+        "key": "parse · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 80154624,
+        "heapDeltaBytes": 378768
+      },
+      {
+        "round": 1,
+        "side": "baseline",
+        "key": "stringify · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 81817600,
+        "heapDeltaBytes": 110480
+      },
+      {
+        "round": 1,
+        "side": "baseline",
+        "key": "stringify · yaml-rich-medium",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-medium",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 115961856,
+        "heapDeltaBytes": 83632
+      },
+      {
+        "round": 1,
+        "side": "candidate",
+        "key": "parse · small-records",
+        "candidate": "lightning-yaml",
+        "dataset": "small-records",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 95830016,
+        "heapDeltaBytes": 205560
+      },
+      {
+        "round": 1,
+        "side": "candidate",
+        "key": "parse · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 81506304,
+        "heapDeltaBytes": 383152
+      },
+      {
+        "round": 1,
+        "side": "candidate",
+        "key": "stringify · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 82333696,
+        "heapDeltaBytes": 105528
+      },
+      {
+        "round": 1,
+        "side": "candidate",
+        "key": "stringify · yaml-rich-medium",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-medium",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 115216384,
+        "heapDeltaBytes": 61736
+      },
+      {
+        "round": 2,
+        "side": "candidate",
+        "key": "parse · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 80211968,
+        "heapDeltaBytes": 328056
+      },
+      {
+        "round": 2,
+        "side": "candidate",
+        "key": "stringify · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 79654912,
+        "heapDeltaBytes": 106096
+      },
+      {
+        "round": 2,
+        "side": "candidate",
+        "key": "stringify · yaml-rich-medium",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-medium",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 115224576,
+        "heapDeltaBytes": 80400
+      },
+      {
+        "round": 2,
+        "side": "candidate",
+        "key": "parse · small-records",
+        "candidate": "lightning-yaml",
+        "dataset": "small-records",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 80519168,
+        "heapDeltaBytes": 182720
+      },
+      {
+        "round": 2,
+        "side": "baseline",
+        "key": "parse · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 81539072,
+        "heapDeltaBytes": 354440
+      },
+      {
+        "round": 2,
+        "side": "baseline",
+        "key": "stringify · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 80457728,
+        "heapDeltaBytes": 112040
+      },
+      {
+        "round": 2,
+        "side": "baseline",
+        "key": "stringify · yaml-rich-medium",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-medium",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 116146176,
+        "heapDeltaBytes": 84536
+      },
+      {
+        "round": 2,
+        "side": "baseline",
+        "key": "parse · small-records",
+        "candidate": "lightning-yaml",
+        "dataset": "small-records",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 80699392,
+        "heapDeltaBytes": 184960
+      },
+      {
+        "round": 3,
+        "side": "baseline",
+        "key": "stringify · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 79724544,
+        "heapDeltaBytes": 92752
+      },
+      {
+        "round": 3,
+        "side": "baseline",
+        "key": "stringify · yaml-rich-medium",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-medium",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 116973568,
+        "heapDeltaBytes": 84536
+      },
+      {
+        "round": 3,
+        "side": "baseline",
+        "key": "parse · small-records",
+        "candidate": "lightning-yaml",
+        "dataset": "small-records",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 80195584,
+        "heapDeltaBytes": 171160
+      },
+      {
+        "round": 3,
+        "side": "baseline",
+        "key": "parse · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 80400384,
+        "heapDeltaBytes": 354632
+      },
+      {
+        "round": 3,
+        "side": "candidate",
+        "key": "stringify · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 80109568,
+        "heapDeltaBytes": 113752
+      },
+      {
+        "round": 3,
+        "side": "candidate",
+        "key": "stringify · yaml-rich-medium",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-medium",
+        "op": "stringify",
+        "iters": 25,
+        "peakRssBytes": 116551680,
+        "heapDeltaBytes": 61736
+      },
+      {
+        "round": 3,
+        "side": "candidate",
+        "key": "parse · small-records",
+        "candidate": "lightning-yaml",
+        "dataset": "small-records",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 80269312,
+        "heapDeltaBytes": 177032
+      },
+      {
+        "round": 3,
+        "side": "candidate",
+        "key": "parse · yaml-rich-small",
+        "candidate": "lightning-yaml",
+        "dataset": "yaml-rich-small",
+        "op": "parse",
+        "iters": 25,
+        "peakRssBytes": 80429056,
+        "heapDeltaBytes": 377992
+      }
+    ]
+  },
+  "errors": [],
+  "provenance": {
+    "baseline": "/tmp/ly-dafny-emitter-control",
+    "candidate": "/tmp/ly-dafny-emitter-candidate",
+    "baselineFingerprint": {
+      "tree": "443ca879f96ed28026fd7d988b0825f843442a4ac5300615f3b02705f0a53bc2",
+      "fixtures": "6e27fbfddd3e9d44525c0dd35bc186ee6de9a3511db3712db7c394f8e1f9ab8b",
+      "files": 99,
+      "fixtureNames": [
+        "large-nested.json",
+        "large-records.json",
+        "medium-nested.json",
+        "medium-records.json",
+        "small-records.json",
+        "xlarge-records.json",
+        "yaml-plain-large-records.yaml",
+        "yaml-plain-medium-nested.yaml",
+        "yaml-plain-medium-records.yaml",
+        "yaml-plain-small-records.yaml",
+        "yaml-rich-large.yaml",
+        "yaml-rich-medium.yaml",
+        "yaml-rich-small.yaml"
+      ]
+    },
+    "candidateFingerprint": {
+      "tree": "1c32fb9e668f65fb582c8fa75eac1a54bbd24f3feb0c610497863b4177ddc99c",
+      "fixtures": "6e27fbfddd3e9d44525c0dd35bc186ee6de9a3511db3712db7c394f8e1f9ab8b",
+      "files": 99,
+      "fixtureNames": [
+        "large-nested.json",
+        "large-records.json",
+        "medium-nested.json",
+        "medium-records.json",
+        "small-records.json",
+        "xlarge-records.json",
+        "yaml-plain-large-records.yaml",
+        "yaml-plain-medium-nested.yaml",
+        "yaml-plain-medium-records.yaml",
+        "yaml-plain-small-records.yaml",
+        "yaml-rich-large.yaml",
+        "yaml-rich-medium.yaml",
+        "yaml-rich-small.yaml"
+      ]
+    },
+    "harnessSha256": "1c589263c47c40f20847c11118503f618df5efb4e4df02dd892922ec29f3390b",
+    "cpuWorkerSha256": "35f9ea687049d981eb6184893dbb0887a7db3ea6632ab400f9655c6da58d5272",
+    "cliSha256": "473b79b907efc7833a9788dcaa31c5b88e399eb7788ef96e5983e6a467a4a4bd",
+    "supervisorSha256": "76aaa373ed5fc60120e5b4fcb522e573da5d29b96f4261060fee866f338f9346",
+    "node": "v25.9.0",
+    "executable": "/tmp/node-v25.9.0-linux-x64/bin/node",
+    "platform": "linux 6.18.35 x64",
+    "cpu": "AMD EPYC-Rome Processor",
+    "cores": 16,
+    "memoryIterations": 25,
+    "rounds": 3,
+    "dependencies": {
+      "baseline": {
+        "tsx": "4.23.0",
+        "typescript": "5.9.3",
+        "yaml": "2.9.0",
+        "js-yaml": "5.2.1"
+      },
+      "candidate": {
+        "tsx": "4.23.0",
+        "typescript": "5.9.3",
+        "yaml": "2.9.0",
+        "js-yaml": "5.2.1"
+      }
+    }
+  },
+  "summary": {
+    "cpu": {
+      "parse · medium-records": {
+        "pairs": [
+          {
+            "round": 1,
+            "baselineNs": 1053802.394736842,
+            "candidateNs": 1094234.0405405406,
+            "ratio": 1.0383673884265514
+          },
+          {
+            "round": 2,
+            "baselineNs": 1065783,
+            "candidateNs": 1129232.5915492957,
+            "ratio": 1.0595333117053807
+          },
+          {
+            "round": 3,
+            "baselineNs": 1097691.1095890412,
+            "candidateNs": 1029120.7721518987,
+            "ratio": 0.9375322102564771
+          }
+        ],
+        "medianRatio": 1.0383673884265514,
+        "ratioRange": [
+          0.9375322102564771,
+          1.0595333117053807
+        ]
+      },
+      "stringify · medium-records": {
+        "pairs": [
+          {
+            "round": 1,
+            "baselineNs": 1244596.7538461538,
+            "candidateNs": 1389293.9655172413,
+            "ratio": 1.1162603158203108
+          },
+          {
+            "round": 2,
+            "baselineNs": 1273860.9523809524,
+            "candidateNs": 1391849.7931034483,
+            "ratio": 1.0926230139184068
+          },
+          {
+            "round": 3,
+            "baselineNs": 1302263.6825396826,
+            "candidateNs": 1244184.2923076923,
+            "ratio": 0.9554012056001412
+          }
+        ],
+        "medianRatio": 1.0926230139184068,
+        "ratioRange": [
+          0.9554012056001412,
+          1.1162603158203108
+        ]
+      },
+      "parse · yaml-plain-medium-records": {
+        "pairs": [
+          {
+            "round": 1,
+            "baselineNs": 1791823.8,
+            "candidateNs": 1966721.6097560977,
+            "ratio": 1.0976088216687923
+          },
+          {
+            "round": 2,
+            "baselineNs": 1700705.1458333333,
+            "candidateNs": 1858316,
+            "ratio": 1.0926738268257774
+          },
+          {
+            "round": 3,
+            "baselineNs": 1843033.0227272727,
+            "candidateNs": 1852443.2045454546,
+            "ratio": 1.0051058129193242
+          }
+        ],
+        "medianRatio": 1.0926738268257774,
+        "ratioRange": [
+          1.0051058129193242,
+          1.0976088216687923
+        ]
+      },
+      "stringify · yaml-plain-medium-records": {
+        "pairs": [
+          {
+            "round": 1,
+            "baselineNs": 1288844.888888889,
+            "candidateNs": 1186950.1470588236,
+            "ratio": 0.9209410358775534
+          },
+          {
+            "round": 2,
+            "baselineNs": 1317325.1475409835,
+            "candidateNs": 1406375.6666666667,
+            "ratio": 1.067599498340946
+          },
+          {
+            "round": 3,
+            "baselineNs": 1297156.5806451612,
+            "candidateNs": 1475276.018181818,
+            "ratio": 1.1373152942323017
+          }
+        ],
+        "medianRatio": 1.067599498340946,
+        "ratioRange": [
+          0.9209410358775534,
+          1.1373152942323017
+        ]
+      },
+      "parse · yaml-rich-medium": {
+        "pairs": [
+          {
+            "round": 1,
+            "baselineNs": 2019366.675,
+            "candidateNs": 1992187.8536585367,
+            "ratio": 0.986540918161154
+          },
+          {
+            "round": 2,
+            "baselineNs": 1764974.1739130435,
+            "candidateNs": 2071514.4871794872,
+            "ratio": 1.173679772654592
+          },
+          {
+            "round": 3,
+            "baselineNs": 1831186.0909090908,
+            "candidateNs": 2276514.638888889,
+            "ratio": 1.2431913120084455
+          }
+        ],
+        "medianRatio": 1.173679772654592,
+        "ratioRange": [
+          0.986540918161154,
+          1.2431913120084455
+        ]
+      },
+      "stringify · yaml-rich-medium": {
+        "pairs": [
+          {
+            "round": 1,
+            "baselineNs": 1621334.08,
+            "candidateNs": 1709032.4468085107,
+            "ratio": 1.054090250670923
+          },
+          {
+            "round": 2,
+            "baselineNs": 2163539.2162162163,
+            "candidateNs": 1823035.3636363635,
+            "ratio": 0.84261720331774
+          },
+          {
+            "round": 3,
+            "baselineNs": 2002422.1463414633,
+            "candidateNs": 1883410.558139535,
+            "ratio": 0.940566184598303
+          }
+        ],
+        "medianRatio": 0.940566184598303,
+        "ratioRange": [
+          0.84261720331774,
+          1.054090250670923
+        ]
+      },
+      "parse options · yaml-plain-medium-records": {
+        "pairs": [
+          {
+            "round": 1,
+            "baselineNs": 1805112.2222222222,
+            "candidateNs": 1888786.2093023255,
+            "ratio": 1.0463538975859876
+          },
+          {
+            "round": 2,
+            "baselineNs": 1735134.5106382978,
+            "candidateNs": 1845487.4318181819,
+            "ratio": 1.063599058461058
+          },
+          {
+            "round": 3,
+            "baselineNs": 1778389.5111111111,
+            "candidateNs": 2092714.6923076923,
+            "ratio": 1.1767470957474302
+          }
+        ],
+        "medianRatio": 1.063599058461058,
+        "ratioRange": [
+          1.0463538975859876,
+          1.1767470957474302
+        ]
+      },
+      "diagnostic.parse · escaped-longquotes": {
+        "pairs": [
+          {
+            "round": 1,
+            "baselineNs": 22125.86559734513,
+            "candidateNs": 20819.251105906842,
+            "ratio": 0.940946288149058
+          },
+          {
+            "round": 2,
+            "baselineNs": 21882.549234135666,
+            "candidateNs": 23034.671272308577,
+            "ratio": 1.0526502660108568
+          },
+          {
+            "round": 3,
+            "baselineNs": 23794.121914956882,
+            "candidateNs": 22899.664567830565,
+            "ratio": 0.9624084742306013
+          }
+        ],
+        "medianRatio": 0.9624084742306013,
+        "ratioRange": [
+          0.940946288149058,
+          1.0526502660108568
+        ]
+      },
+      "diagnostic.parse · unescaped-longquotes": {
+        "pairs": [
+          {
+            "round": 1,
+            "baselineNs": 858.4906263749235,
+            "candidateNs": 897.5827957230531,
+            "ratio": 1.0455359303259966
+          },
+          {
+            "round": 2,
+            "baselineNs": 859.276245408262,
+            "candidateNs": 966.2061981424896,
+            "ratio": 1.1244418815318498
+          },
+          {
+            "round": 3,
+            "baselineNs": 846.5307923474139,
+            "candidateNs": 916.4908580593424,
+            "ratio": 1.0826432615852408
+          }
+        ],
+        "medianRatio": 1.0826432615852408,
+        "ratioRange": [
+          1.0455359303259966,
+          1.1244418815318498
+        ]
+      }
+    },
+    "memory": {
+      "parse · small-records": {
+        "pairs": [
+          {
+            "round": 1,
+            "rssBytes": {
+              "baseline": 94023680,
+              "candidate": 95830016
+            },
+            "heapDeltaBytes": {
+              "baseline": 175104,
+              "candidate": 205560,
+              "excess": 30456
+            },
+            "rssRatio": 1.0192115007623612,
+            "heapRatio": 1.1739309210526316
+          },
+          {
+            "round": 2,
+            "rssBytes": {
+              "baseline": 80699392,
+              "candidate": 80519168
+            },
+            "heapDeltaBytes": {
+              "baseline": 184960,
+              "candidate": 182720,
+              "excess": -2240
+            },
+            "rssRatio": 0.9977667241904375,
+            "heapRatio": 0.9878892733564014
+          },
+          {
+            "round": 3,
+            "rssBytes": {
+              "baseline": 80195584,
+              "candidate": 80269312
+            },
+            "heapDeltaBytes": {
+              "baseline": 171160,
+              "candidate": 177032,
+              "excess": 5872
+            },
+            "rssRatio": 1.0009193523673323,
+            "heapRatio": 1.0343070810937134
+          }
+        ],
+        "medianRssRatio": 1.0009193523673323,
+        "medianHeapRatio": 1.0343070810937134,
+        "medianHeapExcessBytes": 5872
+      },
+      "parse · yaml-rich-small": {
+        "pairs": [
+          {
+            "round": 1,
+            "rssBytes": {
+              "baseline": 80154624,
+              "candidate": 81506304
+            },
+            "heapDeltaBytes": {
+              "baseline": 378768,
+              "candidate": 383152,
+              "excess": 4384
+            },
+            "rssRatio": 1.0168634064080944,
+            "heapRatio": 1.0115743674228024
+          },
+          {
+            "round": 2,
+            "rssBytes": {
+              "baseline": 81539072,
+              "candidate": 80211968
+            },
+            "heapDeltaBytes": {
+              "baseline": 354440,
+              "candidate": 328056,
+              "excess": -26384
+            },
+            "rssRatio": 0.9837243180790677,
+            "heapRatio": 0.925561449046383
+          },
+          {
+            "round": 3,
+            "rssBytes": {
+              "baseline": 80400384,
+              "candidate": 80429056
+            },
+            "heapDeltaBytes": {
+              "baseline": 354632,
+              "candidate": 377992,
+              "excess": 23360
+            },
+            "rssRatio": 1.000356615212186,
+            "heapRatio": 1.0658711001827246
+          }
+        ],
+        "medianRssRatio": 1.000356615212186,
+        "medianHeapRatio": 1.0115743674228024,
+        "medianHeapExcessBytes": 4384
+      },
+      "stringify · yaml-rich-small": {
+        "pairs": [
+          {
+            "round": 1,
+            "rssBytes": {
+              "baseline": 81817600,
+              "candidate": 82333696
+            },
+            "heapDeltaBytes": {
+              "baseline": 110480,
+              "candidate": 105528,
+              "excess": -4952
+            },
+            "rssRatio": 1.00630788485607,
+            "heapRatio": 0.9551774076755974
+          },
+          {
+            "round": 2,
+            "rssBytes": {
+              "baseline": 80457728,
+              "candidate": 79654912
+            },
+            "heapDeltaBytes": {
+              "baseline": 112040,
+              "candidate": 106096,
+              "excess": -5944
+            },
+            "rssRatio": 0.9900218907498854,
+            "heapRatio": 0.946947518743306
+          },
+          {
+            "round": 3,
+            "rssBytes": {
+              "baseline": 79724544,
+              "candidate": 80109568
+            },
+            "heapDeltaBytes": {
+              "baseline": 92752,
+              "candidate": 113752,
+              "excess": 21000
+            },
+            "rssRatio": 1.0048294286888615,
+            "heapRatio": 1.226410212178713
+          }
+        ],
+        "medianRssRatio": 1.0048294286888615,
+        "medianHeapRatio": 0.9551774076755974,
+        "medianHeapExcessBytes": -4952
+      },
+      "stringify · yaml-rich-medium": {
+        "pairs": [
+          {
+            "round": 1,
+            "rssBytes": {
+              "baseline": 115961856,
+              "candidate": 115216384
+            },
+            "heapDeltaBytes": {
+              "baseline": 83632,
+              "candidate": 61736,
+              "excess": -21896
+            },
+            "rssRatio": 0.9935714033414574,
+            "heapRatio": 0.7381863401568778
+          },
+          {
+            "round": 2,
+            "rssBytes": {
+              "baseline": 116146176,
+              "candidate": 115224576
+            },
+            "heapDeltaBytes": {
+              "baseline": 84536,
+              "candidate": 80400,
+              "excess": -4136
+            },
+            "rssRatio": 0.9920651713922979,
+            "heapRatio": 0.9510740986088767
+          },
+          {
+            "round": 3,
+            "rssBytes": {
+              "baseline": 116973568,
+              "candidate": 116551680
+            },
+            "heapDeltaBytes": {
+              "baseline": 84536,
+              "candidate": 61736,
+              "excess": -22800
+            },
+            "rssRatio": 0.996393304853281,
+            "heapRatio": 0.7302924197974827
+          }
+        ],
+        "medianRssRatio": 0.9935714033414574,
+        "medianHeapRatio": 0.7381863401568778,
+        "medianHeapExcessBytes": -21896
+      }
+    },
+    "interpretation": "Quick estimate only; it does not satisfy the full acceptance threshold."
+  },
+  "elapsedMs": 46509
+}
