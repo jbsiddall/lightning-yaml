@@ -368,10 +368,30 @@ function checkDuplicateInventoryFixture() {
   throw new Error('Duplicate configured-symbol fixture was not rejected');
 }
 
+function assertUniqueMutationOutputIds(ids) {
+  const seen = new Set();
+  for (const id of ids) {
+    if (!/^mutation-\d{2}-[A-Za-z0-9_-]+$/.test(id)) throw new Error(`Unsafe mutation output id: ${id}`);
+    if (seen.has(id)) throw new Error(`Duplicate mutation output id: ${id}`);
+    seen.add(id);
+  }
+}
+
+function checkDuplicateMutationOutputFixture() {
+  try {
+    assertUniqueMutationOutputIds(['mutation-01-IsDocMarkerAt', 'mutation-01-IsDocMarkerAt']);
+  } catch (error) {
+    if (/Duplicate mutation output id/.test(String(error))) return;
+    throw error;
+  }
+  throw new Error('Duplicate mutation output fixture was not rejected');
+}
+
 try {
   const configuredSymbols = validateGroupMembership(verificationGroups, [...methods, ...dependencies]);
   checkDuplicateGroupFixture();
   checkDuplicateInventoryFixture();
+  checkDuplicateMutationOutputFixture();
   mkdirSync(output, { recursive: true });
   const version = run(['--version']).trim();
   if (!isPinnedDafnyVersion(version)) throw new Error(`Dafny 4.11.0 required; got ${version}`);
@@ -485,9 +505,12 @@ try {
       to: 'yes := true;',
     },
   ];
-  for (const mutation of mutations) {
+  const mutationOutputIds = mutations.map((mutation, index) => `mutation-${String(index + 1).padStart(2, '0')}-${mutation.symbol}`);
+  assertUniqueMutationOutputIds(mutationOutputIds);
+  for (const [index, mutation] of mutations.entries()) {
     const mutatedSource = replaceExactlyOnceInMethod(engineText, mutation.symbol, mutation.from, mutation.to);
-    const mutationDir = join(output, `mutation-${mutation.symbol}`);
+    const mutationId = mutationOutputIds[index];
+    const mutationDir = join(output, mutationId);
     mkdirSync(mutationDir, { recursive: true });
     const mutationSource = join(mutationDir, 'Engine.dfy');
     const mutationLog = join(mutationDir, 'verification.csv');
@@ -505,7 +528,7 @@ try {
     ]);
     writeFileSync(join(mutationDir, 'verifier.stdout.txt'), mutationOutput);
     const check = checkMutationLog(mutationLog, mutationOutput, mutation.symbol);
-    mutationChecks.push({ mutation: mutation.label, outcome: 'rejected as expected', ...check });
+    mutationChecks.push({ mutationId, mutation: mutation.label, outcome: 'rejected as expected', ...check });
   }
   const sourceFiles = ['src/dafny/Native.dfy', 'src/dafny/TagValues.dfy', 'src/dafny/Serializer.dfy'];
   const sourceHashes = Object.fromEntries(sourceFiles.map((file) => [file, sha256(readFileSync(join(root, file)))]));
@@ -516,6 +539,7 @@ try {
   const report = {
     schemaVersion: 1,
     selectorMembership: { expectedSymbols: configuredSymbols.length, selectedExactlyOnce: true, duplicateGroupFixture: 'rejected', duplicateInventoryFixture: 'rejected' },
+    mutationOutputIsolation: { caseCount: mutationChecks.length, uniqueCaseDirectories: true, duplicateOutputFixture: 'rejected' },
     compiler: {
       version,
       launcherExecutable: verifierPath,
