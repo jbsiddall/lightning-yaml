@@ -116,7 +116,9 @@
  */
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
-import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
+import { validateOptions, notYetSupported, activatesFeature, acceptAny, rejectsRecognizedOption, RecognizedRule, type OptionRule } from "./compat-options.ts";
+import { SurfaceHelpers, SurfaceOptions, SurfaceErrors } from "./dafny/generated/engine.js";
+import { exceptionToStringWithDafny } from "./dafny/bridge.ts";
 
 // ---------------------------------------------------------------------------
 // YAMLException — shaped like js-yaml's (name/reason/message + a cheap mark).
@@ -158,19 +160,32 @@ function markFrom(message: string, filename: string | undefined): Mark {
 }
 
 export class YAMLException extends Error {
-  override name = "YAMLException";
+  override name = SurfaceErrors.__default.YamlExceptionName();
   reason: string;
   mark: Mark;
 
   constructor(reason?: string, mark?: Mark) {
-    const r = reason ?? "unknown reason";
+    const reasonNullish = reason === undefined || reason === null;
+    const r = SurfaceErrors.__default.ChooseExceptionReason(
+      reason,
+      reasonNullish,
+      "unknown reason",
+    ) as string;
     super(r);
     this.reason = r;
-    this.mark = mark ?? { buffer: "", column: 0, line: 0, name: "", position: -1, snippet: "" };
+    const markNullish = mark === undefined || mark === null;
+    const freshDefault = markNullish
+      ? { buffer: "", column: 0, line: 0, name: "", position: -1, snippet: "" }
+      : undefined;
+    this.mark = SurfaceErrors.__default.ChooseExceptionMark(
+      mark,
+      markNullish,
+      freshDefault,
+    ) as Mark;
   }
 
   override toString(_compact?: boolean): string {
-    return `${this.name}: ${this.message}`;
+    return exceptionToStringWithDafny(this);
   }
 }
 
@@ -212,17 +227,17 @@ export interface TagDefinition {
 
 /** Stub mirroring js-yaml v5's `defineScalarTag`. Nothing reads the result yet. */
 export function defineScalarTag(tagName: string, _opts: Record<string, unknown> = {}): TagDefinition {
-  return { tagName, nodeKind: "scalar" };
+  return { tagName, nodeKind: SurfaceHelpers.__default.TagKindName(0) as TagDefinition["nodeKind"] };
 }
 
 /** Stub mirroring js-yaml v5's `defineSequenceTag`. Nothing reads the result yet. */
 export function defineSequenceTag(tagName: string, _opts: Record<string, unknown> = {}): TagDefinition {
-  return { tagName, nodeKind: "sequence" };
+  return { tagName, nodeKind: SurfaceHelpers.__default.TagKindName(1) as TagDefinition["nodeKind"] };
 }
 
 /** Stub mirroring js-yaml v5's `defineMappingTag`. Nothing reads the result yet. */
 export function defineMappingTag(tagName: string, _opts: Record<string, unknown> = {}): TagDefinition {
-  return { tagName, nodeKind: "mapping" };
+  return { tagName, nodeKind: SurfaceHelpers.__default.TagKindName(2) as TagDefinition["nodeKind"] };
 }
 
 /** Stub mirroring js-yaml v5's `Schema` (composition via `.withTags(...)`). A no-op. */
@@ -230,7 +245,7 @@ export class Schema {
   constructor(_tags?: readonly TagDefinition[]) {}
 
   withTags(..._tags: unknown[]): Schema {
-    return this;
+    return SurfaceHelpers.__default.ReturnSchemaIdentity(this) as Schema;
   }
 }
 
@@ -296,24 +311,27 @@ export interface DumpOptions {
 
 /** Only the default `CORE_SCHEMA` is a no-op; other schemas change scalar typing. */
 const schemaCoreOnly: OptionRule = (v) =>
-  v === CORE_SCHEMA
-    ? null
-    : "must be the default CORE schema — other schemas change scalar typing, which is not implemented yet";
+  rejectsRecognizedOption(RecognizedRule.RequireCoreSchemaIdentity, v, CORE_SCHEMA)
+    ? "must be the default CORE schema — other schemas change scalar typing, which is not implemented yet"
+    : null;
 
 const failOption = (message: string): never => {
   throw new YAMLException(`lightning-yaml js-yaml compat: ${message}`);
 };
 
 const LOAD_OPTION_RULES: Record<string, OptionRule> = {
-  filename: () => null, // honoured — threaded into a thrown YAMLException's mark
+  filename: acceptAny, // honoured — threaded into a thrown YAMLException's mark
   schema: schemaCoreOnly,
   json: (v) =>
-    v === true
-      ? null // last-wins is already our default (= `json: true`)
-      : "= false (throw on duplicate keys) is not supported yet — lightning-yaml keeps last-wins for JSON.parse parity",
+    rejectsRecognizedOption(RecognizedRule.RequireExactlyTrue, v)
+      ? "= false (throw on duplicate keys) is not supported yet — lightning-yaml keeps last-wins for JSON.parse parity"
+      : null, // last-wins is already our default (= `json: true`)
   maxAliases: notYetSupported,
   maxDepth: notYetSupported,
-  maxTotalMergeKeys: () => "is not supported — merge keys (`<<`) are outside YAML 1.2 core",
+  maxTotalMergeKeys: (v) =>
+    rejectsRecognizedOption(RecognizedRule.RejectEveryDefinedValue, v)
+      ? "is not supported — merge keys (`<<`) are outside YAML 1.2 core"
+      : null,
 };
 
 const DUMP_OPTION_RULES: Record<string, OptionRule> = {
@@ -373,7 +391,10 @@ export function loadAll(input: string, iteratorOrOpts?: ((doc: unknown) => void)
   // ignored). Otherwise (an iterator, `null`, or omitted 2nd arg) the options are the 3rd arg. This
   // asymmetry is deliberate — each shim matches its own real library — so do NOT "DRY" it into a shared
   // resolver with yaml-compat.ts; the two must stay opposite. (Locked by a regression test.)
-  const options = iteratorOrOpts != null && typeof iteratorOrOpts === "object" ? iteratorOrOpts : opts;
+  const useSecond = SurfaceOptions.__default.SelectJsYamlLoadAllOptions(
+    iteratorOrOpts != null && typeof iteratorOrOpts === "object",
+  );
+  const options = (useSecond ? iteratorOrOpts : opts) as LoadOptions | null | undefined;
   validateOptions(options, LOAD_OPTION_RULES, failOption);
   let docs: unknown[];
   try {

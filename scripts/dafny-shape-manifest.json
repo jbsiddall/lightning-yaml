@@ -1,0 +1,2651 @@
+{
+  "version": 1,
+  "nativeSha256": "89ba6224f08fb13a0388ce822d0d1f732483509b5f9e7368b4d9162cbb39a2d2",
+  "nativeIdentityHelpers": [
+    "boolValue",
+    "booleanValue",
+    "mapFromValue",
+    "mapValue",
+    "numberAsCounter",
+    "numberValue",
+    "setValue",
+    "stringValue",
+    "stringValueOf"
+  ],
+  "identitySites": {
+    "stringValueOf": {
+      "TagValues.Helpers.BuildSet": 1,
+      "TagValues.Helpers.BuildOmap": 1,
+      "DafnyCore.Engine.StringifyKeyValue": 1,
+      "DafnyCore.Engine.StringifyKeyMapping": 2,
+      "DafnyCore.Engine.KeyToString": 1,
+      "DafnyCore.Engine.InternKey": 1,
+      "DafnyCore.Engine.ParseFlowKey": 2,
+      "DafnyCore.Engine.ParseTaggedFlowKeyRaw": 2,
+      "DafnyCore.Engine.ScanTag": 3,
+      "DafnyCore.Engine.ParseTaggedFlowContent": 2,
+      "DafnyCore.Engine.ParseFlowMap": 3,
+      "DafnyCore.Engine.ParseTaggedBlockNode": 6,
+      "DafnyCore.Engine.ParseTaggedBlockMapKeyRaw": 2,
+      "DafnyCore.Engine.ParseBlockMapBody": 2,
+      "Serializer.Writer.IndentSpaces": 2,
+      "Serializer.Writer.DumpScanRefs": 1,
+      "Serializer.Writer.WriteScalar": 1,
+      "Serializer.Writer.WriteCollectionBody": 2,
+      "Serializer.Writer.WriteEntryValue": 1,
+      "Serializer.Writer.WriteDocumentValue": 1,
+      ".Adapter.ExceptionToString": 2,
+      ".Adapter.NotImplementedMessage": 1
+    },
+    "setValue": {
+      "TagValues.Helpers.BuildSet": 1
+    },
+    "mapValue": {
+      "TagValues.Helpers.BuildOmap": 1,
+      "DafnyCore.Engine.RegisterPendingAnchor": 1,
+      "DafnyCore.Engine.InternValue": 1,
+      "DafnyCore.Engine.ParseTagDirectiveArgs": 1
+    },
+    "numberValue": {
+      "DafnyCore.__default.Parse": 1,
+      "DafnyCore.__default.ParseAll": 1,
+      "DafnyCore.Engine.__ctor": 1,
+      "DafnyCore.Engine.Reset": 1,
+      "DafnyCore.Engine.HexValueGeneric": 1,
+      "DafnyCore.Engine.OctalValueGeneric": 1,
+      "DafnyCore.Engine.HexValue": 1,
+      "DafnyCore.Engine.OctalValue": 1,
+      "DafnyCore.Engine.TryNumber": 1,
+      "DafnyCore.Engine.TryNumberGeneric": 1,
+      "DafnyCore.Engine.Fail": 2,
+      "DafnyCore.Engine.StringifyKeyNode": 1,
+      "DafnyCore.Engine.InternKey": 1,
+      "DafnyCore.Engine.TryFlowNumber": 2,
+      "DafnyCore.Engine.ParseYamlDirectiveArgs": 1,
+      "DafnyCore.Engine.EndStream": 1,
+      "Serializer.Writer.DumpScanRefs": 2,
+      "Serializer.Writer.FormatCounter": 1,
+      ".Adapter.NormalizeParseOptions": 1
+    },
+    "boolValue": {
+      "DafnyCore.Engine.IsBoolWord": 2
+    },
+    "stringValue": {
+      "DafnyCore.Engine.ResolvePlain": 1,
+      "DafnyCore.Engine.ResolvePlainText": 1,
+      "DafnyCore.Engine.ParseFlowPlain": 1,
+      "DafnyCore.Engine.InternKey": 1,
+      "DafnyCore.Engine.ParseFlowKeyAnchored": 1,
+      "DafnyCore.Engine.RegisterPendingAnchor": 1,
+      "DafnyCore.Engine.ParseAlias": 1,
+      "DafnyCore.Engine.ScanTag": 3,
+      "DafnyCore.Engine.ApplyScalarTag": 2,
+      "DafnyCore.Engine.ParseFlowMap": 3,
+      "DafnyCore.Engine.InternValue": 1,
+      "DafnyCore.Engine.ParseDoubleQuotedSlow": 1,
+      "DafnyCore.Engine.ParseSingleQuotedSlow": 1,
+      "DafnyCore.Engine.ParseBlockScalar": 5,
+      "DafnyCore.Engine.ParseTagDirectiveArgs": 2,
+      "DafnyCore.Engine.ResolveBlockPlain": 1,
+      "DafnyCore.Engine.ParseTaggedBlockNode": 2,
+      "DafnyCore.Engine.ParseBlockMapBody": 3,
+      "Serializer.Writer.__ctor": 1,
+      "Serializer.Writer.IndentSpaces": 1,
+      "Serializer.Writer.DumpAssignAnchor": 1,
+      "Serializer.Writer.EncodeSingleQuoted": 5,
+      "Serializer.Writer.EncodeDoubleQuoted": 5,
+      "Serializer.Writer.EncodeBase64": 12,
+      "Serializer.Writer.WriteCollectionBody": 2
+    },
+    "booleanValue": {
+      "DafnyCore.Engine.StringifyKeyValue": 1,
+      "Serializer.Writer.WriteScalar": 1
+    },
+    "mapFromValue": {
+      "DafnyCore.Engine.StringifyKeyMapping": 1,
+      "DafnyCore.Engine.RegisterPendingAnchor": 1,
+      "DafnyCore.Engine.ParseAlias": 1,
+      "DafnyCore.Engine.ScanTag": 3,
+      "DafnyCore.Engine.InternValue": 1,
+      "DafnyCore.Engine.ParseTagDirectiveArgs": 1
+    },
+    "numberAsCounter": {
+      "DafnyCore.Engine.ParseYamlDirectiveArgs": 1,
+      "Serializer.Writer.DumpScanRefs": 1,
+      "Serializer.Writer.DumpNeedsAnchor": 1
+    }
+  },
+  "simpleNativeSites": {
+    "calls": {
+      "stringLength": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Helpers.DecodeBinary": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.ResolvePlainText": 1,
+        "Engine.StringifyKeyScalar": 1,
+        "Engine.FastMatchBlockKey": 1,
+        "Engine.InternKey": 1,
+        "Engine.DecodeTagPercent": 1,
+        "Engine.FastMatchFlowKey": 1,
+        "Engine.IsYamlVersionToken": 1,
+        "Engine.ApplyCollectionTag": 1,
+        "Writer.TryNumberGeneric": 1,
+        "Writer.IsPlainScalarSafe": 1,
+        "Writer.NeedsDoubleQuoting": 1,
+        "Writer.EncodeSingleQuoted": 1,
+        "Writer.EncodeDoubleQuoted": 1,
+        "Writer.WriteRootStringScalar": 1,
+        "Writer.DumpFinish": 1
+      },
+      "concat": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Engine.Fail": 6,
+        "Engine.FoldFlowPlain": 3,
+        "Engine.StringifyKeyArray": 6,
+        "Engine.StringifyKeyMapping": 5,
+        "Engine.ParseAlias": 4,
+        "Engine.DecodeTagPercent": 3,
+        "Engine.ScanTag": 7,
+        "Engine.ApplyScalarTag": 10,
+        "Engine.ParseDoubleQuotedSlow": 26,
+        "Engine.ParseSingleQuotedSlow": 6,
+        "Engine.ParseBlockScalar": 12,
+        "Engine.ParseYamlDirectiveArgs": 1,
+        "Engine.ParseTagDirectiveArgs": 2,
+        "Engine.ResolveBlockPlain": 3,
+        "Engine.ResolveBlockPlainRaw": 3,
+        "Engine.ApplyCollectionTag": 3,
+        "Writer.IndentSpaces": 1,
+        "Writer.DumpAssignAnchor": 1,
+        "Writer.HexEscape": 3,
+        "Writer.WriteBinaryScalar": 1,
+        "Writer.WriteCollectionBody": 5,
+        "Writer.WriteEntryValue": 22,
+        "Writer.WriteDocumentValue": 15,
+        "Adapter.ExceptionToString": 2,
+        "Adapter.NotImplementedMessage": 2
+      },
+      "slice": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Engine.TryNumber": 1,
+        "Engine.ResolvePlain": 1,
+        "Engine.FoldFlowPlain": 2,
+        "Engine.TryFlowNumber": 1,
+        "Engine.ParseTaggedFlowKeyRaw": 1,
+        "Engine.ScanAnchorOrAliasName": 1,
+        "Engine.ScanTagSuffixRaw": 1,
+        "Engine.DecodeTagPercent": 2,
+        "Engine.ScanTag": 2,
+        "Engine.ParseTaggedFlowContent": 1,
+        "Engine.ParseDoubleQuoted": 1,
+        "Engine.ParseDoubleQuotedSlow": 3,
+        "Engine.ParseSingleQuoted": 1,
+        "Engine.ParseSingleQuotedSlow": 3,
+        "Engine.ParseBlockScalar": 1,
+        "Engine.ReadDirectiveToken": 1,
+        "Engine.ParseYamlDirectiveArgs": 1,
+        "Engine.ResolveBlockPlain": 2,
+        "Engine.ResolveBlockPlainRaw": 3,
+        "Engine.ApplyCollectionTag": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Engine.ParseTaggedBlockMapKeyRaw": 1,
+        "Writer.EncodeSingleQuoted": 2,
+        "Writer.HexEscape": 2,
+        "Writer.EncodeDoubleQuoted": 2,
+        "Writer.WriteRootStringScalar": 1,
+        "Writer.EncodeBase64": 9
+      },
+      "arrayLength": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 2,
+        "Helpers.ValidatePairs": 2,
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyArray": 1,
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseFlowMap": 1,
+        "Engine.ParseBlockMapBody": 1,
+        "Writer.IndentSpaces": 1,
+        "Writer.DumpScanRefs": 3,
+        "Writer.IsEmptyContainer": 2,
+        "Writer.WriteCollectionBody": 3
+      },
+      "arrayGet": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 2,
+        "Helpers.ValidatePairs": 1,
+        "Engine.StringifyKeyArray": 1,
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseFlowMap": 5,
+        "Engine.PublishRecordKeys": 1,
+        "Engine.ParseBlockMapBody": 4,
+        "Writer.IndentSpaces": 2,
+        "Writer.DumpScanRefs": 2,
+        "Writer.WriteCollectionBody": 2
+      },
+      "objectGet": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 1,
+        "Engine.StringifyKeyMapping": 2,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteCollectionBody": 1
+      },
+      "isNull": {
+        "Helpers.BuildSet": 1,
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyValue": 1,
+        "Engine.KeyToString": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "setAdd": {
+        "Helpers.BuildSet": 1
+      },
+      "jsEqual": {
+        "Helpers.BuildOmap": 1,
+        "Helpers.ValidatePairs": 1,
+        "Engine.IsNullWord": 5,
+        "Engine.IsBoolWord": 6,
+        "Engine.ResolvePlainText": 1,
+        "Engine.ScanTag": 1,
+        "Engine.ApplyScalarTag": 20,
+        "Engine.ParseTaggedFlowContent": 4,
+        "Engine.ParseFlowMap": 1,
+        "Engine.ParseBlockScalar": 1,
+        "Engine.ParseTagDirectiveArgs": 2,
+        "Engine.ParseDirectives": 2,
+        "Engine.ParseBlockNode": 2,
+        "Engine.ApplyCollectionTag": 24,
+        "Engine.ParseTaggedBlockNode": 7,
+        "Engine.ParseBlockMapBody": 1,
+        "Writer.LooksLikeTypedScalar": 10,
+        "Writer.WriteRootStringScalar": 2,
+        "Writer.WriteBinaryScalar": 1
+      },
+      "mapSet": {
+        "Helpers.BuildOmap": 1,
+        "Engine.InternKey": 1,
+        "Engine.RegisterPendingAnchor": 1,
+        "Engine.InternValue": 1,
+        "Engine.ParseTagDirectiveArgs": 1,
+        "Writer.DumpScanRefs": 2,
+        "Writer.DumpAssignAnchor": 1,
+        "Writer.WriteCollectionBody": 1
+      },
+      "isObject": {
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyValue": 1,
+        "Engine.KeyToString": 1,
+        "Engine.IsTabRestrictedCollection": 1,
+        "Engine.IsPlainMapping": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "isArray": {
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyNode": 1,
+        "Engine.IsTabRestrictedCollection": 1,
+        "Engine.IsPlainMapping": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "numberMulAdd": {
+        "Engine.HexValueGeneric": 1,
+        "Engine.OctalValueGeneric": 1,
+        "Engine.HexValue": 1,
+        "Engine.OctalValue": 1,
+        "Engine.TryNumber": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.InternKey": 1,
+        "Engine.TryFlowNumber": 2
+      },
+      "numberNegate": {
+        "Engine.TryNumber": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.TryFlowNumber": 1
+      },
+      "isBoolean": {
+        "Engine.StringifyKeyValue": 1,
+        "Writer.WriteScalar": 1
+      },
+      "isNumber": {
+        "Engine.StringifyKeyValue": 1,
+        "Writer.WriteScalar": 1
+      },
+      "isString": {
+        "Engine.StringifyKeyValue": 1,
+        "Engine.StringifyKeyMapping": 2,
+        "Engine.KeyToString": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "mapGet": {
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.InternKey": 1,
+        "Engine.ParseAlias": 1,
+        "Engine.ScanTag": 3,
+        "Engine.InternValue": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.DumpNeedsAnchor": 1,
+        "Writer.WriteCollectionBody": 1,
+        "Writer.WriteEntryValue": 1
+      },
+      "arrayPush": {
+        "Engine.StringifyKeyNode": 1,
+        "Engine.ParseFlowSeq": 6,
+        "Engine.ParseFlowMap": 5,
+        "Engine.PublishRecordKeys": 1,
+        "Engine.ParseBlockSeqBody": 3,
+        "Engine.ParseBlockMapBody": 5,
+        "Engine.ParseAll": 1,
+        "Writer.__ctor": 1,
+        "Writer.IndentSpaces": 1,
+        "Writer.EncodeSingleQuoted": 5,
+        "Writer.EncodeDoubleQuoted": 5,
+        "Writer.EncodeBase64": 12
+      },
+      "isUndefined": {
+        "Engine.InternKey": 1,
+        "Engine.ParseAlias": 1,
+        "Engine.ScanTag": 3,
+        "Engine.InternValue": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.DumpNeedsAnchor": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteCollectionBody": 1,
+        "Writer.WriteEntryValue": 1
+      },
+      "numberAdd": {
+        "Engine.InternKey": 1
+      },
+      "numberLessEqual": {
+        "Engine.InternKey": 1
+      },
+      "mapSize": {
+        "Engine.InternValue": 1,
+        "Writer.WriteCollectionBody": 1
+      },
+      "mapHas": {
+        "Engine.ParseTagDirectiveArgs": 1
+      }
+    },
+    "inline": {
+      "stringLength": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Helpers.DecodeBinary": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.ResolvePlainText": 1,
+        "Engine.StringifyKeyScalar": 1,
+        "Engine.FastMatchBlockKey": 1,
+        "Engine.InternKey": 1,
+        "Engine.DecodeTagPercent": 1,
+        "Engine.FastMatchFlowKey": 1,
+        "Engine.IsYamlVersionToken": 1,
+        "Engine.ApplyCollectionTag": 1,
+        "Writer.TryNumberGeneric": 1,
+        "Writer.IsPlainScalarSafe": 1,
+        "Writer.NeedsDoubleQuoting": 1,
+        "Writer.EncodeSingleQuoted": 1,
+        "Writer.EncodeDoubleQuoted": 1,
+        "Writer.WriteRootStringScalar": 1,
+        "Writer.DumpFinish": 1
+      },
+      "slice": {
+        "Helpers.StripBase64Whitespace": 1,
+        "Engine.DecodeTagPercent": 2,
+        "Engine.ParseYamlDirectiveArgs": 1,
+        "Writer.EncodeSingleQuoted": 2,
+        "Writer.EncodeDoubleQuoted": 2,
+        "Writer.WriteRootStringScalar": 1
+      },
+      "arrayLength": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 2,
+        "Helpers.ValidatePairs": 2,
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyArray": 1,
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseFlowMap": 1,
+        "Engine.ParseBlockMapBody": 1,
+        "Writer.DumpScanRefs": 3,
+        "Writer.IsEmptyContainer": 2,
+        "Writer.WriteCollectionBody": 3
+      },
+      "arrayGet": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 2,
+        "Helpers.ValidatePairs": 1,
+        "Engine.StringifyKeyArray": 1,
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseFlowMap": 5,
+        "Engine.PublishRecordKeys": 1,
+        "Engine.ParseBlockMapBody": 4,
+        "Writer.DumpScanRefs": 2,
+        "Writer.WriteCollectionBody": 2
+      },
+      "objectGet": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 1,
+        "Engine.StringifyKeyMapping": 2,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteCollectionBody": 1
+      },
+      "isNull": {
+        "Helpers.BuildSet": 1,
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyValue": 1,
+        "Engine.KeyToString": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "isObject": {
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyValue": 1,
+        "Engine.KeyToString": 1,
+        "Engine.IsTabRestrictedCollection": 1,
+        "Engine.IsPlainMapping": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "isArray": {
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyNode": 1,
+        "Engine.IsTabRestrictedCollection": 1,
+        "Engine.IsPlainMapping": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "jsEqual": {
+        "Engine.IsNullWord": 5,
+        "Engine.IsBoolWord": 6,
+        "Engine.ResolvePlainText": 1,
+        "Engine.ScanTag": 1,
+        "Engine.ApplyScalarTag": 20,
+        "Engine.ParseTaggedFlowContent": 4,
+        "Engine.ParseFlowMap": 1,
+        "Engine.ParseBlockScalar": 1,
+        "Engine.ParseTagDirectiveArgs": 2,
+        "Engine.ParseDirectives": 2,
+        "Engine.ApplyCollectionTag": 24,
+        "Engine.ParseTaggedBlockNode": 6,
+        "Engine.ParseBlockMapBody": 1,
+        "Writer.LooksLikeTypedScalar": 10,
+        "Writer.WriteRootStringScalar": 1,
+        "Writer.WriteBinaryScalar": 1
+      },
+      "numberMulAdd": {
+        "Engine.HexValueGeneric": 1,
+        "Engine.HexValue": 1,
+        "Engine.TryNumber": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.TryFlowNumber": 2
+      },
+      "numberNegate": {
+        "Engine.TryNumber": 1,
+        "Engine.TryNumberGeneric": 1,
+        "Engine.TryFlowNumber": 1
+      },
+      "concat": {
+        "Engine.Fail": 2,
+        "Engine.FoldFlowPlain": 1,
+        "Engine.StringifyKeyArray": 5,
+        "Engine.StringifyKeyMapping": 4,
+        "Engine.ParseAlias": 2,
+        "Engine.ScanTag": 4,
+        "Engine.ApplyScalarTag": 4,
+        "Engine.ParseDoubleQuotedSlow": 19,
+        "Engine.ParseSingleQuotedSlow": 1,
+        "Engine.ParseBlockScalar": 7,
+        "Engine.ParseTagDirectiveArgs": 1,
+        "Engine.ResolveBlockPlain": 1,
+        "Engine.ResolveBlockPlainRaw": 1,
+        "Engine.ApplyCollectionTag": 1,
+        "Writer.IndentSpaces": 1,
+        "Writer.DumpAssignAnchor": 1,
+        "Writer.HexEscape": 2,
+        "Writer.WriteBinaryScalar": 1,
+        "Writer.WriteCollectionBody": 3,
+        "Writer.WriteEntryValue": 7,
+        "Writer.WriteDocumentValue": 6,
+        "Adapter.NotImplementedMessage": 1
+      },
+      "isBoolean": {
+        "Engine.StringifyKeyValue": 1,
+        "Writer.WriteScalar": 1
+      },
+      "isNumber": {
+        "Engine.StringifyKeyValue": 1,
+        "Writer.WriteScalar": 1
+      },
+      "isString": {
+        "Engine.StringifyKeyValue": 1,
+        "Engine.StringifyKeyMapping": 2,
+        "Engine.KeyToString": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "mapGet": {
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseAlias": 1,
+        "Engine.ScanTag": 3,
+        "Engine.InternValue": 1
+      },
+      "isUndefined": {
+        "Engine.InternKey": 1,
+        "Engine.ParseAlias": 1,
+        "Engine.ScanTag": 3,
+        "Engine.InternValue": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.DumpNeedsAnchor": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteCollectionBody": 1,
+        "Writer.WriteEntryValue": 1
+      },
+      "mapSize": {
+        "Engine.InternValue": 1
+      },
+      "mapHas": {
+        "Engine.ParseTagDirectiveArgs": 1
+      }
+    },
+    "statementInline": {
+      "setAdd": {
+        "Helpers.BuildSet": 1
+      },
+      "mapSet": {
+        "Helpers.BuildOmap": 1,
+        "Engine.RegisterPendingAnchor": 1,
+        "Engine.InternValue": 1,
+        "Engine.ParseTagDirectiveArgs": 1
+      },
+      "arrayPush": {
+        "Engine.ParseFlowSeq": 6,
+        "Engine.ParseFlowMap": 5,
+        "Engine.PublishRecordKeys": 1,
+        "Engine.ParseBlockSeqBody": 2,
+        "Engine.ParseBlockMapBody": 5,
+        "Engine.ParseAll": 1,
+        "Writer.EncodeSingleQuoted": 3,
+        "Writer.EncodeDoubleQuoted": 3,
+        "Writer.EncodeBase64": 3
+      }
+    }
+  },
+  "nativeBindingSites": [
+    {
+      "member": "_$$_toString",
+      "binding": "native_$$_toString",
+      "alias": "n0",
+      "sites": {
+        "DafnyCore.Engine.Fail": 2,
+        "DafnyCore.Engine.ParseYamlDirectiveArgs": 1
+      }
+    },
+    {
+      "member": "arrayGet",
+      "binding": "nativeArrayGet",
+      "alias": "n1",
+      "sites": {
+        "Serializer.Writer.IndentSpaces": 2
+      }
+    },
+    {
+      "member": "arrayLength",
+      "binding": "nativeArrayLength",
+      "alias": "n2",
+      "sites": {
+        "Serializer.Writer.IndentSpaces": 1
+      }
+    },
+    {
+      "member": "arrayPush",
+      "binding": "nativeArrayPush",
+      "alias": "n3",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyNode": 1,
+        "DafnyCore.Engine.ParseBlockSeqBody": 1,
+        "Serializer.Writer.__ctor": 1,
+        "Serializer.Writer.IndentSpaces": 1,
+        "Serializer.Writer.EncodeSingleQuoted": 2,
+        "Serializer.Writer.EncodeDoubleQuoted": 2,
+        "Serializer.Writer.EncodeBase64": 9
+      }
+    },
+    {
+      "member": "byteGet",
+      "binding": "nativeByteGet",
+      "alias": "n4",
+      "sites": {
+        "TagValues.Helpers.BASE64__INV": 1,
+        "DafnyCore.Engine.StringifyKeyNode": 1,
+        "Serializer.Writer.EncodeBase64": 6
+      }
+    },
+    {
+      "member": "byteLength",
+      "binding": "nativeByteLength",
+      "alias": "n5",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyNode": 1,
+        "Serializer.Writer.EncodeBase64": 1
+      }
+    },
+    {
+      "member": "byteSet",
+      "binding": "nativeByteSet",
+      "alias": "n6",
+      "sites": {
+        "TagValues.Helpers.__ctor": 6,
+        "TagValues.Helpers.DecodeBinary": 3
+      }
+    },
+    {
+      "member": "codeUnitAt",
+      "binding": "nativeCodeUnitAt",
+      "alias": "n7",
+      "sites": {
+        "TagValues.Helpers.StripBase64Whitespace": 2,
+        "TagValues.Helpers.DecodeBinary": 7,
+        "DafnyCore.Engine.ParseBlockScalar": 1,
+        "Serializer.Writer.TryNumberGeneric": 14,
+        "Serializer.Writer.HexDigits": 1,
+        "Serializer.Writer.OctalDigits": 1,
+        "Serializer.Writer.IsPlainScalarSafe": 5,
+        "Serializer.Writer.NeedsDoubleQuoting": 1,
+        "Serializer.Writer.EncodeSingleQuoted": 1,
+        "Serializer.Writer.EncodeDoubleQuoted": 1,
+        "Serializer.Writer.DumpFinish": 1
+      }
+    },
+    {
+      "member": "concat",
+      "binding": "nativeConcat",
+      "alias": "n8",
+      "sites": {
+        "TagValues.Helpers.StripBase64Whitespace": 1,
+        "DafnyCore.Engine.Fail": 4,
+        "DafnyCore.Engine.FoldFlowPlain": 2,
+        "DafnyCore.Engine.StringifyKeyArray": 1,
+        "DafnyCore.Engine.StringifyKeyMapping": 1,
+        "DafnyCore.Engine.ParseAlias": 2,
+        "DafnyCore.Engine.DecodeTagPercent": 3,
+        "DafnyCore.Engine.ScanTag": 3,
+        "DafnyCore.Engine.ApplyScalarTag": 6,
+        "DafnyCore.Engine.ParseDoubleQuotedSlow": 7,
+        "DafnyCore.Engine.ParseSingleQuotedSlow": 5,
+        "DafnyCore.Engine.ParseBlockScalar": 5,
+        "DafnyCore.Engine.ParseYamlDirectiveArgs": 1,
+        "DafnyCore.Engine.ParseTagDirectiveArgs": 1,
+        "DafnyCore.Engine.ResolveBlockPlain": 2,
+        "DafnyCore.Engine.ResolveBlockPlainRaw": 2,
+        "DafnyCore.Engine.ApplyCollectionTag": 2,
+        "Serializer.Writer.HexEscape": 1,
+        "Serializer.Writer.WriteCollectionBody": 2,
+        "Serializer.Writer.WriteEntryValue": 15,
+        "Serializer.Writer.WriteDocumentValue": 9,
+        ".Adapter.ExceptionToString": 2,
+        ".Adapter.NotImplementedMessage": 1
+      }
+    },
+    {
+      "member": "createArray",
+      "binding": "nativeCreateArray",
+      "alias": "n9",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyNode": 1,
+        "DafnyCore.Engine.ParseFlowSeq": 1,
+        "DafnyCore.Engine.ParseFlowMap": 2,
+        "DafnyCore.Engine.PublishRecordKeys": 1,
+        "DafnyCore.Engine.ParseBlockSeqBody": 1,
+        "DafnyCore.Engine.ParseBlockMapBody": 2,
+        "DafnyCore.Engine.ParseAll": 1,
+        "Serializer.Writer.__ctor": 1,
+        "Serializer.Writer.EncodeSingleQuoted": 1,
+        "Serializer.Writer.EncodeDoubleQuoted": 1,
+        "Serializer.Writer.EncodeBase64": 1
+      }
+    },
+    {
+      "member": "createObject",
+      "binding": "nativeCreateObject",
+      "alias": "n10",
+      "sites": {
+        "DafnyCore.Engine.MakeSinglePair": 1,
+        "DafnyCore.Engine.ParseFlowExplicitEntry": 1,
+        "DafnyCore.Engine.ParseFlowMap": 1,
+        "DafnyCore.Engine.ParseBlockMapBody": 1
+      }
+    },
+    {
+      "member": "createUint8Array",
+      "binding": "nativeCreateUint8Array",
+      "alias": "n11",
+      "sites": {
+        "TagValues.Helpers.__ctor": 1,
+        "TagValues.Helpers.DecodeBinary": 2
+      }
+    },
+    {
+      "member": "emptyMap",
+      "binding": "nativeEmptyMap",
+      "alias": "n12",
+      "sites": {
+        "Serializer.Writer.__ctor": 3,
+        "Serializer.Writer.DumpFinish": 3,
+        "Serializer.Writer.Stringify": 1
+      }
+    },
+    {
+      "member": "euclideanDivisionNumber",
+      "binding": "nativeEuclideanDivisionNumber",
+      "alias": "n13",
+      "sites": {
+        "TagValues.Helpers.DecodeBinary": 3,
+        "Serializer.Writer.HexEscape": 1,
+        "Serializer.Writer.EncodeBase64": 8
+      }
+    },
+    {
+      "member": "euclideanModuloNumber",
+      "binding": "nativeEuclideanModuloNumber",
+      "alias": "n14",
+      "sites": {
+        "TagValues.Helpers.DecodeBinary": 3,
+        "Serializer.Writer.HexEscape": 1,
+        "Serializer.Writer.EncodeBase64": 6
+      }
+    },
+    {
+      "member": "fail",
+      "binding": "nativeFail",
+      "alias": "n15",
+      "sites": {
+        "DafnyCore.Engine.Fail": 2,
+        "Serializer.Writer.DumpScanRefs": 1,
+        "Serializer.Writer.WriteCollectionBody": 1
+      }
+    },
+    {
+      "member": "formatNumber",
+      "binding": "nativeFormatNumber",
+      "alias": "n16",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyValue": 1,
+        "Serializer.Writer.FormatCounter": 1,
+        "Serializer.Writer.FormatNumberValue": 1
+      }
+    },
+    {
+      "member": "indexOf",
+      "binding": "nativeIndexOf",
+      "alias": "n17",
+      "sites": {
+        "DafnyCore.Engine.SkipFlowWsSlow": 1,
+        "DafnyCore.Engine.StringifyKeyScalar": 3,
+        "DafnyCore.Engine.DecodeTagPercent": 1,
+        "DafnyCore.Engine.ScanTag": 1,
+        "DafnyCore.Engine.ParseDoubleQuoted": 3,
+        "DafnyCore.Engine.ParseSingleQuoted": 2,
+        "DafnyCore.Engine.SkipBlockScalarBlankLines": 1,
+        "DafnyCore.Engine.ParseBlockScalar": 2,
+        "DafnyCore.Engine.FinishDirectiveLine": 1,
+        "DafnyCore.Engine.ParseYamlDirectiveArgs": 1,
+        "DafnyCore.Engine.AdvanceCountingBreaks": 2
+      }
+    },
+    {
+      "member": "isMap",
+      "binding": "nativeIsMap",
+      "alias": "n18",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyNode": 1,
+        "DafnyCore.Engine.IsTabRestrictedCollection": 1,
+        "DafnyCore.Engine.IsPlainMapping": 1
+      }
+    },
+    {
+      "member": "isSet",
+      "binding": "nativeIsSet",
+      "alias": "n19",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyNode": 1,
+        "DafnyCore.Engine.IsTabRestrictedCollection": 1,
+        "DafnyCore.Engine.IsPlainMapping": 1
+      }
+    },
+    {
+      "member": "isUint8Array",
+      "binding": "nativeIsUint8Array",
+      "alias": "n20",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyNode": 1,
+        "DafnyCore.Engine.IsTabRestrictedCollection": 1,
+        "DafnyCore.Engine.IsPlainMapping": 1,
+        "Serializer.Writer.DumpScanRefs": 1,
+        "Serializer.Writer.WriteEntryValue": 1,
+        "Serializer.Writer.WriteDocumentValue": 1
+      }
+    },
+    {
+      "member": "join",
+      "binding": "nativeJoin",
+      "alias": "n21",
+      "sites": {
+        "Serializer.Writer.EncodeSingleQuoted": 1,
+        "Serializer.Writer.EncodeDoubleQuoted": 1,
+        "Serializer.Writer.EncodeBase64": 1
+      }
+    },
+    {
+      "member": "jsEqual",
+      "binding": "nativeJsEqual",
+      "alias": "n22",
+      "sites": {
+        "TagValues.Helpers.BuildOmap": 1,
+        "TagValues.Helpers.ValidatePairs": 1,
+        "DafnyCore.Engine.ParseBlockNode": 2,
+        "DafnyCore.Engine.ParseTaggedBlockNode": 1,
+        "Serializer.Writer.WriteRootStringScalar": 1
+      }
+    },
+    {
+      "member": "jsonQuote",
+      "binding": "nativeJsonQuote",
+      "alias": "n23",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyScalar": 2
+      }
+    },
+    {
+      "member": "mapCreate",
+      "binding": "nativeMapCreate",
+      "alias": "n24",
+      "sites": {
+        "TagValues.Helpers.BuildOmap": 1,
+        "DafnyCore.Engine.Reset": 1,
+        "DafnyCore.Engine.RegisterPendingAnchor": 1,
+        "DafnyCore.Engine.InternValue": 1,
+        "DafnyCore.Engine.ParseTagDirectiveArgs": 1,
+        "Serializer.Writer.Stringify": 3
+      }
+    },
+    {
+      "member": "mapGet",
+      "binding": "nativeMapGet",
+      "alias": "n25",
+      "sites": {
+        "DafnyCore.Engine.InternKey": 1,
+        "Serializer.Writer.DumpScanRefs": 1,
+        "Serializer.Writer.DumpNeedsAnchor": 1,
+        "Serializer.Writer.WriteCollectionBody": 1,
+        "Serializer.Writer.WriteEntryValue": 1
+      }
+    },
+    {
+      "member": "mapKeys",
+      "binding": "nativeMapKeys",
+      "alias": "n26",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyNode": 1
+      }
+    },
+    {
+      "member": "mapSet",
+      "binding": "nativeMapSet",
+      "alias": "n27",
+      "sites": {
+        "DafnyCore.Engine.InternKey": 1,
+        "Serializer.Writer.DumpScanRefs": 2,
+        "Serializer.Writer.DumpAssignAnchor": 1,
+        "Serializer.Writer.WriteCollectionBody": 1
+      }
+    },
+    {
+      "member": "mapSize",
+      "binding": "nativeMapSize",
+      "alias": "n28",
+      "sites": {
+        "Serializer.Writer.WriteCollectionBody": 1
+      }
+    },
+    {
+      "member": "noDocumentValue",
+      "binding": "nativeNoDocumentValue",
+      "alias": "n29",
+      "sites": {
+        "DafnyCore.Engine.ParseNextDocument": 2
+      }
+    },
+    {
+      "member": "notNumericValue",
+      "binding": "nativeNotNumericValue",
+      "alias": "n30",
+      "sites": {
+        "DafnyCore.Engine.IsBoolWord": 1,
+        "DafnyCore.Engine.HexValueGeneric": 1,
+        "DafnyCore.Engine.OctalValueGeneric": 1,
+        "DafnyCore.Engine.HexValue": 1,
+        "DafnyCore.Engine.OctalValue": 1,
+        "DafnyCore.Engine.TryNumber": 1,
+        "DafnyCore.Engine.TryNumberGeneric": 1,
+        "DafnyCore.Engine.ResolvePlain": 2,
+        "DafnyCore.Engine.ResolvePlainText": 2,
+        "DafnyCore.Engine.StringifyKeyScalar": 2,
+        "DafnyCore.Engine.TryFlowNumber": 1,
+        "DafnyCore.Engine.ParseFlowValue": 1,
+        "DafnyCore.Engine.ApplyScalarTag": 2
+      }
+    },
+    {
+      "member": "nullValue",
+      "binding": "nativeNullValue",
+      "alias": "n31",
+      "sites": {
+        "DafnyCore.Engine.ResolvePlain": 2,
+        "DafnyCore.Engine.ResolvePlainText": 2,
+        "DafnyCore.Engine.ApplyScalarTag": 1,
+        "DafnyCore.Engine.MakeSinglePair": 1,
+        "DafnyCore.Engine.ParseFlowExplicitEntry": 1,
+        "DafnyCore.Engine.ParseFlowMap": 1,
+        "DafnyCore.Engine.ParseBlockValue": 2,
+        "DafnyCore.Engine.ParseBlockSeqBody": 1,
+        "DafnyCore.Engine.ParseBlockMapBody": 1,
+        "DafnyCore.Engine.ParseSingle": 1,
+        "DafnyCore.Engine.ParseNextDocument": 3
+      }
+    },
+    {
+      "member": "numberAdd",
+      "binding": "nativeNumberAdd",
+      "alias": "n32",
+      "sites": {
+        "DafnyCore.Engine.InternKey": 1
+      }
+    },
+    {
+      "member": "numberIsNaN",
+      "binding": "nativeNumberIsNaN",
+      "alias": "n33",
+      "sites": {
+        "Serializer.Writer.FormatNumberValue": 1
+      }
+    },
+    {
+      "member": "numberIsNegativeInfinity",
+      "binding": "nativeNumberIsNegativeInfinity",
+      "alias": "n34",
+      "sites": {
+        "Serializer.Writer.FormatNumberValue": 1
+      }
+    },
+    {
+      "member": "numberIsNegativeZero",
+      "binding": "nativeNumberIsNegativeZero",
+      "alias": "n35",
+      "sites": {
+        "Serializer.Writer.FormatNumberValue": 1
+      }
+    },
+    {
+      "member": "numberIsPositiveInfinity",
+      "binding": "nativeNumberIsPositiveInfinity",
+      "alias": "n36",
+      "sites": {
+        "Serializer.Writer.FormatNumberValue": 1
+      }
+    },
+    {
+      "member": "numberLessEqual",
+      "binding": "nativeNumberLessEqual",
+      "alias": "n37",
+      "sites": {
+        "DafnyCore.Engine.InternKey": 1
+      }
+    },
+    {
+      "member": "numberMulAdd",
+      "binding": "nativeNumberMulAdd",
+      "alias": "n38",
+      "sites": {
+        "DafnyCore.Engine.OctalValueGeneric": 1,
+        "DafnyCore.Engine.OctalValue": 1,
+        "DafnyCore.Engine.InternKey": 1
+      }
+    },
+    {
+      "member": "objectKeys",
+      "binding": "nativeObjectKeys",
+      "alias": "n39",
+      "sites": {
+        "TagValues.Helpers.BuildSet": 1,
+        "TagValues.Helpers.SinglePairKeys": 1,
+        "DafnyCore.Engine.StringifyKeyNode": 1,
+        "Serializer.Writer.DumpScanRefs": 1,
+        "Serializer.Writer.IsEmptyContainer": 1,
+        "Serializer.Writer.WriteCollectionBody": 1
+      }
+    },
+    {
+      "member": "objectSetSafe",
+      "binding": "nativeObjectSetSafe",
+      "alias": "n40",
+      "sites": {
+        "DafnyCore.Engine.StoreKey": 1
+      }
+    },
+    {
+      "member": "parseNumber",
+      "binding": "nativeParseNumber",
+      "alias": "n41",
+      "sites": {
+        "DafnyCore.Engine.TryNumber": 1,
+        "DafnyCore.Engine.TryNumberGeneric": 1,
+        "DafnyCore.Engine.TryFlowNumber": 1,
+        "DafnyCore.Engine.ParseYamlDirectiveArgs": 1
+      }
+    },
+    {
+      "member": "parseSpecialNumber",
+      "binding": "nativeParseSpecialNumber",
+      "alias": "n42",
+      "sites": {
+        "DafnyCore.Engine.TryNumber": 2,
+        "DafnyCore.Engine.TryNumberGeneric": 2,
+        "DafnyCore.Engine.TryFlowNumber": 2
+      }
+    },
+    {
+      "member": "repeat",
+      "binding": "nativeRepeat",
+      "alias": "n43",
+      "sites": {
+        "DafnyCore.Engine.FoldFlowPlain": 1,
+        "DafnyCore.Engine.ParseDoubleQuotedSlow": 1,
+        "DafnyCore.Engine.ParseSingleQuotedSlow": 1,
+        "DafnyCore.Engine.ParseBlockScalar": 6,
+        "DafnyCore.Engine.ResolveBlockPlain": 1,
+        "DafnyCore.Engine.ResolveBlockPlainRaw": 1
+      }
+    },
+    {
+      "member": "sameValue",
+      "binding": "nativeSameValue",
+      "alias": "n44",
+      "sites": {
+        "DafnyCore.Engine.ResolvePlain": 2,
+        "DafnyCore.Engine.ResolvePlainText": 2,
+        "DafnyCore.Engine.StringifyKeyScalar": 2,
+        "DafnyCore.Engine.ParseFlowValue": 1,
+        "DafnyCore.Engine.ApplyScalarTag": 2
+      }
+    },
+    {
+      "member": "setCreate",
+      "binding": "nativeSetCreate",
+      "alias": "n45",
+      "sites": {
+        "TagValues.Helpers.BuildSet": 1
+      }
+    },
+    {
+      "member": "setValues",
+      "binding": "nativeSetValues",
+      "alias": "n46",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyNode": 1
+      }
+    },
+    {
+      "member": "slice",
+      "binding": "nativeSlice",
+      "alias": "n47",
+      "sites": {
+        "DafnyCore.Engine.TryNumber": 1,
+        "DafnyCore.Engine.ResolvePlain": 1,
+        "DafnyCore.Engine.FoldFlowPlain": 2,
+        "DafnyCore.Engine.TryFlowNumber": 1,
+        "DafnyCore.Engine.ParseTaggedFlowKeyRaw": 1,
+        "DafnyCore.Engine.ScanAnchorOrAliasName": 1,
+        "DafnyCore.Engine.ScanTagSuffixRaw": 1,
+        "DafnyCore.Engine.ScanTag": 2,
+        "DafnyCore.Engine.ParseTaggedFlowContent": 1,
+        "DafnyCore.Engine.ParseDoubleQuoted": 1,
+        "DafnyCore.Engine.ParseDoubleQuotedSlow": 3,
+        "DafnyCore.Engine.ParseSingleQuoted": 1,
+        "DafnyCore.Engine.ParseSingleQuotedSlow": 3,
+        "DafnyCore.Engine.ParseBlockScalar": 1,
+        "DafnyCore.Engine.ReadDirectiveToken": 1,
+        "DafnyCore.Engine.ResolveBlockPlain": 2,
+        "DafnyCore.Engine.ResolveBlockPlainRaw": 3,
+        "DafnyCore.Engine.ApplyCollectionTag": 1,
+        "DafnyCore.Engine.ParseTaggedBlockNode": 1,
+        "DafnyCore.Engine.ParseTaggedBlockMapKeyRaw": 1,
+        "Serializer.Writer.HexEscape": 2,
+        "Serializer.Writer.EncodeBase64": 9
+      }
+    },
+    {
+      "member": "stringFallback",
+      "binding": "nativeStringFallback",
+      "alias": "n48",
+      "sites": {
+        "DafnyCore.Engine.StringifyKeyValue": 1,
+        "DafnyCore.Engine.KeyToString": 1,
+        "Serializer.Writer.WriteScalar": 1
+      }
+    },
+    {
+      "member": "stringFromCharCode",
+      "binding": "nativeStringFromCharCode",
+      "alias": "n49",
+      "sites": {
+        "DafnyCore.Engine.DecodeTagPercent": 1,
+        "DafnyCore.Engine.ParseDoubleQuotedSlow": 2
+      }
+    },
+    {
+      "member": "stringFromCodePoint",
+      "binding": "nativeStringFromCodePoint",
+      "alias": "n50",
+      "sites": {
+        "DafnyCore.Engine.ParseDoubleQuotedSlow": 1
+      }
+    },
+    {
+      "member": "undefinedValue",
+      "binding": "nativeUndefinedValue",
+      "alias": "n51",
+      "sites": {
+        "TagValues.Helpers.DecodeBinary": 1,
+        "TagValues.Helpers.BuildSet": 1,
+        "TagValues.Helpers.BuildOmap": 1,
+        "TagValues.Helpers.SinglePairKeys": 2,
+        "DafnyCore.Engine.Reset": 4,
+        "DafnyCore.Engine.ScanTag": 3,
+        "DafnyCore.Engine.ParseFlowMap": 1,
+        "DafnyCore.Engine.PublishRecordKeys": 1,
+        "DafnyCore.Engine.ParseDirectives": 2,
+        "DafnyCore.Engine.EndStream": 1,
+        "Serializer.Writer.WriteEntryValue": 1,
+        ".Adapter.NormalizeParseOptions": 3
+      }
+    }
+  ],
+  "charCodeSites": {
+    "Engine.Reset": {
+      "this.src": 1
+    },
+    "Engine.FlowSeparatorAt": {
+      "this.src": 1
+    },
+    "Engine.ScanFlowPlainLine": {
+      "this.src": 3
+    },
+    "Engine.TrimTrailingWs": {
+      "this.src": 1
+    },
+    "Engine.HexValueGeneric": {
+      "s": 1
+    },
+    "Engine.OctalValueGeneric": {
+      "s": 1
+    },
+    "Engine.HexValue": {
+      "this.src": 1
+    },
+    "Engine.OctalValue": {
+      "this.src": 1
+    },
+    "Engine.TryNumber": {
+      "this.src": 14
+    },
+    "Engine.TryNumberGeneric": {
+      "s": 14
+    },
+    "Engine.ResolvePlain": {
+      "this.src": 1
+    },
+    "Engine.ResolvePlainText": {
+      "text": 1
+    },
+    "Engine.SkipInlineSpaces": {
+      "this.src": 2
+    },
+    "Engine.Fail": {
+      "this.src": 1
+    },
+    "Engine.SkipFlowWs": {
+      "this.src": 1
+    },
+    "Engine.SkipFlowWsSlow": {
+      "this.src": 4
+    },
+    "Engine.ScanFlowPlainEnd": {
+      "this.src": 3
+    },
+    "Engine.FoldFlowPlain": {
+      "this.src": 8
+    },
+    "Engine.StringifyKeyScalar": {
+      "text": 1
+    },
+    "Engine.FastMatchBlockKey": {
+      "this.src": 3,
+      "expected": 1
+    },
+    "Engine.NumberBoundary": {
+      "this.src": 5
+    },
+    "Engine.TryFlowNumber": {
+      "this.src": 15
+    },
+    "Engine.ParseFlowValue": {
+      "this.src": 1
+    },
+    "Engine.ParseFlowKey": {
+      "this.src": 1
+    },
+    "Engine.ParseFlowKeyAnchored": {
+      "this.src": 7
+    },
+    "Engine.ParseFlowKeyTagged": {
+      "this.src": 5
+    },
+    "Engine.ParseTaggedFlowKeyRaw": {
+      "this.src": 4
+    },
+    "Engine.ScanAnchorOrAliasName": {
+      "this.src": 1
+    },
+    "Engine.ScanTagSuffixRaw": {
+      "this.src": 1
+    },
+    "Engine.DecodeTagPercent": {
+      "s": 3
+    },
+    "Engine.ScanTag": {
+      "this.src": 4
+    },
+    "Engine.CheckTagSeparator": {
+      "this.src": 1
+    },
+    "Engine.ParseTaggedFlowValue": {
+      "this.src": 5
+    },
+    "Engine.ParseTaggedFlowContent": {
+      "this.src": 4
+    },
+    "Engine.MakeSinglePair": {
+      "this.src": 3
+    },
+    "Engine.ParseFlowExplicitEntry": {
+      "this.src": 5
+    },
+    "Engine.ParseFlowSeq": {
+      "this.src": 8
+    },
+    "Engine.ParseFlowMap": {
+      "this.src": 11
+    },
+    "Engine.FastMatchFlowKey": {
+      "this.src": 3,
+      "expected": 1
+    },
+    "Engine.LooksLikeDocMarkerAt": {
+      "this.src": 4
+    },
+    "Engine.FoldFlowBreak": {
+      "this.src": 5
+    },
+    "Engine.ParseDoubleQuotedSlow": {
+      "this.src": 9
+    },
+    "Engine.ReadHex": {
+      "this.src": 1
+    },
+    "Engine.ParseSingleQuoted": {
+      "this.src": 1
+    },
+    "Engine.ParseSingleQuotedSlow": {
+      "this.src": 4
+    },
+    "Engine.DetectBlockScalarIndent": {
+      "this.src": 4
+    },
+    "Engine.SkipBlockScalarBlankLines": {
+      "this.src": 4
+    },
+    "Engine.ParseBlockScalar": {
+      "this.src": 11
+    },
+    "Engine.SkipBlankLines": {
+      "this.src": 8
+    },
+    "Engine.EndLine": {
+      "this.src": 7
+    },
+    "Engine.ReadDirectiveToken": {
+      "this.src": 1
+    },
+    "Engine.IsYamlVersionToken": {
+      "s": 3
+    },
+    "Engine.ParseYamlDirectiveArgs": {
+      "this.src": 1
+    },
+    "Engine.ParseTagDirectiveArgs": {
+      "_0_handle": 1
+    },
+    "Engine.ParseDirectives": {
+      "this.src": 1
+    },
+    "Engine.IsSpaceOrEolAt": {
+      "this.src": 1
+    },
+    "Engine.ScanBlockPlainEnd": {
+      "this.src": 5
+    },
+    "Engine.AdvanceCountingBreaks": {
+      "this.src": 6
+    },
+    "Engine.ParseBlockValue": {
+      "this.src": 2
+    },
+    "Engine.CheckNoTabIndent": {
+      "this.src": 1
+    },
+    "Engine.RejectBlockCollectionTabIndent": {
+      "this.src": 1
+    },
+    "Engine.ParseRootBlockNode": {
+      "this.src": 1
+    },
+    "Engine.ParseBlockNode": {
+      "this.src": 7
+    },
+    "Engine.ParseTaggedBlockNode": {
+      "this.src": 20
+    },
+    "Engine.ParseBlockSeqBody": {
+      "this.src": 11
+    },
+    "Engine.ParseExplicitKey": {
+      "this.src": 6
+    },
+    "Engine.ParseExplicitKeyBody": {
+      "this.src": 3
+    },
+    "Engine.ParseExplicitValue": {
+      "this.src": 6
+    },
+    "Engine.ParseExplicitValueBody": {
+      "this.src": 3
+    },
+    "Engine.ExplicitPairHasValue": {
+      "this.src": 1
+    },
+    "Engine.ParseBlockMapKey": {
+      "this.src": 3
+    },
+    "Engine.ParseBlockMapKeyAnchored": {
+      "this.src": 2
+    },
+    "Engine.ParseBlockMapKeyTagged": {
+      "this.src": 2
+    },
+    "Engine.ParseTaggedBlockMapKeyRaw": {
+      "this.src": 1
+    },
+    "Engine.ParseBlockMapBody": {
+      "this.src": 8
+    },
+    "Engine.IsDocMarkerAt": {
+      "this.src": 3
+    },
+    "Engine.ConsumeDocStartMarker": {
+      "this.src": 3
+    },
+    "Engine.ParseNextDocument": {
+      "this.src": 3
+    }
+  },
+  "getters": {
+    "TagValues.__default.SPACE": {
+      "kind": "number",
+      "value": "32",
+      "uses": 1
+    },
+    "TagValues.__default.TAB": {
+      "kind": "number",
+      "value": "9",
+      "uses": 1
+    },
+    "TagValues.__default.LF": {
+      "kind": "number",
+      "value": "10",
+      "uses": 1
+    },
+    "TagValues.__default.CR": {
+      "kind": "number",
+      "value": "13",
+      "uses": 1
+    },
+    "TagValues.__default.BASE64__PADDING": {
+      "kind": "number",
+      "value": "61",
+      "uses": 4
+    },
+    "Serializer.__default.MAX__DEPTH": {
+      "kind": "number",
+      "value": "1000",
+      "uses": 2
+    },
+    "Serializer.__default.BACKSLASH": {
+      "kind": "number",
+      "value": "92",
+      "uses": 1
+    },
+    "Serializer.__default.DQUOTE": {
+      "kind": "number",
+      "value": "34",
+      "uses": 2
+    },
+    "Serializer.__default.HEX": {
+      "kind": "string",
+      "value": "0123456789ABCDEF",
+      "uses": 2
+    },
+    "Serializer.__default.SQUOTE": {
+      "kind": "number",
+      "value": "39",
+      "uses": 2
+    },
+    "Serializer.__default.SPACE": {
+      "kind": "number",
+      "value": "32",
+      "uses": 4
+    },
+    "Serializer.__default.MINUS": {
+      "kind": "number",
+      "value": "45",
+      "uses": 3
+    },
+    "Serializer.__default.QUESTION": {
+      "kind": "number",
+      "value": "63",
+      "uses": 1
+    },
+    "Serializer.__default.COLON": {
+      "kind": "number",
+      "value": "58",
+      "uses": 3
+    },
+    "Serializer.__default.COMMA": {
+      "kind": "number",
+      "value": "44",
+      "uses": 1
+    },
+    "Serializer.__default.LBRACKET": {
+      "kind": "number",
+      "value": "91",
+      "uses": 1
+    },
+    "Serializer.__default.RBRACKET": {
+      "kind": "number",
+      "value": "93",
+      "uses": 1
+    },
+    "Serializer.__default.LBRACE": {
+      "kind": "number",
+      "value": "123",
+      "uses": 1
+    },
+    "Serializer.__default.RBRACE": {
+      "kind": "number",
+      "value": "125",
+      "uses": 1
+    },
+    "Serializer.__default.HASH": {
+      "kind": "number",
+      "value": "35",
+      "uses": 2
+    },
+    "Serializer.__default.AMP": {
+      "kind": "number",
+      "value": "38",
+      "uses": 1
+    },
+    "Serializer.__default.STAR": {
+      "kind": "number",
+      "value": "42",
+      "uses": 1
+    },
+    "Serializer.__default.EXCLAIM": {
+      "kind": "number",
+      "value": "33",
+      "uses": 1
+    },
+    "Serializer.__default.PIPE": {
+      "kind": "number",
+      "value": "124",
+      "uses": 1
+    },
+    "Serializer.__default.GT": {
+      "kind": "number",
+      "value": "62",
+      "uses": 1
+    },
+    "Serializer.__default.PERCENT": {
+      "kind": "number",
+      "value": "37",
+      "uses": 1
+    },
+    "Serializer.__default.AT": {
+      "kind": "number",
+      "value": "64",
+      "uses": 1
+    },
+    "Serializer.__default.BACKTICK": {
+      "kind": "number",
+      "value": "96",
+      "uses": 1
+    },
+    "Serializer.__default.PLUS": {
+      "kind": "number",
+      "value": "43",
+      "uses": 2
+    },
+    "Serializer.__default.ZERO": {
+      "kind": "number",
+      "value": "48",
+      "uses": 7
+    },
+    "Serializer.__default.DOT": {
+      "kind": "number",
+      "value": "46",
+      "uses": 2
+    },
+    "Serializer.__default.LOWER__E": {
+      "kind": "number",
+      "value": "101",
+      "uses": 1
+    },
+    "Serializer.__default.UPPER__E": {
+      "kind": "number",
+      "value": "69",
+      "uses": 1
+    },
+    "Serializer.__default.ALPHABET": {
+      "kind": "string",
+      "value": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+      "uses": 9
+    },
+    "Serializer.__default.INDENT__STEP": {
+      "kind": "number",
+      "value": "2",
+      "uses": 1
+    },
+    "Serializer.__default.MAX__DUMP__KEY__CACHE": {
+      "kind": "number",
+      "value": "10000",
+      "uses": 1
+    },
+    "Serializer.__default.TAB": {
+      "kind": "number",
+      "value": "9",
+      "uses": 0
+    },
+    "Serializer.__default.LF": {
+      "kind": "number",
+      "value": "10",
+      "uses": 0
+    },
+    "Serializer.__default.CR": {
+      "kind": "number",
+      "value": "13",
+      "uses": 0
+    }
+  },
+  "metadata": {
+    "parentTraits": 10,
+    "typeNames": 10,
+    "otherRefs": 0
+  },
+  "methodRenames": {
+    "DafnyCore.Engine": {
+      "__ctor": "__ctor",
+      "Reset": "Reset",
+      "FlowIndicator": "m0",
+      "IsDigit": "m1",
+      "FlowSeparatorAt": "m2",
+      "ScanFlowPlainLine": "m3",
+      "TrimTrailingWs": "m4",
+      "IsNullWord": "m5",
+      "IsBoolWord": "m6",
+      "HexValueGeneric": "m7",
+      "OctalValueGeneric": "m8",
+      "HexValue": "m9",
+      "OctalValue": "ma",
+      "TryNumber": "mb",
+      "TryNumberGeneric": "mc",
+      "ResolvePlain": "md",
+      "ResolvePlainText": "me",
+      "SkipInlineSpaces": "mf",
+      "Fail": "mg",
+      "SkipFlowWs": "mh",
+      "SkipFlowWsSlow": "mi",
+      "ScanFlowPlainEnd": "mj",
+      "FoldFlowPlain": "mk",
+      "ParseFlowPlain": "ml",
+      "StringifyKeyScalar": "mm",
+      "StringifyKeyValue": "mn",
+      "StringifyKeyArray": "mo",
+      "StringifyKeyMapping": "mp",
+      "StringifyKeyNode": "mq",
+      "FastMatchBlockKey": "mr",
+      "KeyToString": "ms",
+      "InternNodeKey": "mt",
+      "InternKey": "mu",
+      "StoreKey": "mv",
+      "NumberBoundary": "mw",
+      "TryFlowNumber": "mx",
+      "ParseFlowValue": "my",
+      "ParseFlowKey": "mz",
+      "ParseFlowKeyAnchored": "m10",
+      "ParseFlowKeyTagged": "m11",
+      "ParseTaggedFlowKeyRaw": "m12",
+      "ScanAnchorOrAliasName": "m13",
+      "RegisterPendingAnchor": "m14",
+      "ParseAlias": "m15",
+      "IsTagWordChar": "m16",
+      "IsTagSuffixChar": "m17",
+      "ScanTagSuffixRaw": "m18",
+      "HexDigit": "m19",
+      "DecodeTagPercent": "m1a",
+      "ScanTag": "m1b",
+      "CheckTagSeparator": "m1c",
+      "ApplyScalarTag": "m1d",
+      "ParseTaggedFlowValue": "m1e",
+      "ParseTaggedFlowContent": "m1f",
+      "ParseAnchoredFlowValue": "m1g",
+      "MakeSinglePair": "m1h",
+      "ParseFlowExplicitEntry": "m1i",
+      "ParseFlowSeq": "m1j",
+      "ParseFlowMap": "m1k",
+      "FastMatchFlowKey": "m1l",
+      "PublishRecordKeys": "m1m",
+      "IsSpaceOrEol": "m1n",
+      "LooksLikeDocMarkerAt": "m1o",
+      "InternValue": "m1p",
+      "FoldFlowBreak": "m1q",
+      "ParseDoubleQuoted": "m1r",
+      "ParseDoubleQuotedSlow": "m1s",
+      "ReadHex": "m1t",
+      "HexVal": "m1u",
+      "ParseSingleQuoted": "m1v",
+      "ParseSingleQuotedSlow": "m1w",
+      "DetectBlockScalarIndent": "m1x",
+      "SkipBlockScalarBlankLines": "m1y",
+      "ParseBlockScalar": "m1z",
+      "SkipBlankLines": "m20",
+      "EndLine": "m21",
+      "NextLine": "m22",
+      "FinishDirectiveLine": "m23",
+      "ReadDirectiveToken": "m24",
+      "IsYamlVersionToken": "m25",
+      "ParseYamlDirectiveArgs": "m26",
+      "ParseTagDirectiveArgs": "m27",
+      "ParseDirectives": "m28",
+      "IsSpaceOrEolAt": "m29",
+      "ScanBlockPlainEnd": "m2a",
+      "AdvanceCountingBreaks": "m2b",
+      "ResolveBlockPlain": "m2c",
+      "ResolveBlockPlainRaw": "m2d",
+      "ParseBlockValue": "m2e",
+      "IsTabRestrictedCollection": "m2f",
+      "IsPlainMapping": "m2g",
+      "CheckNoTabIndent": "m2h",
+      "RejectBlockCollectionTabIndent": "m2i",
+      "ParseRootBlockNode": "m2j",
+      "ParseBlockNode": "m2k",
+      "ApplyCollectionTag": "m2l",
+      "ParseTaggedBlockNode": "m2m",
+      "ParseBlockSeq": "m2n",
+      "ParseBlockSeqBody": "m2o",
+      "ParseExplicitKey": "m2p",
+      "ParseExplicitKeyBody": "m2q",
+      "ParseExplicitValue": "m2r",
+      "ParseExplicitValueBody": "m2s",
+      "ExplicitPairHasValue": "m2t",
+      "ParseBlockMapExplicit": "m2u",
+      "ParseBlockMapExplicitBody": "m2v",
+      "ParseBlockMap": "m2w",
+      "ParseBlockMapKey": "m2x",
+      "ParseBlockMapKeyAnchored": "m2y",
+      "ParseBlockMapKeyTagged": "m2z",
+      "ParseTaggedBlockMapKeyRaw": "m30",
+      "ParseBlockMapBody": "m31",
+      "ParseSingle": "ParseSingle",
+      "ParseAll": "ParseAll",
+      "EndStream": "EndStream",
+      "IsDocMarkerAt": "IsDocMarkerAt",
+      "ConsumeDocStartMarker": "ConsumeDocStartMarker",
+      "ConsumeDocEndMarker": "ConsumeDocEndMarker",
+      "ParseNextDocument": "ParseNextDocument"
+    },
+    "Serializer.Writer": {
+      "__ctor": "__ctor",
+      "IndentSpaces": "m0",
+      "DumpScanRefs": "m1",
+      "DumpNeedsAnchor": "m2",
+      "DumpAssignAnchor": "m3",
+      "IsPlainLeadingIndicator": "m4",
+      "LooksLikeTypedScalar": "m5",
+      "TryNumberGeneric": "m6",
+      "HexDigits": "m7",
+      "OctalDigits": "m8",
+      "IsInfWord": "m9",
+      "IsNanWord": "ma",
+      "IsPlainScalarSafe": "mb",
+      "NeedsDoubleQuoting": "mc",
+      "EncodeSingleQuoted": "md",
+      "HexEscape": "me",
+      "EncodeDoubleQuoted": "mf",
+      "WriteStringScalar": "mg",
+      "WriteRootStringScalar": "mh",
+      "FormatCounter": "mi",
+      "FormatNumberValue": "mj",
+      "WriteScalar": "mk",
+      "EncodeBase64": "ml",
+      "WriteBinaryScalar": "mm",
+      "IsEmptyContainer": "mn",
+      "WriteCollectionBody": "mo",
+      "WriteEntryValue": "mp",
+      "WriteDocumentValue": "mq",
+      "DumpFinish": "mr",
+      "Stringify": "Stringify"
+    }
+  },
+  "methodAccessSites": {
+    "Engine": {
+      "FlowIndicator": 8,
+      "HexDigit": 4,
+      "HexValue": 1,
+      "OctalValue": 1,
+      "IsDigit": 13,
+      "HexValueGeneric": 1,
+      "OctalValueGeneric": 1,
+      "TryNumber": 1,
+      "IsNullWord": 3,
+      "IsBoolWord": 4,
+      "TryNumberGeneric": 3,
+      "SkipFlowWsSlow": 1,
+      "Fail": 134,
+      "LooksLikeDocMarkerAt": 4,
+      "ScanFlowPlainLine": 2,
+      "TrimTrailingWs": 2,
+      "FoldFlowPlain": 1,
+      "ScanFlowPlainEnd": 5,
+      "ResolvePlain": 6,
+      "StringifyKeyScalar": 2,
+      "StringifyKeyNode": 2,
+      "StringifyKeyValue": 2,
+      "KeyToString": 20,
+      "StringifyKeyArray": 3,
+      "StringifyKeyMapping": 2,
+      "IsSpaceOrEolAt": 18,
+      "InternKey": 16,
+      "NumberBoundary": 3,
+      "ParseFlowMap": 5,
+      "ParseFlowSeq": 5,
+      "ParseDoubleQuoted": 9,
+      "ParseSingleQuoted": 9,
+      "ParseAnchoredFlowValue": 1,
+      "ParseTaggedFlowValue": 1,
+      "ParseAlias": 4,
+      "TryFlowNumber": 1,
+      "FlowSeparatorAt": 6,
+      "ParseFlowPlain": 1,
+      "ParseFlowKeyAnchored": 1,
+      "ParseFlowKeyTagged": 1,
+      "RegisterPendingAnchor": 26,
+      "ScanAnchorOrAliasName": 9,
+      "SkipFlowWs": 21,
+      "ScanTag": 6,
+      "CheckTagSeparator": 6,
+      "ParseTaggedFlowKeyRaw": 2,
+      "ApplyScalarTag": 19,
+      "ApplyCollectionTag": 9,
+      "SkipInlineSpaces": 23,
+      "IsTagSuffixChar": 1,
+      "ScanTagSuffixRaw": 3,
+      "DecodeTagPercent": 3,
+      "IsTagWordChar": 1,
+      "ParseTaggedFlowContent": 1,
+      "ParseFlowValue": 9,
+      "StoreKey": 4,
+      "MakeSinglePair": 4,
+      "ParseFlowExplicitEntry": 1,
+      "FastMatchFlowKey": 2,
+      "ParseFlowKey": 2,
+      "PublishRecordKeys": 6,
+      "IsSpaceOrEol": 2,
+      "InternValue": 2,
+      "ParseDoubleQuotedSlow": 1,
+      "ReadHex": 3,
+      "FoldFlowBreak": 2,
+      "HexVal": 1,
+      "ParseSingleQuotedSlow": 2,
+      "DetectBlockScalarIndent": 1,
+      "SkipBlockScalarBlankLines": 1,
+      "EndLine": 1,
+      "SkipBlankLines": 5,
+      "ReadDirectiveToken": 4,
+      "IsYamlVersionToken": 1,
+      "ParseYamlDirectiveArgs": 1,
+      "ParseTagDirectiveArgs": 1,
+      "FinishDirectiveLine": 1,
+      "AdvanceCountingBreaks": 4,
+      "ScanBlockPlainEnd": 7,
+      "CheckNoTabIndent": 3,
+      "ParseBlockNode": 8,
+      "RejectBlockCollectionTabIndent": 2,
+      "ParseBlockSeq": 3,
+      "IsTabRestrictedCollection": 4,
+      "NextLine": 10,
+      "ParseBlockValue": 5,
+      "IsPlainMapping": 1,
+      "ParseBlockMap": 5,
+      "ParseBlockScalar": 2,
+      "ParseBlockMapExplicit": 1,
+      "ParseTaggedBlockNode": 1,
+      "ResolveBlockPlain": 1,
+      "ResolveBlockPlainRaw": 2,
+      "ParseBlockSeqBody": 1,
+      "ParseExplicitKeyBody": 1,
+      "ParseExplicitValueBody": 1,
+      "ParseBlockMapExplicitBody": 1,
+      "ParseExplicitKey": 2,
+      "ExplicitPairHasValue": 2,
+      "ParseBlockMapBody": 1,
+      "ParseBlockMapKeyAnchored": 1,
+      "ParseBlockMapKeyTagged": 1,
+      "InternNodeKey": 5,
+      "ParseTaggedBlockMapKeyRaw": 2,
+      "ParseBlockMapKey": 2,
+      "ParseExplicitValue": 1,
+      "FastMatchBlockKey": 1,
+      "ParseDirectives": 1,
+      "ParseRootBlockNode": 3
+    },
+    "Writer": {
+      "DumpScanRefs": 3,
+      "FormatCounter": 1,
+      "TryNumberGeneric": 1,
+      "HexDigits": 1,
+      "OctalDigits": 1,
+      "IsInfWord": 1,
+      "IsNanWord": 1,
+      "IsPlainLeadingIndicator": 1,
+      "LooksLikeTypedScalar": 1,
+      "HexEscape": 1,
+      "IsPlainScalarSafe": 1,
+      "NeedsDoubleQuoting": 2,
+      "EncodeDoubleQuoted": 2,
+      "EncodeSingleQuoted": 2,
+      "WriteStringScalar": 4,
+      "FormatNumberValue": 1,
+      "EncodeBase64": 1,
+      "IndentSpaces": 1,
+      "WriteEntryValue": 2,
+      "WriteScalar": 2,
+      "DumpNeedsAnchor": 4,
+      "DumpAssignAnchor": 4,
+      "WriteBinaryScalar": 2,
+      "IsEmptyContainer": 2,
+      "WriteCollectionBody": 2,
+      "WriteRootStringScalar": 1,
+      "WriteDocumentValue": 1,
+      "DumpFinish": 1
+    }
+  },
+  "fieldRenames": {
+    "Engine": {
+      "afterInlineProperty": "_f0",
+      "anchorMap": "_f1",
+      "bareDocAllowed": "_f2",
+      "colOverride": "_f3",
+      "depth": "_f4",
+      "flowFolded": "_f5",
+      "flowIndentFloor": "_f6",
+      "flowSpanned": "_f7",
+      "flowWsCrossedLine": "_f8",
+      "foldedBreaks": "_f9",
+      "hasAnchorMap": "_fa",
+      "hasFlowFolded": "_fb",
+      "hasLastRecordKeys": "_fc",
+      "hasPendingAnchorName": "_fd",
+      "hasTagHandles": "_fe",
+      "hasValueCache": "_ff",
+      "inlineMapValue": "_fg",
+      "keyCache": "_fh",
+      "keyCacheBytes": "_fi",
+      "keyCacheMaxBytes": "_fj",
+      "lastNumberIsFloat": "_fk",
+      "lastRecordKeys": "_fl",
+      "nextBackslash": "_fm",
+      "nextNewline": "_fn",
+      "pendingAnchorName": "_fo",
+      "plainStoppedAtColon": "_fp",
+      "plainStoppedAtComment": "_fq",
+      "quotedMultiline": "_fr",
+      "strict": "_fs",
+      "tagHandles": "_ft",
+      "valueCache": "_fu",
+      "valueCacheEnabled": "_fv"
+    },
+    "Writer": {
+      "dumpAnchorSeq": "_f0",
+      "dumpAnchors": "_f1",
+      "dumpDepth": "_f2",
+      "dumpFlattenSink": "_f3",
+      "dumpHasShared": "_f4",
+      "dumpKeyCache": "_f5",
+      "dumpRefCounts": "_f6",
+      "indentCache": "_f7",
+      "out": "_f8"
+    }
+  },
+  "fieldAccessSites": {
+    "Engine": {
+      "afterInlineProperty": 5,
+      "anchorMap": 6,
+      "bareDocAllowed": 7,
+      "colOverride": 6,
+      "depth": 30,
+      "flowFolded": 9,
+      "flowIndentFloor": 11,
+      "flowSpanned": 7,
+      "flowWsCrossedLine": 9,
+      "foldedBreaks": 7,
+      "hasAnchorMap": 6,
+      "hasFlowFolded": 10,
+      "hasLastRecordKeys": 9,
+      "hasPendingAnchorName": 34,
+      "hasTagHandles": 8,
+      "hasValueCache": 5,
+      "inlineMapValue": 5,
+      "keyCache": 4,
+      "keyCacheBytes": 4,
+      "keyCacheMaxBytes": 4,
+      "lastNumberIsFloat": 7,
+      "lastRecordKeys": 9,
+      "nextBackslash": 6,
+      "nextNewline": 10,
+      "pendingAnchorName": 30,
+      "plainStoppedAtColon": 11,
+      "plainStoppedAtComment": 11,
+      "quotedMultiline": 11,
+      "strict": 7,
+      "tagHandles": 8,
+      "valueCache": 5,
+      "valueCacheEnabled": 4
+    },
+    "Writer": {
+      "dumpAnchorSeq": 6,
+      "dumpAnchors": 6,
+      "dumpDepth": 14,
+      "dumpFlattenSink": 4,
+      "dumpHasShared": 10,
+      "dumpKeyCache": 7,
+      "dumpRefCounts": 9,
+      "indentCache": 7,
+      "out": 29
+    }
+  },
+  "syntheticTempSites": {
+    "Helpers.StripBase64Whitespace": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Helpers.DecodeBinary": {
+      "identifier": 6,
+      "self-property": 0
+    },
+    "Helpers.BuildSet": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Helpers.BuildOmap": {
+      "identifier": 7,
+      "self-property": 0
+    },
+    "Helpers.ValidatePairs": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Helpers.SinglePairKeys": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "__default.Parse": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "__default.ParseAll": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.Reset": {
+      "identifier": 0,
+      "self-property": 1
+    },
+    "Engine.HexValueGeneric": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.HexValue": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.TryNumber": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.TryNumberGeneric": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ResolvePlain": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ResolvePlainText": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.SkipFlowWsSlow": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ScanFlowPlainEnd": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.FoldFlowPlain": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ParseFlowPlain": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyScalar": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyValue": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyArray": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyMapping": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyNode": {
+      "identifier": 9,
+      "self-property": 0
+    },
+    "Engine.FastMatchBlockKey": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.KeyToString": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.InternNodeKey": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.InternKey": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.TryFlowNumber": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ParseFlowValue": {
+      "identifier": 10,
+      "self-property": 0
+    },
+    "Engine.ParseFlowKey": {
+      "identifier": 14,
+      "self-property": 0
+    },
+    "Engine.ParseFlowKeyAnchored": {
+      "identifier": 17,
+      "self-property": 0
+    },
+    "Engine.ParseFlowKeyTagged": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedFlowKeyRaw": {
+      "identifier": 12,
+      "self-property": 0
+    },
+    "Engine.RegisterPendingAnchor": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseAlias": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ScanTagSuffixRaw": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.DecodeTagPercent": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ScanTag": {
+      "identifier": 10,
+      "self-property": 0
+    },
+    "Engine.ApplyScalarTag": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedFlowValue": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedFlowContent": {
+      "identifier": 10,
+      "self-property": 0
+    },
+    "Engine.ParseAnchoredFlowValue": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.MakeSinglePair": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseFlowExplicitEntry": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ParseFlowSeq": {
+      "identifier": 11,
+      "self-property": 0
+    },
+    "Engine.ParseFlowMap": {
+      "identifier": 17,
+      "self-property": 0
+    },
+    "Engine.PublishRecordKeys": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.LooksLikeDocMarkerAt": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.InternValue": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.FoldFlowBreak": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseDoubleQuoted": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseDoubleQuotedSlow": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ReadHex": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseSingleQuoted": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ParseSingleQuotedSlow": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.DetectBlockScalarIndent": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockScalar": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ReadDirectiveToken": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseYamlDirectiveArgs": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseTagDirectiveArgs": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ParseDirectives": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ResolveBlockPlain": {
+      "identifier": 6,
+      "self-property": 0
+    },
+    "Engine.ResolveBlockPlainRaw": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseBlockValue": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.RejectBlockCollectionTabIndent": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseRootBlockNode": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockNode": {
+      "identifier": 21,
+      "self-property": 0
+    },
+    "Engine.ApplyCollectionTag": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedBlockNode": {
+      "identifier": 35,
+      "self-property": 0
+    },
+    "Engine.ParseBlockSeq": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockSeqBody": {
+      "identifier": 6,
+      "self-property": 0
+    },
+    "Engine.ParseExplicitKey": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseExplicitKeyBody": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseExplicitValue": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseExplicitValueBody": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapExplicit": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapExplicitBody": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMap": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapKey": {
+      "identifier": 13,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapKeyAnchored": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapKeyTagged": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedBlockMapKeyRaw": {
+      "identifier": 11,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapBody": {
+      "identifier": 23,
+      "self-property": 0
+    },
+    "Engine.ParseAll": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.IsDocMarkerAt": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseNextDocument": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "__default.Stringify": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.__ctor": {
+      "identifier": 0,
+      "self-property": 1
+    },
+    "Writer.IndentSpaces": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Writer.DumpScanRefs": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Writer.DumpNeedsAnchor": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.DumpAssignAnchor": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.LooksLikeTypedScalar": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.TryNumberGeneric": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Writer.IsPlainScalarSafe": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.EncodeSingleQuoted": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.EncodeDoubleQuoted": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Writer.WriteStringScalar": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Writer.WriteRootStringScalar": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Writer.WriteScalar": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Writer.EncodeBase64": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.WriteBinaryScalar": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.IsEmptyContainer": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Writer.WriteCollectionBody": {
+      "identifier": 11,
+      "self-property": 0
+    },
+    "Writer.WriteEntryValue": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Writer.WriteDocumentValue": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Writer.Stringify": {
+      "identifier": 1,
+      "self-property": 3
+    },
+    "Adapter.NormalizeParseOptions": {
+      "identifier": 7,
+      "self-property": 0
+    },
+    "Adapter.Parse": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Adapter.ParseAll": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Adapter.ParseCompletion": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Adapter.Stringify": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Adapter.ExceptionToString": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Adapter.NotImplementedMessage": {
+      "identifier": 2,
+      "self-property": 0
+    }
+  },
+  "thisAliasSites": {
+    "Helpers.__ctor": 9,
+    "Helpers.ErrorMessage": 2,
+    "Helpers.BASE64__INV": 2,
+    "Helpers.IsBase64Whitespace": 1,
+    "Helpers.StripBase64Whitespace": 3,
+    "Helpers.DecodeBinary": 10,
+    "Helpers.BuildSet": 3,
+    "Helpers.BuildOmap": 4,
+    "Helpers.ValidatePairs": 4,
+    "Helpers.SinglePairKeys": 4,
+    "Engine.__ctor": 4,
+    "Engine.Reset": 40,
+    "Engine.FlowIndicator": 1,
+    "Engine.IsDigit": 1,
+    "Engine.FlowSeparatorAt": 4,
+    "Engine.ScanFlowPlainLine": 8,
+    "Engine.TrimTrailingWs": 2,
+    "Engine.IsNullWord": 1,
+    "Engine.IsBoolWord": 1,
+    "Engine.HexValueGeneric": 2,
+    "Engine.OctalValueGeneric": 1,
+    "Engine.HexValue": 3,
+    "Engine.OctalValue": 2,
+    "Engine.TryNumber": 20,
+    "Engine.TryNumberGeneric": 9,
+    "Engine.ResolvePlain": 7,
+    "Engine.ResolvePlainText": 5,
+    "Engine.SkipInlineSpaces": 9,
+    "Engine.Fail": 5,
+    "Engine.SkipFlowWs": 8,
+    "Engine.SkipFlowWsSlow": 26,
+    "Engine.ScanFlowPlainEnd": 16,
+    "Engine.FoldFlowPlain": 27,
+    "Engine.ParseFlowPlain": 7,
+    "Engine.StringifyKeyScalar": 4,
+    "Engine.StringifyKeyValue": 3,
+    "Engine.StringifyKeyArray": 2,
+    "Engine.StringifyKeyMapping": 4,
+    "Engine.StringifyKeyNode": 6,
+    "Engine.FastMatchBlockKey": 15,
+    "Engine.KeyToString": 2,
+    "Engine.InternNodeKey": 3,
+    "Engine.InternKey": 6,
+    "Engine.StoreKey": 1,
+    "Engine.NumberBoundary": 11,
+    "Engine.TryFlowNumber": 38,
+    "Engine.ParseFlowValue": 21,
+    "Engine.ParseFlowKey": 25,
+    "Engine.ParseFlowKeyAnchored": 70,
+    "Engine.ParseFlowKeyTagged": 42,
+    "Engine.ParseTaggedFlowKeyRaw": 40,
+    "Engine.ScanAnchorOrAliasName": 13,
+    "Engine.RegisterPendingAnchor": 8,
+    "Engine.ParseAlias": 9,
+    "Engine.IsTagWordChar": 2,
+    "Engine.IsTagSuffixChar": 2,
+    "Engine.ScanTagSuffixRaw": 11,
+    "Engine.HexDigit": 1,
+    "Engine.DecodeTagPercent": 5,
+    "Engine.ScanTag": 54,
+    "Engine.CheckTagSeparator": 7,
+    "Engine.ApplyScalarTag": 12,
+    "Engine.ParseTaggedFlowValue": 40,
+    "Engine.ParseTaggedFlowContent": 37,
+    "Engine.ParseAnchoredFlowValue": 13,
+    "Engine.MakeSinglePair": 15,
+    "Engine.ParseFlowExplicitEntry": 23,
+    "Engine.ParseFlowSeq": 79,
+    "Engine.ParseFlowMap": 93,
+    "Engine.FastMatchFlowKey": 13,
+    "Engine.PublishRecordKeys": 9,
+    "Engine.IsSpaceOrEol": 1,
+    "Engine.LooksLikeDocMarkerAt": 8,
+    "Engine.InternValue": 6,
+    "Engine.FoldFlowBreak": 18,
+    "Engine.ParseDoubleQuoted": 21,
+    "Engine.ParseDoubleQuotedSlow": 28,
+    "Engine.ReadHex": 5,
+    "Engine.HexVal": 2,
+    "Engine.ParseSingleQuoted": 18,
+    "Engine.ParseSingleQuotedSlow": 15,
+    "Engine.DetectBlockScalarIndent": 14,
+    "Engine.SkipBlockScalarBlankLines": 36,
+    "Engine.ParseBlockScalar": 81,
+    "Engine.SkipBlankLines": 51,
+    "Engine.EndLine": 40,
+    "Engine.NextLine": 3,
+    "Engine.FinishDirectiveLine": 8,
+    "Engine.ReadDirectiveToken": 11,
+    "Engine.IsYamlVersionToken": 3,
+    "Engine.ParseYamlDirectiveArgs": 12,
+    "Engine.ParseTagDirectiveArgs": 11,
+    "Engine.ParseDirectives": 19,
+    "Engine.IsSpaceOrEolAt": 3,
+    "Engine.ScanBlockPlainEnd": 16,
+    "Engine.AdvanceCountingBreaks": 47,
+    "Engine.ResolveBlockPlain": 32,
+    "Engine.ResolveBlockPlainRaw": 32,
+    "Engine.ParseBlockValue": 19,
+    "Engine.IsTabRestrictedCollection": 1,
+    "Engine.IsPlainMapping": 1,
+    "Engine.CheckNoTabIndent": 7,
+    "Engine.RejectBlockCollectionTabIndent": 5,
+    "Engine.ParseRootBlockNode": 8,
+    "Engine.ParseBlockNode": 108,
+    "Engine.ApplyCollectionTag": 16,
+    "Engine.ParseTaggedBlockNode": 141,
+    "Engine.ParseBlockSeq": 8,
+    "Engine.ParseBlockSeqBody": 55,
+    "Engine.ParseExplicitKey": 13,
+    "Engine.ParseExplicitKeyBody": 13,
+    "Engine.ParseExplicitValue": 13,
+    "Engine.ParseExplicitValueBody": 13,
+    "Engine.ExplicitPairHasValue": 7,
+    "Engine.ParseBlockMapExplicit": 2,
+    "Engine.ParseBlockMapExplicitBody": 8,
+    "Engine.ParseBlockMap": 8,
+    "Engine.ParseBlockMapKey": 38,
+    "Engine.ParseBlockMapKeyAnchored": 30,
+    "Engine.ParseBlockMapKeyTagged": 29,
+    "Engine.ParseTaggedBlockMapKeyRaw": 23,
+    "Engine.ParseBlockMapBody": 76,
+    "Engine.ParseSingle": 4,
+    "Engine.ParseAll": 3,
+    "Engine.EndStream": 6,
+    "Engine.IsDocMarkerAt": 7,
+    "Engine.ConsumeDocStartMarker": 13,
+    "Engine.ConsumeDocEndMarker": 4,
+    "Engine.ParseNextDocument": 37,
+    "Writer.__ctor": 11,
+    "Writer.IndentSpaces": 5,
+    "Writer.DumpScanRefs": 12,
+    "Writer.DumpNeedsAnchor": 2,
+    "Writer.DumpAssignAnchor": 6,
+    "Writer.IsPlainLeadingIndicator": 1,
+    "Writer.LooksLikeTypedScalar": 2,
+    "Writer.TryNumberGeneric": 5,
+    "Writer.HexDigits": 1,
+    "Writer.OctalDigits": 1,
+    "Writer.IsInfWord": 1,
+    "Writer.IsNanWord": 1,
+    "Writer.IsPlainScalarSafe": 3,
+    "Writer.NeedsDoubleQuoting": 1,
+    "Writer.EncodeSingleQuoted": 1,
+    "Writer.HexEscape": 1,
+    "Writer.EncodeDoubleQuoted": 2,
+    "Writer.WriteStringScalar": 5,
+    "Writer.WriteRootStringScalar": 5,
+    "Writer.FormatCounter": 1,
+    "Writer.FormatNumberValue": 1,
+    "Writer.WriteScalar": 4,
+    "Writer.EncodeBase64": 1,
+    "Writer.WriteBinaryScalar": 2,
+    "Writer.IsEmptyContainer": 1,
+    "Writer.WriteCollectionBody": 17,
+    "Writer.WriteEntryValue": 25,
+    "Writer.WriteDocumentValue": 20,
+    "Writer.DumpFinish": 8,
+    "Writer.Stringify": 14,
+    "Adapter.__ctor": 3,
+    "Adapter.NormalizeParseOptions": 19,
+    "Adapter.SelectCompletionAfterCleanup": 1,
+    "Adapter.Parse": 2,
+    "Adapter.ParseAll": 2,
+    "Adapter.ParseCompletion": 13,
+    "Adapter.Stringify": 7,
+    "Adapter.ExceptionToString": 13,
+    "Adapter.NotImplementedMessage": 4
+  }
+}

@@ -1,0 +1,43 @@
+const assert = require('node:assert/strict');
+
+const result = Consumer.__default.Build(-0, NaN, Infinity, 1.25, 9007199254740991);
+const items = result.items;
+assert.equal(result.identity, true, 'Dafny method reads preserve native identity');
+assert.equal(Array.isArray(items), true);
+assert.equal(items, result.alias, 'array aliases share the same native array');
+assert.equal(items[5], items, 'array self-reference survives');
+assert.equal(result.self, result, 'object self-reference survives');
+assert.equal(Object.getPrototypeOf(result), Object.prototype);
+assert.equal(Object.hasOwn(result, '__proto__'), true);
+assert.equal(result.__proto__, 1.25, '__proto__ remains an own data property');
+assert.equal(Object.is(items[0], -0), true);
+assert.equal(Number.isNaN(items[1]), true);
+assert.equal(items[2], Infinity);
+assert.equal(items[3], 1.25);
+assert.equal(items[4], 9007199254740991);
+assert.equal(typeof items[0], 'number');
+assert.equal(typeof items[4], 'number');
+const utf16Length = TextConsumer.__default.Utf16Length('😀A😀');
+const prefix = TextConsumer.__default.PrefixCodeUnits('😀A😀');
+assert.equal(typeof utf16Length, 'number');
+assert.equal(utf16Length, 5);
+assert.equal(typeof prefix, 'string');
+assert.equal(prefix, '\ud83dA');
+
+const externalNumberArray = [10];
+assert.equal(Consumer.__default.PushRead(externalNumberArray, 42), 42);
+assert.deepEqual(externalNumberArray, [10, 42]);
+const externalStringArray = ['before'];
+assert.equal(Consumer.__default.PushRead(externalStringArray, 'after'), 'after');
+assert.deepEqual(externalStringArray, ['before', 'after']);
+const afterReturnValue = { observed: true };
+assert.equal(Consumer.__default.PushRead(items, afterReturnValue), afterReturnValue);
+assert.equal(result.alias[6], afterReturnValue, 'later mutations remain visible through the returned alias');
+
+const sum3 = ArithmeticConsumer.__default.Sum3;
+const fractionalSum = sum3(1.25, 2.5, 4.125);
+assert.equal(typeof fractionalSum, 'number');
+assert.equal(fractionalSum, (1.25 + 2.5) + 4.125);
+assert.equal(Number.isNaN(sum3(NaN, 1, 2)), Number.isNaN((NaN + 1) + 2));
+assert.equal(Number.isNaN(sum3(Infinity, -Infinity, 1)), Number.isNaN((Infinity + -Infinity) + 1));
+assert.equal(Object.is(sum3(-0, -0, -0), (-0 + -0) + -0), true);
