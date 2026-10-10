@@ -96,7 +96,13 @@
     "validate:benchmarks": "node --import tsx bench/validate.ts site/src/data/benchmarks/speed.yaml site/src/data/benchmarks/memory.yaml site/src/data/benchmarks/memory-ratios.yaml site/src/data/benchmarks/conformance.yaml site/src/data/benchmarks/bundle-size.yaml",
     "typecheck": "tsc --noEmit && tsc --noEmit -p bench/browser/tsconfig.json",
     "changeset": "changeset",
-    "version-packages": "changeset version"
+    "version-packages": "changeset version",
+    "test:properties": "pnpm --dir experiments/js-yaml-properties typecheck && pnpm --dir experiments/js-yaml-properties test",
+    "test:coverage": "vitest run --config vitest.properties.config.ts --coverage && node scripts/check-production-coverage.mjs",
+    "audit:js-yaml": "pnpm --dir experiments/js-yaml-properties run audit",
+    "audit:js-yaml:full": "pnpm --dir experiments/js-yaml-properties run audit --extended --samples 20000",
+    "audit:js-yaml:strict": "pnpm --dir experiments/js-yaml-properties run audit --strict",
+    "audit:js-yaml:replay": "pnpm --dir experiments/js-yaml-properties run audit --replay"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",
@@ -111,6 +117,8 @@
     "typescript": "^5.7.0",
     "vitest": "^4.1.10",
     "yaml": "^2.9.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/ui": "4.1.11"
   }
 }

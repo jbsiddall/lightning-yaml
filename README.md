@@ -200,6 +200,25 @@ quickly on whatever you find.
 if you change anything under `src/`, run `pnpm changeset` to declare the version
 bump; CI checks for it.
 
+### Experimental js-yaml compatibility testing
+
+Install the isolated property-test dependencies with
+`pnpm --dir experiments/js-yaml-properties install --frozen-lockfile`.
+Run `pnpm test:properties` for the harness tests and `pnpm test:coverage` for
+existing Vitest tests plus property tests, an HTML Vitest report, and V8 coverage
+of every production `src/**/*.ts` file. Reports are written to
+`results/js-yaml-properties/`; CI also uploads them as an artifact.
+
+Run `pnpm gen:suite` and `pnpm audit:js-yaml:full` for the deterministic
+js-yaml 5.2.1 comparison campaign. It compares parsed JavaScript values, types
+and reference sharing, and reports stringify byte equality separately from
+semantic round-trip equality. The finite boolean/quote-style matrix is enumerated;
+other options, callbacks and YAML inputs are sampled. The audit records existing
+compatibility gaps; `pnpm audit:js-yaml:strict` makes gaps fail the command.
+See [the experiment guide](experiments/js-yaml-properties/README.md) for scope,
+replay and report interpretation. Neither sampled compatibility percentages nor
+line coverage establish equivalence for every possible input.
+
 ## Status & scope
 
 YAML 1.2 core, feature-complete but for one deliberate gap — **merge keys

@@ -14,7 +14,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["bench/**/*.ts", "src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
+  "include": ["bench/**/*.ts", "src/**/*.ts", "test/**/*.ts", "vitest*.config.ts"],
   // These run in a browser, not Node — they need DOM lib types (fetch, window,
   // performance, crossOriginIsolated) that would be wrong/unavailable for every
   // other file here. They're checked separately via
