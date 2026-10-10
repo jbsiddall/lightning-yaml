@@ -37,26 +37,33 @@ assumes callback-controlled code cannot replace the Adapter's Engine/Writer
 slots or the Engine's `tagHelpers` slot; it still permits ordinary reentrant
 changes to parser and writer state. The profile's authenticity in JavaScript,
 raw-value/heap observation correspondence, and parser-core meaning remain open.
-The latest exact-source run passed its selected Adapter proof rows but stopped
-at a harness inventory mismatch for a well-formedness-only helper. That
-inventory is fixed; the full command and supporting-definition well-formedness
-replay remain pending before these body clauses are described as verified.
-This conditional adapter flow is not a complete public-operation guarantee.
+One combined run recorded 5,916 passing selected proof rows on the budget-model
+snapshot, including the Adapter bodies. Its CSV reuse was reconciled manually
+after a zero-VC helper inventory mismatch, so it is diagnostic evidence rather
+than a standalone reproducible gate. The supporting-definition replay then
+found four classifier well-formedness issues; their `reads world` frames now
+pass the SurfaceHost module check. Caller-body replay and the exact-source
+dependency inventory still need a fresh run. This conditional adapter flow is
+not a complete public-operation guarantee.
 
 The `ExceptionToString` and `NotImplementedMessage` bodies now carry conditional
 text-result contracts. Their conversion, completion, and concatenation primitives
 remain individually host-open bindings; the Dafny `Concat` law is a trusted
-UTF-16 string-concatenation boundary. The generated methods gained unused ghost
+UTF-16 string-concatenation boundary that does not model a JavaScript
+`RangeError` when the maximum string length is exceeded. The generated methods gained unused ghost
 out slots, so the guarded generated shape records those identifier-count changes
 instead of claiming literal AST identity. This work does not establish the
 JavaScript binding correspondence or complete Error-class constructor behavior.
 Their latest selected rows passed, but the Native harness as a whole is still
 pending a successful replay and supporting-definition well-formedness inventory.
 
-The current ghost `MultiplyBudget` event records that the numeric operation was
-reached in the right order. It does not yet relate its result to the raw
-`keyCacheMaxKb * 1024` JavaScript operation, the default value, coercion, or
-`NumberValue` construction. Those numeric clauses remain open.
+The budget model now relates the default, primitive Number, and Boolean cases
+to binary64 result bits and attaches that relation to the captured multiplication
+event. String inputs only have a numeric-result-shape clause; reference inputs
+only have a result-shape clause. The mapping from host JavaScript numbers to the
+model, `String`/`ToPrimitive` behavior, and exact BigInt/Symbol TypeError
+construction remain HOST-OPEN. A fresh combined exact-source replay remains
+pending after the classifier WF-frame correction.
 
 Native iteration failure text and exact raw failure correspondence are open for
 modified iterator/`Reflect.apply` globals; the present captured iterator helper

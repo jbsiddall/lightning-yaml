@@ -4,6 +4,7 @@ module SurfaceHost {
   import opened Serializer
   import opened TagValues
   import M = SurfaceModel
+  import NB = NativeBudgetContracts
   import W = SurfaceWitness
 
   // CONTRACTED NATIVE TRUST BOUNDARY:
@@ -13,19 +14,23 @@ module SurfaceHost {
   // these exact contracts; this is not a whole-adapter or YAML-semantic axiom.
   function {:extern "surfaceIsNullish"} {:axiom} IsNullish(value: Value,
       ghost world: W.World, ghost inputHandle: M.Handle): bool
-    requires world.Valid() && world.Bound(value,inputHandle)
+    reads world
+    requires world.Valid() && inputHandle in world.values && world.Bound(value,inputHandle)
     ensures IsNullish(value,world,inputHandle) == M.StrictNullish(world.values[inputHandle])
   function {:extern "surfaceIsTruthy"} {:axiom} IsTruthy(value: Value,
       ghost world: W.World, ghost inputHandle: M.Handle): bool
-    requires world.Valid() && world.Bound(value,inputHandle)
+    reads world
+    requires world.Valid() && inputHandle in world.values && world.Bound(value,inputHandle)
     ensures IsTruthy(value,world,inputHandle) == M.Truthy(world.values[inputHandle])
   function {:extern "surfaceIsExactlyTrue"} {:axiom} IsExactlyTrue(value: Value,
       ghost world: W.World, ghost inputHandle: M.Handle): bool
-    requires world.Valid() && world.Bound(value,inputHandle)
+    reads world
+    requires world.Valid() && inputHandle in world.values && world.Bound(value,inputHandle)
     ensures IsExactlyTrue(value,world,inputHandle) == M.ExactlyTrue(world.values[inputHandle])
   function {:extern "surfaceIsString"} {:axiom} IsString(value: Value,
       ghost world: W.World, ghost inputHandle: M.Handle): bool
-    requires world.Valid() && world.Bound(value,inputHandle)
+    reads world
+    requires world.Valid() && inputHandle in world.values && world.Bound(value,inputHandle)
     ensures IsString(value,world,inputHandle) == world.values[inputHandle].StringValue?
   function {:extern "surfaceCompletionIsThrown"} CompletionIsThrown(completion: Value): bool
   function {:extern "surfaceCompletionValue"} CompletionValue(completion: Value): Value
@@ -104,6 +109,8 @@ module SurfaceHost {
       ensures world.Bound(CompletionValue(completion),observation.outcome.value)
       ensures observation.outcome.Thrown? == CompletionIsThrown(completion)
       ensures observation.outcome.value in world.values
+      ensures NB.BudgetOutcomeGuarantees(world.values,rawHandle,useDefault,
+        observation.outcome,observation.after)
       ensures engine.tagHelpers == old(engine.tagHelpers)
       ensures world.contextOwner == old(world.contextOwner)
       ensures world.ContextProfile(engine,helpers,writer)

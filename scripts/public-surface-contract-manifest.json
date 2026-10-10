@@ -3193,7 +3193,7 @@
   "verifiedSurfaceClaims": [],
   "localProofScope": {
     "claim": "Eight scanner methods have local proof evidence only. Native normalization/parse flow contracts are attached, but the repository's exact-source Native proof gate is pending; neither constitutes a complete public-operation proof.",
-    "coverage": "See scripts/verify-dafny-scanner.cjs and scripts/verify-dafny-native.cjs. Scanner caller preconditions, host-profile authenticity, raw host binding, and transitive Engine/Writer semantics remain open. Native MultiplyBudget numeric/default correspondence also remains open."
+    "coverage": "See scripts/verify-dafny-scanner.cjs and scripts/verify-dafny-native.cjs. Scanner caller preconditions, host-profile authenticity, raw host binding, and transitive Engine/Writer semantics remain open. The conditional budget model covers default, Number, and Boolean outcomes; host numeric representation, string/reference conversion, concatenation allocation failures, and exact BigInt/Symbol throws remain open."
   },
   "conditionalNativeAdapterFlow": {
     "status": "attached-proof-gate-pending",
@@ -3202,12 +3202,16 @@
       "NativeSurface.Adapter.ParseCompletion",
       "NativeSurface.Adapter.Parse",
       "NativeSurface.Adapter.ParseAll",
-      "NativeSurface.Adapter.Stringify"
+      "NativeSurface.Adapter.Stringify",
+      "NativeSurface.Adapter.ExceptionToString",
+      "NativeSurface.Adapter.NotImplementedMessage"
     ],
-    "scope": "Routed method bodies compose conditional event-trace contracts under host-open atomic observations and the protected-context profile. Selected exact-source body/dependency verification is not yet complete.",
+    "scope": "Routed method bodies compose conditional event-trace contracts under host-open atomic observations and the protected-context profile. The budget relation covers default, primitive Number, and Boolean result cases; String and reference conversion have weaker result-shape clauses. A combined budget-snapshot run recorded passing selected rows after manual CSV reuse, but was not a standalone reproducible gate. A later supporting-definition run found classifier well-formedness issues; their reads-frame correction is checked separately, while fresh caller-body/dependency replay remains pending.",
     "open": [
       "Host authenticity and raw observation-to-JavaScript binding",
-      "Default-budget and raw JavaScript numeric multiplication/coercion/result correspondence",
+      "Binary64 host encoding and the full raw JavaScript conversion protocol",
+      "JavaScript concatenation allocation and maximum-length RangeError behavior",
+      "Exact BigInt/Symbol TypeError construction and object coercion behavior",
       "End-to-end parser and writer semantics",
       "Compatibility facade and constructor completion relations"
     ],

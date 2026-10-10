@@ -16,7 +16,7 @@ No complete public operation is formally proved.
 |---|---|---|
 | Option decisions | Five routed policy bodies, conditional on supplied host observations | Raw argument/classifier and physical policy-call correspondence |
 | Source scanners | Eight selected local boundary methods | Full grammar, caller preconditions, failures, graph and state effects |
-| Native adapter flow | Actual ordered-trace contracts are attached to Normalize/Parse/ParseAll/ParseCompletion; isolated verifier replays exist for Normalize and ParseCompletion, but the repository proof gate is pending | Authentic public-entry witnesses, profile refinement, raw host binding/heap correspondence, parser/writer semantics, and exact numeric budget multiplication |
+| Native adapter flow | Conditional ordered-trace contracts cover parse/cleanup, stringify, error text, and default/Number/Boolean budget outcomes; current exact-source body/dependency replay is pending | Authentic public-entry witnesses, profile refinement, raw host binding/heap correspondence, String/reference conversion, exact BigInt/Symbol TypeErrors, and parser/writer semantics |
 | Compatibility facades | Shared small policy and identity helpers | Whole validation, reviver, document, error and iterator body proofs |
 | Complete YAML parsing and writing | None; definitions only | Full accepted grammar, output, error and effect relations for the actual parser and writer |
 
@@ -25,13 +25,16 @@ access to the current adapter Engine/Writer slots and Engine helper slot while
 allowing ordinary reentrant parser and writer state changes. The profile's
 authenticity in a JavaScript realm is unproved. A caller-supplied structural
 world does not establish it. See the detailed status in [native.md](native.md).
-The Native proof runner is checked in. The latest exact-source run passed the
-selected Adapter rows but stopped because its result inventory omitted a
-well-formedness-only helper; the inventory now includes that helper, and a
-successful full replay remains pending. Any selected-flow evidence remains
-conditional on host-open atomic bindings and the protected-context profile. `MultiplyBudget`
-currently records an opaque numeric operation; it does not establish the default
-budget calculation, JavaScript coercion, or numeric result correspondence. This
+The Native proof runner is checked in. A combined budget-snapshot run recorded
+5,916 passing selected rows after manually reusing completed CSVs to resolve a
+zero-VC helper inventory mismatch. This is diagnostic evidence, not a
+standalone reproducible gate. A supporting-definition run found four classifier
+well-formedness issues; their `reads world` frames now pass a SurfaceHost module
+check, while caller-body replay and exact-source dependency inventory remain
+pending. Any selected-flow evidence is conditional on host-open atomic bindings
+and the protected-context profile. The conditional budget relation covers
+default, primitive Number, and Boolean outcomes. Host number encoding,
+concatenation allocation errors, and full JavaScript coercion remain open. This
 is not a complete public-operation guarantee and does not populate
 `verifiedPublicOperations`.
 

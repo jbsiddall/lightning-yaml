@@ -21,7 +21,8 @@ cd "$repo_root"
   src/dafny/core/Native.dfy src/dafny/core/TagValues.dfy src/dafny/core/Engine.dfy src/dafny/core/Serializer.dfy \
   src/dafny/core/SurfaceValues.dfy src/dafny/core/SurfaceOptions.dfy \
   src/dafny/core/SurfaceHelpers.dfy src/dafny/core/SurfaceErrors.dfy src/dafny/core/SurfaceHost.dfy \
-  src/dafny/core/SurfaceModel.dfy src/dafny/core/NativeContracts.dfy \
+  src/dafny/core/SurfaceModel.dfy src/dafny/core/Binary64Scale.dfy \
+  src/dafny/core/NativeBudgetContracts.dfy src/dafny/core/NativeContracts.dfy \
   src/dafny/core/FacadeFlow.dfy src/dafny/core/FacadeContracts.dfy \
   src/dafny/core/PublicObjects.dfy src/dafny/core/ObjectsAndErrors.dfy \
   src/dafny/core/ErrorTranslation.dfy src/dafny/core/HostObservation.dfy \

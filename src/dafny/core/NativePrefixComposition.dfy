@@ -2,6 +2,7 @@ module NativePrefixComposition {
   import opened SurfaceModel
   import NC = NativeContracts
   import I = NativePhaseIntro
+  import NB = NativeBudgetContracts
 
   ghost function Pick(es: seq<Event>, undefined: Handle): Handle reads {} {
     if |es| == 0 then undefined else es[0].outcome.value
@@ -39,6 +40,8 @@ module NativePrefixComposition {
     requires result == (if multiply.outcome.Thrown? then NormalizationFailure(multiply.outcome.value)
       else Ready(ExactlyTrue(values[Pick(strict,undefined)]),
         Truthy(values[Pick(intern,undefined)]),multiply.outcome.value))
+    requires NB.BudgetOutcomeGuarantees(values,Pick(budget,undefined),
+      StrictNullish(values[Pick(budget,undefined)]),multiply.outcome,multiply.after)
     ensures NC.NormalizeAt(values,options,0,undefined,undefined,undefined,
       undefined,undefined,undefined,first+intern+strict+second+budget+[multiply],result)
   {

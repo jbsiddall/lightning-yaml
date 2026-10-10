@@ -18,6 +18,8 @@ const SOURCES = [
   'src/dafny/core/SurfaceErrors.dfy',
   'src/dafny/core/SurfaceHost.dfy',
   'src/dafny/core/SurfaceModel.dfy',
+  'src/dafny/core/Binary64Scale.dfy',
+  'src/dafny/core/NativeBudgetContracts.dfy',
   'src/dafny/core/NativeContracts.dfy',
   'src/dafny/core/FacadeFlow.dfy',
   'src/dafny/core/FacadeContracts.dfy',
@@ -38,7 +40,7 @@ const OUTPUT = 'src/dafny/generated/engine.js';
 const MODULES = new Set(['TagValues', 'DafnyCore', 'Serializer', 'SurfaceOptions', 'SurfaceHelpers', 'SurfaceErrors', 'NativeSurface']);
 const OMITTED = new Set([
   '_dafny', '_System', '_module', 'SurfaceValues', 'SurfaceHost',
-  'SurfaceModel', 'NativeContracts', 'FacadeFlow', 'FacadeContracts',
+  'SurfaceModel', 'Binary64Scale', 'NativeBudgetContracts', 'NativeContracts', 'FacadeFlow', 'FacadeContracts',
   'PublicObjects', 'ObjectsAndErrors', 'ErrorTranslation',
   'HostObservation', 'SurfaceWitness',
   'NativeTraceLemmas',

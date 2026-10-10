@@ -4,6 +4,7 @@ module NativeTraceLemmas {
   import W = SurfaceWitness
   import N = Native
   import H = HostObservation
+  import NB = NativeBudgetContracts
 
   ghost predicate ValuesExtend(before: map<M.Handle,M.Value>, after: map<M.Handle,M.Value>) reads {} {
     M.ValuesValid(before) && M.ValuesValid(after) &&
@@ -25,6 +26,18 @@ module NativeTraceLemmas {
   ghost predicate BoundIn(bindings: seq<W.Binding>, raw: N.Value, handle: M.Handle) reads {} {
     exists binding | binding in bindings ::
       H.RawSameValue(binding.raw,raw) && binding.handle == handle
+  }
+  lemma BudgetOutcomeGuaranteesExtension(before: map<M.Handle,M.Value>,
+      after: map<M.Handle,M.Value>, rawHandle: M.Handle, useDefault: bool,
+      outcome: M.Outcome, eventAfter: M.Heap)
+    requires ValuesExtend(before,after)
+    requires NB.BudgetOutcomeGuarantees(before,rawHandle,useDefault,outcome,eventAfter)
+    ensures NB.BudgetOutcomeGuarantees(after,rawHandle,useDefault,outcome,eventAfter)
+  {
+    assert rawHandle in before;
+    assert outcome.value in before;
+    assert after[rawHandle] == before[rawHandle];
+    assert after[outcome.value] == before[outcome.value];
   }
   lemma BoundTransport(before: seq<W.Binding>, world: W.World, raw: N.Value, handle: M.Handle)
     requires BoundIn(before,raw,handle)
@@ -120,6 +133,9 @@ module NativeTraceLemmas {
       } else if events[0].outcome.Returned? {
         NormalizeAtExtension(before,after,options,6,opt1,internRaw,strictRaw,opt2,events[0].outcome.value,undefined,events[1..],result);
       }
+    } else if phase == 6 {
+      BudgetOutcomeGuaranteesExtension(before,after,budgetRaw,
+        M.StrictNullish(before[budgetRaw]),events[0].outcome,events[0].after);
     }
   }
   lemma NormalizationTraceExtension(before: map<M.Handle,M.Value>, after: map<M.Handle,M.Value>,

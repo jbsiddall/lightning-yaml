@@ -29,6 +29,8 @@ const sourcePaths = [
   'src/dafny/core/SurfaceErrors.dfy',
   'src/dafny/core/SurfaceHost.dfy',
   'src/dafny/core/SurfaceModel.dfy',
+  'src/dafny/core/Binary64Scale.dfy',
+  'src/dafny/core/NativeBudgetContracts.dfy',
   'src/dafny/core/NativeContracts.dfy',
   'src/dafny/core/FacadeFlow.dfy',
   'src/dafny/core/FacadeContracts.dfy',
@@ -77,7 +79,16 @@ const selected = [
   'NativeTraceLemmas.NormalizeAtExtension',
   'NativeTraceLemmas.NormalizationTraceExtension',
   'NativeErrorTextContracts.NotImplementedMessage',
-  'NativeErrorTextContracts.ExceptionToString',
+  'Binary64Scale.ScaleSubnormalFraction',
+  'Binary64Scale.ScaleSubnormalFractionBound',
+  'Binary64Scale.ScaleNumberBy1024',
+  'Binary64Scale.ScaleNumberBy1024ProducesValidBits',
+  'Binary64Scale.DefaultBudgetEncoding',
+  'NativeBudgetContracts.PrimitiveProductBits',
+  'NativeBudgetContracts.BudgetOutcomeGuarantees',
+  'NativeContracts.DefaultReadyBudgetIsNumber',
+  'NativeTraceLemmas.BudgetOutcomeGuaranteesExtension',
+  'SurfaceHost.MultiplyBy1024',
   'NativePhaseIntro.PrependFirstOptimizationsRead',
   'NativePhaseIntro.PrependInternStringsRead',
   'NativePhaseIntro.PrependStrictRead',
@@ -97,6 +108,15 @@ const filters = [
   '*NativePhaseIntro.*',
   '*NativeErrorTextContracts.NotImplementedMessage*',
   '*NativeErrorTextContracts.ExceptionToString*',
+  '*Binary64Scale.*',
+  '*NativeBudgetContracts.PrimitiveProductBits*',
+  '*NativeBudgetContracts.BudgetOutcomeGuarantees*',
+  '*NativeContracts.DefaultReadyBudgetIsNumber*',
+  '*NativeTraceLemmas.BudgetOutcomeGuaranteesExtension*',
+  '*SurfaceHost.MultiplyBy1024*',
+];
+const zeroVerificationSymbols = [
+  { symbol: 'NativeErrorTextContracts.ExceptionToString', filter: '*NativeErrorTextContracts.ExceptionToString*' },
 ];
 const expectedKinds = {
   'NativeSurface.Adapter._ctor': ['correctness'],
@@ -130,7 +150,16 @@ const expectedKinds = {
   'NativeTraceLemmas.BoundTransport': ['correctness', 'well-formedness'],
   'NativeTraceLemmas.BindingsExtendTransitive': ['correctness'],
   'NativeErrorTextContracts.NotImplementedMessage': ['well-formedness'],
-  'NativeErrorTextContracts.ExceptionToString': ['well-formedness'],
+  'Binary64Scale.ScaleSubnormalFraction': ['well-formedness'],
+  'Binary64Scale.ScaleSubnormalFractionBound': ['correctness', 'well-formedness'],
+  'Binary64Scale.ScaleNumberBy1024': ['well-formedness'],
+  'Binary64Scale.ScaleNumberBy1024ProducesValidBits': ['correctness', 'well-formedness'],
+  'Binary64Scale.DefaultBudgetEncoding': ['correctness', 'well-formedness'],
+  'NativeBudgetContracts.PrimitiveProductBits': ['well-formedness'],
+  'NativeBudgetContracts.BudgetOutcomeGuarantees': ['well-formedness'],
+  'NativeContracts.DefaultReadyBudgetIsNumber': ['correctness', 'well-formedness'],
+  'NativeTraceLemmas.BudgetOutcomeGuaranteesExtension': ['correctness'],
+  'SurfaceHost.MultiplyBy1024': ['well-formedness'],
 };
 
 function sha256(value) {
@@ -258,6 +287,7 @@ function matchesFilter(name, pattern) {
 
 try {
   if (new Set(selected).size !== selected.length) throw new Error('Duplicate Native proof symbol in inventory');
+  const sourceHashesAtStart = originalSourceHashes();
   const compilerVersion = run(dafny, ['--version']).trim();
   if (!isPinnedDafnyVersion(compilerVersion)) throw new Error(`Dafny 4.11.0 required; got ${compilerVersion}`);
   const z3Path = resolveZ3Path(z3);
@@ -268,6 +298,7 @@ try {
   const paths = sourcePaths.map(path => path === 'src/dafny/core/Native.dfy' ? projection.projectionPath : join(root, path));
   const records = [];
   const logs = [];
+  const zeroVcObservations = [];
   mkdirSync(output, { recursive: true });
   for (let index = 0; index < filters.length; index += 1) {
     const filter = filters[index];
@@ -280,15 +311,22 @@ try {
       '--log-format', `csv;LogFileName=${logPath}`,
       '--filter-symbol', filterText,
     ];
+    const names = selected.filter(name => matchesFilter(name, filter));
+    const zeroNames = zeroVerificationSymbols.filter(item => matchesFilter(item.symbol, filter));
     const consoleOutput = run(dafny, args);
     const rows = parseCsv(readFileSync(logPath, 'utf8'));
-    const names = selected.filter(name => matchesFilter(name, filter));
     const runSummary = consoleOutput.match(/Dafny program verifier finished with (\d+) verified, (\d+) errors?/);
     if (!runSummary || Number(runSummary[1]) !== rows.length || Number(runSummary[2]) !== 0) {
       throw new Error(`Verifier summary does not agree with CSV for ${filter}: ${runSummary?.[0] ?? 'missing summary'}, ${rows.length} rows`);
     }
+    if (zeroNames.length > 0 && rows.length !== 0 && names.length === 0) {
+      throw new Error(`${filter}: expected zero verification rows for ${zeroNames.map(item => item.symbol).join(', ')}, found ${rows.length}`);
+    }
     records.push(...checkResults(rows, names));
-    logs.push({ filter, path: logPath, rowCount: rows.length });
+    if (zeroNames.length > 0 && rows.length === 0) {
+      zeroVcObservations.push({ symbols: zeroNames.map(item => item.symbol), filter, observedCsvRows: 0, source: logPath });
+    }
+    logs.push({ filter, path: logPath, rowCount: rows.length, verifierArgs: args });
   }
   for (const name of selected) {
     if (!records.some(record => record.symbol.endsWith(name))) throw new Error(`Native proof inventory missing results for ${name}`);
@@ -301,6 +339,8 @@ try {
     solver: { path: z3Path, version: z3Version, sha256: sha256(readFileSync(z3Path)) },
     projection,
     originalSourceHashes: originalSourceHashes(),
+    sourceHashesAtStart,
+    zeroVcObservations,
     verifierInputHashes: sourceInventory(projection.projectionPath),
     invocations,
     selectedSymbols: selected,
@@ -312,12 +352,17 @@ try {
       { path: 'src/dafny/core/NativeContracts.dfy', status: 'specification dependency; trusted/conditional host observations are not implementation proofs here' },
       { path: 'src/dafny/core/SurfaceHost.dfy', status: 'host-open atomic observation bindings and completion projections; no standalone implementation proof is claimed' },
       { path: 'src/dafny/core/NativeErrorTextContracts.dfy', status: 'error-text trace predicates; string concatenation correspondence is the separately trusted Native.Concat law' },
+      { path: 'src/dafny/core/Binary64Scale.dfy', status: 'independent integer IEEE-754 scaling model; host binary64 correspondence remains open' },
+      { path: 'src/dafny/core/NativeBudgetContracts.dfy', status: 'conditional budget-result relation; LanguageTypeError classification and JS conversion hooks are HOST-OPEN' },
       { path: 'src/dafny/core/SurfaceModel.dfy', status: 'ghost model definitions; full YAML relation remains open' },
       { path: 'src/dafny/core/SurfaceWitness.dfy', status: 'protected-context capability is host-open; authenticity is not established by this proof' },
       { path: 'src/dafny/core/FacadeContracts.dfy', status: 'model contract dependencies; not complete public-operation guarantees' },
     ],
     dependencyWellFormedness: [
       { path: 'src/dafny/core/NativeContracts.dfy', status: 'pending selected WF/termination replay for ghost predicates' },
+      { path: 'src/dafny/core/Binary64Scale.dfy', status: 'selected arithmetic declarations and lemmas have explicit WF/correctness inventory rows; this is not a full model WF proof' },
+      { path: 'src/dafny/core/NativeBudgetContracts.dfy', status: 'selected conditional budget predicates have explicit WF inventory rows; HOST-OPEN classifier is not a body proof' },
+      { path: 'src/dafny/core/SurfaceHost.dfy', symbol: 'MultiplyBy1024', status: 'selected WF rows only; other host atomic specifications remain pending WF inventory' },
       { path: 'src/dafny/core/NativeErrorTextContracts.dfy', status: 'the selected error-text predicates have explicit WF-only rows; their supporting model dependencies still require a separate WF inventory' },
       { path: 'src/dafny/core/SurfaceHost.dfy', status: 'pending selected WF replay for atomic observation specifications and projections' },
       { path: 'src/dafny/core/SurfaceModel.dfy', status: 'pending selected WF replay for model functions and predicates' },
@@ -325,9 +370,12 @@ try {
       { path: 'src/dafny/core/FacadeContracts.dfy', status: 'pending selected WF replay for contract definitions' },
     ],
     trustedBoundary: 'Atomic SurfaceHost observations and ProtectedContextAccess are host-open conditional contracts; this gate verifies routed Native bodies and listed proof helpers only.',
-    knownGap: 'MultiplyBudget records an opaque numeric operation. This proof does not establish default-budget multiplication, raw JavaScript coercion, or numeric result correspondence.',
+    knownGap: 'The conditional model relates default, Number, and Boolean inputs to budget results. Exact JavaScript number representation, string/reference coercion, BigInt/Symbol TypeError classification, and host binding remain open.',
     semanticLimit: 'No end-to-end YAML parse/stringify operation is claimed as formally verified.',
   };
+  if (JSON.stringify(sourceHashesAtStart) !== JSON.stringify(originalSourceHashes())) {
+    throw new Error('Dafny source inputs changed during Native proof replay');
+  }
   writeFileSync(join(output, 'coverage.json'), `${JSON.stringify(evidence, null, 2)}\n`);
   process.stdout.write(`Verified ${records.length} Native proof obligations across ${selected.length} selected symbols.\nEvidence: ${join(output, 'coverage.json')}\n`);
 } catch (error) {

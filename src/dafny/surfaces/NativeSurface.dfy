@@ -47,6 +47,9 @@ module NativeSurface {
         world.Bound(SurfaceHost.CompletionValue(completion),normalized.thrown)
       ensures !SurfaceHost.CompletionIsThrown(completion) ==> normalized.Ready?
       ensures !SurfaceHost.CompletionIsThrown(completion) ==>
+        normalized.budget in world.values &&
+        world.values[normalized.budget].NumberValue?
+      ensures !SurfaceHost.CompletionIsThrown(completion) ==>
         SurfaceHost.NormalizationStrict(SurfaceHost.CompletionValue(completion)) == normalized.strict
       ensures !SurfaceHost.CompletionIsThrown(completion) ==>
         SurfaceHost.NormalizationIntern(SurfaceHost.CompletionValue(completion)) == normalized.intern

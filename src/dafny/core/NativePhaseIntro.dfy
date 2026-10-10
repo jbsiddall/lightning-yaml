@@ -1,6 +1,7 @@
 module NativePhaseIntro {
   import opened SurfaceModel
   import NC = NativeContracts
+  import NB = NativeBudgetContracts
 
   lemma {:isolate_assertions} PrependFirstOptimizationsRead(values: map<Handle, Value>, options: Handle, opt1: Handle, internRaw: Handle, strictRaw: Handle, opt2: Handle, budgetRaw: Handle, undefined: Handle, head: Event, tail: seq<Event>, result: Normalized)
     requires ValuesValid(values)
@@ -110,6 +111,8 @@ module NativePhaseIntro {
     requires head.outcome.value in values
     requires result == (if head.outcome.Thrown? then NormalizationFailure(head.outcome.value)
       else Ready(ExactlyTrue(values[strictRaw]), Truthy(values[internRaw]), head.outcome.value))
+    requires NB.BudgetOutcomeGuarantees(values,budgetRaw,StrictNullish(values[budgetRaw]),
+      head.outcome,head.after)
     ensures NC.NormalizeAt(values, options, 6, opt1, internRaw, strictRaw, opt2, budgetRaw, undefined, [head], result)
   { }
 }

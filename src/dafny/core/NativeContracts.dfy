@@ -1,5 +1,6 @@
 module NativeContracts {
   import opened SurfaceModel
+  import NB = NativeBudgetContracts
 
   ghost predicate NormalizeAt(values: map<Handle, Value>, options: Handle,
       phase: nat, opt1: Handle, internRaw: Handle, strictRaw: Handle,
@@ -52,8 +53,26 @@ module NativeContracts {
       events[0].outcome.value in values &&
       (if events[0].outcome.Thrown? then ( result == NormalizationFailure(events[0].outcome.value)
        ) else ( result == Ready(ExactlyTrue(values[strictRaw]), Truthy(values[internRaw]), events[0].outcome.value)) )
+      && NB.BudgetOutcomeGuarantees(values,budgetRaw,StrictNullish(values[budgetRaw]),
+        events[0].outcome,events[0].after)
     ) else ( false
   ) ) ) ) ) ) }
+
+  lemma DefaultReadyBudgetIsNumber(values: map<Handle,Value>, options: Handle,
+      opt1: Handle, internRaw: Handle, strictRaw: Handle, opt2: Handle,
+      budgetRaw: Handle, undefined: Handle, event: Event, result: Normalized)
+    requires ValuesValid(values) && options in values && undefined in values && values[undefined].UndefinedValue?
+    requires opt1 in values && internRaw in values && strictRaw in values && opt2 in values && budgetRaw in values
+    requires NormalizeAt(values,options,6,opt1,internRaw,strictRaw,opt2,budgetRaw,undefined,[event],result)
+    ensures result.Ready? ==> values[result.budget].NumberValue?
+  {
+    if result.Ready? {
+      assert event.outcome.Returned?;
+      assert NB.BudgetOutcomeGuarantees(values,budgetRaw,StrictNullish(values[budgetRaw]),event.outcome,event.after);
+      assert values[event.outcome.value].NumberValue?;
+      assert result.budget == event.outcome.value;
+    }
+  }
 
   ghost predicate NormalizationTrace(values: map<Handle, Value>, options: Handle,
       undefined: Handle, events: seq<Event>, result: Normalized) reads {} {
