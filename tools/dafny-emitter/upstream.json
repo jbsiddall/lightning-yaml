@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/dafny-lang/dafny.git",
+  "tag": "v4.11.0",
+  "commit": "fcb2042d6d043a2634f0854338c08feeaaaf4ae2",
+  "driverProject": "Source/Dafny/Dafny.csproj",
+  "stockTarget": "js",
+  "candidateTarget": "js-native",
+  "candidateArguments": [],
+  "patchSha256": "48aa47d0918d0fb37b3557528b77b951f781debbab79ee7f1d86956507e02d33",
+  "patches": ["patches/0001-js-native-array-push.patch"]
+}

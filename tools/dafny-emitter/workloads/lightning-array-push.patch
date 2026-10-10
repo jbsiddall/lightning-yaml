@@ -1,0 +1,12 @@
+diff --git a/src/dafny/core/Native.dfy b/src/dafny/core/Native.dfy
+--- a/src/dafny/core/Native.dfy
++++ b/src/dafny/core/Native.dfy
+@@ -64,7 +64,7 @@ module {:extern "Native"} Native {
+   function {:extern "sameValue"} SameValue(left: Value, right: Value): bool
+ 
+   method {:extern "createArray"} CreateArray() returns (a: Value)
+-  method {:extern "arrayPush"} ArrayPush(a: Value, value: Value)
++  method {:extern "arrayPush"} {:jsIntrinsic "arrayPush"} ArrayPush(a: Value, value: Value)
+   method {:extern "arrayLength"} ArrayLength(a: Value) returns (n: Index)
+   method {:extern "arrayGet"} ArrayGet(a: Value, i: Index) returns (value: Value)
+   method {:extern "arraySet"} ArraySet(a: Value, i: Index, value: Value)

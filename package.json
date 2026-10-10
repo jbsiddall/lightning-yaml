@@ -82,6 +82,7 @@
     "gen:suite": "bash bench/yaml-test-suite/fetch.sh",
     "check:public-contracts": "node scripts/check-public-surface-contracts.cjs",
     "dafny:generate": "bash scripts/dafny-build.sh",
+    "dafny:emitter:test": "node --test tools/dafny-emitter/emitter.test.cjs",
     "dafny:verify:scanner": "node --test scripts/dafny-version.test.cjs && node scripts/verify-dafny-scanner.cjs",
     "dafny:verify:options": "node --test scripts/dafny-solver.test.cjs && node scripts/verify-dafny-options.cjs",
     "dafny:verify:native": "node scripts/verify-dafny-native.cjs",

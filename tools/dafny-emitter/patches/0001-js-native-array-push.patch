@@ -1,0 +1,375 @@
+From 9fceae8530c4eb552a6e0ec8e2aabf9b9acb4446 Mon Sep 17 00:00:00 2001
+From: Joseph Siddall <j.b.siddall@gmail.com>
+Date: Sat, 10 Oct 2026 22:55:50 +0100
+Subject: [PATCH] Add experimental native JavaScript array push intrinsic
+
+---
+ .../InternalBackendsPluginConfiguration.cs    |   3 +-
+ .../JavaScript/JavaScriptNativeBackend.cs     |  99 ++++++++++++
+ .../Backends/JavaScript/NativeTarget.md       |   5 +
+ .../javascript-native/IntrinsicArrayPush.dfy  |  23 +++
+ .../IntrinsicArrayPush.expect                 |   1 +
+ .../IntrinsicArrayPushHarness.js              | 151 ++++++++++++++++++
+ .../InvalidArrayPushIntrinsic.dfy             |  17 ++
+ 7 files changed, 298 insertions(+), 1 deletion(-)
+ create mode 100644 Source/DafnyCore/Backends/JavaScript/JavaScriptNativeBackend.cs
+ create mode 100644 Source/DafnyCore/Backends/JavaScript/NativeTarget.md
+ create mode 100644 Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPush.dfy
+ create mode 100644 Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPush.expect
+ create mode 100644 Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPushHarness.js
+ create mode 100644 Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/InvalidArrayPushIntrinsic.dfy
+
+diff --git a/Source/DafnyCore/Backends/InternalBackendsPluginConfiguration.cs b/Source/DafnyCore/Backends/InternalBackendsPluginConfiguration.cs
+index d8b1c1d..0388337 100644
+--- a/Source/DafnyCore/Backends/InternalBackendsPluginConfiguration.cs
++++ b/Source/DafnyCore/Backends/InternalBackendsPluginConfiguration.cs
+@@ -9,6 +9,7 @@ internal class InternalBackendsPluginConfiguration : Plugins.PluginConfiguration
+     return [
+       new CsharpBackend(options),
+       new JavaScriptBackend(options),
++      new JavaScriptNativeBackend(options),
+       new GoBackend(options),
+       new JavaBackend(options),
+       new PythonBackend(options),
+@@ -18,4 +19,4 @@ internal class InternalBackendsPluginConfiguration : Plugins.PluginConfiguration
+       new ResolvedDesugaredExecutableDafnyBackend(options)
+     ];
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/Source/DafnyCore/Backends/JavaScript/JavaScriptNativeBackend.cs b/Source/DafnyCore/Backends/JavaScript/JavaScriptNativeBackend.cs
+new file mode 100644
+index 0000000..b172a98
+--- /dev/null
++++ b/Source/DafnyCore/Backends/JavaScript/JavaScriptNativeBackend.cs
+@@ -0,0 +1,99 @@
++using System.Collections.Generic;
++using System.Linq;
++using Microsoft.Dafny;
++
++namespace Microsoft.Dafny.Compilers;
++
++public sealed class JavaScriptNativeBackend : JavaScriptBackend {
++  public JavaScriptNativeBackend(DafnyOptions options) : base(options) { }
++
++  public override string TargetId => "js-native";
++  public override string TargetName => "experimental native JavaScript";
++  public override bool IsStable => false;
++
++  protected override SinglePassCodeGenerator CreateCodeGenerator() =>
++    new JavaScriptNativeCodeGenerator(Options, Reporter);
++}
++
++sealed class JavaScriptNativeCodeGenerator : JavaScriptCodeGenerator {
++  const string IntrinsicAttribute = "jsIntrinsic";
++  readonly HashSet<Method> validIntrinsics = new();
++
++  public JavaScriptNativeCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) { }
++
++  protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
++    foreach (var module in program.CompileModules) {
++      foreach (var declaration in module.TopLevelDecls) {
++        if (Attributes.Find(declaration.Attributes, IntrinsicAttribute) is { }) {
++          Reporter.Error(MessageSource.Compiler, declaration.Origin, "{:jsIntrinsic} is only valid on methods");
++        }
++        if (declaration is not TopLevelDeclWithMembers container) {
++          continue;
++        }
++        foreach (var member in container.Members) {
++          if (Attributes.Find(member.Attributes, IntrinsicAttribute) is { } && member is not Method) {
++            Reporter.Error(MessageSource.Compiler, member.Origin, "{:jsIntrinsic} is only valid on methods");
++          } else if (member is Method method) {
++            ValidateIntrinsic(method);
++          }
++        }
++      }
++    }
++    base.EmitHeader(program, wr);
++  }
++
++  bool ValidateIntrinsic(Method method) {
++    var attributes = method.Attributes?.AsEnumerable().Where(attribute => attribute.Name == IntrinsicAttribute).ToList();
++    if (attributes == null || attributes.Count == 0) {
++      return true;
++    }
++    var validName = attributes.Count == 1 && attributes[0] is UserSuppliedAttributes supplied &&
++      supplied.Args.Count == 1 && supplied.Args[0] is StringLiteralExpr literal && literal.Value is string name && name == "arrayPush";
++    if (!validName) {
++      Reporter.Error(MessageSource.Compiler, method.Origin, "{:jsIntrinsic} must be exactly {:jsIntrinsic \"arrayPush\"}");
++      return false;
++    }
++    if (!method.IsStatic || !method.IsExtern(Options) || method.Ins.Count != 2 || method.Outs.Count != 0 ||
++        method.TypeArgs.Count != 0 || method.EnclosingClass.TypeArgs.Count != 0 || method.Ins.Any(input => input.IsGhost)) {
++      Reporter.Error(MessageSource.Compiler, method.Origin, "{:jsIntrinsic \"arrayPush\"} requires a static extern method with two inputs, no outputs, and no type parameters");
++      return false;
++    }
++    validIntrinsics.Add(method);
++    return true;
++  }
++
++  protected override void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
++    var attribute = Attributes.Find(s.Method.Attributes, IntrinsicAttribute);
++    if (attribute == null) {
++      base.TrCallStmt(s, receiverReplacement, wr, wStmts, wStmtsAfterCall);
++      return;
++    }
++    if (s.Method is not Method intrinsic) {
++      Reporter.Error(MessageSource.Compiler, s.Origin, "{:jsIntrinsic} is only valid on methods");
++      return;
++    }
++    if (!validIntrinsics.Contains(intrinsic) && !ValidateIntrinsic(intrinsic)) {
++      return;
++    }
++    if (receiverReplacement != null || s.Args.Count != 2 || s.Lhs.Count != 0) {
++      Reporter.Error(MessageSource.Compiler, s.Origin, "arrayPush intrinsic call has an unsupported call context");
++      return;
++    }
++
++    var receiver = ProtectedFreshId("_array_receiver");
++    var value = ProtectedFreshId("_array_value");
++    var block = EmitBlock(wr);
++    for (var index = 0; index < s.Args.Count; index++) {
++      var argument = s.Args[index];
++      var input = s.Method.Original.Ins[index];
++      var expectedType = input.Type.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
++      var temporary = index == 0 ? receiver : value;
++      var argumentStatements = block.Fork();
++      var argumentWriter = DeclareLocalVar(temporary, expectedType, argument.Origin, block);
++      argumentWriter = EmitCoercionIfNecessary(argument.Type, expectedType, argument.Origin, argumentWriter, input.Type);
++      argumentWriter = EmitDowncastIfNecessary(argument.Type, expectedType, argument.Origin, argumentWriter);
++      EmitExpr(argument, false, argumentWriter, argumentStatements);
++    }
++    block.WriteLine(receiver + ".push(" + value + ");");
++  }
++}
+diff --git a/Source/DafnyCore/Backends/JavaScript/NativeTarget.md b/Source/DafnyCore/Backends/JavaScript/NativeTarget.md
+new file mode 100644
+index 0000000..1feeb62
+--- /dev/null
++++ b/Source/DafnyCore/Backends/JavaScript/NativeTarget.md
+@@ -0,0 +1,5 @@
++# Experimental native JavaScript target
++
++`js-native` is an unstable target for narrowly annotated host intrinsics. Its first intrinsic is `{:jsIntrinsic "arrayPush"}` on a static extern method with two non-ghost inputs, no outputs, and no type parameters. The annotation is a trusted host contract: the extern binding must be immutable and its lookup must have no observable effects; the implementation must perform `(receiver).push(value)` and discard the result.
++
++The generated call evaluates both arguments once, from left to right, before looking up the receiver's `push` property. That preserves dynamic getters, overrides, proxies, method `this`, and thrown payloads from argument evaluation and property lookup. It does not promise the same engine-generated TypeError wording for every invalid receiver, or the same caller stack frame as the wrapper call it removes.
+diff --git a/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPush.dfy b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPush.dfy
+new file mode 100644
+index 0000000..4a2e002
+--- /dev/null
++++ b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPush.dfy
+@@ -0,0 +1,23 @@
++// NONUNIFORM: exercises the experimental js-native backend and its explicit extern contract
++// RUN: %translate js %trargs --no-verify --allow-warnings --output "%t.stock.js" "%s"
++// RUN: %translate js-native %trargs --no-verify --allow-warnings --output "%t.native.js" "%s"
++// RUN: node "%S/IntrinsicArrayPushHarness.js" "%t.stock.js" stock > "%t.stock.out"
++// RUN: node "%S/IntrinsicArrayPushHarness.js" "%t.native.js" native > "%t.native.out"
++// RUN: %exits-with 1 node "%S/IntrinsicArrayPushHarness.js" "%t.native.js" native naive > /dev/null 2>&1
++// RUN: %diff "%S/IntrinsicArrayPush.expect" "%t.stock.out"
++// RUN: %diff "%S/IntrinsicArrayPush.expect" "%t.native.out"
++
++module {:extern "Adapter"} Host {
++  function {:extern} UseReceiver(): bool
++  function {:extern} GetReceiver(): array<object>
++  function {:extern} GetValue(): object
++  method {:extern} {:jsIntrinsic "arrayPush"} Push(receiver: array<object>, value: object)
++  method {:extern} Keep()
++}
++
++method Main() {
++  Host.Push(if Host.UseReceiver() then Host.GetReceiver() else Host.GetReceiver(),
++    (var value := Host.GetValue(); value));
++  Host.Push(Host.GetReceiver(), Host.GetValue());
++  Host.Keep();
++}
+diff --git a/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPush.expect b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPush.expect
+new file mode 100644
+index 0000000..61a6a58
+--- /dev/null
++++ b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPush.expect
+@@ -0,0 +1 @@
++intrinsic differential passed
+diff --git a/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPushHarness.js b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPushHarness.js
+new file mode 100644
+index 0000000..d7cf541
+--- /dev/null
++++ b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/IntrinsicArrayPushHarness.js
+@@ -0,0 +1,151 @@
++const fs = require("fs");
++const assert = require("assert");
++
++let generated = fs.readFileSync(process.argv[2], "utf8");
++const target = process.argv[3];
++const entryPoint = "_dafny.HandleHaltExceptions(() => _module.__default.Main(_dafny.UnicodeFromMainArguments(require('process').argv)));";
++assert(generated.includes(entryPoint), "expected the generated main entry point");
++generated = generated.replace(entryPoint, "return () => _module.__default.Main([]);");
++if (target === "stock") {
++  assert(generated.includes("Adapter.Push("), "stock JavaScript should retain the extern wrapper call");
++} else if (target === "native") {
++  assert(generated.includes("_array_receiver") && generated.includes(".push("), "js-native should emit the staged native push");
++  assert(!generated.includes("Adapter.Push("), "js-native should lower the annotated method call");
++} else {
++  throw new Error(`unknown target: ${target}`);
++}
++if (process.argv[4] === "naive") {
++  const before = generated;
++  generated = generated.replace(
++    /let (_array_receiver\d+) = Adapter\.GetReceiver\(\);\s*let (_array_value\d+) = Adapter\.GetValue\(\);\s*\1\.push\(\2\);/,
++    "Adapter.GetReceiver().push(Adapter.GetValue());");
++  assert.notStrictEqual(generated, before, "the generated simple push should be mutable by this regression check");
++}
++
++function runScenario(options = {}) {
++  const events = [];
++  const receivers = [];
++  const pushedValue = { marker: "value" };
++  let currentReceiver;
++  let entry;
++  let hasReentered = false;
++  const Adapter = Object.freeze({
++    UseReceiver() {
++      events.push("condition");
++      return true;
++    },
++    GetReceiver() {
++      events.push("receiver");
++      if ("throwReceiver" in options) throw options.throwReceiver;
++      let target;
++      if (options.subclassPush) {
++        class PushArray extends Array {
++          push(value) {
++            events.push(this === currentReceiver ? "override-this" : "bad-this");
++            return super.push(value);
++          }
++        }
++        target = new PushArray();
++      } else {
++        target = [];
++      }
++      currentReceiver = target;
++      if (options.proxyReceiver) {
++        currentReceiver = new Proxy(target, {
++          get(object, property, receiver) {
++            if (property === "push") events.push("proxy-get");
++            return Reflect.get(object, property, receiver);
++          },
++          set(object, property, value, receiver) {
++            if (property === "0") events.push("proxy-set");
++            return Reflect.set(object, property, value, receiver);
++          }
++        });
++      }
++      receivers.push({ target, receiver: currentReceiver });
++      return currentReceiver;
++    },
++    GetValue() {
++      events.push("value");
++      if ("throwValue" in options) throw options.throwValue;
++      const target = currentReceiver;
++      if (!options.subclassPush) {
++        Object.defineProperty(target, "push", {
++          configurable: true,
++          get() {
++            events.push("lookup");
++            if ("throwLookup" in options) throw options.throwLookup;
++            return function (value) {
++              events.push(this === target ? "call-this" : "bad-this");
++              return Array.prototype.push.call(this, value);
++            };
++          }
++        });
++      }
++      if (options.reenter && !hasReentered) {
++        hasReentered = true;
++        entry();
++      }
++      return pushedValue;
++    },
++    Push(target, value) {
++      return target.push(value);
++    },
++    Keep() {
++      events.push("retained");
++    }
++  });
++  const _dafny = {
++    HandleHaltExceptions(run) { run(); },
++    UnicodeFromMainArguments() { return []; }
++  };
++  entry = new Function("Adapter", "_dafny", generated)(Adapter, _dafny);
++  try {
++    entry();
++    return { events, receivers, pushedValue, didThrow: false };
++  } catch (thrown) {
++    return { events, receivers, pushedValue, didThrow: true, thrown };
++  }
++}
++
++const normal = runScenario();
++assert.deepStrictEqual(normal.events, [
++  "condition", "receiver", "value", "lookup", "call-this",
++  "receiver", "value", "lookup", "call-this", "retained"
++]);
++assert.deepStrictEqual(normal.receivers.map(({ target }) => target.length), [1, 1]);
++assert(normal.receivers.every(({ target }) => target[0] === normal.pushedValue));
++
++for (const payload of [{ marker: "argument" }, undefined]) {
++  const receiverThrow = runScenario({ throwReceiver: payload });
++  assert(receiverThrow.didThrow);
++  assert.strictEqual(receiverThrow.thrown, payload);
++  assert.deepStrictEqual(receiverThrow.events, ["condition", "receiver"]);
++
++  const valueThrow = runScenario({ throwValue: payload });
++  assert(valueThrow.didThrow);
++  assert.strictEqual(valueThrow.thrown, payload);
++  assert.deepStrictEqual(valueThrow.events, ["condition", "receiver", "value"]);
++
++  const lookupThrow = runScenario({ throwLookup: payload });
++  assert(lookupThrow.didThrow);
++  assert.strictEqual(lookupThrow.thrown, payload);
++  assert.deepStrictEqual(lookupThrow.events, ["condition", "receiver", "value", "lookup"]);
++}
++
++const proxy = runScenario({ proxyReceiver: true });
++assert(proxy.events.includes("proxy-get"));
++assert(proxy.events.includes("proxy-set"));
++assert(proxy.events.includes("call-this"));
++assert(proxy.receivers.every(({ target }) => target.length === 1));
++
++const subclass = runScenario({ subclassPush: true });
++assert(subclass.events.includes("override-this"));
++assert(subclass.receivers.every(({ target }) => target.length === 1));
++
++const reentrant = runScenario({ reenter: true });
++assert.strictEqual(reentrant.receivers.length, 4);
++assert(reentrant.receivers.every(({ target }) => target.length === 1));
++assert.strictEqual(reentrant.receivers[0].target === reentrant.receivers[1].target, false);
++
++process.stdout.write("intrinsic differential passed\n");
+diff --git a/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/InvalidArrayPushIntrinsic.dfy b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/InvalidArrayPushIntrinsic.dfy
+new file mode 100644
+index 0000000..ade9db8
+--- /dev/null
++++ b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/InvalidArrayPushIntrinsic.dfy
+@@ -0,0 +1,17 @@
++// NONUNIFORM: checks validation specific to the experimental js-native backend
++// RUN: ! %translate js-native %trargs --no-verify --output "%t.js" "%s" > /dev/null
++
++class Host {
++  static method {:extern} {:jsIntrinsic "unknown"} Unknown(receiver: array<int>, value: int)
++  static method {:extern} {:jsIntrinsic 1} Malformed(receiver: array<int>, value: int)
++  method {:extern} {:jsIntrinsic "arrayPush"} Instance(receiver: array<int>, value: int)
++  static method {:jsIntrinsic "arrayPush"} NonExtern(receiver: array<int>, value: int) {}
++  static method {:extern} {:jsIntrinsic "arrayPush"} WithOutput(receiver: array<int>, value: int) returns (result: int)
++  static method {:extern} {:jsIntrinsic "arrayPush"} Generic<T>(receiver: array<int>, value: T)
++}
++
++class GenericHost<T> {
++  static method {:extern} {:jsIntrinsic "arrayPush"} GenericClass(receiver: array<int>, value: int)
++}
++
++method Main() {}
+-- 
+2.55.0
+
