@@ -1,4 +1,5 @@
 import { YAMLParseError } from '../errors.ts';
+import * as surfaceHost from './surface-native.ts';
 
 export type NativeValue = unknown;
 export type NativeMap = Map<NativeValue, NativeValue>;
@@ -106,3 +107,25 @@ export const nativeSetAdd = function setAdd(set: unknown, value: unknown): void 
 export const nativeSetValues = function setValues(value: unknown): unknown[] { return Array.from((value as NativeSet).values()); };
 export const nativeSetValue = function setValue(set: unknown): unknown { return set; };
 export const nativeFail = function fail(message: string): never { throw new YAMLParseError(message); };
+
+export const nativeSurfaceIsNullish = (value: unknown): boolean => surfaceHost.surfaceIsNullish(value);
+export const nativeSurfaceIsTruthy = (value: unknown): boolean => surfaceHost.surfaceIsTruthy(value);
+export const nativeSurfaceIsExactlyTrue = (value: unknown): boolean => surfaceHost.surfaceIsExactlyTrue(value);
+export const nativeSurfaceIsString = (value: unknown): boolean => surfaceHost.surfaceIsString(value);
+export const nativeSurfaceTemplateString = (value: unknown, _engine: unknown, _helpers: unknown, _writer: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceTemplateString(value);
+export const nativeSurfaceReturnedString = (value: string): surfaceHost.SurfaceCompletion => surfaceHost.surfaceReturnedString(value);
+export const nativeSurfaceCompletionIsThrown = (value: unknown): boolean => surfaceHost.surfaceCompletionIsThrown(value as surfaceHost.SurfaceCompletion);
+export const nativeSurfaceCompletionValue = (value: unknown): unknown => surfaceHost.surfaceCompletionValue(value as surfaceHost.SurfaceCompletion);
+export const nativeSurfaceReadProperty = (target: unknown, key: string, _engine: unknown, _helpers: unknown, _writer: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceReadProperty(target, key);
+export const nativeSurfaceMultiplyBy1024 = (value: unknown, _engine: unknown, _helpers: unknown, _writer: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceMultiplyByNumber(value, 1024);
+export const nativeSurfaceCaptureNormalizationRecord = (strict: boolean, intern: boolean, budget: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceCaptureNormalizationRecord(strict, intern, budget);
+export const nativeSurfaceNormalizationStrict = (record: unknown): boolean => surfaceHost.surfaceNormalizationStrict(record);
+export const nativeSurfaceNormalizationIntern = (record: unknown): boolean => surfaceHost.surfaceNormalizationIntern(record);
+export const nativeSurfaceNormalizationBudget = (record: unknown): unknown => surfaceHost.surfaceNormalizationBudget(record);
+export const nativeSurfaceCaptureReset = (engine: unknown, text: string, strict: boolean, intern: boolean, budget: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceCaptureEngineReset(engine, text, strict, intern, budget);
+export const nativeSurfaceCaptureParseSingle = (engine: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceCaptureEngineParseSingle(engine);
+export const nativeSurfaceCaptureParseAll = (engine: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceCaptureEngineParseAll(engine);
+export const nativeSurfaceCaptureEndStream = (engine: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceCaptureEngineEndStream(engine);
+export const nativeSurfaceCaptureIsArray = (value: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceIsArray(value);
+export const nativeSurfaceCaptureTypeError = (message: string): surfaceHost.SurfaceCompletion => surfaceHost.surfaceCaptureTypeError(message);
+export const nativeSurfaceCaptureWriterStringify = (writer: unknown, value: unknown, _engine: unknown, _helpers: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceCaptureWriterStringify(writer, value);

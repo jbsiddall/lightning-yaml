@@ -1,4 +1,4 @@
-import { DafnyCore, Serializer } from './generated/engine.js';
+import { NativeSurface } from './generated/engine.js';
 
 export interface DafnyParseOptions {
   strict?: boolean;
@@ -8,40 +8,48 @@ export interface DafnyParseOptions {
   };
 }
 
-const engine = new DafnyCore.Engine();
-engine.__ctor();
-const writer = new Serializer.Writer();
-writer.__ctor();
+let adapter: InstanceType<typeof NativeSurface.Adapter> | undefined;
 
-function reset(text: string, options?: DafnyParseOptions): void {
-  const internValues = !!options?.optimizations?.internStrings;
-  const isStrict = options?.strict === true;
-  const keyCacheBudget = (options?.optimizations?.keyCacheMaxKb ?? 4096) * 1024;
-  engine.Reset(text, isStrict, internValues, keyCacheBudget);
+function getAdapter(): InstanceType<typeof NativeSurface.Adapter> {
+  if (!adapter) {
+    adapter = new NativeSurface.Adapter();
+    adapter.__ctor();
+  }
+  return adapter;
+}
+
+/** Preserve the original eager core-instance setup once generated imports are initialized. */
+export function initializeDafny(): void {
+  getAdapter();
+}
+
+function unwrap(completion: unknown): unknown {
+  const result = completion as { kind: number; value: unknown };
+  if (result.kind === 1) throw result.value;
+  return result.value;
 }
 
 export function parseWithDafny(text: string, options?: DafnyParseOptions): unknown {
-  try {
-    reset(text, options);
-    return engine.ParseSingle();
-  } finally {
-    engine.EndStream();
-  }
+  const surfaceAdapter = getAdapter();
+  return unwrap(surfaceAdapter.Parse(text, options));
 }
 
 export function parseAllWithDafny(text: string, options?: DafnyParseOptions): unknown[] {
-  try {
-    reset(text, options);
-    const documents = engine.ParseAll();
-    if (!Array.isArray(documents)) throw new TypeError('Dafny parseAll returned a non-array value');
-    return documents as unknown[];
-  } finally {
-    engine.EndStream();
-  }
+  const surfaceAdapter = getAdapter();
+  return unwrap(surfaceAdapter.ParseAll(text, options)) as unknown[];
 }
 
 export function stringifyWithDafny(value: unknown): string {
-  const text = writer.Stringify(value);
-  if (typeof text !== 'string') throw new TypeError('Dafny stringify returned a non-string value');
-  return text;
+  const surfaceAdapter = getAdapter();
+  return unwrap(surfaceAdapter.Stringify(value)) as string;
+}
+
+export function exceptionToStringWithDafny(receiver: unknown): string {
+  const surfaceAdapter = getAdapter();
+  return unwrap(surfaceAdapter.ExceptionToString(receiver)) as string;
+}
+
+export function notImplementedMessageWithDafny(functionName: unknown): string {
+  const surfaceAdapter = getAdapter();
+  return unwrap(surfaceAdapter.NotImplementedMessage(functionName)) as string;
 }

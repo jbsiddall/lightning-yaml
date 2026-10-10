@@ -3,7 +3,9 @@
  * handling and writer live in the generated Dafny module.
  */
 
-import { parseAllWithDafny, parseWithDafny, stringifyWithDafny } from "./dafny/bridge.ts";
+import { initializeDafny, parseAllWithDafny, parseWithDafny, stringifyWithDafny } from "./dafny/bridge.ts";
+
+initializeDafny();
 
 export { NotImplementedError, YAMLParseError } from "./errors.ts";
 

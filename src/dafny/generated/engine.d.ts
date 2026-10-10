@@ -47,3 +47,14 @@ export const SurfaceErrors: {
     ChooseExceptionMark(mark: unknown, nullish: boolean, freshDefault: unknown): unknown;
   };
 };
+
+export const NativeSurface: {
+  Adapter: new () => {
+    __ctor(): void;
+    Parse(text: string, options: unknown): unknown;
+    ParseAll(text: string, options: unknown): unknown;
+    Stringify(value: unknown): unknown;
+    ExceptionToString(receiver: unknown): unknown;
+    NotImplementedMessage(functionName: unknown): unknown;
+  };
+};

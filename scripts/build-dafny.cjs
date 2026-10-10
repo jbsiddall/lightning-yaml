@@ -13,13 +13,15 @@ const SOURCES = [
   'src/dafny/core/Engine.dfy',
   'src/dafny/core/Serializer.dfy',
   'src/dafny/core/SurfaceValues.dfy',
-  'src/dafny/surfaces/Options.dfy',
-  'src/dafny/surfaces/Helpers.dfy',
-  'src/dafny/surfaces/Errors.dfy',
+  'src/dafny/core/SurfaceOptions.dfy',
+  'src/dafny/core/SurfaceHelpers.dfy',
+  'src/dafny/core/SurfaceErrors.dfy',
+  'src/dafny/core/SurfaceHost.dfy',
+  'src/dafny/surfaces/NativeSurface.dfy',
 ];
 const OUTPUT = 'src/dafny/generated/engine.js';
-const MODULES = new Set(['TagValues', 'DafnyCore', 'Serializer', 'SurfaceOptions', 'SurfaceHelpers', 'SurfaceErrors']);
-const OMITTED = new Set(['_dafny', '_System', '_module', 'SurfaceValues']);
+const MODULES = new Set(['TagValues', 'DafnyCore', 'Serializer', 'SurfaceOptions', 'SurfaceHelpers', 'SurfaceErrors', 'NativeSurface']);
+const OMITTED = new Set(['_dafny', '_System', '_module', 'SurfaceValues', 'SurfaceHost']);
 const DAFNY_RUNTIME_SITES = {
   areEqual: {
     'Helpers.BuildOmap': 1,
@@ -169,9 +171,73 @@ function extract(generated, digest) {
   const lowered = extractModules(generated);
   const shape = require('./dafny-shape-transform.cjs').transformGenerated(
     lowered, fs.readFileSync(path.join(ROOT, 'src/dafny/native.ts'), 'utf8'));
-  const imports = shape.nativeImports.map(({ binding, alias }) => `${binding} as ${alias}`).join(', ');
+  const nativeText = fs.readFileSync(path.join(ROOT, 'src/dafny/native.ts'), 'utf8');
+  const surfaceBindings = {
+    surfaceCaptureEndStream: 'nativeSurfaceCaptureEndStream',
+    surfaceCaptureIsArray: 'nativeSurfaceCaptureIsArray',
+    surfaceCaptureNormalizationRecord: 'nativeSurfaceCaptureNormalizationRecord',
+    surfaceCaptureParseAll: 'nativeSurfaceCaptureParseAll',
+    surfaceCaptureParseSingle: 'nativeSurfaceCaptureParseSingle',
+    surfaceCaptureReset: 'nativeSurfaceCaptureReset',
+    surfaceCaptureTypeError: 'nativeSurfaceCaptureTypeError',
+    surfaceCaptureWriterStringify: 'nativeSurfaceCaptureWriterStringify',
+    surfaceCompletionIsThrown: 'nativeSurfaceCompletionIsThrown',
+    surfaceCompletionValue: 'nativeSurfaceCompletionValue',
+    surfaceIsExactlyTrue: 'nativeSurfaceIsExactlyTrue',
+    surfaceIsNullish: 'nativeSurfaceIsNullish',
+    surfaceIsString: 'nativeSurfaceIsString',
+    surfaceIsTruthy: 'nativeSurfaceIsTruthy',
+    surfaceMultiplyBy1024: 'nativeSurfaceMultiplyBy1024',
+    surfaceNormalizationBudget: 'nativeSurfaceNormalizationBudget',
+    surfaceNormalizationIntern: 'nativeSurfaceNormalizationIntern',
+    surfaceNormalizationStrict: 'nativeSurfaceNormalizationStrict',
+    surfaceReadProperty: 'nativeSurfaceReadProperty',
+    surfaceReturnedString: 'nativeSurfaceReturnedString',
+    surfaceTemplateString: 'nativeSurfaceTemplateString',
+  };
+  const expectedSurfaceSites = {
+    surfaceCaptureEndStream: 1, surfaceCaptureIsArray: 1, surfaceCaptureNormalizationRecord: 1,
+    surfaceCaptureParseAll: 1, surfaceCaptureParseSingle: 1, surfaceCaptureReset: 1,
+    surfaceCaptureTypeError: 2, surfaceCaptureWriterStringify: 1,
+    surfaceCompletionIsThrown: 17, surfaceCompletionValue: 15, surfaceIsExactlyTrue: 1,
+    surfaceIsNullish: 4, surfaceIsString: 1, surfaceIsTruthy: 2, surfaceMultiplyBy1024: 1,
+    surfaceNormalizationBudget: 1, surfaceNormalizationIntern: 1, surfaceNormalizationStrict: 1,
+    surfaceReadProperty: 7, surfaceReturnedString: 2, surfaceTemplateString: 3,
+  };
+  const ts = require('typescript');
+  const source = ts.createSourceFile('generated.js', shape.text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  if (source.parseDiagnostics.length) throw new Error('generated surface adapter was not valid JavaScript');
+  const actualSurfaceSites = Object.create(null);
+  const aliases = Object.create(null);
+  for (const [index, [member, binding]] of Object.entries(surfaceBindings).entries()) {
+    if (!nativeText.includes(`const ${binding} =`)) throw new Error(`missing native surface binding ${binding}`);
+    aliases[member] = `n${shape.nativeImports.length + index}`;
+  }
+  function rewrite(node, context) {
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+        ts.isPropertyAccessExpression(node.expression.expression) &&
+        ts.isIdentifier(node.expression.expression.expression) && node.expression.expression.expression.text === 'SurfaceHost' &&
+        node.expression.expression.name.text === '__default') {
+      const member = node.expression.name.text;
+      if (!Object.hasOwn(surfaceBindings, member)) throw new Error(`unmanifested SurfaceHost.${member}`);
+      actualSurfaceSites[member] = (actualSurfaceSites[member] || 0) + 1;
+      return ts.factory.updateCallExpression(node, ts.factory.createIdentifier(aliases[member]), node.typeArguments,
+        node.arguments.map(arg => ts.visitNode(arg, child => rewrite(child, context))));
+    }
+    return ts.visitEachChild(node, child => rewrite(child, context), context);
+  }
+  const result = ts.transform(source, [context => root => ts.visitNode(root, node => rewrite(node, context))]);
+  const surfaceText = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed }).printFile(result.transformed[0]);
+  result.dispose();
+  const sort = obj => Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)));
+  if (JSON.stringify(sort(actualSurfaceSites)) !== JSON.stringify(sort(expectedSurfaceSites))) {
+    throw new Error(`SurfaceHost callsite inventory changed: ${JSON.stringify(actualSurfaceSites)}`);
+  }
+  const surfaceImports = Object.entries(surfaceBindings).map(([member, binding]) => ({ binding, alias: aliases[member] }));
+  const allImports = [...shape.nativeImports, ...surfaceImports];
+  const imports = allImports.map(({ binding, alias }) => `${binding} as ${alias}`).join(', ');
   if (!imports) throw new Error('generated Dafny output has no native helper imports');
-  return `// Dafny program compiled into JavaScript by Dafny ${COMPILER_VERSION}.\n// Copyright by the contributors to the Dafny Project.\n// SPDX-License-Identifier: MIT\n// Sources sha256 ${digest}; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.\nimport { ${imports} } from '../native.ts';\n\n${shape.text}\n\nexport { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors };\n`;
+  return `// Dafny program compiled into JavaScript by Dafny ${COMPILER_VERSION}.\n// Copyright by the contributors to the Dafny Project.\n// SPDX-License-Identifier: MIT\n// Sources sha256 ${digest}; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.\nimport { ${imports} } from '../native.ts';\n\n${surfaceText}\n\nexport { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors, NativeSurface };\n`;
 }
 
 function main() {

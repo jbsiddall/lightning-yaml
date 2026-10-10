@@ -24,7 +24,16 @@
         "SurfaceErrors.__default.NotImplementedErrorName",
         "SurfaceErrors.__default.YamlExceptionName",
         "SurfaceErrors.__default.ChooseExceptionReason",
-        "SurfaceErrors.__default.ChooseExceptionMark"
+        "SurfaceErrors.__default.ChooseExceptionMark",
+        "NativeSurface.Adapter.__ctor",
+        "NativeSurface.Adapter.NormalizeParseOptions",
+        "NativeSurface.Adapter.SelectCompletionAfterCleanup",
+        "NativeSurface.Adapter.Parse",
+        "NativeSurface.Adapter.ParseAll",
+        "NativeSurface.Adapter.ParseCompletion",
+        "NativeSurface.Adapter.Stringify",
+        "NativeSurface.Adapter.ExceptionToString",
+        "NativeSurface.Adapter.NotImplementedMessage"
       ]
     }
   ],
@@ -32,15 +41,19 @@
     "../src/dafny/native.ts",
     "../src/errors.ts",
     "../src/dafny/bridge.ts",
-    "../src/dafny/generated/engine.d.ts"
+    "../src/dafny/surface-native.ts",
+    "../src/dafny/generated/engine.d.ts",
+    "../src/core.ts"
   ],
   "shapeManifest": "./dafny-shape-manifest.json",
   "declarationSha256": {
-    "../src/dafny/generated/engine.d.ts": "a09e8b71e98fb3f43f5c0ea9ab75f6677aa11900e096cd13cab79c8054321bcd"
+    "../src/dafny/generated/engine.d.ts": "b1a12114738acd057ab264f31157b9a5589168434ac4fe5bd121254144f4e11c"
   },
   "sourceSha256": {
-    "../src/dafny/native.ts": "38b6fbc407a1224b0727972ced9dc89bfce9deebec49dbf5da25c1eb101d6b38",
-    "./dafny-shape-manifest.json": "a514f00140711810fcda15b2d500fb120c87fc00af6d613e035b6283f06343bc"
+    "../src/dafny/native.ts": "89ba6224f08fb13a0388ce822d0d1f732483509b5f9e7368b4d9162cbb39a2d2",
+    "./dafny-shape-manifest.json": "1cde0f0cec37dac3a67174b9f321d85d3f26af448e15a65ec2ef6a5ba9b72af2",
+    "../src/dafny/surface-native.ts": "761f9ae9fa3d0fbcc6d547286f2e986acf3c878fd3901fb2c52a22b76d627b53",
+    "../src/dafny/bridge.ts": "805c7703b84e6c495a7492b35aefa30be3014f33485e46afdf981781b5988321"
   },
   "allowedCalls": [
     "(_this.src)[0].charCodeAt",
@@ -126,6 +139,8 @@
     "Object.freeze",
     "Object.keys",
     "Object.prototype.hasOwnProperty.call",
+    "intrinsicApply",
+    "returnCaptured",
     "Serializer.Writer",
     "String",
     "_0_engine.ParseAll",
@@ -150,6 +165,7 @@
     "_6_nativeMapValue.get",
     "_6_produced.push",
     "_nw0.__ctor",
+    "_nw1.__ctor",
     "_this.TryNumberGeneric",
     "_this.src.charCodeAt",
     "array.push",
@@ -160,6 +176,7 @@
     "engine.ParseSingle",
     "engine.Reset",
     "engine.__ctor",
+    "adapter.__ctor",
     "expected.charCodeAt",
     "key.charCodeAt",
     "map.clear",
@@ -184,10 +201,17 @@
     "super",
     "text.charCodeAt",
     "valueOf",
+    "value.keys",
+    "value.values",
     "valueasNativeMap.keys",
     "valueasNativeSet.values",
     "writer.Stringify",
-    "writer.__ctor"
+    "writer.__ctor",
+    "surfaceAdapter.Parse",
+    "surfaceAdapter.ParseAll",
+    "surfaceAdapter.Stringify",
+    "surfaceAdapter.ExceptionToString",
+    "surfaceAdapter.NotImplementedMessage"
   ],
   "allowedConstructors": [
     "DafnyCore.Engine",
@@ -198,6 +222,7 @@
     "Uint8Array",
     "Error",
     "TypeError",
-    "YAMLParseError"
+    "YAMLParseError",
+    "NativeSurface.Adapter"
   ]
 }

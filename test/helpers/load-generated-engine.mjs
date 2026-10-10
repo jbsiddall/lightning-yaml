@@ -11,7 +11,7 @@ if (!engineFields) throw new Error('shape manifest does not contain the generate
 
 export function loadGeneratedEngine(overrides = {}) {
   const importPattern = /^import \{ ([^\n]+) \} from '\.\.\/native\.ts';$/m;
-  const exportLine = 'export { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors };';
+  const exportLine = 'export { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors, NativeSurface };';
   const importMatch = source.match(importPattern);
   if (!importMatch || !source.includes(exportLine)) {
     throw new Error('generated engine module shape changed; update this diagnostic loader');
@@ -28,7 +28,7 @@ export function loadGeneratedEngine(overrides = {}) {
   });
   const executable = source
     .replace(importPattern, '')
-    .replace(exportLine, 'module.exports = { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors };');
+    .replace(exportLine, 'module.exports = { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors, NativeSurface };');
   new Function(...bindings.map(({ alias }) => alias), 'module', executable)(...bindings.map(({ value }) => value), module);
   return {
     ...module.exports,

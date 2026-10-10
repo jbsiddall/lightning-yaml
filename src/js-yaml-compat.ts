@@ -118,6 +118,7 @@
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, acceptAny, rejectsRecognizedOption, RecognizedRule, type OptionRule } from "./compat-options.ts";
 import { SurfaceHelpers, SurfaceOptions, SurfaceErrors } from "./dafny/generated/engine.js";
+import { exceptionToStringWithDafny } from "./dafny/bridge.ts";
 
 // ---------------------------------------------------------------------------
 // YAMLException — shaped like js-yaml's (name/reason/message + a cheap mark).
@@ -184,7 +185,7 @@ export class YAMLException extends Error {
   }
 
   override toString(_compact?: boolean): string {
-    return `${this.name}: ${this.message}`;
+    return exceptionToStringWithDafny(this);
   }
 }
 

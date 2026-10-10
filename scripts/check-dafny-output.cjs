@@ -11,6 +11,7 @@ const BUILTIN_CALLS = new Set([
   'Object.entries', 'Object.create', 'Object.defineProperty',
   'Object.defineProperties', 'Object.getOwnPropertyDescriptor',
   'Object.getPrototypeOf', 'Object.freeze', 'Symbol',
+  'Reflect.apply',
   'Object.prototype.hasOwnProperty.call', 'Number', 'Number.isFinite',
   'Number.isInteger', 'Number.isSafeInteger', 'Number.isNaN', 'String',
   'String.fromCharCode', 'String.fromCodePoint', 'Boolean', 'JSON.parse',
@@ -23,6 +24,7 @@ const BUILTIN_CONSTRUCTORS = new Set([
 const PROTECTED_NAMES = new Set(['Number', 'String', 'Boolean', 'Array', 'Map', 'WeakMap', 'Set', 'WeakSet', 'Object', 'Symbol', 'BigInt', 'BigNumber', '_dafny', 'require']);
 
 function expressionName(node, source) {
+  if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node) || ts.isSatisfiesExpression(node)) return expressionName(node.expression, source);
   if (ts.isParenthesizedExpression(node)) return expressionName(node.expression, source);
   if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.CommaToken && ts.isNumericLiteral(node.left) && node.left.text === '0') return expressionName(node.right, source);
   if (ts.isIdentifier(node)) return node.text;

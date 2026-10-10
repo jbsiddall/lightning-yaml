@@ -1,8 +1,8 @@
 // Dafny program compiled into JavaScript by Dafny 4.11.0.
 // Copyright by the contributors to the Dafny Project.
 // SPDX-License-Identifier: MIT
-// Sources sha256 2750695e8fe7770e0290c27aea47ce39334ba597f882046fba33450ab82f46bb; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
-import { native_$$_toString as n0, nativeArrayGet as n1, nativeArrayLength as n2, nativeArrayPush as n3, nativeByteGet as n4, nativeByteLength as n5, nativeByteSet as n6, nativeCodeUnitAt as n7, nativeConcat as n8, nativeCreateArray as n9, nativeCreateObject as n10, nativeCreateUint8Array as n11, nativeEmptyMap as n12, nativeEuclideanDivisionNumber as n13, nativeEuclideanModuloNumber as n14, nativeFail as n15, nativeFormatNumber as n16, nativeIndexOf as n17, nativeIsMap as n18, nativeIsSet as n19, nativeIsUint8Array as n20, nativeJoin as n21, nativeJsEqual as n22, nativeJsonQuote as n23, nativeMapCreate as n24, nativeMapGet as n25, nativeMapKeys as n26, nativeMapSet as n27, nativeMapSize as n28, nativeNoDocumentValue as n29, nativeNotNumericValue as n30, nativeNullValue as n31, nativeNumberAdd as n32, nativeNumberIsNaN as n33, nativeNumberIsNegativeInfinity as n34, nativeNumberIsNegativeZero as n35, nativeNumberIsPositiveInfinity as n36, nativeNumberLessEqual as n37, nativeNumberMulAdd as n38, nativeObjectKeys as n39, nativeObjectSetSafe as n40, nativeParseNumber as n41, nativeParseSpecialNumber as n42, nativeRepeat as n43, nativeSameValue as n44, nativeSetCreate as n45, nativeSetValues as n46, nativeSlice as n47, nativeStringFallback as n48, nativeStringFromCharCode as n49, nativeStringFromCodePoint as n50, nativeUndefinedValue as n51 } from '../native.ts';
+// Sources sha256 49286bcb6b6ab3bfd1ebdc54c64e9f086e268af228cbff8f131a09b87e3a20a5; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
+import { native_$$_toString as n0, nativeArrayGet as n1, nativeArrayLength as n2, nativeArrayPush as n3, nativeByteGet as n4, nativeByteLength as n5, nativeByteSet as n6, nativeCodeUnitAt as n7, nativeConcat as n8, nativeCreateArray as n9, nativeCreateObject as n10, nativeCreateUint8Array as n11, nativeEmptyMap as n12, nativeEuclideanDivisionNumber as n13, nativeEuclideanModuloNumber as n14, nativeFail as n15, nativeFormatNumber as n16, nativeIndexOf as n17, nativeIsMap as n18, nativeIsSet as n19, nativeIsUint8Array as n20, nativeJoin as n21, nativeJsEqual as n22, nativeJsonQuote as n23, nativeMapCreate as n24, nativeMapGet as n25, nativeMapKeys as n26, nativeMapSet as n27, nativeMapSize as n28, nativeNoDocumentValue as n29, nativeNotNumericValue as n30, nativeNullValue as n31, nativeNumberAdd as n32, nativeNumberIsNaN as n33, nativeNumberIsNegativeInfinity as n34, nativeNumberIsNegativeZero as n35, nativeNumberIsPositiveInfinity as n36, nativeNumberLessEqual as n37, nativeNumberMulAdd as n38, nativeObjectKeys as n39, nativeObjectSetSafe as n40, nativeParseNumber as n41, nativeParseSpecialNumber as n42, nativeRepeat as n43, nativeSameValue as n44, nativeSetCreate as n45, nativeSetValues as n46, nativeSlice as n47, nativeStringFallback as n48, nativeStringFromCharCode as n49, nativeStringFromCodePoint as n50, nativeUndefinedValue as n51, nativeSurfaceCaptureEndStream as n52, nativeSurfaceCaptureIsArray as n53, nativeSurfaceCaptureNormalizationRecord as n54, nativeSurfaceCaptureParseAll as n55, nativeSurfaceCaptureParseSingle as n56, nativeSurfaceCaptureReset as n57, nativeSurfaceCaptureTypeError as n58, nativeSurfaceCaptureWriterStringify as n59, nativeSurfaceCompletionIsThrown as n60, nativeSurfaceCompletionValue as n61, nativeSurfaceIsExactlyTrue as n62, nativeSurfaceIsNullish as n63, nativeSurfaceIsString as n64, nativeSurfaceIsTruthy as n65, nativeSurfaceMultiplyBy1024 as n66, nativeSurfaceNormalizationBudget as n67, nativeSurfaceNormalizationIntern as n68, nativeSurfaceNormalizationStrict as n69, nativeSurfaceReadProperty as n70, nativeSurfaceReturnedString as n71, nativeSurfaceTemplateString as n72 } from '../native.ts';
 
 let TagValues = (function () {
     let $module = {};
@@ -418,9 +418,9 @@ let DafnyCore = (function () {
             this._fh = undefined;
             this._fi = undefined;
             this._fj = undefined;
-            this._fv = undefined;
+            this._fu = undefined;
             this._ff = false;
-            this._fw = false;
+            this._fv = false;
             this._fl = undefined;
             this._fc = false;
             this._ft = undefined;
@@ -434,13 +434,13 @@ let DafnyCore = (function () {
             this._f3 = 0;
             this._f2 = false;
             this._f9 = 0;
-            this._fu = undefined;
+            this.tagHelpers = undefined;
             this._fk = false;
         }
         __ctor() {
             let _nw0 = new TagValues.Helpers();
             _nw0.__ctor();
-            (this)._fu = _nw0;
+            (this).tagHelpers = _nw0;
             (this)._fk = false;
             (this).Reset("", true, false, 4194304);
             return;
@@ -467,9 +467,9 @@ let DafnyCore = (function () {
                 n24();
             (this)._fi = 0;
             (this)._fj = keyCacheBudget;
-            (this)._fv = n51;
+            (this)._fu = n51;
             (this)._ff = false;
-            (this)._fw = internValues;
+            (this)._fv = internValues;
             (this)._fl = n51;
             (this)._fc = false;
             (this)._ft = n51;
@@ -2570,11 +2570,11 @@ let DafnyCore = (function () {
             if (tag === "tag:yaml.org,2002:binary") {
                 let _out2;
                 value =
-                    (this._fu).DecodeBinary(raw);
+                    (this.tagHelpers).DecodeBinary(raw);
                 let _1_binaryError = "";
                 let _out3;
                 _1_binaryError =
-                    (this._fu).ErrorMessage();
+                    (this.tagHelpers).ErrorMessage();
                 if (!(_1_binaryError === "")) {
                     (this).mg(_1_binaryError);
                 }
@@ -3175,7 +3175,7 @@ let DafnyCore = (function () {
         m1p(s) {
             let value = undefined;
             value = s;
-            if (!(this._fw)) {
+            if (!(this._fv)) {
                 return value;
             }
             if (!(this._ff)) {
@@ -3183,11 +3183,11 @@ let DafnyCore = (function () {
                 let _out0;
                 _0_newValues =
                     n24();
-                (this)._fv = _0_newValues;
+                (this)._fu = _0_newValues;
                 (this)._ff = true;
             }
             let _1_values;
-            _1_values = this._fv;
+            _1_values = this._fu;
             let _2_cached;
             let _out1;
             _2_cached = _1_values.get(value);
@@ -4854,11 +4854,11 @@ let DafnyCore = (function () {
                 }
                 let _out0;
                 result =
-                    (this._fu).BuildSet(value);
+                    (this.tagHelpers).BuildSet(value);
                 let _0_setError = "";
                 let _out1;
                 _0_setError =
-                    (this._fu).ErrorMessage();
+                    (this.tagHelpers).ErrorMessage();
                 if (!(_0_setError === "")) {
                     (this).mg(_0_setError);
                 }
@@ -4870,11 +4870,11 @@ let DafnyCore = (function () {
                 }
                 let _out2;
                 result =
-                    (this._fu).BuildOmap(value);
+                    (this.tagHelpers).BuildOmap(value);
                 let _1_omapError = "";
                 let _out3;
                 _1_omapError =
-                    (this._fu).ErrorMessage();
+                    (this.tagHelpers).ErrorMessage();
                 if (!(_1_omapError === "")) {
                     (this).mg(_1_omapError);
                 }
@@ -4884,11 +4884,11 @@ let DafnyCore = (function () {
                 if (!(kind === "seq")) {
                     (this).mg("the !!pairs tag requires a sequence node");
                 }
-                (this._fu).ValidatePairs(value);
+                (this.tagHelpers).ValidatePairs(value);
                 let _2_pairsError = "";
                 let _out4;
                 _2_pairsError =
-                    (this._fu).ErrorMessage();
+                    (this.tagHelpers).ErrorMessage();
                 if (!(_2_pairsError === "")) {
                     (this).mg(_2_pairsError);
                 }
@@ -5962,9 +5962,9 @@ let DafnyCore = (function () {
             return documents;
         }
         EndStream() {
-            (this)._fv = n51;
+            (this)._fu = n51;
             (this)._ff = false;
-            (this)._fw = false;
+            (this)._fv = false;
             (this)._fs = false;
             (this)._fj = 4194304;
             return;
@@ -7398,6 +7398,263 @@ let SurfaceErrors = (function () {
     };
     return $module;
 })();
+let NativeSurface = (function () {
+    let $module = {};
+    $module.Adapter = class Adapter {
+        constructor() {
+            this.engine = undefined;
+            this.writer = undefined;
+        }
+        __ctor() {
+            let _nw0 = new DafnyCore.Engine();
+            _nw0.__ctor();
+            (this).engine = _nw0;
+            let _nw1 = new Serializer.Writer();
+            _nw1.__ctor();
+            (this).writer = _nw1;
+            return;
+        }
+        NormalizeParseOptions(options) {
+            let completion = undefined;
+            let _0_internStringsValue;
+            _0_internStringsValue = n51;
+            let _1_strictValue;
+            _1_strictValue = n51;
+            let _2_keyCacheBudgetValue;
+            _2_keyCacheBudgetValue = n51;
+            let _3_internValues;
+            _3_internValues = false;
+            let _4_strict;
+            _4_strict = false;
+            if (!(n63(options))) {
+                let _5_firstOptimizationsRead;
+                let _out0;
+                _5_firstOptimizationsRead =
+                    n70(options, "optimizations", this.engine, this.engine.tagHelpers, this.writer);
+                if (n60(_5_firstOptimizationsRead)) {
+                    completion = _5_firstOptimizationsRead;
+                    return completion;
+                }
+                let _6_firstOptimizations;
+                _6_firstOptimizations = n61(_5_firstOptimizationsRead);
+                if (!(n63(_6_firstOptimizations))) {
+                    let _7_internStringsRead;
+                    let _out1;
+                    _7_internStringsRead =
+                        n70(_6_firstOptimizations, "internStrings", this.engine, this.engine.tagHelpers, this.writer);
+                    if (n60(_7_internStringsRead)) {
+                        completion = _7_internStringsRead;
+                        return completion;
+                    }
+                    _0_internStringsValue = n61(_7_internStringsRead);
+                }
+                _3_internValues = n65(_0_internStringsValue);
+                let _8_strictRead;
+                let _out2;
+                _8_strictRead =
+                    n70(options, "strict", this.engine, this.engine.tagHelpers, this.writer);
+                if (n60(_8_strictRead)) {
+                    completion = _8_strictRead;
+                    return completion;
+                }
+                _1_strictValue = n61(_8_strictRead);
+                _4_strict = n62(_1_strictValue);
+                let _9_secondOptimizationsRead;
+                let _out3;
+                _9_secondOptimizationsRead =
+                    n70(options, "optimizations", this.engine, this.engine.tagHelpers, this.writer);
+                if (n60(_9_secondOptimizationsRead)) {
+                    completion = _9_secondOptimizationsRead;
+                    return completion;
+                }
+                let _10_secondOptimizations;
+                _10_secondOptimizations = n61(_9_secondOptimizationsRead);
+                if (!(n63(_10_secondOptimizations))) {
+                    let _11_budgetRead;
+                    let _out4;
+                    _11_budgetRead =
+                        n70(_10_secondOptimizations, "keyCacheMaxKb", this.engine, this.engine.tagHelpers, this.writer);
+                    if (n60(_11_budgetRead)) {
+                        completion = _11_budgetRead;
+                        return completion;
+                    }
+                    _2_keyCacheBudgetValue = n61(_11_budgetRead);
+                }
+            }
+            if (n63(_2_keyCacheBudgetValue)) {
+                _2_keyCacheBudgetValue = 4096;
+            }
+            let _12_multiplied;
+            let _out5;
+            _12_multiplied =
+                n66(_2_keyCacheBudgetValue, this.engine, this.engine.tagHelpers, this.writer);
+            if (n60(_12_multiplied)) {
+                completion = _12_multiplied;
+                return completion;
+            }
+            let _13_keyCacheBudget;
+            _13_keyCacheBudget = n61(_12_multiplied);
+            let _out6;
+            completion =
+                n54(_4_strict, _3_internValues, _13_keyCacheBudget);
+            return completion;
+        }
+        SelectCompletionAfterCleanup(pending, cleanup, cleanupThrown) {
+            let result = undefined;
+            if (cleanupThrown) {
+                result = cleanup;
+            }
+            else {
+                result = pending;
+            }
+            return result;
+        }
+        Parse(text, options) {
+            let completion = undefined;
+            let _out0;
+            completion =
+                (this).ParseCompletion(text, options, false);
+            return completion;
+        }
+        ParseAll(text, options) {
+            let completion = undefined;
+            let _out0;
+            completion =
+                (this).ParseCompletion(text, options, true);
+            return completion;
+        }
+        ParseCompletion(text, options, allDocuments) {
+            let completion = undefined;
+            let _0_pending;
+            let _out0;
+            _0_pending =
+                (this).NormalizeParseOptions(options);
+            if (!(n60(_0_pending))) {
+                let _1_normalized;
+                _1_normalized = n61(_0_pending);
+                let _2_strict;
+                _2_strict = n69(_1_normalized);
+                let _3_intern;
+                _3_intern = n68(_1_normalized);
+                let _4_budget;
+                _4_budget = n67(_1_normalized);
+                let _out1;
+                _0_pending =
+                    n57(this.engine, text, _2_strict, _3_intern, _4_budget);
+                if (!(n60(_0_pending))) {
+                    if (allDocuments) {
+                        let _out2;
+                        _0_pending =
+                            n55(this.engine);
+                    }
+                    else {
+                        let _out3;
+                        _0_pending =
+                            n56(this.engine);
+                    }
+                    if ((allDocuments) && (!(n60(_0_pending)))) {
+                        let _5_value;
+                        _5_value = n61(_0_pending);
+                        let _6_arrayCheck;
+                        let _out4;
+                        _6_arrayCheck =
+                            n53(_5_value, this.engine, this.engine.tagHelpers, this.writer);
+                        if (n60(_6_arrayCheck)) {
+                            _0_pending = _6_arrayCheck;
+                        }
+                        else if (!(n65(n61(_6_arrayCheck)))) {
+                            let _out5;
+                            _0_pending =
+                                n58("Dafny parseAll returned a non-array value", this.engine, this.engine.tagHelpers, this.writer);
+                        }
+                    }
+                }
+            }
+            let _7_cleanup;
+            let _out6;
+            _7_cleanup =
+                n52(this.engine);
+            let _out7;
+            completion =
+                (this).SelectCompletionAfterCleanup(_0_pending, _7_cleanup, n60(_7_cleanup));
+            return completion;
+        }
+        Stringify(value) {
+            let completion = undefined;
+            let _0_written;
+            let _out0;
+            _0_written =
+                n59(this.writer, value, this.engine, this.engine.tagHelpers);
+            if (n60(_0_written)) {
+                completion = _0_written;
+                return completion;
+            }
+            let _1_text;
+            _1_text = n61(_0_written);
+            if (!(n64(_1_text))) {
+                let _out1;
+                completion =
+                    n58("Dafny stringify returned a non-string value", this.engine, this.engine.tagHelpers, this.writer);
+                return completion;
+            }
+            completion = _0_written;
+            return completion;
+        }
+        ExceptionToString(receiver) {
+            let completion = undefined;
+            let _0_nameRead;
+            let _out0;
+            _0_nameRead =
+                n70(receiver, "name", this.engine, this.engine.tagHelpers, this.writer);
+            if (n60(_0_nameRead)) {
+                completion = _0_nameRead;
+                return completion;
+            }
+            let _1_nameText;
+            let _out1;
+            _1_nameText =
+                n72(n61(_0_nameRead), this.engine, this.engine.tagHelpers, this.writer);
+            if (n60(_1_nameText)) {
+                completion = _1_nameText;
+                return completion;
+            }
+            let _2_messageRead;
+            let _out2;
+            _2_messageRead =
+                n70(receiver, "message", this.engine, this.engine.tagHelpers, this.writer);
+            if (n60(_2_messageRead)) {
+                completion = _2_messageRead;
+                return completion;
+            }
+            let _3_messageText;
+            let _out3;
+            _3_messageText =
+                n72(n61(_2_messageRead), this.engine, this.engine.tagHelpers, this.writer);
+            if (n60(_3_messageText)) {
+                completion = _3_messageText;
+                return completion;
+            }
+            completion = n71(n8(n8(n61(_1_nameText), ": "), n61(_3_messageText)));
+            return completion;
+        }
+        NotImplementedMessage(functionName) {
+            let completion = undefined;
+            let _0_converted;
+            let _out0;
+            _0_converted =
+                n72(functionName, this.engine, this.engine.tagHelpers, this.writer);
+            if (n60(_0_converted)) {
+                completion = _0_converted;
+                return completion;
+            }
+            let _1_nameText;
+            _1_nameText = n61(_0_converted);
+            completion = n71(n8("lightning-yaml " + _1_nameText, "() is not implemented yet — this is the stub the benchmark + test harness is built against. See src/index.ts."));
+            return completion;
+        }
+    };
+    return $module;
+})();
 
 
-export { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors };
+export { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors, NativeSurface };

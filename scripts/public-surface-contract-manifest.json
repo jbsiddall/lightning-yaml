@@ -2912,8 +2912,8 @@
     {
       "id": "root:options:effectful-read-order",
       "kind": "behavioral-route",
-      "source": "src/dafny/bridge.ts",
-      "route": "TS:src/dafny/bridge.ts#reset",
+      "source": "src/dafny/surfaces/NativeSurface.dfy",
+      "route": "Dafny:src/dafny/surfaces/NativeSurface.dfy#NormalizeParseOptions",
       "status": "deferred-global-proof",
       "contract": "Option getters are read in internStrings, strict, optimizations/keyCacheMaxKb order; cache size coercion can throw.",
       "specificationStatus": "behavior-summary-only",
@@ -2924,7 +2924,7 @@
         "successPostcondition": "docs/contracts/native.md#formal-contract-status — returned value/document/text and identity for this operation.",
         "errorPostcondition": "docs/contracts/native.md#formal-contract-status — exact thrown/captured error value, order, and cleanup for this operation.",
         "effectPostcondition": "docs/contracts/native.md#formal-contract-status — ordered property, callback, allocation, and mutation observations for this operation.",
-        "scope": "No Dafny method or complete operational postcondition is present in this snapshot."
+        "scope": "The actual options normalization body is in Dafny, but it has no attached ordered-trace postcondition or selected proof in this snapshot. Host getter and primitive-operation correspondence remains open."
       }
     },
     {

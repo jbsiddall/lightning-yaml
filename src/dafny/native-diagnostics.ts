@@ -1,4 +1,4 @@
-import { native_$$_toString, nativeNullValue, nativeUndefinedValue, nativeNoDocumentValue, nativeNotNumericValue, nativeEmptyMap, nativeNumberAsCounter, nativeNumberMulAdd, nativeNumberNegate, nativeNumberAdd, nativeNumberLessEqual, nativeJsonQuote, nativeSlice, nativeParseNumber, nativeParseSpecialNumber, nativeStringValue, nativeBoolValue, nativeNumberValue, nativeToString, nativeStringFallback, nativeStringLength, nativeCodeUnitAt, nativeIndexOf, nativeConcat, nativeRepeat, nativeJoin, nativeIsNull, nativeIsUndefined, nativeIsObject, nativeIsArray, nativeIsMap, nativeIsSet, nativeIsUint8Array, nativeIsBoolean, nativeIsNumber, nativeIsString, nativeBooleanValue, nativeNumberIsNaN, nativeNumberIsPositiveInfinity, nativeNumberIsNegativeInfinity, nativeNumberIsNegativeZero, nativeFormatNumber, nativeStringValueOf, nativeByteLength, nativeByteGet, nativeCreateUint8Array, nativeByteSet, nativeStringFromCharCode, nativeStringFromCodePoint, nativeSameValue, nativeJsEqual, nativeEuclideanDivisionNumber, nativeEuclideanModuloNumber, nativeCreateArray, nativeArrayPush, nativeArrayLength, nativeArrayGet, nativeArraySet, nativeCreateObject, nativeObjectGet, nativeObjectSet, nativeObjectSetSafe, nativeObjectHasOwn, nativeObjectKeys, nativeMapCreate, nativeMapHas, nativeMapGet, nativeMapSet, nativeMapSize, nativeMapKeys, nativeMapValue, nativeMapFromValue, nativeSetCreate, nativeSetHas, nativeSetAdd, nativeSetValues, nativeSetValue, nativeFail } from './native.ts';
+import { native_$$_toString, nativeNullValue, nativeUndefinedValue, nativeNoDocumentValue, nativeNotNumericValue, nativeEmptyMap, nativeNumberAsCounter, nativeNumberMulAdd, nativeNumberNegate, nativeNumberAdd, nativeNumberLessEqual, nativeJsonQuote, nativeSlice, nativeParseNumber, nativeParseSpecialNumber, nativeStringValue, nativeBoolValue, nativeNumberValue, nativeToString, nativeStringFallback, nativeStringLength, nativeCodeUnitAt, nativeIndexOf, nativeConcat, nativeRepeat, nativeJoin, nativeIsNull, nativeIsUndefined, nativeIsObject, nativeIsArray, nativeIsMap, nativeIsSet, nativeIsUint8Array, nativeIsBoolean, nativeIsNumber, nativeIsString, nativeBooleanValue, nativeNumberIsNaN, nativeNumberIsPositiveInfinity, nativeNumberIsNegativeInfinity, nativeNumberIsNegativeZero, nativeFormatNumber, nativeStringValueOf, nativeByteLength, nativeByteGet, nativeCreateUint8Array, nativeByteSet, nativeStringFromCharCode, nativeStringFromCodePoint, nativeSameValue, nativeJsEqual, nativeEuclideanDivisionNumber, nativeEuclideanModuloNumber, nativeCreateArray, nativeArrayPush, nativeArrayLength, nativeArrayGet, nativeArraySet, nativeCreateObject, nativeObjectGet, nativeObjectSet, nativeObjectSetSafe, nativeObjectHasOwn, nativeObjectKeys, nativeMapCreate, nativeMapHas, nativeMapGet, nativeMapSet, nativeMapSize, nativeMapKeys, nativeMapValue, nativeMapFromValue, nativeSetCreate, nativeSetHas, nativeSetAdd, nativeSetValues, nativeSetValue, nativeFail, nativeSurfaceIsNullish, nativeSurfaceIsTruthy, nativeSurfaceIsExactlyTrue, nativeSurfaceIsString, nativeSurfaceTemplateString, nativeSurfaceReturnedString, nativeSurfaceCompletionIsThrown, nativeSurfaceCompletionValue, nativeSurfaceReadProperty, nativeSurfaceMultiplyBy1024, nativeSurfaceCaptureNormalizationRecord, nativeSurfaceNormalizationStrict, nativeSurfaceNormalizationIntern, nativeSurfaceNormalizationBudget, nativeSurfaceCaptureReset, nativeSurfaceCaptureParseSingle, nativeSurfaceCaptureParseAll, nativeSurfaceCaptureEndStream, nativeSurfaceCaptureIsArray, nativeSurfaceCaptureTypeError, nativeSurfaceCaptureWriterStringify } from './native.ts';
 
 export const Native = Object.freeze({
   __default: Object.freeze({
@@ -80,5 +80,26 @@ export const Native = Object.freeze({
     setValues: nativeSetValues,
     setValue: nativeSetValue,
     fail: nativeFail,
+    surfaceIsNullish: nativeSurfaceIsNullish,
+    surfaceIsTruthy: nativeSurfaceIsTruthy,
+    surfaceIsExactlyTrue: nativeSurfaceIsExactlyTrue,
+    surfaceIsString: nativeSurfaceIsString,
+    surfaceTemplateString: nativeSurfaceTemplateString,
+    surfaceReturnedString: nativeSurfaceReturnedString,
+    surfaceCompletionIsThrown: nativeSurfaceCompletionIsThrown,
+    surfaceCompletionValue: nativeSurfaceCompletionValue,
+    surfaceReadProperty: nativeSurfaceReadProperty,
+    surfaceMultiplyBy1024: nativeSurfaceMultiplyBy1024,
+    surfaceCaptureNormalizationRecord: nativeSurfaceCaptureNormalizationRecord,
+    surfaceNormalizationStrict: nativeSurfaceNormalizationStrict,
+    surfaceNormalizationIntern: nativeSurfaceNormalizationIntern,
+    surfaceNormalizationBudget: nativeSurfaceNormalizationBudget,
+    surfaceCaptureReset: nativeSurfaceCaptureReset,
+    surfaceCaptureParseSingle: nativeSurfaceCaptureParseSingle,
+    surfaceCaptureParseAll: nativeSurfaceCaptureParseAll,
+    surfaceCaptureEndStream: nativeSurfaceCaptureEndStream,
+    surfaceCaptureIsArray: nativeSurfaceCaptureIsArray,
+    surfaceCaptureTypeError: nativeSurfaceCaptureTypeError,
+    surfaceCaptureWriterStringify: nativeSurfaceCaptureWriterStringify,
   }),
 });

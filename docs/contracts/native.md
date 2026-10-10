@@ -16,7 +16,7 @@ The root entry has named runtime exports `parse`, `parseAll`, `stringify`, `YAML
 
 The parser preserves alias identity, including cycles. Duplicate map keys are last-wins and `<<` is an ordinary key, as listed in the README's decisions and deviations. The writer traverses own enumerable string keys on objects and indexed array elements. It does not serialize Map/Set intrinsic entries; ordinary instances generally follow the empty-object path. Accessors and proxies can affect parsing options and writer enumeration/property reads; writer getters may be read once while counting references and again while emitting.
 
-Core scalar resolution follows YAML 1.2 core: plain `null`/`~` forms and booleans are typed; `yes`, `no`, `on`, and `off` remain strings. Explicit `!!binary` yields `Uint8Array`, `!!set` yields `Set`, `!!omap` yields `Map`, and `!!pairs` yields arrays of pairs. These special values, host numeric conversion, and the full syntax relation remain part of the pending parser proof; the output types are current runtime behavior, not proof claims.
+Core scalar resolution follows YAML 1.2 core: plain `null`/`~` forms and booleans are typed; `yes`, `no`, `on`, and `off` remain strings. Explicit `!!binary` yields `Uint8Array`, `!!set` yields `Set`, `!!omap` yields `Map`, and `!!pairs` validates a sequence of singleton mappings while retaining the original sequence. These special values, host numeric conversion, and the full syntax relation remain part of the pending parser proof; the output types are current runtime behavior, not proof claims.
 
 ## Errors and cleanup
 

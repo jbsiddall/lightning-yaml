@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import { deepStrictEqual, equal, notEqual, ok, strictEqual, throws } from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import jsYamlDefault, {
   CORE_SCHEMA,
   FAILSAFE_SCHEMA,
@@ -14,6 +15,56 @@ import jsYamlDefault, {
   loadAll,
 } from "../src/js-yaml-compat.ts";
 import { parse, parseDocument, stringify } from "../src/yaml-compat.ts";
+import { DafnyCore, NativeSurface, Serializer, SurfaceErrors, SurfaceHelpers, SurfaceOptions } from "../src/dafny/generated/engine.js";
+import { parse as parseCore, parseAll as parseAllCore, stringify as stringifyCore } from "../src/core.ts";
+import { NotImplementedError } from "../src/errors.ts";
+
+test("public parser and writer facades call the generated Dafny engine methods", () => {
+  const engine = (DafnyCore.Engine as unknown as { prototype: Record<string, unknown> }).prototype;
+  const writer = (Serializer.Writer as unknown as { prototype: Record<string, unknown> }).prototype;
+  const cases: Array<[object, string, () => unknown]> = [
+    [engine, "ParseSingle", () => parseCore("a: 1")],
+    [engine, "ParseAll", () => parseAllCore("a: 1")],
+    [writer, "Stringify", () => stringifyCore({ a: 1 })],
+  ];
+  for (const [prototype, method, invoke] of cases) {
+    const target = prototype as Record<string, unknown>;
+    const original = target[method];
+    const sentinel = { method };
+    target[method] = function () { throw sentinel; };
+    try {
+      throws(invoke, (error) => error === sentinel, `public route bypassed Engine/Writer.${method}`);
+    } finally {
+      target[method] = original;
+    }
+  }
+});
+
+test("compatibility entry points call their generated Dafny overload and option policies", () => {
+  const cases: Array<[object, string, () => unknown]> = [
+    [SurfaceOptions.__default, "SelectYamlParseOptions", () => parse("a: 1", {})],
+    [SurfaceOptions.__default, "SelectYamlStringifyOptions", () => stringify({ a: 1 })],
+    [SurfaceOptions.__default, "SelectJsYamlLoadAllOptions", () => loadAll("a: 1\n")],
+    [SurfaceOptions.__default, "RejectRecognizedOption", () => parse("a: 1", { uniqueKeys: true })],
+    [SurfaceHelpers.__default, "TagKindName", () => defineScalarTag("!x")],
+    [SurfaceHelpers.__default, "TagKindName", () => defineSequenceTag("!x")],
+    [SurfaceHelpers.__default, "TagKindName", () => defineMappingTag("!x")],
+    [SurfaceHelpers.__default, "ReturnSchemaIdentity", () => Schema.prototype.withTags.call(CORE_SCHEMA)],
+    [SurfaceHelpers.__default, "ReturnCapturedContents", () => parseDocument("a: 1").toJS()],
+    [SurfaceErrors.__default, "YamlExceptionName", () => new YAMLException("reason")],
+  ];
+  for (const [target, method, invoke] of cases) {
+    const methods = target as Record<string, unknown>;
+    const original = methods[method];
+    const sentinel = { method };
+    methods[method] = function () { throw sentinel; };
+    try {
+      throws(invoke, (error) => error === sentinel, `public route bypassed Dafny ${method}`);
+    } finally {
+      methods[method] = original;
+    }
+  }
+});
 
 test("yaml reviver visits descendants first, then properties, then the synthetic root with holder this", () => {
   const calls: Array<[string, unknown, unknown]> = [];
@@ -172,6 +223,87 @@ test("YAMLException keeps raw reason and mark identity, defaults independently, 
   throws(() => supplied.toString(), TypeError);
   deepStrictEqual(reads, ["get-name-symbol"]); // failed coercion prevents the message getter read
   throws(() => (YAMLException as unknown as () => YAMLException)(), TypeError);
+});
+
+test("YAMLException.toString uses the generated adapter and preserves property/coercion order", () => {
+  const adapter = (NativeSurface.Adapter as unknown as { prototype: Record<string, unknown> }).prototype;
+  const original = adapter.ExceptionToString;
+  const sentinel = { marker: "exception-stringify" };
+  adapter.ExceptionToString = function () { throw sentinel; };
+  try {
+    throws(() => new YAMLException("reason").toString(), (error) => error === sentinel);
+  } finally {
+    adapter.ExceptionToString = original;
+  }
+
+  const error = new YAMLException("reason");
+  const reads: string[] = [];
+  Object.defineProperty(error, "name", { configurable: true, get() {
+    reads.push("name");
+    return { [Symbol.toPrimitive]() { reads.push("coerce-name"); return "Observed"; } };
+  } });
+  Object.defineProperty(error, "message", { configurable: true, get() {
+    reads.push("message");
+    return { [Symbol.toPrimitive]() { reads.push("coerce-message"); return "detail"; } };
+  } });
+  equal(error.toString(), "Observed: detail");
+  deepStrictEqual(reads, ["name", "coerce-name", "message", "coerce-message"]);
+});
+
+test("NotImplementedError message conversion uses the generated adapter with template coercion", () => {
+  const adapter = (NativeSurface.Adapter as unknown as { prototype: Record<string, unknown> }).prototype;
+  const original = adapter.NotImplementedMessage;
+  const sentinel = { marker: "not-implemented-message" };
+  adapter.NotImplementedMessage = function () { throw sentinel; };
+  try {
+    throws(() => new NotImplementedError("parse"), (error) => error === sentinel);
+  } finally {
+    adapter.NotImplementedMessage = original;
+  }
+
+  throws(() => new NotImplementedError(Symbol("parse") as unknown as string), TypeError);
+  const events: string[] = [];
+  const functionName = {
+    [Symbol.toPrimitive]() { events.push("coerce"); return "parse"; },
+  };
+  const error = new NotImplementedError(functionName as unknown as string);
+  equal(error.message, "lightning-yaml parse() is not implemented yet — this is the stub the benchmark + test harness is built against. See src/index.ts.");
+  deepStrictEqual(events, ["coerce"]);
+});
+
+test("the public entry initializes its adapter before later global Map replacement", () => {
+  const script = `
+    const { NotImplementedError } = await import("./src/index.ts");
+    const OriginalMap = globalThis.Map;
+    globalThis.Map = class extends OriginalMap {
+      constructor(...args) {
+        super(...args);
+        throw new Error("late-adapter-construction");
+      }
+    };
+    const error = new NotImplementedError("parse");
+    if (!error.message.startsWith("lightning-yaml parse()")) {
+      throw new Error("unexpected NotImplementedError message");
+    }
+  `;
+  const result = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  equal(result.status, 0, `fresh public entry process failed: ${result.stderr || result.stdout}`);
+});
+
+test("parseAll accepts every truthy result from an overridden Array.isArray", () => {
+  const originalIsArray = Array.isArray;
+  const cases: unknown[] = [{ truthy: true }, 1];
+  try {
+    for (const result of cases) {
+      (Array as unknown as { isArray(value: unknown): unknown }).isArray = () => result;
+      deepStrictEqual(parseAllCore("a: 1\n"), [{ a: 1 }]);
+    }
+  } finally {
+    Array.isArray = originalIsArray;
+  }
 });
 
 test("option observation order, undefined skipping, validation-before-replacer, and thrown getter identity are preserved", () => {

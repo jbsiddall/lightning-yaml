@@ -36,3 +36,22 @@ test('CommonJS and CDN IIFE entries work without Node globals', async () => {
   assert.deepEqual(JSON.parse(JSON.stringify(browser.YAML.parse('a: 1'))), { a: 1 });
   assert.equal(browser.YAML.stringify({ a: 1 }), 'a: 1\n');
 });
+
+test('CommonJS yaml and js-yaml subpath exports preserve aliases, documents, and error identities', () => {
+  const require = createRequire(import.meta.url);
+  const yaml = require('lightning-yaml/yaml');
+  const jsYaml = require('lightning-yaml/js-yaml');
+
+  assert.equal(yaml.default.parse, yaml.parse);
+  assert.equal(yaml.default.parseDocument, yaml.parseDocument);
+  const document = yaml.parseDocument('a: 1');
+  assert.deepEqual(document.contents, { a: 1 });
+  assert.deepEqual(document.toJS(), { a: 1 });
+  assert.throws(() => yaml.parse('[unterminated'), error => error instanceof Error && error.name === 'YAMLParseError');
+
+  assert.equal(jsYaml.default.load, jsYaml.load);
+  assert.equal(jsYaml.default.dump, jsYaml.dump);
+  assert.deepEqual(jsYaml.load('a: 1'), { a: 1 });
+  assert.equal(jsYaml.dump({ a: 1 }), 'a: 1\n');
+  assert.throws(() => jsYaml.load('[unterminated'), error => error instanceof jsYaml.YAMLException);
+});

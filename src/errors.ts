@@ -1,11 +1,9 @@
 import { SurfaceErrors } from "./dafny/generated/engine.js";
+import { notImplementedMessageWithDafny } from "./dafny/bridge.ts";
 
 export class NotImplementedError extends Error {
   constructor(fn: string) {
-    super(
-      `lightning-yaml ${fn}() is not implemented yet — this is the stub the ` +
-        `benchmark + test harness is built against. See src/index.ts.`,
-    );
+    super(notImplementedMessageWithDafny(fn));
     this.name = SurfaceErrors.__default.NotImplementedErrorName();
   }
 }

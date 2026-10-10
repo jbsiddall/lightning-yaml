@@ -343,7 +343,7 @@ function deriveExpectedRows(ts, sourceOverrides = {}, enforceExportCounts = true
     'build:package-exports', 'build:browser-global', 'root:namespace:no-default-export',
   ]) {
     const behavioralSource = id === 'root:namespace:no-default-export' ? 'src/index.ts'
-      : id === 'root:options:effectful-read-order' ? 'src/dafny/bridge.ts'
+      : id === 'root:options:effectful-read-order' ? 'src/dafny/surfaces/NativeSurface.dfy'
       : id === 'root:writer:two-phase-host-reads' ? 'src/dafny/core/Serializer.dfy'
       : id === 'root:errors:error-object-observation' ? 'src/errors.ts'
       : id === 'build:browser-global' ? 'tsup.config.ts'
@@ -471,7 +471,7 @@ function formalCoverageErrors(manifest) {
   if (JSON.stringify(actualNames) !== JSON.stringify(expectedNames)) errors.push('optionsTrancheConstructCoverage expected list disagrees with the checker inventory');
   const locations = {
     SurfaceValues: ['core/SurfaceValues.dfy', 'src/dafny/core/SurfaceValues.dfy'],
-    SurfaceOptions: ['surfaces/Options.dfy', 'src/dafny/surfaces/Options.dfy'],
+    SurfaceOptions: ['core/SurfaceOptions.dfy', 'src/dafny/core/SurfaceOptions.dfy'],
   };
   const content = new Map();
   for (const [moduleName, paths] of Object.entries(locations)) {
@@ -502,7 +502,7 @@ function optionProofCoverageErrors(manifest) {
 }
 
 function dafnyPolicyErrors(expected, sourceOverride) {
-  const paths = ['surfaces/Options.dfy', 'src/dafny/surfaces/Options.dfy'];
+  const paths = ['core/SurfaceOptions.dfy', 'src/dafny/core/SurfaceOptions.dfy'];
   const sourcePath = paths.find((relativePath) => fs.existsSync(path.join(root, relativePath)));
   if (!sourcePath) return [];
   const source = sourceOverride ?? fs.readFileSync(path.join(root, sourcePath), 'utf8');
@@ -672,7 +672,7 @@ function checkNegativeCases(manifest, expected, ts) {
   const overstatedFormalRequirement = structuredClone(manifest);
   overstatedFormalRequirement.entries.find((entry) => entry.id === 'root:route:parse').formalRequirements.status = 'specified-complete';
   if (!validationErrors(overstatedFormalRequirement, expected).some((error) => error.includes('root:route:parse: formal requirement status must remain pending-design'))) throw new Error('negative gate failed to catch an overstated per-entry formal status');
-  const optionsPaths = ['surfaces/Options.dfy', 'src/dafny/surfaces/Options.dfy'];
+  const optionsPaths = ['core/SurfaceOptions.dfy', 'src/dafny/core/SurfaceOptions.dfy'];
   const optionsPath = optionsPaths.find((relativePath) => fs.existsSync(path.join(root, relativePath)));
   if (optionsPath) {
     const optionsSource = fs.readFileSync(path.join(root, optionsPath), 'utf8');
@@ -714,7 +714,7 @@ function main() {
     return;
   }
   checkNegativeCases(manifest, expected, ts);
-  const mutationCount = 17 + (fs.existsSync(path.join(root, 'src/dafny/surfaces/Options.dfy')) || fs.existsSync(path.join(root, 'surfaces/Options.dfy')) ? 1 : 0);
+  const mutationCount = 17 + (fs.existsSync(path.join(root, 'src/dafny/core/SurfaceOptions.dfy')) || fs.existsSync(path.join(root, 'core/SurfaceOptions.dfy')) ? 1 : 0);
   process.stdout.write(`Public contract inventory covers ${expected.size} AST/package-derived rows; options tranche definitions present: ${manifest.optionsTrancheConstructCoverage.presentCount}/${formalConstructs.length}; ${mutationCount} fail-closed source/manifest mutation cases passed. This does not measure full public-surface formal coverage.\n`);
 }
 

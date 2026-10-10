@@ -28,7 +28,7 @@ const KEEP_METHODS = {
 // Runtime fields inspected by the generated-parser diagnostic tests are part
 // of the test ABI. Other Engine/Writer state stays per-instance but is private
 // to the generated implementation and may receive short property names.
-const KEEP_FIELDS = { Engine: new Set(['pos', 'len', 'src', 'lineStart']), Writer: new Set() };
+const KEEP_FIELDS = { Engine: new Set(['pos', 'len', 'src', 'lineStart', 'tagHelpers']), Writer: new Set() };
 const REMOVED_METADATA_FIELDS = new Set(['_tname']);
 
 function sha256(text) { return crypto.createHash('sha256').update(text).digest('hex'); }
@@ -137,7 +137,7 @@ function nativeBindings(nativeText) {
       bindings[member] = binding;
     }
   }
-  if (Object.keys(bindings).length !== 78) throw new Error('shared native definition inventory changed');
+  if (Object.keys(bindings).length !== 99) throw new Error('shared native definition inventory changed');
   return bindings;
 }
 

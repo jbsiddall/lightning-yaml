@@ -16,11 +16,11 @@ const output = join(outputRoot, `run-${new Date().toISOString().replace(/[:.]/g,
 const sources = [
   'src/dafny/core/Native.dfy',
   'src/dafny/core/SurfaceValues.dfy',
-  'src/dafny/surfaces/Options.dfy',
+  'src/dafny/core/SurfaceOptions.dfy',
 ];
 const EXPECTED_POLICY_HASHES = {
   'src/dafny/core/SurfaceValues.dfy': '35b03a7a3c20a5b0949d9068fa295ad56f3f54f3a338ae7ca766debcd00f3685',
-  'src/dafny/surfaces/Options.dfy': '8d3715620ed8b7f112d47d5280a75a6dc99dd02a4d48dc3ae9aa5c74c4429d22',
+  'src/dafny/core/SurfaceOptions.dfy': '8d3715620ed8b7f112d47d5280a75a6dc99dd02a4d48dc3ae9aa5c74c4429d22',
 };
 const methods = [
   'SelectYamlParseOptions',
@@ -230,7 +230,7 @@ function selfCheckInventoryAndPins() {
   if (!rejectedDuplicateMutation) throw new Error('Duplicate-mutation fixture was not rejected by unique output check');
   const originals = Object.fromEntries(Object.keys(EXPECTED_POLICY_HASHES).map(file => [file, readFileSync(join(root, file))]));
   assertPolicySourceHashes(originals);
-  const optionsPath = 'src/dafny/surfaces/Options.dfy';
+  const optionsPath = 'src/dafny/core/SurfaceOptions.dfy';
   const weakenedRule = originals[optionsPath].toString().replace(
     'else if code == 6 then !V.IsCoreText(value)',
     'else if code == 6 then false',
@@ -261,7 +261,7 @@ function main() {
   const selected = selectRows(allLog, allOutput, methods);
   if (selected.length !== 6) throw new Error(`Expected six proof obligations for five methods, found ${selected.length}`);
 
-  const sourceText = readFileSync(join(root, 'src/dafny/surfaces/Options.dfy'), 'utf8');
+  const sourceText = readFileSync(join(root, 'src/dafny/core/SurfaceOptions.dfy'), 'utf8');
   const mutationResults = [];
   for (const mutation of mutations) {
     const directory = join(output, mutation.id);
@@ -269,7 +269,7 @@ function main() {
     const mutatedPath = join(directory, 'Options.dfy');
     writeFileSync(mutatedPath, replaceOnce(sourceText, mutation.from, mutation.to, mutation.id));
     const logPath = join(directory, 'verification.csv');
-    const args = verifyArgs(logPath, `*${mutation.method}*`, z3Path).map(arg => arg === 'src/dafny/surfaces/Options.dfy' ? mutatedPath : arg);
+    const args = verifyArgs(logPath, `*${mutation.method}*`, z3Path).map(arg => arg === 'src/dafny/core/SurfaceOptions.dfy' ? mutatedPath : arg);
     const outputText = run(dafny, args, { expectedFailure: true });
     writeFileSync(join(directory, 'verifier.stdout.txt'), outputText);
     const rows = selectRows(logPath, outputText, [mutation.method], true);

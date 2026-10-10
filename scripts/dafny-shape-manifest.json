@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "nativeSha256": "38b6fbc407a1224b0727972ced9dc89bfce9deebec49dbf5da25c1eb101d6b38",
+  "nativeSha256": "89ba6224f08fb13a0388ce822d0d1f732483509b5f9e7368b4d9162cbb39a2d2",
   "nativeIdentityHelpers": [
     "boolValue",
     "booleanValue",
@@ -33,7 +33,9 @@
       "Serializer.Writer.WriteScalar": 1,
       "Serializer.Writer.WriteCollectionBody": 2,
       "Serializer.Writer.WriteEntryValue": 1,
-      "Serializer.Writer.WriteDocumentValue": 1
+      "Serializer.Writer.WriteDocumentValue": 1,
+      ".Adapter.ExceptionToString": 2,
+      ".Adapter.NotImplementedMessage": 1
     },
     "setValue": {
       "TagValues.Helpers.BuildSet": 1
@@ -62,7 +64,8 @@
       "DafnyCore.Engine.ParseYamlDirectiveArgs": 1,
       "DafnyCore.Engine.EndStream": 1,
       "Serializer.Writer.DumpScanRefs": 2,
-      "Serializer.Writer.FormatCounter": 1
+      "Serializer.Writer.FormatCounter": 1,
+      ".Adapter.NormalizeParseOptions": 1
     },
     "boolValue": {
       "DafnyCore.Engine.IsBoolWord": 2
@@ -158,7 +161,9 @@
         "Writer.WriteBinaryScalar": 1,
         "Writer.WriteCollectionBody": 5,
         "Writer.WriteEntryValue": 22,
-        "Writer.WriteDocumentValue": 15
+        "Writer.WriteDocumentValue": 15,
+        "Adapter.ExceptionToString": 2,
+        "Adapter.NotImplementedMessage": 2
       },
       "slice": {
         "Helpers.StripBase64Whitespace": 1,
@@ -513,7 +518,8 @@
         "Writer.WriteBinaryScalar": 1,
         "Writer.WriteCollectionBody": 3,
         "Writer.WriteEntryValue": 7,
-        "Writer.WriteDocumentValue": 6
+        "Writer.WriteDocumentValue": 6,
+        "Adapter.NotImplementedMessage": 1
       },
       "isBoolean": {
         "Engine.StringifyKeyValue": 1,
@@ -689,7 +695,9 @@
         "Serializer.Writer.HexEscape": 1,
         "Serializer.Writer.WriteCollectionBody": 2,
         "Serializer.Writer.WriteEntryValue": 15,
-        "Serializer.Writer.WriteDocumentValue": 9
+        "Serializer.Writer.WriteDocumentValue": 9,
+        ".Adapter.ExceptionToString": 2,
+        ".Adapter.NotImplementedMessage": 1
       }
     },
     {
@@ -1171,7 +1179,8 @@
         "DafnyCore.Engine.PublishRecordKeys": 1,
         "DafnyCore.Engine.ParseDirectives": 2,
         "DafnyCore.Engine.EndStream": 1,
-        "Serializer.Writer.WriteEntryValue": 1
+        "Serializer.Writer.WriteEntryValue": 1,
+        ".Adapter.NormalizeParseOptions": 3
       }
     }
   ],
@@ -1611,8 +1620,8 @@
     }
   },
   "metadata": {
-    "parentTraits": 9,
-    "typeNames": 9,
+    "parentTraits": 10,
+    "typeNames": 10,
     "otherRefs": 0
   },
   "methodRenames": {
@@ -1945,9 +1954,8 @@
       "quotedMultiline": "_fr",
       "strict": "_fs",
       "tagHandles": "_ft",
-      "tagHelpers": "_fu",
-      "valueCache": "_fv",
-      "valueCacheEnabled": "_fw"
+      "valueCache": "_fu",
+      "valueCacheEnabled": "_fv"
     },
     "Writer": {
       "dumpAnchorSeq": "_f0",
@@ -1993,7 +2001,6 @@
       "quotedMultiline": 11,
       "strict": 7,
       "tagHandles": 8,
-      "tagHelpers": 10,
       "valueCache": 5,
       "valueCacheEnabled": 4
     },
@@ -2441,6 +2448,34 @@
     "Writer.Stringify": {
       "identifier": 1,
       "self-property": 3
+    },
+    "Adapter.NormalizeParseOptions": {
+      "identifier": 7,
+      "self-property": 0
+    },
+    "Adapter.Parse": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Adapter.ParseAll": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Adapter.ParseCompletion": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Adapter.Stringify": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Adapter.ExceptionToString": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Adapter.NotImplementedMessage": {
+      "identifier": 1,
+      "self-property": 0
     }
   },
   "thisAliasSites": {
@@ -2602,6 +2637,15 @@
     "Writer.WriteEntryValue": 25,
     "Writer.WriteDocumentValue": 20,
     "Writer.DumpFinish": 8,
-    "Writer.Stringify": 14
+    "Writer.Stringify": 14,
+    "Adapter.__ctor": 3,
+    "Adapter.NormalizeParseOptions": 19,
+    "Adapter.SelectCompletionAfterCleanup": 1,
+    "Adapter.Parse": 2,
+    "Adapter.ParseAll": 2,
+    "Adapter.ParseCompletion": 13,
+    "Adapter.Stringify": 7,
+    "Adapter.ExceptionToString": 13,
+    "Adapter.NotImplementedMessage": 4
   }
 }
