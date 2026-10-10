@@ -1,7 +1,7 @@
 // Dafny program compiled into JavaScript by Dafny 4.11.0.
 // Copyright by the contributors to the Dafny Project.
 // SPDX-License-Identifier: MIT
-// Sources sha256 c09791c85a01401ec722576fb0b66c183c212c4b12b501721dcbfb00679f354a; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
+// Sources sha256 64a7358f7d4b6b3f966da4cf0965cad06f5d25b43b6957284172f5945327286b; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
 import { native_$$_toString as n0, nativeArrayGet as n1, nativeArrayLength as n2, nativeArrayPush as n3, nativeByteGet as n4, nativeByteLength as n5, nativeByteSet as n6, nativeCodeUnitAt as n7, nativeConcat as n8, nativeCreateArray as n9, nativeCreateObject as n10, nativeCreateUint8Array as n11, nativeEmptyMap as n12, nativeEuclideanDivisionNumber as n13, nativeEuclideanModuloNumber as n14, nativeFail as n15, nativeFormatNumber as n16, nativeIndexOf as n17, nativeIsMap as n18, nativeIsSet as n19, nativeIsUint8Array as n20, nativeJoin as n21, nativeJsEqual as n22, nativeJsonQuote as n23, nativeMapCreate as n24, nativeMapGet as n25, nativeMapKeys as n26, nativeMapSet as n27, nativeMapSize as n28, nativeNoDocumentValue as n29, nativeNotNumericValue as n30, nativeNullValue as n31, nativeNumberAdd as n32, nativeNumberIsNaN as n33, nativeNumberIsNegativeInfinity as n34, nativeNumberIsNegativeZero as n35, nativeNumberIsPositiveInfinity as n36, nativeNumberLessEqual as n37, nativeNumberMulAdd as n38, nativeObjectKeys as n39, nativeObjectSetSafe as n40, nativeParseNumber as n41, nativeParseSpecialNumber as n42, nativeRepeat as n43, nativeSameValue as n44, nativeSetCreate as n45, nativeSetValues as n46, nativeSlice as n47, nativeStringFallback as n48, nativeStringFromCharCode as n49, nativeStringFromCodePoint as n50, nativeUndefinedValue as n51, nativeSurfaceCaptureEndStream as n52, nativeSurfaceCaptureIsArray as n53, nativeSurfaceCaptureNormalizationRecord as n54, nativeSurfaceCaptureParseAll as n55, nativeSurfaceCaptureParseSingle as n56, nativeSurfaceCaptureReset as n57, nativeSurfaceCaptureTypeError as n58, nativeSurfaceCaptureWriterStringify as n59, nativeSurfaceCompletionIsThrown as n60, nativeSurfaceCompletionValue as n61, nativeSurfaceIsExactlyTrue as n62, nativeSurfaceIsNullish as n63, nativeSurfaceIsString as n64, nativeSurfaceIsTruthy as n65, nativeSurfaceMultiplyBy1024 as n66, nativeSurfaceNormalizationBudget as n67, nativeSurfaceNormalizationIntern as n68, nativeSurfaceNormalizationStrict as n69, nativeSurfaceReadProperty as n70, nativeSurfaceReturnedString as n71, nativeSurfaceTemplateString as n72 } from '../native.ts';
 
 let TagValues = (function () {
@@ -7430,7 +7430,7 @@ let NativeSurface = (function () {
                 let _5_firstOptimizationsRead;
                 let _out0;
                 _5_firstOptimizationsRead =
-                    n70(options, "optimizations", this.engine, this.engine.tagHelpers, this.writer);
+                    n70(options, "optimizations");
                 if (n60(_5_firstOptimizationsRead)) {
                     completion = _5_firstOptimizationsRead;
                     return completion;
@@ -7441,7 +7441,7 @@ let NativeSurface = (function () {
                     let _7_internStringsRead;
                     let _out1;
                     _7_internStringsRead =
-                        n70(_6_firstOptimizations, "internStrings", this.engine, this.engine.tagHelpers, this.writer);
+                        n70(_6_firstOptimizations, "internStrings");
                     if (n60(_7_internStringsRead)) {
                         completion = _7_internStringsRead;
                         return completion;
@@ -7452,7 +7452,7 @@ let NativeSurface = (function () {
                 let _8_strictRead;
                 let _out2;
                 _8_strictRead =
-                    n70(options, "strict", this.engine, this.engine.tagHelpers, this.writer);
+                    n70(options, "strict");
                 if (n60(_8_strictRead)) {
                     completion = _8_strictRead;
                     return completion;
@@ -7462,7 +7462,7 @@ let NativeSurface = (function () {
                 let _9_secondOptimizationsRead;
                 let _out3;
                 _9_secondOptimizationsRead =
-                    n70(options, "optimizations", this.engine, this.engine.tagHelpers, this.writer);
+                    n70(options, "optimizations");
                 if (n60(_9_secondOptimizationsRead)) {
                     completion = _9_secondOptimizationsRead;
                     return completion;
@@ -7473,7 +7473,7 @@ let NativeSurface = (function () {
                     let _11_budgetRead;
                     let _out4;
                     _11_budgetRead =
-                        n70(_10_secondOptimizations, "keyCacheMaxKb", this.engine, this.engine.tagHelpers, this.writer);
+                        n70(_10_secondOptimizations, "keyCacheMaxKb");
                     if (n60(_11_budgetRead)) {
                         completion = _11_budgetRead;
                         return completion;
@@ -7489,7 +7489,7 @@ let NativeSurface = (function () {
             let _13_multiplied;
             let _out5;
             _13_multiplied =
-                n66(_2_keyCacheBudgetValue, this.engine, this.engine.tagHelpers, this.writer);
+                n66(_2_keyCacheBudgetValue);
             if (n60(_13_multiplied)) {
                 completion = _13_multiplied;
                 return completion;
@@ -7617,7 +7617,7 @@ let NativeSurface = (function () {
             let _0_nameRead;
             let _out0;
             _0_nameRead =
-                n70(receiver, "name", this.engine, this.engine.tagHelpers, this.writer);
+                n70(receiver, "name");
             if (n60(_0_nameRead)) {
                 completion = _0_nameRead;
                 return completion;
@@ -7633,7 +7633,7 @@ let NativeSurface = (function () {
             let _2_messageRead;
             let _out2;
             _2_messageRead =
-                n70(receiver, "message", this.engine, this.engine.tagHelpers, this.writer);
+                n70(receiver, "message");
             if (n60(_2_messageRead)) {
                 completion = _2_messageRead;
                 return completion;

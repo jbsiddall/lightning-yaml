@@ -254,6 +254,7 @@ function extract(generated, digest) {
   const source = ts.createSourceFile('generated.js', shape.text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
   if (source.parseDiagnostics.length) throw new Error('generated surface adapter was not valid JavaScript');
   const actualSurfaceSites = Object.create(null);
+  const expectedSurfaceArgumentCounts = { surfaceReadProperty: 2, surfaceMultiplyBy1024: 1 };
   const aliases = Object.create(null);
   for (const [index, [member, binding]] of Object.entries(surfaceBindings).entries()) {
     if (!nativeText.includes(`const ${binding} =`)) throw new Error(`missing native surface binding ${binding}`);
@@ -267,6 +268,10 @@ function extract(generated, digest) {
       const member = node.expression.name.text;
       if (!Object.hasOwn(surfaceBindings, member)) throw new Error(`unmanifested SurfaceHost.${member}`);
       actualSurfaceSites[member] = (actualSurfaceSites[member] || 0) + 1;
+      if (Object.hasOwn(expectedSurfaceArgumentCounts, member) &&
+          node.arguments.length !== expectedSurfaceArgumentCounts[member]) {
+        throw new Error(`SurfaceHost.${member} call at ${node.getStart(source)} retains ghost context arguments`);
+      }
       return ts.factory.updateCallExpression(node, ts.factory.createIdentifier(aliases[member]), node.typeArguments,
         node.arguments.map(arg => ts.visitNode(arg, child => rewrite(child, context))));
     }
@@ -284,7 +289,9 @@ function extract(generated, digest) {
   const allImports = [...shape.nativeImports, ...surfaceImports];
   const imports = allImports.map(({ binding, alias }) => `${binding} as ${alias}`).join(', ');
   if (!imports) throw new Error('generated Dafny output has no native helper imports');
-  return `// Dafny program compiled into JavaScript by Dafny ${COMPILER_VERSION}.\n// Copyright by the contributors to the Dafny Project.\n// SPDX-License-Identifier: MIT\n// Sources sha256 ${digest}; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.\nimport { ${imports} } from '../native.ts';\n\n${surfaceText}\n\nexport { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors, NativeSurface };\n`;
+  const output = `// Dafny program compiled into JavaScript by Dafny ${COMPILER_VERSION}.\n// Copyright by the contributors to the Dafny Project.\n// SPDX-License-Identifier: MIT\n// Sources sha256 ${digest}; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.\nimport { ${imports} } from '../native.ts';\n\n${surfaceText}\n\nexport { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors, NativeSurface };\n`;
+  assertErasedSurfaceContextArguments(output);
+  return output;
 }
 
 function main() {
@@ -322,4 +329,46 @@ if (require.main === module) {
   catch (error) { process.stderr.write(`Dafny generation: ${error.message}\n`); process.exitCode = 1; }
 }
 
-module.exports = { assertNoOmittedModelReferences, OMITTED_MODEL_MODULES };
+function assertErasedSurfaceContextArguments(generated) {
+  const source = ts.createSourceFile('generated.js', generated,
+    ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  if (source.parseDiagnostics.length) throw new Error('generated surface adapter was not valid JavaScript');
+  const imported = new Map();
+  const expectedCounts = new Map([['nativeSurfaceReadProperty', { arity: 2, count: 7 }],
+    ['nativeSurfaceMultiplyBy1024', { arity: 1, count: 1 }]]);
+  for (const statement of source.statements) {
+    if (!ts.isImportDeclaration(statement) || !statement.importClause?.namedBindings ||
+        !ts.isNamedImports(statement.importClause.namedBindings) ||
+        !ts.isStringLiteral(statement.moduleSpecifier) ||
+        statement.moduleSpecifier.text !== '../native.ts') continue;
+    for (const specifier of statement.importClause.namedBindings.elements) {
+      imported.set(specifier.name.text, specifier.propertyName?.text || specifier.name.text);
+    }
+  }
+  const checkedAliases = new Set([...imported].filter(([, binding]) => expectedCounts.has(binding)).map(([alias]) => alias));
+  const actual = new Map([...expectedCounts.keys()].map(name => [name, 0]));
+  function visit(node) {
+    if ((ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isFunctionDeclaration(node) ||
+        ts.isFunctionExpression(node) || ts.isClassDeclaration(node) || ts.isClassExpression(node)) &&
+        node.name && ts.isIdentifier(node.name) && checkedAliases.has(node.name.text)) {
+      throw new Error(`native binding alias ${node.name.text} is shadowed in generated output`);
+    }
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+      const binding = imported.get(node.expression.text);
+      if (expectedCounts.has(binding)) {
+        const expected = expectedCounts.get(binding);
+        actual.set(binding, actual.get(binding) + 1);
+        if (node.arguments.length !== expected.arity) {
+          throw new Error(`${binding} call retains proof-context arguments: expected ${expected.arity}, got ${node.arguments.length}`);
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  for (const [binding, expected] of expectedCounts) {
+    if (actual.get(binding) !== expected.count) throw new Error(`${binding} callsite count changed: expected ${expected.count}, got ${actual.get(binding)}`);
+  }
+}
+
+module.exports = { assertNoOmittedModelReferences, assertErasedSurfaceContextArguments, OMITTED_MODEL_MODULES };

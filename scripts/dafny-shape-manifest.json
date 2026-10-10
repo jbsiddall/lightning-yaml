@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "nativeSha256": "89ba6224f08fb13a0388ce822d0d1f732483509b5f9e7368b4d9162cbb39a2d2",
+  "nativeSha256": "edbe88bd1533206ba2292e80f7167fff90c95bd86a0de7323344306ef517247e",
   "nativeIdentityHelpers": [
     "boolValue",
     "booleanValue",
@@ -2639,13 +2639,13 @@
     "Writer.DumpFinish": 8,
     "Writer.Stringify": 14,
     "Adapter.__ctor": 3,
-    "Adapter.NormalizeParseOptions": 19,
+    "Adapter.NormalizeParseOptions": 1,
     "Adapter.SelectCompletionAfterCleanup": 1,
     "Adapter.Parse": 2,
     "Adapter.ParseAll": 2,
     "Adapter.ParseCompletion": 13,
     "Adapter.Stringify": 7,
-    "Adapter.ExceptionToString": 13,
+    "Adapter.ExceptionToString": 7,
     "Adapter.NotImplementedMessage": 4
   }
 }

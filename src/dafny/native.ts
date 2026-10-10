@@ -116,8 +116,8 @@ export const nativeSurfaceTemplateString = (value: unknown, _engine: unknown, _h
 export const nativeSurfaceReturnedString = (value: string): surfaceHost.SurfaceCompletion => surfaceHost.surfaceReturnedString(value);
 export const nativeSurfaceCompletionIsThrown = (value: unknown): boolean => surfaceHost.surfaceCompletionIsThrown(value as surfaceHost.SurfaceCompletion);
 export const nativeSurfaceCompletionValue = (value: unknown): unknown => surfaceHost.surfaceCompletionValue(value as surfaceHost.SurfaceCompletion);
-export const nativeSurfaceReadProperty = (target: unknown, key: string, _engine: unknown, _helpers: unknown, _writer: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceReadProperty(target, key);
-export const nativeSurfaceMultiplyBy1024 = (value: unknown, _engine: unknown, _helpers: unknown, _writer: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceMultiplyByNumber(value, 1024);
+export const nativeSurfaceReadProperty = (target: unknown, key: string): surfaceHost.SurfaceCompletion => surfaceHost.surfaceReadProperty(target, key);
+export const nativeSurfaceMultiplyBy1024 = (value: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceMultiplyByNumber(value, 1024);
 export const nativeSurfaceCaptureNormalizationRecord = (strict: boolean, intern: boolean, budget: unknown): surfaceHost.SurfaceCompletion => surfaceHost.surfaceCaptureNormalizationRecord(strict, intern, budget);
 export const nativeSurfaceNormalizationStrict = (record: unknown): boolean => surfaceHost.surfaceNormalizationStrict(record);
 export const nativeSurfaceNormalizationIntern = (record: unknown): boolean => surfaceHost.surfaceNormalizationIntern(record);

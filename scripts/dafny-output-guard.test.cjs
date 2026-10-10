@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const { audit } = require('./check-dafny-output.cjs');
-const { assertNoOmittedModelReferences, OMITTED_MODEL_MODULES } = require('./build-dafny.cjs');
+const { assertNoOmittedModelReferences, assertErasedSurfaceContextArguments, OMITTED_MODEL_MODULES } = require('./build-dafny.cjs');
 
 const base = __dirname;
 const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, 'dafny-output-guard.json'), 'utf8'));
@@ -20,6 +20,20 @@ const config = {
   sourceSha256: manifest.sourceSha256,
   shapeManifest: manifest.shapeManifest,
 };
+
+test('generated SurfaceHost calls erase only the proof context arguments', () => {
+  assert.doesNotThrow(() => assertErasedSurfaceContextArguments(fs.readFileSync(generatedPath, 'utf8')));
+  const oldOutput = fs.readFileSync(generatedPath, 'utf8');
+  const readBinding = /\b(nativeSurfaceReadProperty\s+as\s+)(\w+)/.exec(oldOutput)?.[2];
+  const multiplyBinding = /\b(nativeSurfaceMultiplyBy1024\s+as\s+)(\w+)/.exec(oldOutput)?.[2];
+  assert.ok(readBinding && multiplyBinding, 'generated imports must retain stable binding identities');
+  assert.throws(() => assertErasedSurfaceContextArguments(oldOutput.replace(
+    new RegExp(`\\b${readBinding}\\(`), `${readBinding}(target, key, engine, helpers, writer, `)),
+  /retains proof-context arguments/);
+  assert.throws(() => assertErasedSurfaceContextArguments(oldOutput.replace(
+    new RegExp(`\\b${multiplyBinding}\\(`), `${multiplyBinding}(value, engine, helpers, writer, `)),
+  /retains proof-context arguments/);
+});
 
 test('Dafny generator guards every omitted proof/model module from output reachability', () => {
   assert.ok(OMITTED_MODEL_MODULES.size > 10);

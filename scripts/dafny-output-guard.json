@@ -50,8 +50,8 @@
     "../src/dafny/generated/engine.d.ts": "b1a12114738acd057ab264f31157b9a5589168434ac4fe5bd121254144f4e11c"
   },
   "sourceSha256": {
-    "../src/dafny/native.ts": "89ba6224f08fb13a0388ce822d0d1f732483509b5f9e7368b4d9162cbb39a2d2",
-    "./dafny-shape-manifest.json": "2f0049df95f440b1ecb01d62c2784fd57a4abee5ba905ae99515d64f0f89f600",
+    "../src/dafny/native.ts": "edbe88bd1533206ba2292e80f7167fff90c95bd86a0de7323344306ef517247e",
+    "./dafny-shape-manifest.json": "4ad71f400393fc3a98ce9cfdbe90cb1921d87ccbb5b21440678334cbe463b7c7",
     "../src/dafny/surface-native.ts": "9f9879bf84353add686b25f62283870ff8559b5c53715f73c61365d02fab56e2",
     "../src/dafny/bridge.ts": "805c7703b84e6c495a7492b35aefa30be3014f33485e46afdf981781b5988321"
   },

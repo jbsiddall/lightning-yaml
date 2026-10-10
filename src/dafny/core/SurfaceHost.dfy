@@ -36,7 +36,7 @@ module SurfaceHost {
   function {:extern "surfaceCompletionValue"} CompletionValue(completion: Value): Value
 
   method {:extern "surfaceReadProperty"} {:axiom} ReadProperty(target: Value, key: string,
-      engine: Engine, helpers: Helpers, writer: Writer,
+      ghost engine: Engine, ghost helpers: Helpers, ghost writer: Writer,
       ghost world: W.World, ghost targetHandle: M.Handle)
       returns (completion: Value, ghost observation: M.Event)
       requires world.Valid() && world.Bound(target,targetHandle)
@@ -92,7 +92,7 @@ module SurfaceHost {
       ensures (forall binding | binding in old(world.bindings) :: binding in world.bindings)
       modifies world
   method {:extern "surfaceMultiplyBy1024"} {:axiom} MultiplyBy1024(value: Value,
-      engine: Engine, helpers: Helpers, writer: Writer,
+      ghost engine: Engine, ghost helpers: Helpers, ghost writer: Writer,
       ghost world: W.World, ghost rawHandle: M.Handle, ghost useDefault: bool)
       returns (completion: Value, ghost observation: M.Event)
       requires world.Valid()

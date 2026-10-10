@@ -24,6 +24,23 @@ runtime dependency. Run `pnpm dafny:generate` with `dafny` 4.11.0 available on
 the regenerated artifact byte-for-byte and runs the output-boundary mutation
 tests.
 
+`SurfaceHost.ReadProperty` and `MultiplyBy1024` keep their Engine, Helpers and
+Writer formals ghost: their contracts still use those objects in `modifies` and
+context postconditions, while Dafny erases them from the generated native calls.
+The generator pins the affected native binding identities, call counts and
+argument counts so those proof-only references cannot return unnoticed.
+The equivalence scope is the public bridge, which privately owns its Adapter,
+Engine and Writer. Direct internal calls to the generated Adapter with getters
+or replacements on its `engine`, `writer` or `tagHelpers` context can observe
+the removed argument reads; those diagnostic-only mutations are outside this
+claim. Parser accesses to the diagnostic Engine fields themselves remain in the
+generated code, and the field names pinned by the diagnostic ABI remain stable.
+Generation still uses `--no-verify`; this integration does not complete the
+broader NativeSurface adapter proofs. A local legacy-verifier replay of the
+affected normalization and exception-conversion methods did not finish within
+its 75-second process bound. The repository's scanner and options proof gates
+remain the CI verification claims for this change.
+
 CI installs the exact [`Dafny` 4.11.0 NuGet tool](https://www.nuget.org/packages/Dafny/4.11.0) from the official NuGet v3 feed with .NET SDK 8.0.408. This pins the published package version and source feed; the tool bootstrap itself is not covered by the JavaScript lockfile. The generator verifies the compiler-reported version, and the generated header records a SHA-256 digest of every Dafny source file in compilation order.
 
 The generator AST-extracts seven retained program modules from the compiler output, after checking the compiler output's expected top-level structure. It omits the unused runtime modules, Dafny's unused Native type module, the compiled `SurfaceValues` ghost model, the proof-only `RawMarkContracts` model, and the host-intrinsic declaration module `SurfaceHost`; the extraction fails if an omitted model remains referenced by retained code. A second AST pass lowers a fixed, exact-count list of compiler-emitted generic equality and Euclidean arithmetic helper sites to host primitives; the list is tied to generated class/method names and the output guard checks the resulting native calls. Current string equality sites were inspected in the Dafny source: their operands are YAML tag/word strings. This lowering does not authorize opaque YAML value equality.
