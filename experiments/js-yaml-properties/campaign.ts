@@ -53,7 +53,7 @@ async function corpus(): Promise<CaseDescriptor[]> {
     if (s.size > 2097152)
       throw new Error(`corpus input exceeds 2 MiB cap: ${f} (${s.size})`);
     const text = await readFile(f, "utf8"),
-      source = path.relative(repo, f);
+      source = path.relative(repo, f).split(path.sep).join("/");
     out.push({
       id: stableId("corpus", text, i),
       operation: "load",
@@ -71,6 +71,19 @@ async function corpus(): Promise<CaseDescriptor[]> {
       categories: ["corpus", "loadAll"],
     });
   }
+  const snapshot = JSON.parse(
+    await readFile(new URL("./corpus-snapshot.json", import.meta.url), "utf8"),
+  ) as { totalInputFiles: number; aggregateSha256: string };
+  const fingerprints = out
+    .filter((descriptor) => descriptor.operation === "load")
+    .map((descriptor) => [descriptor.source, hash(descriptor.text!)]);
+  if (
+    fingerprints.length !== snapshot.totalInputFiles ||
+    hash(JSON.stringify(fingerprints)) !== snapshot.aggregateSha256
+  )
+    throw new Error(
+      "Pinned corpus is missing, modified or from a different snapshot; regenerate with FORCE=1 pnpm gen:suite",
+    );
   return out;
 }
 function percent(n: number, d: number): number | null {

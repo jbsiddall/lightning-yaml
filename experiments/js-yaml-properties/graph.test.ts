@@ -115,6 +115,25 @@ describe("property graph model", () => {
     );
   });
 
+  it("rejects subclasses of specialized built in brands", () => {
+    class CustomDate extends Date {}
+    class CustomRegExp extends RegExp {}
+    class CustomMap extends Map<unknown, unknown> {}
+    class CustomSet extends Set<unknown> {}
+    class CustomArrayBuffer extends ArrayBuffer {}
+    const instances: object[] = [
+      new CustomDate(1),
+      new CustomRegExp("x"),
+      new CustomMap(),
+      new CustomSet(),
+      new CustomArrayBuffer(1),
+    ];
+    for (const instance of instances) {
+      expect(compareGraph(instance, instance).equal).toBe(false);
+      expect(() => encodeGraph(instance)).toThrow(TypeError);
+    }
+  });
+
   it("creates dangerous keys as own data properties without prototype mutation", () => {
     const source = Object.create(null) as Record<string, unknown>;
     for (const key of ["__proto__", "constructor", "prototype"])

@@ -1,5 +1,5 @@
-import * as ref from "js-yaml";
-import * as cand from "../../src/js-yaml-compat.ts";
+import * as referenceYaml from "js-yaml";
+import * as candidateYaml from "../../src/js-yaml-compat.ts";
 import { compareGraph, decodeGraph, encodeGraph } from "./graph.js";
 import { materializeOptions, schemaFor } from "./options.js";
 import type {
@@ -92,54 +92,75 @@ function normalizeTrace(trace: unknown[]): unknown[] {
     return entry;
   });
 }
-function invoke(d: CaseDescriptor, side: "reference" | "candidate"): Outcome {
+function invoke(
+  descriptor: CaseDescriptor,
+  side: "reference" | "candidate",
+): Outcome {
   const trace: unknown[] = [];
-  const isRef = side === "reference";
-  const input = d.valueRecipe
-    ? specialValue(d.valueRecipe)
-    : d.graph
-      ? decodeGraph(d.graph)
+  const useReference = side === "reference";
+  const input = descriptor.valueRecipe
+    ? specialValue(descriptor.valueRecipe)
+    : descriptor.graph
+      ? decodeGraph(descriptor.graph)
       : undefined;
-  const opts = materializeOptions(d.options, side, d.operation, trace);
+  const options = materializeOptions(
+    descriptor.options,
+    side,
+    descriptor.operation,
+    trace,
+  );
   let outcome: Outcome;
   try {
-    if (d.operation === "dump")
+    if (descriptor.operation === "dump")
       outcome = {
         status: "success",
-        text: (isRef ? ref.dump : cand.dump)(input, opts as never),
+        text: (useReference ? referenceYaml.dump : candidateYaml.dump)(
+          input,
+          options as never,
+        ),
         trace,
       };
     else {
-      const text = d.text ?? "";
+      const text = descriptor.text ?? "";
       let value: unknown;
-      if (d.operation === "load")
-        value = (isRef ? ref.load : cand.load)(text, opts as never);
-      else if (d.operation === "loadAll-array")
-        value = (isRef ? ref.loadAll : cand.loadAll)(text, opts as never);
-      else if (d.operation === "loadAll-null-third")
-        value = isRef
-          ? ref.loadAll(text, null, opts as never)
-          : cand.loadAll(text, null, opts as never);
+      if (descriptor.operation === "load")
+        value = (useReference ? referenceYaml.load : candidateYaml.load)(
+          text,
+          options as never,
+        );
+      else if (descriptor.operation === "loadAll-array")
+        value = (useReference ? referenceYaml.loadAll : candidateYaml.loadAll)(
+          text,
+          options as never,
+        );
+      else if (descriptor.operation === "loadAll-null-third")
+        value = useReference
+          ? referenceYaml.loadAll(text, null, options as never)
+          : candidateYaml.loadAll(text, null, options as never);
       else if (
-        d.operation === "loadAll-iterator-third" ||
-        d.operation === "loadAll-iterator-throw"
+        descriptor.operation === "loadAll-iterator-third" ||
+        descriptor.operation === "loadAll-iterator-throw"
       ) {
-        const cb = (doc: unknown) => {
+        const iterator = (doc: unknown) => {
           trace.push(["document", doc]);
-          if (d.operation === "loadAll-iterator-throw")
+          if (descriptor.operation === "loadAll-iterator-throw")
             throw new Error("iterator callback sentinel");
         };
-        value = isRef
-          ? ref.loadAll(text, cb, opts as never)
-          : cand.loadAll(text, cb, opts as never);
+        value = useReference
+          ? referenceYaml.loadAll(text, iterator, options as never)
+          : candidateYaml.loadAll(text, iterator, options as never);
       } else {
         const second = { filename: "override.yaml", maxDepth: 4 };
-        value = isRef
-          ? (ref.loadAll as (...args: unknown[]) => unknown)(text, second, opts)
-          : (cand.loadAll as (...args: unknown[]) => unknown)(
+        value = useReference
+          ? (referenceYaml.loadAll as (...args: unknown[]) => unknown)(
               text,
               second,
-              opts,
+              options,
+            )
+          : (candidateYaml.loadAll as (...args: unknown[]) => unknown)(
+              text,
+              second,
+              options,
             );
       }
       outcome = { status: "success", value, trace };
@@ -151,9 +172,9 @@ function invoke(d: CaseDescriptor, side: "reference" | "candidate"): Outcome {
   outcome.trace = normalizeTrace(trace);
   return outcome;
 }
-export function evaluate(d: CaseDescriptor): CaseResult {
-  const reference = invoke(d, "reference"),
-    candidate = invoke(d, "candidate"),
+export function evaluate(descriptor: CaseDescriptor): CaseResult {
+  const reference = invoke(descriptor, "reference"),
+    candidate = invoke(descriptor, "candidate"),
     differences: CaseResult["differences"] = [];
   if (reference.status !== candidate.status)
     differences.push({ category: "acceptance" });
@@ -166,39 +187,45 @@ export function evaluate(d: CaseDescriptor): CaseResult {
   if (JSON.stringify(reference.trace) !== JSON.stringify(candidate.trace))
     differences.push({ category: "callback" });
   let semantic: CaseResult["semantic"];
-  if (d.operation === "dump" && reference.status === "success") {
+  if (descriptor.operation === "dump" && reference.status === "success") {
     if (candidate.status === "success" && reference.text !== candidate.text)
       differences.push({ category: "dump-bytes" });
-    const loadOpts = d.options.schema
-      ? { schema: schemaFor("reference", d.options.schema) }
+    const loadOpts = descriptor.options.schema
+      ? { schema: schemaFor("reference", descriptor.options.schema) }
       : undefined;
-    let refValue: unknown;
+    let referenceValue: unknown;
     try {
-      refValue = ref.load(reference.text!, loadOpts as never);
+      referenceValue = referenceYaml.load(reference.text!, loadOpts as never);
     } catch (error) {
       semantic = {
         referenceAvailable: false,
         reason: `reference semantic load unavailable: ${errorRecord(error).message}`,
       };
-      return { descriptor: d, reference, candidate, differences, semantic };
+      return {
+        descriptor: descriptor,
+        reference,
+        candidate,
+        differences,
+        semantic,
+      };
     }
-    semantic = { reference: refValue, referenceAvailable: true };
+    semantic = { reference: referenceValue, referenceAvailable: true };
     if (candidate.status !== "success") {
       semantic.reason = "candidate dump call failed";
       differences.push({ category: "dump-semantic" });
     } else {
-      let candValue: unknown;
+      let candidateValue: unknown;
       try {
-        candValue = ref.load(candidate.text!, loadOpts as never);
+        candidateValue = referenceYaml.load(candidate.text!, loadOpts as never);
       } catch (error) {
         semantic.reason = `candidate semantic load failed: ${errorRecord(error).message}`;
         differences.push({ category: "dump-semantic" });
       }
       if (semantic.reason === undefined) {
-        const compared = compareGraph(refValue, candValue);
+        const compared = compareGraph(referenceValue, candidateValue);
         semantic = {
-          reference: refValue,
-          candidate: candValue,
+          reference: referenceValue,
+          candidate: candidateValue,
           referenceAvailable: true,
           candidateAvailable: true,
           equal: compared.equal,
@@ -214,7 +241,7 @@ export function evaluate(d: CaseDescriptor): CaseResult {
       }
     }
   } else if (
-    d.operation !== "dump" &&
+    descriptor.operation !== "dump" &&
     reference.status === "success" &&
     candidate.status === "success"
   ) {
@@ -227,7 +254,7 @@ export function evaluate(d: CaseDescriptor): CaseResult {
       });
   }
   return {
-    descriptor: d,
+    descriptor: descriptor,
     reference,
     candidate,
     differences,
