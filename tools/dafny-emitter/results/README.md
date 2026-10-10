@@ -1,4 +1,11 @@
-# First arrayPush screen
+# Emitter measurements
+
+- [Output initializer experiment](output-initializers.md): second round,
+  with isolated Dafny and current-main comparisons, complete raw samples and
+  a bytecode check that found no initial-write removal in its boolean fixture.
+- [First arrayPush screen](#first-arraypush-screen): initial annotated workload.
+
+## First arrayPush screen
 
 The first official-emitter experiment remains opt-in. It did not show a
 consistent CPU improvement. This screen compares the previous **Dafny** build
@@ -9,6 +16,7 @@ Node 25.9.0 completed three alternating pairs across nine CPU and four cold
 memory cases in 46.97 seconds of external wall time. The supervisor recorded
 46.509 seconds, all selected samples, and no errors. Source and fixture
 fingerprints stayed unchanged during measurement.
+<!-- bench:a2ce4a67ca2b2fbeff17b19e4e67bfda4433199f388c383937a5e52c95358650 ly:4bd2dc51631b1076bdaede2647120bf7b7a22033 emitter:fcb2042d6d043a2634f0854338c08feeaaaf4ae2 patch:48aa47d0918d0fb37b3557528b77b951f781debbab79ee7f1d86956507e02d33 -->
 
 | CPU case | Median change | Pair range |
 |---|---:|---:|

@@ -6,6 +6,14 @@
   "stockTarget": "js",
   "candidateTarget": "js-native",
   "candidateArguments": [],
-  "patchSha256": "48aa47d0918d0fb37b3557528b77b951f781debbab79ee7f1d86956507e02d33",
-  "patches": ["patches/0001-js-native-array-push.patch"]
+  "patches": [
+    {
+      "path": "patches/0001-js-native-array-push.patch",
+      "sha256": "48aa47d0918d0fb37b3557528b77b951f781debbab79ee7f1d86956507e02d33"
+    },
+    {
+      "path": "patches/0002-elide-output-initializers.patch",
+      "sha256": "4bd8f6a77e4b4a67848e397fc5c7069f7ccdd7650d909725b9e4d97c9d1ba91f"
+    }
+  ]
 }

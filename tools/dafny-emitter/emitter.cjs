@@ -10,30 +10,40 @@ const TOOL_DIR = __dirname;
 const REPO_ROOT = path.resolve(TOOL_DIR, '../..');
 const MANIFEST_PATH = path.join(TOOL_DIR, 'upstream.json');
 const PIN = 'fcb2042d6d043a2634f0854338c08feeaaaf4ae2';
-const PINNED_PATCHES = ['patches/0001-js-native-array-push.patch'];
-const PINNED_PATCH_SHA256 = '48aa47d0918d0fb37b3557528b77b951f781debbab79ee7f1d86956507e02d33';
+const PINNED_PATCHES = [
+  { path: 'patches/0001-js-native-array-push.patch', sha256: '48aa47d0918d0fb37b3557528b77b951f781debbab79ee7f1d86956507e02d33' },
+  { path: 'patches/0002-elide-output-initializers.patch', sha256: '4bd8f6a77e4b4a67848e397fc5c7069f7ccdd7650d909725b9e4d97c9d1ba91f' },
+];
 
 function validateManifest(manifest, toolDir = TOOL_DIR) {
   if (manifest.repository !== 'https://github.com/dafny-lang/dafny.git' ||
       manifest.commit !== PIN || manifest.tag !== 'v4.11.0' ||
       manifest.driverProject !== 'Source/Dafny/Dafny.csproj') throw new Error('unexpected Dafny source pin');
-  if (JSON.stringify(manifest.patches) !== JSON.stringify(PINNED_PATCHES)) {
-    throw new Error('unexpected pinned Dafny patch series');
-  }
-  if (manifest.patchSha256 !== PINNED_PATCH_SHA256) throw new Error('unexpected pinned Dafny patch hash');
+  validatePatchSeries(manifest.patches, toolDir);
+  if (JSON.stringify(manifest.patches) !== JSON.stringify(PINNED_PATCHES)) throw new Error('unexpected pinned Dafny patch series');
   if (manifest.stockTarget !== 'js' || manifest.candidateTarget !== 'js-native' ||
       JSON.stringify(manifest.candidateArguments) !== JSON.stringify([])) {
     throw new Error('unexpected stock or candidate CLI profile');
   }
-  for (const patch of manifest.patches) {
-    if (!/^patches\/[0-9]{4}-[a-z0-9-]+\.patch$/.test(patch)) throw new Error(`invalid pinned patch path: ${patch}`);
-    const absolute = path.resolve(toolDir, patch);
-    if (!absolute.startsWith(`${path.resolve(toolDir)}${path.sep}`) || !fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
-      throw new Error(`missing or unsafe patch: ${patch}`);
-    }
-    if (digestFile(absolute) !== PINNED_PATCH_SHA256) throw new Error(`pinned patch content changed: ${patch}`);
-  }
   return manifest;
+}
+
+function validatePatchSeries(patches, toolDir = TOOL_DIR) {
+  if (!Array.isArray(patches) || patches.length === 0) throw new Error('patches must be a non-empty ordered array');
+  patches.forEach((patch, index) => {
+    const expectedPrefix = `patches/${String(index + 1).padStart(4, '0')}-`;
+    if (!patch || typeof patch.path !== 'string' || !patch.path.startsWith(expectedPrefix) ||
+        !/^patches\/[0-9]{4}-[a-z0-9-]+\.patch$/.test(patch.path) ||
+        !/^[0-9a-f]{64}$/.test(patch.sha256)) {
+      throw new Error(`invalid ordered patch pin at position ${index + 1}`);
+    }
+    const absolute = path.resolve(toolDir, patch.path);
+    if (!absolute.startsWith(`${path.resolve(toolDir)}${path.sep}`) || !fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
+      throw new Error(`missing or unsafe patch: ${patch.path}`);
+    }
+    if (digestFile(absolute) !== patch.sha256) throw new Error(`pinned patch content changed: ${patch.path}`);
+  });
+  return patches;
 }
 
 function loadManifest() {
@@ -125,7 +135,7 @@ function writeProvenance(cache, manifest, profile, runtimeJar) {
 }
 
 function initialProvenance(cache, manifest, profile, worktree, runtimeJar) {
-  const patchHashes = manifest.patches.map(relative => ({ path: relative, sha256: digestFile(path.join(TOOL_DIR, relative)) }));
+  const patchHashes = manifest.patches.map(patch => ({ ...patch }));
   return buildProvenance({
     manifest, profile, worktree, patchHashes,
     runtimeJar: runtimeJar || null,
@@ -134,6 +144,7 @@ function initialProvenance(cache, manifest, profile, worktree, runtimeJar) {
 }
 
 function verifySetupState(cache, manifest, profile, expectedCommit = PIN, toolDir = TOOL_DIR) {
+  validatePatchSeries(manifest.patches, toolDir);
   const root = profileRoot(cache, profile);
   const stampPath = path.join(cache, `${profile}.provenance.json`);
   if (!fs.existsSync(stampPath)) throw new Error(`run setup first; missing ${stampPath}`);
@@ -144,7 +155,7 @@ function verifySetupState(cache, manifest, profile, expectedCommit = PIN, toolDi
   if (status.split('\n').some(line => line.startsWith('??'))) throw new Error(`unexpected untracked source files:\n${status}`);
   const diffSha256 = currentDiffSha256(root);
   if (stamp.worktreeDiffSha256 !== diffSha256) throw new Error(`worktree source differs from its setup patch state: ${root}`);
-  const patchHashes = manifest.patches.map(relative => ({ path: relative, sha256: digestFile(path.join(toolDir, relative)) }));
+  const patchHashes = manifest.patches.map(patch => ({ ...patch }));
   if (JSON.stringify(stamp.patches) !== JSON.stringify(profile === 'candidate' ? patchHashes : [])) {
     throw new Error(`patch series changed since setup for ${profile}`);
   }
@@ -192,7 +203,7 @@ function setup(cache, runtimeJar) {
     run('git', ['worktree', 'add', '--detach', worktree, PIN], { cwd: source });
     if (profile === 'candidate') {
       for (const patch of manifest.patches) {
-        const patchPath = path.join(TOOL_DIR, patch);
+        const patchPath = path.join(TOOL_DIR, patch.path);
         run('git', ['apply', '--check', patchPath], { cwd: worktree });
         run('git', ['apply', '--index', patchPath], { cwd: worktree });
       }
@@ -262,7 +273,7 @@ function main() {
       const stamp = verifySetupState(cache, manifest, profile);
       process.stdout.write(`${JSON.stringify(stamp, null, 2)}\n`);
     }
-    process.stdout.write(`patch files: ${JSON.stringify(manifest.patches)}\n`);
+    process.stdout.write(`patch files: ${JSON.stringify(manifest.patches.map(patch => patch.path))}\n`);
   } else {
     throw new Error('usage: emitter.cjs setup|build|translate|provenance [options]');
   }
@@ -272,5 +283,5 @@ if (require.main === module) {
   try { main(); } catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1; }
 }
 
-module.exports = { PIN, PINNED_PATCHES, PINNED_PATCH_SHA256, loadManifest, validateManifest, digestFile, buildProvenance, currentDiffSha256,
+module.exports = { PIN, PINNED_PATCHES, loadManifest, validateManifest, validatePatchSeries, digestFile, buildProvenance, currentDiffSha256,
   checkPinnedCleanSource, validateCheckoutFacts, verifySetupState, verifyBuiltArtifacts, dotnetEnvironment, requiredPath, profileRoot };

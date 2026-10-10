@@ -7,10 +7,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
-const { PIN, PINNED_PATCHES, PINNED_PATCH_SHA256, validateManifest, validateCheckoutFacts, requiredPath, buildProvenance,
+const { PIN, PINNED_PATCHES, validateManifest, validatePatchSeries, validateCheckoutFacts, requiredPath, buildProvenance,
   currentDiffSha256, digestFile, verifySetupState, verifyBuiltArtifacts } = require('./emitter.cjs');
 
-function manifest(patches = []) {
+function manifest(patches = PINNED_PATCHES) {
   return {
     repository: 'https://github.com/dafny-lang/dafny.git',
     tag: 'v4.11.0',
@@ -19,7 +19,6 @@ function manifest(patches = []) {
     stockTarget: 'js',
     candidateTarget: 'js-native',
     candidateArguments: [],
-    patchSha256: PINNED_PATCH_SHA256,
     patches,
   };
 }
@@ -28,24 +27,38 @@ test('manifest accepts only the pinned upstream and fixed target profiles', t =>
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dafny-emitter-pin-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   fs.mkdirSync(path.join(directory, 'patches'));
-  fs.writeFileSync(path.join(directory, PINNED_PATCHES[0]),
-    fs.readFileSync(path.join(__dirname, PINNED_PATCHES[0])));
+  for (const patch of PINNED_PATCHES) {
+    fs.mkdirSync(path.dirname(path.join(directory, patch.path)), { recursive: true });
+    fs.copyFileSync(path.join(__dirname, patch.path), path.join(directory, patch.path));
+  }
   assert.equal(validateManifest(manifest(PINNED_PATCHES), directory).commit, PIN);
   assert.throws(() => validateManifest({ ...manifest(), commit: '0'.repeat(40) }), /source pin/);
   assert.throws(() => validateManifest({ ...manifest(PINNED_PATCHES), candidateTarget: 'js' }, directory), /CLI profile/);
 });
 
-test('patch manifest is ordered, confined, and references existing patch files', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dafny-emitter-test-'));
-  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(directory, 'patches'));
-  fs.writeFileSync(path.join(directory, PINNED_PATCHES[0]),
-    fs.readFileSync(path.join(__dirname, PINNED_PATCHES[0])));
-  assert.deepEqual(validateManifest(manifest(PINNED_PATCHES), directory).patches, PINNED_PATCHES);
-  assert.throws(() => validateManifest(manifest(['../outside.patch']), directory), /unexpected pinned Dafny patch series/);
-  assert.throws(() => validateManifest(manifest(), directory), /unexpected pinned Dafny patch series/);
-  fs.rmSync(path.join(directory, PINNED_PATCHES[0]));
-  assert.throws(() => validateManifest(manifest(PINNED_PATCHES), directory), /missing or unsafe patch/);
+test('ordered patch pins survive isolated copies and reject reordering, alteration, or omission', t => {
+  for (const omittedIndex of PINNED_PATCHES.keys()) {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), `dafny-emitter-patches-${omittedIndex}-`));
+    t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+    fs.mkdirSync(path.join(directory, 'patches'));
+    for (const patch of PINNED_PATCHES) {
+      fs.mkdirSync(path.dirname(path.join(directory, patch.path)), { recursive: true });
+      fs.copyFileSync(path.join(__dirname, patch.path), path.join(directory, patch.path));
+    }
+    assert.deepEqual(validatePatchSeries(PINNED_PATCHES, directory), PINNED_PATCHES);
+    if (PINNED_PATCHES.length > 1) {
+      assert.throws(() => validatePatchSeries([...PINNED_PATCHES].reverse(), directory), /ordered patch pin/);
+      assert.throws(() => validateManifest({ ...manifest([...PINNED_PATCHES].reverse()) }, directory), /ordered patch pin/);
+    }
+    const changedPatch = PINNED_PATCHES[omittedIndex];
+    fs.appendFileSync(path.join(directory, changedPatch.path), '\nchanged');
+    assert.throws(() => validatePatchSeries(PINNED_PATCHES, directory), /pinned patch content changed/);
+    fs.copyFileSync(path.join(__dirname, changedPatch.path), path.join(directory, changedPatch.path));
+    const missingPatch = PINNED_PATCHES[omittedIndex % PINNED_PATCHES.length];
+    fs.rmSync(path.join(directory, missingPatch.path));
+    assert.throws(() => validatePatchSeries(PINNED_PATCHES, directory), /missing or unsafe patch/);
+  }
+  assert.throws(() => validatePatchSeries([{ ...PINNED_PATCHES[0], path: '../outside.patch' }]), /ordered patch pin/);
 });
 
 test('checkout checks reject source drift and cache paths must be explicit absolute paths', () => {
@@ -57,13 +70,13 @@ test('checkout checks reject source drift and cache paths must be explicit absol
 });
 
 test('provenance carries the source pin, selected target, ordered patch hashes, and runtime hash', () => {
-  const selected = manifest(['patches/0001-first.patch']);
+  const selected = manifest([{ path: 'patches/0001-first.patch', sha256: crypto.createHash('sha256').update('patch bytes').digest('hex') }]);
   const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
   const result = buildProvenance({
     manifest: selected,
     profile: 'candidate',
     worktree: '/tmp/cache/candidate',
-    patchHashes: [{ path: selected.patches[0], sha256: sha256('patch bytes') }],
+    patchHashes: [{ path: selected.patches[0].path, sha256: sha256('patch bytes') }],
     runtimeJar: { path: '/tmp/DafnyRuntime.jar', sha256: sha256('jar bytes') },
     diffSha256: sha256('tree diff'),
   });
@@ -81,7 +94,7 @@ test('git cache provenance rejects unstaged files, source drift, and changed pat
   const candidate = path.join(cache, 'candidate');
   const toolDir = path.join(temporary, 'tool');
   const toolPatches = path.join(toolDir, 'patches');
-  const patchPath = path.join(toolPatches, PINNED_PATCHES[0].slice('patches/'.length));
+  const patchPath = path.join(toolDir, PINNED_PATCHES[0].path);
   fs.mkdirSync(candidate, { recursive: true });
   fs.mkdirSync(toolPatches, { recursive: true });
   fs.writeFileSync(patchPath, 'first patch bytes');
@@ -102,12 +115,12 @@ test('git cache provenance rejects unstaged files, source drift, and changed pat
   fs.writeFileSync(path.join(candidate, 'new-source.cs'), 'candidate patch');
   git(['add', 'new-source.cs']);
 
-  const selected = manifest(PINNED_PATCHES);
+  const selected = manifest([{ path: PINNED_PATCHES[0].path, sha256: digestFile(patchPath) }]);
   const stamp = buildProvenance({
     manifest: selected,
     profile: 'candidate',
     worktree: candidate,
-    patchHashes: [{ path: selected.patches[0], sha256: digestFile(patchPath) }],
+    patchHashes: [{ path: selected.patches[0].path, sha256: digestFile(patchPath) }],
     runtimeJar: null,
     diffSha256: currentDiffSha256(candidate),
   });
@@ -122,7 +135,7 @@ test('git cache provenance rejects unstaged files, source drift, and changed pat
   assert.throws(() => verifySetupState(cache, selected, 'candidate', commit, toolDir), /differs from its setup patch state/);
   fs.writeFileSync(path.join(candidate, 'tracked.txt'), 'base');
   fs.writeFileSync(patchPath, 'changed patch bytes');
-  assert.throws(() => verifySetupState(cache, selected, 'candidate', commit, toolDir), /patch series changed/);
+  assert.throws(() => verifySetupState(cache, selected, 'candidate', commit, toolDir), /pinned patch content changed/);
 });
 
 test('built compiler and runtime jar hashes reject stale cache artifacts', t => {

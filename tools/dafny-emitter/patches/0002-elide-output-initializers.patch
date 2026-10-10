@@ -1,0 +1,271 @@
+diff --git a/Source/DafnyCore/Backends/JavaScript/JavaScriptNativeBackend.cs b/Source/DafnyCore/Backends/JavaScript/JavaScriptNativeBackend.cs
+index b172a98..c16dad3 100644
+--- a/Source/DafnyCore/Backends/JavaScript/JavaScriptNativeBackend.cs
++++ b/Source/DafnyCore/Backends/JavaScript/JavaScriptNativeBackend.cs
+@@ -19,6 +19,36 @@ sealed class JavaScriptNativeCodeGenerator : JavaScriptCodeGenerator {
+   const string IntrinsicAttribute = "jsIntrinsic";
+   readonly HashSet<Method> validIntrinsics = new();
+ 
++  protected override bool CanOmitOutputInitialization(MethodOrConstructor method, Formal output, string defaultValue) {
++    // Type defaults can contain constructors, witnesses, or other effects, so only omit a literal
++    // initializer when the first physical statement directly assigns this output without reading it.
++    if (defaultValue is not ("false" or "true" or "0" or "1" or "\"\"")) {
++      return false;
++    }
++    if (method is not Method { IsTailRecursive: false, Body: BlockStmt body } ||
++        method.Outs.Count(formal => !formal.IsGhost) != 1 ||
++        body.Body.Count == 0 || body.Body[0].IsGhost) {
++      return false;
++    }
++
++    var firstStatement = body.Body[0];
++    var assignment = firstStatement switch {
++      SingleAssignStmt single => single,
++      AssignStatement { Lhss.Count: 1, Rhss.Count: 1, ResolvedStatements.Count: 1 } update
++        when update.ResolvedStatements[0] is SingleAssignStmt single => single,
++      _ => null
++    };
++    if (assignment == null || assignment.IsGhost || assignment.Lhs.Resolved is not IdentifierExpr lhs ||
++        !ReferenceEquals(lhs.Var, output) || assignment.Rhs is not ExprRhs rhs ||
++        rhs.SubStatements.Any() || rhs.Expr.DescendantsAndSelf.Any(expression => expression is StmtExpr) ||
++        rhs.Expr.DescendantsAndSelf.OfType<IdentifierExpr>()
++          .Any(identifier => ReferenceEquals(identifier.Var, output))) {
++      return false;
++    }
++
++    return true;
++  }
++
+   public JavaScriptNativeCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) { }
+ 
+   protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
+diff --git a/Source/DafnyCore/Backends/JavaScript/NativeTarget.md b/Source/DafnyCore/Backends/JavaScript/NativeTarget.md
+index 1feeb62..e5c9002 100644
+--- a/Source/DafnyCore/Backends/JavaScript/NativeTarget.md
++++ b/Source/DafnyCore/Backends/JavaScript/NativeTarget.md
+@@ -3,3 +3,7 @@
+ `js-native` is an unstable target for narrowly annotated host intrinsics. Its first intrinsic is `{:jsIntrinsic "arrayPush"}` on a static extern method with two non-ghost inputs, no outputs, and no type parameters. The annotation is a trusted host contract: the extern binding must be immutable and its lookup must have no observable effects; the implementation must perform `(receiver).push(value)` and discard the result.
+ 
+ The generated call evaluates both arguments once, from left to right, before looking up the receiver's `push` property. That preserves dynamic getters, overrides, proxies, method `this`, and thrown payloads from argument evaluation and property lookup. It does not promise the same engine-generated TypeError wording for every invalid receiver, or the same caller stack frame as the wrapper call it removes.
++
++The target can omit an output variable's default initializer in a narrow case: the emitted default is exactly `false`, `true`, `0`, `1`, or `""`, and the first physical statement in an ordinary method body is non-ghost and directly assigns that same output without reading it. Calls, branches, returns, preceding declarations or ghost statements, multiple outputs, tail-recursive methods, and non-literal defaults keep their initializers. This avoids skipping constructors, witnesses, or other work encoded by richer Dafny defaults. The optimization changes emitted JavaScript only; it does not change Dafny's source-level automatic initialization rules.
++
++JavaScript's implicit `undefined` initialization remains when the explicit default is omitted. In a focused Node 25 bytecode check, the boolean example changed `LdaFalse` to `LdaUndefined`, but its function still used 8 bytes of bytecode and an 8-byte frame with one register. That check found no bytecode reduction and does not establish a runtime-store saving.
+diff --git a/Source/DafnyCore/Backends/SinglePassCodeGenerator/SinglePassCodeGenerator.cs b/Source/DafnyCore/Backends/SinglePassCodeGenerator/SinglePassCodeGenerator.cs
+index 45a8d87..8eba193 100644
+--- a/Source/DafnyCore/Backends/SinglePassCodeGenerator/SinglePassCodeGenerator.cs
++++ b/Source/DafnyCore/Backends/SinglePassCodeGenerator/SinglePassCodeGenerator.cs
+@@ -453,6 +453,7 @@ namespace Microsoft.Dafny.Compilers {
+     protected virtual string AssignmentSymbol { get => " = "; }
+     public void EndStmt(ConcreteSyntaxTree wr) { wr.WriteLine(StmtTerminator); }
+     protected abstract void DeclareLocalOutVar(string name, Type type, IOrigin tok, string rhs, bool useReturnStyleOuts, ConcreteSyntaxTree wr);
++    protected virtual bool CanOmitOutputInitialization(MethodOrConstructor method, Formal output, string defaultValue) => false;
+     protected virtual void EmitActualOutArg(string actualOutParamName, ConcreteSyntaxTree wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
+     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, ConcreteSyntaxTree wr) { }  // called only for return-style calls
+     protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, ConcreteSyntaxTree wr, List<Type> formalOutParamTypes, List<Type> lhsTypes, IOrigin tok) {
+@@ -2840,7 +2841,9 @@ namespace Microsoft.Dafny.Compilers {
+         var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
+         foreach (var p in m.Outs) {
+           if (!p.IsGhost) {
+-            DeclareLocalOutVar(IdName(p), p.Type, p.Origin, PlaceboValue(p.Type, w, p.Origin, true), useReturnStyleOuts, w);
++            var defaultValue = PlaceboValue(p.Type, w, p.Origin, true);
++            var initializer = CanOmitOutputInitialization(m, p, defaultValue) ? null : defaultValue;
++            DeclareLocalOutVar(IdName(p), p.Type, p.Origin, initializer, useReturnStyleOuts, w);
+           }
+         }
+ 
+diff --git a/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/OutputInitialization.dfy b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/OutputInitialization.dfy
+new file mode 100644
+index 0000000..d5db24f
+--- /dev/null
++++ b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/OutputInitialization.dfy
+@@ -0,0 +1,98 @@
++// NONUNIFORM: checks conservative output initialization elision in js-native against stock JavaScript
++// RUN: %translate js %trargs --no-verify --allow-warnings --output "%t.stock.js" "%s"
++// RUN: %translate js-native %trargs --no-verify --allow-warnings --output "%t.native.js" "%s"
++// RUN: node "%S/OutputInitializationHarness.js" "%t.stock.js" "%t.native.js" "%t.native.out"
++// RUN: %exits-with 1 node "%S/OutputInitializationHarness.js" "%t.stock.js" "%t.native.js" disabled-elision > /dev/null 2>&1
++// RUN: %exits-with 1 node "%S/OutputInitializationHarness.js" "%t.stock.js" "%t.native.js" overbroad-read > /dev/null 2>&1
++// RUN: %diff "%S/OutputInitialization.expect" "%t.native.out"
++
++method AssignBoolean(input: bool) returns (output: bool) {
++  output := input;
++}
++
++method AssignString(input: string) returns (output: string) {
++  output := input;
++}
++
++method ReadBeforeAssign() returns (output: bool) {
++  output := output == false;
++}
++
++method NestedReadBeforeAssign() returns (output: bool) {
++  output := (var value := output; value == false);
++}
++
++method LambdaReadBeforeAssign() returns (output: bool) {
++  output := (x => output == x)(false);
++}
++
++method EarlyReturn(input: bool) returns (output: bool) {
++  if input {
++    return;
++  }
++  output := true;
++}
++
++method LocalBeforeAssign() returns (output: bool) {
++  var local := true;
++  output := local;
++}
++
++method LoopBeforeAssign(input: bool) returns (output: bool) {
++  var condition := input;
++  while condition {
++    output := true;
++    condition := false;
++  }
++  output := false;
++}
++
++method LoopFirst(input: bool) returns (output: bool) {
++  while false {
++    output := input;
++  }
++  output := input;
++}
++
++method MultipleOutputs(input: bool) returns (first: bool, second: bool) {
++  first, second := input, first;
++}
++
++method DependentAssignments(input: bool) returns (output: bool) {
++  output := input;
++  output := !output;
++}
++
++method GhostBeforeAssign(input: bool) returns (output: bool) {
++  ghost var marker := true;
++  output := input;
++}
++
++method ArrayOutput(input: array<int>) returns (output: array<int>) {
++  output := input;
++}
++
++method Main() {
++  var first := AssignBoolean(true);
++  var second := AssignBoolean(false);
++  print first, " ", second, "\n";
++  var read := ReadBeforeAssign();
++  print read, "\n";
++  var nestedRead := NestedReadBeforeAssign();
++  print nestedRead, "\n";
++  var lambdaRead := LambdaReadBeforeAssign();
++  print lambdaRead, "\n";
++  var early := EarlyReturn(true);
++  var late := EarlyReturn(false);
++  print early, " ", late, "\n";
++  var local := LocalBeforeAssign();
++  print local, "\n";
++  var loop := LoopBeforeAssign(true);
++  print loop, "\n";
++  var firstResult, secondResult := MultipleOutputs(true);
++  print firstResult, " ", secondResult, "\n";
++  var dependent := DependentAssignments(true);
++  print dependent, "\n";
++  var ghostResult := GhostBeforeAssign(true);
++  print ghostResult, "\n";
++}
+diff --git a/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/OutputInitialization.expect b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/OutputInitialization.expect
+new file mode 100644
+index 0000000..b7519d0
+--- /dev/null
++++ b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/OutputInitialization.expect
+@@ -0,0 +1 @@
++true false sample true true true false true true false true true,false false true 1,2
+diff --git a/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/OutputInitializationHarness.js b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/OutputInitializationHarness.js
+new file mode 100644
+index 0000000..28f32cd
+--- /dev/null
++++ b/Source/IntegrationTests/TestFiles/LitTests/LitTest/javascript-native/OutputInitializationHarness.js
+@@ -0,0 +1,78 @@
++const assert = require("assert");
++const fs = require("fs");
++
++// These generated-code mutations prove that the shape and overbroad-read checks can fail.
++function methodSource(source, name) {
++  const start = source.indexOf(`static ${name}(`);
++  assert(start >= 0, `expected method ${name}`);
++  const nextMethod = source.indexOf("\n    static ", start + 1);
++  return source.slice(start, nextMethod < 0 ? source.length : nextMethod);
++}
++
++function replaceMethodDeclaration(source, name, before, after) {
++  const method = methodSource(source, name);
++  assert(method.includes(before), `expected ${name} mutation anchor`);
++  const start = source.indexOf(method);
++  return source.slice(0, start) + method.replace(before, after) + source.slice(start + method.length);
++}
++
++function loadModule(source) {
++  const entryPoint = "_dafny.HandleHaltExceptions(() => _module.__default.Main(_dafny.UnicodeFromMainArguments(require('process').argv)));";
++  assert(source.includes(entryPoint), "expected generated main entry point");
++  source = source.replace(entryPoint, "return _module;");
++  return new Function("require", "_dafny", source)(require, { Seq: { UnicodeFromString: () => "" } });
++}
++
++const stockSource = fs.readFileSync(process.argv[2], "utf8");
++let nativeSource = fs.readFileSync(process.argv[3], "utf8");
++const mutation = ["disabled-elision", "overbroad-read"].includes(process.argv[4]) ? process.argv[4] : null;
++if (mutation === "disabled-elision") {
++  nativeSource = replaceMethodDeclaration(nativeSource, "AssignBoolean", "let output;", "let output = false;");
++} else if (mutation === "overbroad-read") {
++  nativeSource = replaceMethodDeclaration(nativeSource, "NestedReadBeforeAssign", "let output = false;", "let output;");
++  nativeSource = replaceMethodDeclaration(nativeSource, "LambdaReadBeforeAssign", "let output = false;", "let output;");
++}
++const stock = loadModule(stockSource);
++const native = loadModule(nativeSource);
++
++if (mutation !== "overbroad-read") {
++  assert.match(methodSource(stockSource, "AssignBoolean"), /let output = false;/);
++  assert.match(methodSource(nativeSource, "AssignBoolean"), /let output;/);
++  assert.match(methodSource(stockSource, "AssignString"), /let output = _dafny\.Seq\.UnicodeFromString\(""\);/);
++  assert.match(methodSource(nativeSource, "AssignString"), /let output = _dafny\.Seq\.UnicodeFromString\(""\);/);
++  for (const name of ["ReadBeforeAssign", "NestedReadBeforeAssign", "LambdaReadBeforeAssign", "EarlyReturn",
++    "LocalBeforeAssign", "LoopBeforeAssign", "GhostBeforeAssign"]) {
++    assert.match(methodSource(nativeSource, name), /let output = false;/, `${name} must keep its initialization`);
++  }
++  assert.match(methodSource(nativeSource, "LoopFirst"), /let output = false;/);
++  assert.match(methodSource(nativeSource, "MultipleOutputs"), /let first = false;[\s\S]*let second = false;/);
++  assert.match(methodSource(nativeSource, "ArrayOutput"), /let output = \[\];/);
++  assert.match(methodSource(nativeSource, "DependentAssignments"), /let output;/);
++}
++
++const arrayInput = [1, 2];
++const calls = [
++  ["AssignBoolean", [true]],
++  ["AssignBoolean", [false]],
++  ["AssignString", ["sample"]],
++  ["ReadBeforeAssign", []],
++  ["NestedReadBeforeAssign", []],
++  ["LambdaReadBeforeAssign", []],
++  ["EarlyReturn", [true]],
++  ["EarlyReturn", [false]],
++  ["LocalBeforeAssign", []],
++  ["LoopBeforeAssign", [true]],
++  ["LoopFirst", [true]],
++  ["MultipleOutputs", [true]],
++  ["DependentAssignments", [true]],
++  ["GhostBeforeAssign", [true]],
++  ["ArrayOutput", [arrayInput]]
++];
++const stockValues = calls.map(([name, args]) => stock.__default[name](...args));
++const nativeValues = calls.map(([name, args]) => native.__default[name](...args));
++assert.deepStrictEqual(nativeValues, stockValues);
++assert.deepStrictEqual(nativeValues, [true, false, "sample", true, true, true, false, true, true, false, true,
++  [true, false], false, true, arrayInput]);
++if (mutation == null) {
++  fs.writeFileSync(process.argv[4], `${nativeValues.join(" ")}\n`);
++}

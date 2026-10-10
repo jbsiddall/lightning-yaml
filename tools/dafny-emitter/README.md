@@ -2,9 +2,10 @@
 
 This is an opt-in experiment based on the official Dafny compiler at
 `v4.11.0` (`fcb2042d6d043a2634f0854338c08feeaaaf4ae2`). The upstream tree is
-not vendored. `upstream.json` is the pin and ordered patch list; patches are
-kept here and applied only to the candidate worktree. Stock and candidate each
-get their own detached worktree and build outputs.
+not vendored. `upstream.json` pins each ordered patch by path and SHA-256;
+patches are kept here and applied only to the candidate worktree. Their
+four-digit prefixes must form a contiguous series beginning at `0001`.
+Stock and candidate each get their own detached worktree and build outputs.
 
 ## Build and translate
 
@@ -36,6 +37,7 @@ compiler worktree, run its focused upstream LIT fixture with:
 
 ```sh
 dotnet test Source/IntegrationTests --filter 'DisplayName~IntrinsicArrayPush' --logger 'console;verbosity=normal'
+dotnet test Source/IntegrationTests --filter 'DisplayName~OutputInitialization' --logger 'console;verbosity=normal'
 ```
 
 After applying the optional project overlay and generating the project outputs,
@@ -82,4 +84,14 @@ It is a separate, manually reviewed project overlay and is never applied by
 compiler setup.
 
 The [first measured screen](results/README.md) records mixed results and its
-raw samples. The candidate remains experimental.
+raw samples. The [output initializer experiment](results/output-initializers.md)
+adds a conservative default-false code-generation hook, enabled only for
+`js-native`. It omits a pure literal default only when the first physical
+statement assigns the single output without reading it. Other shapes retain
+stock initialization. The original assignment lowering is preserved.
+
+This second round changes 27 generated declarations. Its focused Node25
+bytecode check still contains the implicit `undefined` initialization and
+shows no bytecode or frame-size reduction. Two capped screens found no
+consistent CPU/memory improvement; the current TypeScript comparison still
+misses the replacement target. The candidate remains experimental.
