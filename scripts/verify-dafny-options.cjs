@@ -7,10 +7,10 @@ const {
 } = require('node:fs');
 const { dirname, join, resolve } = require('node:path');
 const { isPinnedDafnyVersion } = require('./dafny-version.cjs');
+const { proverPathArgument, resolveZ3Path } = require('./dafny-solver.cjs');
 
 const root = resolve(dirname(__filename), '..');
 const dafny = process.env.DAFNY || process.env.LY_DAFNY || 'dafny';
-const z3 = process.env.DAFNY_Z3 || 'z3';
 const outputRoot = resolve(process.env.DAFNY_OPTIONS_PROOF_OUTPUT || join(root, 'results/dafny-options-proof'));
 const output = join(outputRoot, `run-${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}`);
 const sources = [
@@ -163,10 +163,10 @@ function parseCsv(text) {
   return rows.filter(cells => cells.length).map(cells => Object.fromEntries(headers.map((header, i) => [header, cells[i] ?? ''])));
 }
 
-function verifyArgs(logPath, pattern) {
+function verifyArgs(logPath, pattern, z3Path) {
   return [
     '/unicodeChar:0', '/compileTarget:js', '/compile:0', '/timeLimit:60',
-    `/proverOpt:PROVER_PATH=${z3}`,
+    proverPathArgument(z3Path),
     `/verificationLogger:csv;LogFileName=${logPath}`,
     `/proc:${pattern}`,
     ...sources,
@@ -248,14 +248,15 @@ function selfCheckInventoryAndPins() {
 function main() {
   assertInventory();
   selfCheckInventoryAndPins();
+  const z3Path = resolveZ3Path();
   const versionText = run(dafny, ['--version']);
   if (!isPinnedDafnyVersion(versionText.trim())) throw new Error(`Dafny 4.11.0 required, received ${versionText.trim()}`);
-  const z3Version = run(z3, ['--version']);
+  const z3Version = run(z3Path, ['--version']);
   if (!/Z3 version 4\.16\.0(?:\s|$)/m.test(z3Version)) throw new Error(`Z3 4.16.0 required, received ${z3Version.trim()}`);
   mkdirSync(output, { recursive: true });
 
   const allLog = join(output, 'policy-obligations.csv');
-  const allOutput = run(dafny, verifyArgs(allLog, '*SurfaceOptions*'));
+  const allOutput = run(dafny, verifyArgs(allLog, '*SurfaceOptions*', z3Path));
   writeFileSync(join(output, 'policy-obligations.stdout.txt'), allOutput);
   const selected = selectRows(allLog, allOutput, methods);
   if (selected.length !== 6) throw new Error(`Expected six proof obligations for five methods, found ${selected.length}`);
@@ -268,7 +269,7 @@ function main() {
     const mutatedPath = join(directory, 'Options.dfy');
     writeFileSync(mutatedPath, replaceOnce(sourceText, mutation.from, mutation.to, mutation.id));
     const logPath = join(directory, 'verification.csv');
-    const args = verifyArgs(logPath, `*${mutation.method}*`).map(arg => arg === 'src/dafny/surfaces/Options.dfy' ? mutatedPath : arg);
+    const args = verifyArgs(logPath, `*${mutation.method}*`, z3Path).map(arg => arg === 'src/dafny/surfaces/Options.dfy' ? mutatedPath : arg);
     const outputText = run(dafny, args, { expectedFailure: true });
     writeFileSync(join(directory, 'verifier.stdout.txt'), outputText);
     const rows = selectRows(logPath, outputText, [mutation.method], true);
@@ -280,11 +281,10 @@ function main() {
   const runtime = readFileSync(join(root, 'src/dafny/generated/engine.js'));
   const runtimeHeader = runtime.toString('utf8').match(/^\/\/ Sources sha256 ([0-9a-f]{64});/m);
   const compilerPath = realpathSync(dafny.includes('/') ? dafny : spawnSync('which', [dafny], { encoding: 'utf8' }).stdout.trim());
-  const solverPath = realpathSync(z3.includes('/') ? z3 : spawnSync('which', [z3], { encoding: 'utf8' }).stdout.trim());
   const report = {
     schemaVersion: 1,
     compiler: { version: versionText.trim(), executable: compilerPath, executableSha256: sha256(readFileSync(compilerPath)) },
-    solver: { version: z3Version.trim(), executable: solverPath, executableSha256: sha256(readFileSync(solverPath)) },
+    solver: { version: z3Version.trim(), executable: z3Path, executableSha256: sha256(readFileSync(z3Path)) },
     options: { target: 'js', unicodeChar: false, compile: false, verificationTimeLimitSeconds: 60, selectedProcedurePattern: '*SurfaceOptions*' },
     sources: sourceHashes,
     generatedRuntime: { path: 'src/dafny/generated/engine.js', sha256: sha256(runtime), sourceHeaderSha256: runtimeHeader?.[1] ?? null },

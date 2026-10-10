@@ -19,5 +19,6 @@ cd "$repo_root"
 "$compiler" translate js --unicode-char false --no-verify --include-runtime \
   --output "$temporary/Native.js" \
   src/dafny/core/Native.dfy src/dafny/core/TagValues.dfy src/dafny/core/Engine.dfy src/dafny/core/Serializer.dfy \
-  src/dafny/core/SurfaceValues.dfy src/dafny/surfaces/Options.dfy
+  src/dafny/core/SurfaceValues.dfy src/dafny/surfaces/Options.dfy \
+  src/dafny/surfaces/Helpers.dfy src/dafny/surfaces/Errors.dfy
 node scripts/build-dafny.cjs "$@" --input "$temporary/Native.js"

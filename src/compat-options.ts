@@ -2,20 +2,21 @@ import { SurfaceOptions } from "./dafny/generated/engine.js";
 
 /**
  * Shared options-dispatch scaffold for the `./yaml` and `./js-yaml` compat
- * shims. Each entry point validates its option bag against a small allowlist of
- * rules and throws — via the shim's own error type — on any key or value not
- * yet honoured, so an unsupported option always FAILS LOUD instead of silently
- * diverging from the real library. Later option sub-tasks register a rule for
- * their key in the shim's registry rather than rewriting the (tiny) entry-point
- * bodies, so "unsupported" always means "throws," never "silently ignored."
+ * shims. Each entry point checks own enumerable string keys in order against
+ * a small allowlist. Nullish, primitive, and array bags may be ignored by the
+ * shared validator, and a key whose value is `undefined` is skipped. Present
+ * unsupported values normally fail through the shim's own error type. The
+ * current rule-table prototype lookup has known exceptions: inherited names
+ * can produce a misleading rule error or a raw TypeError. Later option
+ * sub-tasks register their rules here rather than rewriting each entry point.
  */
 
 /**
  * A rule for one option key. Given the value present in the bag, return `null`
  * when it's accepted — a genuine no-op today (e.g. the default schema) or a
  * value the shim honours — or a short reason phrase when it must be rejected,
- * read as `option "<key>" <reason>`. A later sub-task swaps a rejecting rule
- * for one that returns `null` once the option is actually wired up.
+ * read as `option "<key>" <reason>`. A later sub-task can replace a rejecting
+ * rule when that option is wired up.
  */
 export type OptionRule = (value: unknown) => string | null;
 

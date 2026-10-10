@@ -117,7 +117,7 @@
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, acceptAny, rejectsRecognizedOption, RecognizedRule, type OptionRule } from "./compat-options.ts";
-import { SurfaceOptions } from "./dafny/generated/engine.js";
+import { SurfaceHelpers, SurfaceOptions, SurfaceErrors } from "./dafny/generated/engine.js";
 
 // ---------------------------------------------------------------------------
 // YAMLException — shaped like js-yaml's (name/reason/message + a cheap mark).
@@ -159,15 +159,28 @@ function markFrom(message: string, filename: string | undefined): Mark {
 }
 
 export class YAMLException extends Error {
-  override name = "YAMLException";
+  override name = SurfaceErrors.__default.YamlExceptionName();
   reason: string;
   mark: Mark;
 
   constructor(reason?: string, mark?: Mark) {
-    const r = reason ?? "unknown reason";
+    const reasonNullish = reason === undefined || reason === null;
+    const r = SurfaceErrors.__default.ChooseExceptionReason(
+      reason,
+      reasonNullish,
+      "unknown reason",
+    ) as string;
     super(r);
     this.reason = r;
-    this.mark = mark ?? { buffer: "", column: 0, line: 0, name: "", position: -1, snippet: "" };
+    const markNullish = mark === undefined || mark === null;
+    const freshDefault = markNullish
+      ? { buffer: "", column: 0, line: 0, name: "", position: -1, snippet: "" }
+      : undefined;
+    this.mark = SurfaceErrors.__default.ChooseExceptionMark(
+      mark,
+      markNullish,
+      freshDefault,
+    ) as Mark;
   }
 
   override toString(_compact?: boolean): string {
@@ -213,17 +226,17 @@ export interface TagDefinition {
 
 /** Stub mirroring js-yaml v5's `defineScalarTag`. Nothing reads the result yet. */
 export function defineScalarTag(tagName: string, _opts: Record<string, unknown> = {}): TagDefinition {
-  return { tagName, nodeKind: "scalar" };
+  return { tagName, nodeKind: SurfaceHelpers.__default.TagKindName(0) as TagDefinition["nodeKind"] };
 }
 
 /** Stub mirroring js-yaml v5's `defineSequenceTag`. Nothing reads the result yet. */
 export function defineSequenceTag(tagName: string, _opts: Record<string, unknown> = {}): TagDefinition {
-  return { tagName, nodeKind: "sequence" };
+  return { tagName, nodeKind: SurfaceHelpers.__default.TagKindName(1) as TagDefinition["nodeKind"] };
 }
 
 /** Stub mirroring js-yaml v5's `defineMappingTag`. Nothing reads the result yet. */
 export function defineMappingTag(tagName: string, _opts: Record<string, unknown> = {}): TagDefinition {
-  return { tagName, nodeKind: "mapping" };
+  return { tagName, nodeKind: SurfaceHelpers.__default.TagKindName(2) as TagDefinition["nodeKind"] };
 }
 
 /** Stub mirroring js-yaml v5's `Schema` (composition via `.withTags(...)`). A no-op. */
@@ -231,7 +244,7 @@ export class Schema {
   constructor(_tags?: readonly TagDefinition[]) {}
 
   withTags(..._tags: unknown[]): Schema {
-    return this;
+    return SurfaceHelpers.__default.ReturnSchemaIdentity(this) as Schema;
   }
 }
 

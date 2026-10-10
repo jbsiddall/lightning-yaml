@@ -14,9 +14,11 @@ const SOURCES = [
   'src/dafny/core/Serializer.dfy',
   'src/dafny/core/SurfaceValues.dfy',
   'src/dafny/surfaces/Options.dfy',
+  'src/dafny/surfaces/Helpers.dfy',
+  'src/dafny/surfaces/Errors.dfy',
 ];
 const OUTPUT = 'src/dafny/generated/engine.js';
-const MODULES = new Set(['TagValues', 'DafnyCore', 'Serializer', 'SurfaceOptions']);
+const MODULES = new Set(['TagValues', 'DafnyCore', 'Serializer', 'SurfaceOptions', 'SurfaceHelpers', 'SurfaceErrors']);
 const OMITTED = new Set(['_dafny', '_System', '_module', 'SurfaceValues']);
 const DAFNY_RUNTIME_SITES = {
   areEqual: {
@@ -169,7 +171,7 @@ function extract(generated, digest) {
     lowered, fs.readFileSync(path.join(ROOT, 'src/dafny/native.ts'), 'utf8'));
   const imports = shape.nativeImports.map(({ binding, alias }) => `${binding} as ${alias}`).join(', ');
   if (!imports) throw new Error('generated Dafny output has no native helper imports');
-  return `// Dafny program compiled into JavaScript by Dafny ${COMPILER_VERSION}.\n// Copyright by the contributors to the Dafny Project.\n// SPDX-License-Identifier: MIT\n// Sources sha256 ${digest}; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.\nimport { ${imports} } from '../native.ts';\n\n${shape.text}\n\nexport { DafnyCore, Serializer, SurfaceOptions };\n`;
+  return `// Dafny program compiled into JavaScript by Dafny ${COMPILER_VERSION}.\n// Copyright by the contributors to the Dafny Project.\n// SPDX-License-Identifier: MIT\n// Sources sha256 ${digest}; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.\nimport { ${imports} } from '../native.ts';\n\n${shape.text}\n\nexport { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors };\n`;
 }
 
 function main() {

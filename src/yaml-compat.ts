@@ -106,7 +106,7 @@
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, acceptAny, rejectsRecognizedOption, RecognizedRule, type OptionRule } from "./compat-options.ts";
-import { SurfaceOptions } from "./dafny/generated/engine.js";
+import { SurfaceHelpers, SurfaceOptions } from "./dafny/generated/engine.js";
 
 // ---------------------------------------------------------------------------
 // Options-dispatch rules. Unsupported options throw a `YAMLCompatError` rather
@@ -261,8 +261,8 @@ function makeDocument(contents: unknown, errors: Error[] = []): CompatDocument {
     contents,
     errors,
     warnings: [],
-    toJS: () => contents,
-    toJSON: () => contents,
+    toJS: () => SurfaceHelpers.__default.ReturnCapturedContents(contents),
+    toJSON: () => SurfaceHelpers.__default.ReturnCapturedContents(contents),
   };
 }
 

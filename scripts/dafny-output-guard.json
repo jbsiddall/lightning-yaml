@@ -16,7 +16,15 @@
         "SurfaceOptions.__default.SelectYamlStringifyOptions",
         "SurfaceOptions.__default.SelectJsYamlLoadAllOptions",
         "SurfaceOptions.__default.RejectYamlOptionsPrimitive",
-        "SurfaceOptions.__default.RejectRecognizedOption"
+        "SurfaceOptions.__default.RejectRecognizedOption",
+        "SurfaceHelpers.__default.TagKindName",
+        "SurfaceHelpers.__default.ReturnSchemaIdentity",
+        "SurfaceHelpers.__default.ReturnCapturedContents",
+        "SurfaceErrors.__default.ParseErrorName",
+        "SurfaceErrors.__default.NotImplementedErrorName",
+        "SurfaceErrors.__default.YamlExceptionName",
+        "SurfaceErrors.__default.ChooseExceptionReason",
+        "SurfaceErrors.__default.ChooseExceptionMark"
       ]
     }
   ],
@@ -28,11 +36,11 @@
   ],
   "shapeManifest": "./dafny-shape-manifest.json",
   "declarationSha256": {
-    "../src/dafny/generated/engine.d.ts": "e7e2690f5848682bca7237d347adc5ce57e655e55872cc2782d6c04d95b45a92"
+    "../src/dafny/generated/engine.d.ts": "a09e8b71e98fb3f43f5c0ea9ab75f6677aa11900e096cd13cab79c8054321bcd"
   },
   "sourceSha256": {
     "../src/dafny/native.ts": "38b6fbc407a1224b0727972ced9dc89bfce9deebec49dbf5da25c1eb101d6b38",
-    "./dafny-shape-manifest.json": "56f62bc5b31b486ae961c2343e0c088d2cffb5f10f85a13786978e35ff079d52"
+    "./dafny-shape-manifest.json": "a514f00140711810fcda15b2d500fb120c87fc00af6d613e035b6283f06343bc"
   },
   "allowedCalls": [
     "(_this.src)[0].charCodeAt",

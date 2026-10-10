@@ -64,6 +64,19 @@ lookup, thrown-value identity, complete validation order, parser/writer
 meaning, and public-operation completion remain outside the selected proofs.
 The manifest therefore reports no fully verified public operations.
 
+`SurfaceHelpers` and `SurfaceErrors` add eight directly routed helper methods.
+A selected local verification run reported 9 verification obligations passed
+with no errors. These are helpers rather than complete public operations:
+`TagKindName` chooses a node-kind string, `ReturnSchemaIdentity` and
+`ReturnCapturedContents` forward their argument, the three name methods choose
+constant strings, and the two exception methods choose between the supplied
+value and fallback using a supplied strict-nullish flag. The last two results
+match `??` only when that flag is the correct JavaScript observation. The
+generated route tests demonstrate that the public factories, closures, and
+constructors call the methods; they do not prove Error allocation/prototypes,
+fresh marks, object descriptors, or the surrounding TypeScript behavior. See
+`Helpers-Errors.audit.md` for the exact scope.
+
 The six conditional scanner method proofs require `len as int == |src|` and their stated cursor or span bounds. `IsDocMarkerAt` also requires conditional arithmetic slack when its input index equals `lineStart`; no selected caller proof establishes that `lineStart` is the actual beginning of a source line. No caller has been proved to establish these preconditions. Native host bindings, the remaining parser and serializer methods, other scanner methods, and the backend/output postpass remain trusted or unproved. These selected tranches prove neither complete parsing nor full YAML semantic equivalence. Dafny generation still uses `--no-verify` for the full source tree, and CPU and memory performance acceptance remains separate.
 
 Generated JavaScript carries the Dafny Project copyright and MIT SPDX notice. The accompanying `Dafny-LICENSE.txt` is included in the npm package.

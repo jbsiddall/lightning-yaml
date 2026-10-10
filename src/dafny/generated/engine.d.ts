@@ -29,3 +29,21 @@ export const SurfaceOptions: {
     RejectRecognizedOption(code: number, undefinedValue: boolean, truthyValue: boolean, coreSchemaIdentity: boolean, exactlyTrue: boolean, coreText: boolean, version12Text: boolean): boolean;
   };
 };
+
+export const SurfaceHelpers: {
+  __default: {
+    TagKindName(kind: number): string;
+    ReturnSchemaIdentity(receiver: unknown): unknown;
+    ReturnCapturedContents(captured: unknown): unknown;
+  };
+};
+
+export const SurfaceErrors: {
+  __default: {
+    ParseErrorName(): string;
+    NotImplementedErrorName(): string;
+    YamlExceptionName(): string;
+    ChooseExceptionReason(reason: unknown, nullish: boolean, fallback: unknown): unknown;
+    ChooseExceptionMark(mark: unknown, nullish: boolean, freshDefault: unknown): unknown;
+  };
+};

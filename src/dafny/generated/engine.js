@@ -1,7 +1,7 @@
 // Dafny program compiled into JavaScript by Dafny 4.11.0.
 // Copyright by the contributors to the Dafny Project.
 // SPDX-License-Identifier: MIT
-// Sources sha256 a72200e813c70e285016478697c3963c647d7167c080381635daf24ab5fec0f0; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
+// Sources sha256 2750695e8fe7770e0290c27aea47ce39334ba597f882046fba33450ab82f46bb; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
 import { native_$$_toString as n0, nativeArrayGet as n1, nativeArrayLength as n2, nativeArrayPush as n3, nativeByteGet as n4, nativeByteLength as n5, nativeByteSet as n6, nativeCodeUnitAt as n7, nativeConcat as n8, nativeCreateArray as n9, nativeCreateObject as n10, nativeCreateUint8Array as n11, nativeEmptyMap as n12, nativeEuclideanDivisionNumber as n13, nativeEuclideanModuloNumber as n14, nativeFail as n15, nativeFormatNumber as n16, nativeIndexOf as n17, nativeIsMap as n18, nativeIsSet as n19, nativeIsUint8Array as n20, nativeJoin as n21, nativeJsEqual as n22, nativeJsonQuote as n23, nativeMapCreate as n24, nativeMapGet as n25, nativeMapKeys as n26, nativeMapSet as n27, nativeMapSize as n28, nativeNoDocumentValue as n29, nativeNotNumericValue as n30, nativeNullValue as n31, nativeNumberAdd as n32, nativeNumberIsNaN as n33, nativeNumberIsNegativeInfinity as n34, nativeNumberIsNegativeZero as n35, nativeNumberIsPositiveInfinity as n36, nativeNumberLessEqual as n37, nativeNumberMulAdd as n38, nativeObjectKeys as n39, nativeObjectSetSafe as n40, nativeParseNumber as n41, nativeParseSpecialNumber as n42, nativeRepeat as n43, nativeSameValue as n44, nativeSetCreate as n45, nativeSetValues as n46, nativeSlice as n47, nativeStringFallback as n48, nativeStringFromCharCode as n49, nativeStringFromCodePoint as n50, nativeUndefinedValue as n51 } from '../native.ts';
 
 let TagValues = (function () {
@@ -7324,6 +7324,80 @@ let SurfaceOptions = (function () {
     };
     return $module;
 })();
+let SurfaceHelpers = (function () {
+    let $module = {};
+    $module.__default = class __default {
+        constructor() {
+        }
+        static TagKindName(kind) {
+            let name = "";
+            if ((kind) === (0)) {
+                name = "scalar";
+            }
+            else if ((kind) === (1)) {
+                name = "sequence";
+            }
+            else {
+                name = "mapping";
+            }
+            return name;
+        }
+        static ReturnSchemaIdentity(receiver) {
+            let result = undefined;
+            result = receiver;
+            return result;
+        }
+        static ReturnCapturedContents(captured) {
+            let result = undefined;
+            result = captured;
+            return result;
+        }
+    };
+    return $module;
+})();
+let SurfaceErrors = (function () {
+    let $module = {};
+    $module.__default = class __default {
+        constructor() {
+        }
+        static ParseErrorName() {
+            let name = "";
+            name = "YAMLParseError";
+            return name;
+        }
+        static NotImplementedErrorName() {
+            let name = "";
+            name = "NotImplementedError";
+            return name;
+        }
+        static YamlExceptionName() {
+            let name = "";
+            name = "YAMLException";
+            return name;
+        }
+        static ChooseExceptionReason(reason, nullish, fallback) {
+            let chosen = undefined;
+            if (nullish) {
+                chosen = fallback;
+            }
+            else {
+                chosen = reason;
+            }
+            return chosen;
+        }
+        static ChooseExceptionMark(mark, nullish, freshDefault) {
+            let chosen = undefined;
+            if (nullish) {
+                chosen = freshDefault;
+            }
+            else {
+                chosen = mark;
+            }
+            return chosen;
+        }
+    };
+    return $module;
+})();
 
 
-export { DafnyCore, Serializer, SurfaceOptions };
+export { DafnyCore, Serializer, SurfaceOptions, SurfaceHelpers, SurfaceErrors };

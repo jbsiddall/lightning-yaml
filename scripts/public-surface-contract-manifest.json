@@ -3393,5 +3393,23 @@
     "scope": "Conditional proofs apply only to selector/recognized-option policy under the declared classifier equalities. Host JavaScript observations, getters/proxies, error completion identity, full validation behavior, and parser/writer semantics are outside this proof scope.",
     "verificationReport": "results/dafny-options-proof/*/coverage.json",
     "mutationCount": 10
+  },
+  "surfaceHelperProofCoverage": {
+    "status": "conditional-helper-selection-only",
+    "methodCount": 8,
+    "obligationCount": 9,
+    "methods": [
+      "SurfaceHelpers.TagKindName",
+      "SurfaceHelpers.ReturnSchemaIdentity",
+      "SurfaceHelpers.ReturnCapturedContents",
+      "SurfaceErrors.ParseErrorName",
+      "SurfaceErrors.NotImplementedErrorName",
+      "SurfaceErrors.YamlExceptionName",
+      "SurfaceErrors.ChooseExceptionReason",
+      "SurfaceErrors.ChooseExceptionMark"
+    ],
+    "scope": "Local bodies prove only the returned tag-kind spelling, raw identity forwarding, names, and selection from an explicit nullish flag. The exception defaults are conditional on the caller supplying the exact strict-nullish classification. Public route sentinels show these named generated methods are called; no class allocation, Error conversion/prototype, tag or document descriptors, mark freshness, constructor control flow, host classification, or complete public operation is proved.",
+    "verificationCommand": "Dafny 4.11.0 /unicodeChar:0 /compileTarget:js /compile:0 with /proc:*SurfaceHelpers* and /proc:*SurfaceErrors*",
+    "artifact": "src/dafny/Helpers-Errors.audit.md"
   }
 }
