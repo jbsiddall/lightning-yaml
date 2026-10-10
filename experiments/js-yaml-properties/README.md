@@ -47,48 +47,48 @@ performed by the audit; its saved descriptors replay the original failures.
 
 ## What is exercised
 
-| Surface | Exercised | Limits |
-| --- | --- | --- |
-| `load` | Valid/invalid syntax, schema typing, aliases/cycles, duplicate keys, diagnostics | Bounded generators and fixed corpus |
-| `loadAll` | Array return, null + third options, iterator, iterator throws, second-object precedence | Fixed signature witnesses; arbitrary callback behavior unbounded |
-| `dump` | Exact bytes and reference-decoded graph semantics, schema/formatting options, typed values, sharing/cycles | Cyclic `noRefs` combinations and nonterminating callbacks are not scheduled |
-| Values | null, undefined, boolean, number incl NaN/infinities/−0, string, arrays/holes, ordinary/null-prototype objects, Date, binary views/buffers, Map, Set, RegExp | Random values use bounded JSON-like containers; other brands are fixed sentinels/model regressions |
-| Reference topology | Distinct vs shared objects, DAGs, cycles and shared backing buffers | Own enumerable data properties; accessors, symbol keys and opaque/subclassed objects are rejected by graph encoding |
-| Schemas/tags | Four built-in schemas, omitted schema, one custom scalar tag | Custom sequence/mapping tags, tag prefixes and arbitrary schema callbacks remain untested |
-| Legacy v4 options | Separate ignored-option probes for listener, onWarning, styles, replacer | Not counted as v5 supported option names |
+| Surface            | Exercised                                                                                                                                                    | Limits                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `load`             | Valid/invalid syntax, schema typing, aliases/cycles, duplicate keys, diagnostics                                                                             | Bounded generators and fixed corpus                                                                                 |
+| `loadAll`          | Array return, null + third options, iterator, iterator throws, second-object precedence                                                                      | Fixed signature witnesses; arbitrary callback behavior unbounded                                                    |
+| `dump`             | Exact bytes and reference-decoded graph semantics, schema/formatting options, typed values, sharing/cycles                                                   | Cyclic `noRefs` combinations and nonterminating callbacks are not scheduled                                         |
+| Values             | null, undefined, boolean, number incl NaN/infinities/−0, string, arrays/holes, ordinary/null-prototype objects, Date, binary views/buffers, Map, Set, RegExp | Random values use bounded JSON-like containers; other brands are fixed sentinels/model regressions                  |
+| Reference topology | Distinct vs shared objects, DAGs, cycles and shared backing buffers                                                                                          | Own enumerable data properties; accessors, symbol keys and opaque/subclassed objects are rejected by graph encoding |
+| Schemas/tags       | Four built-in schemas, omitted schema, one custom scalar tag                                                                                                 | Custom sequence/mapping tags, tag prefixes and arbitrary schema callbacks remain untested                           |
+| Legacy v4 options  | Separate ignored-option probes for listener, onWarning, styles, replacer                                                                                     | Not counted as v5 supported option names                                                                            |
 
 Every declared v5 option below has a scheduled witness. Compile-time inventory
 checks fail on missing or extra fields in the pinned reference declarations.
 This is **option-name coverage**, not proof that all behavior of an option is covered.
 
-| Parse option | Witness family |
-| --- | --- |
-| filename | Empty/ordinary/Unicode names, syntax-error diagnostics |
-| schema | Omitted, built-in schemas and custom scalar |
-| json | Explicit undefined/false/true, duplicate mapping keys |
-| maxDepth | Negative/zero/ordinary values and nested collections |
-| maxAliases | Negative/zero/ordinary values and repeated aliases |
-| maxTotalMergeKeys | Negative/zero/ordinary values and merge syntax |
+| Parse option      | Witness family                                         |
+| ----------------- | ------------------------------------------------------ |
+| filename          | Empty/ordinary/Unicode names, syntax-error diagnostics |
+| schema            | Omitted, built-in schemas and custom scalar            |
+| json              | Explicit undefined/false/true, duplicate mapping keys  |
+| maxDepth          | Negative/zero/ordinary values and nested collections   |
+| maxAliases        | Negative/zero/ordinary values and repeated aliases     |
+| maxTotalMergeKeys | Negative/zero/ordinary values and merge syntax         |
 
-| Dump option | Witness family |
-| --- | --- |
-| schema | Omitted, built-in schemas and custom scalar |
-| indent | Undefined/negative/zero/ordinary widths and nested collections |
-| seqNoIndent | Undefined/false/true and finite boolean matrix |
-| seqInlineFirst | Undefined/false/true and finite boolean matrix |
-| sortKeys | Undefined/false/true, ascending/descending comparators |
-| lineWidth | Undefined/negative/zero/ordinary widths and a long scalar |
-| flowBracketPadding | Undefined/false/true and finite boolean matrix |
-| flowSkipCommaSpace | Undefined/false/true and finite boolean matrix |
-| flowSkipColonSpace | Undefined/false/true and finite boolean matrix |
-| quoteFlowKeys | Undefined/false/true and finite boolean matrix |
-| quoteStyle | Undefined/single/double and finite boolean matrix |
-| forceQuotes | Undefined/false/true and finite boolean matrix |
-| tagBeforeAnchor | Undefined/false/true and finite boolean matrix |
-| skipInvalid | Undefined/false/true, functions/symbols/undefined in a mapping |
-| noRefs | Undefined/false/true, shared DAG |
-| flowLevel | Undefined/negative/zero/ordinary values and nested collections |
-| transform | Identity, contents mutation and controlled exception |
+| Dump option        | Witness family                                                 |
+| ------------------ | -------------------------------------------------------------- |
+| schema             | Omitted, built-in schemas and custom scalar                    |
+| indent             | Undefined/negative/zero/ordinary widths and nested collections |
+| seqNoIndent        | Undefined/false/true and finite boolean matrix                 |
+| seqInlineFirst     | Undefined/false/true and finite boolean matrix                 |
+| sortKeys           | Undefined/false/true, ascending/descending comparators         |
+| lineWidth          | Undefined/negative/zero/ordinary widths and a long scalar      |
+| flowBracketPadding | Undefined/false/true and finite boolean matrix                 |
+| flowSkipCommaSpace | Undefined/false/true and finite boolean matrix                 |
+| flowSkipColonSpace | Undefined/false/true and finite boolean matrix                 |
+| quoteFlowKeys      | Undefined/false/true and finite boolean matrix                 |
+| quoteStyle         | Undefined/single/double and finite boolean matrix              |
+| forceQuotes        | Undefined/false/true and finite boolean matrix                 |
+| tagBeforeAnchor    | Undefined/false/true and finite boolean matrix                 |
+| skipInvalid        | Undefined/false/true, functions/symbols/undefined in a mapping |
+| noRefs             | Undefined/false/true, shared DAG                               |
+| flowLevel          | Undefined/negative/zero/ordinary values and nested collections |
+| transform          | Identity, contents mutation and controlled exception           |
 
 ## Interpret the reports
 
@@ -147,3 +147,8 @@ The workflow uploads all reports as `js-yaml-properties-and-coverage`, including
 reports produced before a failing step. Line/branch coverage measures executed
 production code. The compatibility audit measures sampled observable behavior.
 They are independent measurements.
+
+## Recorded run
+
+[Measured results for 2026-10-11](reports/2026-10-11/README.md) include the initial
+coverage percentages and the separate corpus, generated-input and option-matrix gaps.
