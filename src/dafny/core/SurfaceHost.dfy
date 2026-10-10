@@ -62,11 +62,30 @@ module SurfaceHost {
       ensures world.Bound(CompletionValue(completion),observation.outcome.value)
       ensures observation.outcome.Thrown? == CompletionIsThrown(completion)
       ensures observation.outcome.value in world.values
+      ensures !CompletionIsThrown(completion) ==>
+        world.values[observation.outcome.value].StringValue?
+      ensures !CompletionIsThrown(completion) ==>
+        Native.StringValueOf(CompletionValue(completion)) ==
+          world.values[observation.outcome.value].text
       ensures engine.tagHelpers == old(engine.tagHelpers)
       ensures world.contextOwner == old(world.contextOwner)
       ensures world.ContextProfile(engine,helpers,writer)
       modifies world, engine, helpers, writer
-  function {:extern "surfaceReturnedString"} ReturnedString(value: string): Value
+  method {:extern "surfaceReturnedString"} {:axiom} ReturnedString(
+      text: string, ghost world: W.World)
+      returns (completion: Value, ghost outputHandle: M.Handle)
+      requires world.Valid()
+      ensures world.Valid()
+      ensures !CompletionIsThrown(completion)
+      ensures world.Bound(CompletionValue(completion),outputHandle)
+      ensures outputHandle in world.values
+      ensures world.values[outputHandle] == M.StringValue(text)
+      ensures Native.StringValueOf(CompletionValue(completion)) == text
+      ensures world.heap == old(world.heap)
+      ensures world.contextOwner == old(world.contextOwner)
+      ensures W.PreservesValues(world,old(world.values))
+      ensures (forall binding | binding in old(world.bindings) :: binding in world.bindings)
+      modifies world
   method {:extern "surfaceMultiplyBy1024"} {:axiom} MultiplyBy1024(value: Value,
       engine: Engine, helpers: Helpers, writer: Writer,
       ghost world: W.World, ghost rawHandle: M.Handle, ghost useDefault: bool)

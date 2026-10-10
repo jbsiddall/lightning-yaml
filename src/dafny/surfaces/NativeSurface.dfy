@@ -6,6 +6,7 @@ module NativeSurface {
   import opened TagValues
   import M = SurfaceModel
   import NC = NativeContracts
+  import NE = NativeErrorTextContracts
   import NT = NativeTraceLemmas
   import F = NativePrefixComposition
   import P = NativeParseTransport
@@ -634,10 +635,19 @@ module NativeSurface {
 
     method ExceptionToString(receiver: Value, ghost world: W.World,
         ghost receiverHandle: M.Handle)
-      returns (completion: Value, ghost events: seq<M.Event>)
+      returns (completion: Value, ghost events: seq<M.Event>,
+        ghost modeledOutcome: M.Outcome)
       requires world.Valid() && world.Bound(receiver,receiverHandle)
       requires world.contextOwner == this
       requires world.ContextProfile(engine,engine.tagHelpers,writer)
+      ensures NE.ExceptionToString(world.values,receiverHandle,events,modeledOutcome)
+      ensures world.Valid()
+      ensures world.Bound(SurfaceHost.CompletionValue(completion),modeledOutcome.value)
+      ensures modeledOutcome.Thrown? == SurfaceHost.CompletionIsThrown(completion)
+      ensures |events| > 0 && events[0].before == old(world.heap)
+      ensures events[|events|-1].after == world.heap
+      ensures W.PreservesValues(world,old(world.values))
+      ensures (forall binding | binding in old(world.bindings) :: binding in world.bindings)
       ensures world.contextOwner == old(world.contextOwner)
       ensures world.ContextProfile(engine,engine.tagHelpers,writer)
       modifies world, engine, engine.tagHelpers, writer
@@ -646,35 +656,62 @@ module NativeSurface {
       var nameRead, nameReadEvent := SurfaceHost.ReadProperty(receiver, "name",
         engine, engine.tagHelpers, writer,world,receiverHandle);
       events := events + [nameReadEvent];
-      if SurfaceHost.CompletionIsThrown(nameRead) { completion := nameRead; return; }
+      if SurfaceHost.CompletionIsThrown(nameRead) {
+        completion := nameRead;
+        modeledOutcome := nameReadEvent.outcome;
+        return;
+      }
       var nameText, nameTextEvent := SurfaceHost.TemplateString(
         SurfaceHost.CompletionValue(nameRead), engine, engine.tagHelpers, writer,
         world,nameReadEvent.outcome.value);
       events := events + [nameTextEvent];
-      if SurfaceHost.CompletionIsThrown(nameText) { completion := nameText; return; }
+      if SurfaceHost.CompletionIsThrown(nameText) {
+        completion := nameText;
+        modeledOutcome := nameTextEvent.outcome;
+        return;
+      }
 
       var messageRead, messageReadEvent := SurfaceHost.ReadProperty(receiver, "message",
         engine, engine.tagHelpers, writer,world,receiverHandle);
       events := events + [messageReadEvent];
-      if SurfaceHost.CompletionIsThrown(messageRead) { completion := messageRead; return; }
+      if SurfaceHost.CompletionIsThrown(messageRead) {
+        completion := messageRead;
+        modeledOutcome := messageReadEvent.outcome;
+        return;
+      }
       var messageText, messageTextEvent := SurfaceHost.TemplateString(
         SurfaceHost.CompletionValue(messageRead), engine, engine.tagHelpers, writer,
         world,messageReadEvent.outcome.value);
       events := events + [messageTextEvent];
-      if SurfaceHost.CompletionIsThrown(messageText) { completion := messageText; return; }
+      if SurfaceHost.CompletionIsThrown(messageText) {
+        completion := messageText;
+        modeledOutcome := messageTextEvent.outcome;
+        return;
+      }
 
-      completion := SurfaceHost.ReturnedString(
+      ghost var outputHandle: M.Handle;
+      completion, outputHandle := SurfaceHost.ReturnedString(
         Native.Concat(
           Native.Concat(Native.StringValueOf(SurfaceHost.CompletionValue(nameText)), ": "),
-          Native.StringValueOf(SurfaceHost.CompletionValue(messageText))));
+          Native.StringValueOf(SurfaceHost.CompletionValue(messageText))),world);
+      modeledOutcome := M.Returned(outputHandle);
     }
 
     method NotImplementedMessage(functionName: Value, ghost world: W.World,
         ghost functionNameHandle: M.Handle)
-      returns (completion: Value, ghost events: seq<M.Event>)
+      returns (completion: Value, ghost events: seq<M.Event>,
+        ghost modeledOutcome: M.Outcome)
       requires world.Valid() && world.Bound(functionName,functionNameHandle)
       requires world.contextOwner == this
       requires world.ContextProfile(engine,engine.tagHelpers,writer)
+      ensures NE.NotImplementedMessage(world.values,functionNameHandle,events,modeledOutcome)
+      ensures world.Valid()
+      ensures world.Bound(SurfaceHost.CompletionValue(completion),modeledOutcome.value)
+      ensures modeledOutcome.Thrown? == SurfaceHost.CompletionIsThrown(completion)
+      ensures |events| > 0 && events[0].before == old(world.heap)
+      ensures events[|events|-1].after == world.heap
+      ensures W.PreservesValues(world,old(world.values))
+      ensures (forall binding | binding in old(world.bindings) :: binding in world.bindings)
       ensures world.contextOwner == old(world.contextOwner)
       ensures world.ContextProfile(engine,engine.tagHelpers,writer)
       modifies world, engine, engine.tagHelpers, writer
@@ -682,12 +719,18 @@ module NativeSurface {
       var converted, conversionEvent := SurfaceHost.TemplateString(functionName,
         engine, engine.tagHelpers, writer,world,functionNameHandle);
       events := [conversionEvent];
-      if SurfaceHost.CompletionIsThrown(converted) { completion := converted; return; }
+      if SurfaceHost.CompletionIsThrown(converted) {
+        completion := converted;
+        modeledOutcome := conversionEvent.outcome;
+        return;
+      }
       var nameText := Native.StringValueOf(SurfaceHost.CompletionValue(converted));
-      completion := SurfaceHost.ReturnedString(
+      ghost var outputHandle: M.Handle;
+      completion, outputHandle := SurfaceHost.ReturnedString(
         Native.Concat(
           Native.Concat("lightning-yaml ", nameText),
-          "() is not implemented yet — this is the stub the benchmark + test harness is built against. See src/index.ts."));
+          "() is not implemented yet — this is the stub the benchmark + test harness is built against. See src/index.ts."),world);
+      modeledOutcome := M.Returned(outputHandle);
     }
   }
 }

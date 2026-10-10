@@ -1,7 +1,7 @@
 // Dafny program compiled into JavaScript by Dafny 4.11.0.
 // Copyright by the contributors to the Dafny Project.
 // SPDX-License-Identifier: MIT
-// Sources sha256 dbb326adee2f620b6a343c645b49cf087ad9a54f2b1219944fe7779e5efbff52; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
+// Sources sha256 8d7622036257e705fbcb913804289105c7ca2e8cc94b01ae6c8cbe3930dcf464; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
 import { native_$$_toString as n0, nativeArrayGet as n1, nativeArrayLength as n2, nativeArrayPush as n3, nativeByteGet as n4, nativeByteLength as n5, nativeByteSet as n6, nativeCodeUnitAt as n7, nativeConcat as n8, nativeCreateArray as n9, nativeCreateObject as n10, nativeCreateUint8Array as n11, nativeEmptyMap as n12, nativeEuclideanDivisionNumber as n13, nativeEuclideanModuloNumber as n14, nativeFail as n15, nativeFormatNumber as n16, nativeIndexOf as n17, nativeIsMap as n18, nativeIsSet as n19, nativeIsUint8Array as n20, nativeJoin as n21, nativeJsEqual as n22, nativeJsonQuote as n23, nativeMapCreate as n24, nativeMapGet as n25, nativeMapKeys as n26, nativeMapSet as n27, nativeMapSize as n28, nativeNoDocumentValue as n29, nativeNotNumericValue as n30, nativeNullValue as n31, nativeNumberAdd as n32, nativeNumberIsNaN as n33, nativeNumberIsNegativeInfinity as n34, nativeNumberIsNegativeZero as n35, nativeNumberIsPositiveInfinity as n36, nativeNumberLessEqual as n37, nativeNumberMulAdd as n38, nativeObjectKeys as n39, nativeObjectSetSafe as n40, nativeParseNumber as n41, nativeParseSpecialNumber as n42, nativeRepeat as n43, nativeSameValue as n44, nativeSetCreate as n45, nativeSetValues as n46, nativeSlice as n47, nativeStringFallback as n48, nativeStringFromCharCode as n49, nativeStringFromCodePoint as n50, nativeUndefinedValue as n51, nativeSurfaceCaptureEndStream as n52, nativeSurfaceCaptureIsArray as n53, nativeSurfaceCaptureNormalizationRecord as n54, nativeSurfaceCaptureParseAll as n55, nativeSurfaceCaptureParseSingle as n56, nativeSurfaceCaptureReset as n57, nativeSurfaceCaptureTypeError as n58, nativeSurfaceCaptureWriterStringify as n59, nativeSurfaceCompletionIsThrown as n60, nativeSurfaceCompletionValue as n61, nativeSurfaceIsExactlyTrue as n62, nativeSurfaceIsNullish as n63, nativeSurfaceIsString as n64, nativeSurfaceIsTruthy as n65, nativeSurfaceMultiplyBy1024 as n66, nativeSurfaceNormalizationBudget as n67, nativeSurfaceNormalizationIntern as n68, nativeSurfaceNormalizationStrict as n69, nativeSurfaceReadProperty as n70, nativeSurfaceReturnedString as n71, nativeSurfaceTemplateString as n72 } from '../native.ts';
 
 let TagValues = (function () {
@@ -7646,7 +7646,9 @@ let NativeSurface = (function () {
                 completion = _3_messageText;
                 return completion;
             }
-            completion = n71(n8(n8(n61(_1_nameText), ": "), n61(_3_messageText)));
+            let _out4;
+            completion =
+                n71(n8(n8(n61(_1_nameText), ": "), n61(_3_messageText)));
             return completion;
         }
         NotImplementedMessage(functionName) {
@@ -7661,7 +7663,9 @@ let NativeSurface = (function () {
             }
             let _1_nameText;
             _1_nameText = n61(_0_converted);
-            completion = n71(n8("lightning-yaml " + _1_nameText, "() is not implemented yet — this is the stub the benchmark + test harness is built against. See src/index.ts."));
+            let _out1;
+            completion =
+                n71(n8("lightning-yaml " + _1_nameText, "() is not implemented yet — this is the stub the benchmark + test harness is built against. See src/index.ts."));
             return completion;
         }
     };

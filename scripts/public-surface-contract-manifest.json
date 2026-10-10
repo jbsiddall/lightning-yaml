@@ -3218,12 +3218,12 @@
     "behavioralSpecification": "Partial consumer-facing current-behavior summary. No row claims that all call traces, postconditions, failure branches, or host effects are fully specified.",
     "unresolvedFormalContracts": [
       "No complete surface-wide Dafny request/completion relation connects every public TypeScript entry, overload, constructor, default alias, and package build to its result, failure, and effects.",
-      "No finite JavaScript heap model captures all descriptors, prototypes, accessors, proxies, realms, functions, reentrancy, and callback heap edits.",
+      "The current heap model does not yet capture all descriptors, prototypes, accessors, proxies, realms, functions, reentrancy, and callback heap edits.",
       "No complete per-entry validation trace captures Object.keys snapshots, property/getter/proxy completions, inherited rule lookup, failure identity, and cleanup.",
       "No independent complete YAML syntax witness, scalar conversion, tags, document/alias graph construction, parser errors, numeric conversion, and cache behavior relation is proved.",
       "No complete exact-text writer relation is proved for all values, code units, host coercions, mutable getters, cyclic/shared graphs, failures, or residual writer state.",
       "No method-level property/frame proof covers all mutable document/error/helper objects, identity and descriptors, default-object mutation, or every ESM/CJS/CDN realm.",
-      "No atomic JavaScript classification/throw ABI correspondence is verified against Dafny descriptors; current option policy methods, if later proved, are conditional on those host observations.",
+      "No atomic JavaScript classification/throw ABI correspondence is verified against Dafny descriptors; the proved option policy bodies are conditional on supplied host observations, while JavaScript classification and throw refinement remain open.",
       "Existing local scanner proofs do not prove any caller precondition, public adapter route, whole parser, whole writer, or YAML correctness."
     ],
     "verifiedPublicOperations": []

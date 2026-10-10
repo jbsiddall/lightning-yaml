@@ -42,6 +42,7 @@ const sourcePaths = [
   'src/dafny/core/NativePrefixComposition.dfy',
   'src/dafny/core/NativeParseComposition.dfy',
   'src/dafny/core/NativeParseTransport.dfy',
+  'src/dafny/core/NativeErrorTextContracts.dfy',
   'src/dafny/surfaces/NativeSurface.dfy',
 ];
 const selected = [
@@ -66,6 +67,7 @@ const selected = [
   'NativeParseTransport.ArrayGuardExtension',
   'NativeParseTransport.AfterNormalizationExtension',
   'NativeTraceLemmas.ValuesExtendTransitive',
+  'NativeTraceLemmas.ValuesExtend',
   'NativeTraceLemmas.BindingsExtendTransitive',
   'NativeTraceLemmas.BoundTransport',
   'NativeTraceLemmas.TraceValuesExtension',
@@ -74,6 +76,8 @@ const selected = [
   'NativeTraceLemmas.TraceLinkedConcat',
   'NativeTraceLemmas.NormalizeAtExtension',
   'NativeTraceLemmas.NormalizationTraceExtension',
+  'NativeErrorTextContracts.NotImplementedMessage',
+  'NativeErrorTextContracts.ExceptionToString',
   'NativePhaseIntro.PrependFirstOptimizationsRead',
   'NativePhaseIntro.PrependInternStringsRead',
   'NativePhaseIntro.PrependStrictRead',
@@ -91,7 +95,43 @@ const filters = [
   '*NativeParseTransport.*',
   '*NativeTraceLemmas.*',
   '*NativePhaseIntro.*',
+  '*NativeErrorTextContracts.NotImplementedMessage*',
+  '*NativeErrorTextContracts.ExceptionToString*',
 ];
+const expectedKinds = {
+  'NativeSurface.Adapter._ctor': ['correctness'],
+  'NativeSurface.Adapter.NormalizeParseOptions': ['correctness', 'well-formedness'],
+  'NativeSurface.Adapter.SelectCompletionAfterCleanup': ['correctness'],
+  'NativeSurface.Adapter.Parse': ['correctness', 'well-formedness'],
+  'NativeSurface.Adapter.ParseAll': ['correctness', 'well-formedness'],
+  'NativeSurface.Adapter.ParseCompletion': ['correctness', 'well-formedness'],
+  'NativeSurface.Adapter.Stringify': ['correctness', 'well-formedness'],
+  'NativeSurface.Adapter.ExceptionToString': ['correctness', 'well-formedness'],
+  'NativeSurface.Adapter.NotImplementedMessage': ['correctness', 'well-formedness'],
+  'NativePrefixComposition.Complete': ['correctness', 'well-formedness'],
+  'NativeParseComposition.ArrayHead': ['correctness', 'well-formedness'],
+  'NativeParseComposition.NormalizeFailed': ['correctness', 'well-formedness'],
+  'NativeParseComposition.ResetFailed': ['correctness', 'well-formedness'],
+  'NativeParseComposition.SingleParsed': ['correctness', 'well-formedness'],
+  'NativeParseComposition.AllParsed': ['correctness', 'well-formedness'],
+  'NativeParseComposition.Finish': ['correctness'],
+  'NativeParseComposition.ArraySkip': ['correctness'],
+  'NativeParseComposition.Cleanup': ['correctness'],
+  'NativeParseTransport.ArrayGuardExtension': ['correctness'],
+  'NativeParseTransport.AfterNormalizationExtension': ['correctness'],
+  'NativeTraceLemmas.NormalizeAtExtension': ['correctness', 'well-formedness'],
+  'NativeTraceLemmas.NormalizationTraceExtension': ['correctness'],
+  'NativeTraceLemmas.TraceValuesExtension': ['correctness'],
+  'NativeTraceLemmas.ValuesExtendTransitive': ['correctness'],
+  'NativeTraceLemmas.ValuesExtend': ['well-formedness'],
+  'NativeTraceLemmas.TraceAppend': ['correctness', 'well-formedness'],
+  'NativeTraceLemmas.TraceValuesConcat': ['correctness'],
+  'NativeTraceLemmas.TraceLinkedConcat': ['correctness', 'well-formedness'],
+  'NativeTraceLemmas.BoundTransport': ['correctness', 'well-formedness'],
+  'NativeTraceLemmas.BindingsExtendTransitive': ['correctness'],
+  'NativeErrorTextContracts.NotImplementedMessage': ['well-formedness'],
+  'NativeErrorTextContracts.ExceptionToString': ['well-formedness'],
+};
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -185,7 +225,16 @@ function checkResults(rows, selectedNames) {
   for (const name of selectedNames) {
     const found = matching.filter(item => item.symbol.endsWith(name));
     if (found.length === 0) throw new Error(`Selected Native proof symbol had no verifier result: ${name}`);
-    if (!found.some(item => item.kind === 'correctness')) throw new Error(`Selected Native proof symbol had no correctness result: ${name}`);
+    const requiredKinds = expectedKinds[name];
+    const observedKinds = [...new Set(found.map(item => item.kind))].sort();
+    if (requiredKinds) {
+      if (JSON.stringify(observedKinds) !== JSON.stringify([...requiredKinds].sort())) {
+        throw new Error(`${name}: expected verification kinds ${requiredKinds.join(',')}, observed ${observedKinds.join(',')}`);
+      }
+    } else if (!observedKinds.includes('correctness') ||
+        observedKinds.some(kind => !['correctness', 'well-formedness'].includes(kind))) {
+      throw new Error(`${name}: expected correctness and any observed well-formedness rows, observed ${observedKinds.join(',')}`);
+    }
     const ids = found.map(item => `${item.kind}:${item.batch ?? 'single'}`);
     if (new Set(ids).size !== ids.length) throw new Error(`Duplicate Native assertion batch for ${name}`);
   }
@@ -262,12 +311,14 @@ try {
       { path: 'src/dafny/core/NativeContracts.dfy', status: 'ghost predicates are specification dependencies; selected bodies prove the routed event composition against these definitions' },
       { path: 'src/dafny/core/NativeContracts.dfy', status: 'specification dependency; trusted/conditional host observations are not implementation proofs here' },
       { path: 'src/dafny/core/SurfaceHost.dfy', status: 'host-open atomic observation bindings and completion projections; no standalone implementation proof is claimed' },
+      { path: 'src/dafny/core/NativeErrorTextContracts.dfy', status: 'error-text trace predicates; string concatenation correspondence is the separately trusted Native.Concat law' },
       { path: 'src/dafny/core/SurfaceModel.dfy', status: 'ghost model definitions; full YAML relation remains open' },
       { path: 'src/dafny/core/SurfaceWitness.dfy', status: 'protected-context capability is host-open; authenticity is not established by this proof' },
       { path: 'src/dafny/core/FacadeContracts.dfy', status: 'model contract dependencies; not complete public-operation guarantees' },
     ],
     dependencyWellFormedness: [
       { path: 'src/dafny/core/NativeContracts.dfy', status: 'pending selected WF/termination replay for ghost predicates' },
+      { path: 'src/dafny/core/NativeErrorTextContracts.dfy', status: 'the selected error-text predicates have explicit WF-only rows; their supporting model dependencies still require a separate WF inventory' },
       { path: 'src/dafny/core/SurfaceHost.dfy', status: 'pending selected WF replay for atomic observation specifications and projections' },
       { path: 'src/dafny/core/SurfaceModel.dfy', status: 'pending selected WF replay for model functions and predicates' },
       { path: 'src/dafny/core/SurfaceWitness.dfy', status: 'pending selected WF replay; ProtectedContextAccess remains HOST-OPEN' },

@@ -31,6 +31,7 @@ const SOURCES = [
   'src/dafny/core/NativePrefixComposition.dfy',
   'src/dafny/core/NativeParseComposition.dfy',
   'src/dafny/core/NativeParseTransport.dfy',
+  'src/dafny/core/NativeErrorTextContracts.dfy',
   'src/dafny/surfaces/NativeSurface.dfy',
 ];
 const OUTPUT = 'src/dafny/generated/engine.js';
@@ -45,6 +46,7 @@ const OMITTED = new Set([
   'NativePrefixComposition',
   'NativeParseComposition',
   'NativeParseTransport',
+  'NativeErrorTextContracts',
 ]);
 const OMITTED_MODEL_MODULES = new Set([...OMITTED].filter(name =>
   !['_dafny', '_System', '_module', 'SurfaceHost'].includes(name)));

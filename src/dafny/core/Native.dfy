@@ -31,7 +31,8 @@ module Native {
   function {:extern "stringLength"} StringLength(s: string): Index
   function {:extern "codeUnitAt"} CodeUnitAt(s: string, i: Index): Counter
   function {:extern "indexOf"} IndexOf(s: string, needle: string, from: Index): Counter
-  function {:extern "concat"} Concat(a: string, b: string): string
+  function {:extern "concat"} {:axiom} Concat(a: string, b: string): string
+    ensures Concat(a,b) == a + b
   function {:extern "repeat"} Repeat(s: string, count: Index): string
   function {:extern "join"} Join(parts: Value, separator: string): string
   function {:extern "isNull"} IsNull(value: Value): bool

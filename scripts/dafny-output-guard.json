@@ -51,7 +51,7 @@
   },
   "sourceSha256": {
     "../src/dafny/native.ts": "89ba6224f08fb13a0388ce822d0d1f732483509b5f9e7368b4d9162cbb39a2d2",
-    "./dafny-shape-manifest.json": "1cde0f0cec37dac3a67174b9f321d85d3f26af448e15a65ec2ef6a5ba9b72af2",
+    "./dafny-shape-manifest.json": "2f0049df95f440b1ecb01d62c2784fd57a4abee5ba905ae99515d64f0f89f600",
     "../src/dafny/surface-native.ts": "9f9879bf84353add686b25f62283870ff8559b5c53715f73c61365d02fab56e2",
     "../src/dafny/bridge.ts": "805c7703b84e6c495a7492b35aefa30be3014f33485e46afdf981781b5988321"
   },

@@ -31,5 +31,6 @@ cd "$repo_root"
   src/dafny/core/NativePrefixComposition.dfy \
   src/dafny/core/NativeParseComposition.dfy \
   src/dafny/core/NativeParseTransport.dfy \
+  src/dafny/core/NativeErrorTextContracts.dfy \
   src/dafny/surfaces/NativeSurface.dfy
 node scripts/build-dafny.cjs "$@" --input "$temporary/Native.js"

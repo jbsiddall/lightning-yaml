@@ -25,9 +25,11 @@ access to the current adapter Engine/Writer slots and Engine helper slot while
 allowing ordinary reentrant parser and writer state changes. The profile's
 authenticity in a JavaScript realm is unproved. A caller-supplied structural
 world does not establish it. See the detailed status in [native.md](native.md).
-The Native proof runner is being checked in, but its final exact-source replay
-has not passed yet. Any subsequent selected-flow evidence will remain conditional
-on host-open atomic bindings and the protected-context profile. `MultiplyBudget`
+The Native proof runner is checked in. The latest exact-source run passed the
+selected Adapter rows but stopped because its result inventory omitted a
+well-formedness-only helper; the inventory now includes that helper, and a
+successful full replay remains pending. Any selected-flow evidence remains
+conditional on host-open atomic bindings and the protected-context profile. `MultiplyBudget`
 currently records an opaque numeric operation; it does not establish the default
 budget calculation, JavaScript coercion, or numeric result correspondence. This
 is not a complete public-operation guarantee and does not populate

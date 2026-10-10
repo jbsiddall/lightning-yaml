@@ -2470,11 +2470,11 @@
       "self-property": 0
     },
     "Adapter.ExceptionToString": {
-      "identifier": 4,
+      "identifier": 5,
       "self-property": 0
     },
     "Adapter.NotImplementedMessage": {
-      "identifier": 1,
+      "identifier": 2,
       "self-property": 0
     }
   },

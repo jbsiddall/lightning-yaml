@@ -37,9 +37,21 @@ assumes callback-controlled code cannot replace the Adapter's Engine/Writer
 slots or the Engine's `tagHelpers` slot; it still permits ordinary reentrant
 changes to parser and writer state. The profile's authenticity in JavaScript,
 raw-value/heap observation correspondence, and parser-core meaning remain open.
-The exact-source verification and dependency inventory must be replayed from
-`pnpm dafny:verify:native` before these body clauses are described as verified.
+The latest exact-source run passed its selected Adapter proof rows but stopped
+at a harness inventory mismatch for a well-formedness-only helper. That
+inventory is fixed; the full command and supporting-definition well-formedness
+replay remain pending before these body clauses are described as verified.
 This conditional adapter flow is not a complete public-operation guarantee.
+
+The `ExceptionToString` and `NotImplementedMessage` bodies now carry conditional
+text-result contracts. Their conversion, completion, and concatenation primitives
+remain individually host-open bindings; the Dafny `Concat` law is a trusted
+UTF-16 string-concatenation boundary. The generated methods gained unused ghost
+out slots, so the guarded generated shape records those identifier-count changes
+instead of claiming literal AST identity. This work does not establish the
+JavaScript binding correspondence or complete Error-class constructor behavior.
+Their latest selected rows passed, but the Native harness as a whole is still
+pending a successful replay and supporting-definition well-formedness inventory.
 
 The current ghost `MultiplyBudget` event records that the numeric operation was
 reached in the right order. It does not yet relate its result to the raw
