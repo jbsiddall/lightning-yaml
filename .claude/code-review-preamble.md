@@ -13,6 +13,13 @@ source-of-truth precedence governs disputes. The project's goals live in `README
 "Decisions and deviations" section — a deviation is sanctioned only if it is listed THERE
 (never because CLAUDE.md, a research note, or a code comment says so).
 
+Within your own Domain, use Robert C. Martin's [*Clean Code: A Handbook of Agile Software
+Craftsmanship*](https://www.informit.com/store/clean-code-a-handbook-of-agile-software-craftsmanship-9780132350884)
+as a reference, especially for comments, naming consistency, and complexity. Check whether names
+reveal purpose, terms stay consistent, and functions have clear responsibilities at a coherent
+level of abstraction. Apply this as judgment, not a rigid size limit or a requirement to add
+wrapper functions; keep your Domain's review rules and the source-of-truth precedence above.
+
 ## Context the orchestrator hands you
 
 - `BASE` — the merge-base with `origin/main` (where this branch left main).
