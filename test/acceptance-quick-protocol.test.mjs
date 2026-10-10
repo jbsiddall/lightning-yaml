@@ -111,9 +111,10 @@ test("worker close kills a ready SIGTERM-resistant stdio-ignored descendant", as
   const { tmpdir } = await import("node:os");
   const { join } = await import("node:path");
   const dir = mkdtempSync(join(tmpdir(), "quick-worker-close-test-"));
+  const ready = join(dir, "ready");
   const marker = join(dir, "survived");
-  const descendant = "process.on('SIGTERM',()=>{});process.stdout.write('ready');setTimeout(()=>require('node:fs').writeFileSync(process.argv[1],'leaked'),500);setInterval(()=>{},1000)";
-  const parent = `const {spawn}=require('node:child_process');const c=spawn(process.execPath,['-e',${JSON.stringify(descendant)},${JSON.stringify(marker)}],{stdio:['ignore','pipe','ignore']});c.stdout.once('data',()=>{process.stdout.write(JSON.stringify({ready:true})+'\\n',()=>process.exit(0))});`;
+  const descendant = "const fs=require('node:fs');process.on('SIGTERM',()=>{});fs.writeFileSync(process.argv[1],'ready');setTimeout(()=>fs.writeFileSync(process.argv[2],'leaked'),500);setInterval(()=>{},1000)";
+  const parent = `const {spawn}=require('node:child_process');const fs=require('node:fs');spawn(process.execPath,['-e',${JSON.stringify(descendant)},${JSON.stringify(ready)},${JSON.stringify(marker)}],{stdio:'ignore'});const poll=setInterval(()=>{if(fs.existsSync(${JSON.stringify(ready)})){clearInterval(poll);process.stdout.write(JSON.stringify({ready:true})+'\\n',()=>process.exit(0))}},2);`;
   try {
     const result = await runChild(process.execPath, ["-e", parent], Number(process.hrtime.bigint() / 1_000_000n) + 2_000);
     assert.deepEqual(result, { ready: true });
