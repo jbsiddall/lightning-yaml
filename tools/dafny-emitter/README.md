@@ -48,6 +48,21 @@ prove that modified code generation preserves those properties. Treat the
 candidate as untrusted until stock differential fixtures and project semantic
 checks pass.
 
+## Native intrinsic contract
+
+The first intrinsic is `{:jsIntrinsic "arrayPush"}` on a static extern method
+with two non-ghost inputs, no outputs, and no method or enclosing class type
+parameters. It asserts that the host binding is immutable, its lookup has no
+observable effects, and its body performs `receiver.push(value)` with the
+result discarded. Dafny does not verify that assertion about the host body.
+
+The emitter evaluates both arguments once, in order, before looking up `push`.
+Dynamic getters, proxies, overrides, method `this`, and thrown payloads remain
+observable. Removing the wrapper changes caller stacks; engine-generated
+TypeError wording for invalid receivers may also differ. This is an explicit
+host contract, rather than an unconditional optimization for arbitrary extern
+methods.
+
 ## Benchmark gate
 
 Use the repository's alternating quick benchmark screen, capped at 60 seconds
