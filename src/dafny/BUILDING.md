@@ -1,9 +1,11 @@
 # Rebuilding the generated Dafny module
 
-The shared Dafny implementation modules live in `src/dafny/core/`: `Native.dfy`,
-`TagValues.dfy`, `Engine.dfy`, and `Serializer.dfy`. This is a source-organization
-boundary; it does not claim complete public-surface contracts. TypeScript host
-bindings, diagnostics, the bridge, and generated output remain under `src/dafny/`.
+The shared implementation lives in `src/dafny/core/`: `Native.dfy`,
+`TagValues.dfy`, `Engine.dfy`, `Serializer.dfy`, and the ghost value model
+`SurfaceValues.dfy`. The option-decision methods live in
+`src/dafny/surfaces/Options.dfy`. This is a source-organization boundary; it
+does not claim complete public-surface contracts. TypeScript host bindings,
+diagnostics, the bridge, and generated output remain under `src/dafny/`.
 
 The checked-in `src/dafny/generated/engine.js` is produced from those sources with
 the official Dafny 4.11.0 compiler using
@@ -23,7 +25,7 @@ tests.
 
 CI installs the exact [`Dafny` 4.11.0 NuGet tool](https://www.nuget.org/packages/Dafny/4.11.0) from the official NuGet v3 feed with .NET SDK 8.0.408. This pins the published package version and source feed; the tool bootstrap itself is not covered by the JavaScript lockfile. The generator verifies the compiler-reported version, and the generated header records a SHA-256 digest of every Dafny source file in compilation order.
 
-The generator AST-extracts the three generated program modules from the compiler output, after checking the compiler output's expected top-level structure. It omits only the verified unused runtime modules and Dafny's unused Native type module. A second AST pass lowers a fixed, exact-count list of compiler-emitted generic equality and Euclidean arithmetic helper sites to host primitives; the list is tied to generated class/method names and the output guard checks the resulting native calls. Current string equality sites were inspected in the Dafny source: their operands are YAML tag/word strings. This lowering does not authorize opaque YAML value equality.
+The generator AST-extracts four retained program modules from the compiler output, after checking the compiler output's expected top-level structure. It omits only the verified unused runtime modules, Dafny's unused Native type module, and the compiled `SurfaceValues` ghost model; the extraction fails if the omitted model remains referenced by retained code. A second AST pass lowers a fixed, exact-count list of compiler-emitted generic equality and Euclidean arithmetic helper sites to host primitives; the list is tied to generated class/method names and the output guard checks the resulting native calls. Current string equality sites were inspected in the Dafny source: their operands are YAML tag/word strings. This lowering does not authorize opaque YAML value equality.
 
 The final shape pass is separately guarded by `scripts/dafny-shape-manifest.json`, which pins native helper bodies and use sites, literal static-getter inventory, reflection metadata shape, Engine/Writer method and field maps, field access counts, and adjacent compiler-temporary patterns. It removes only six empty `_parentTraits` methods and their six `_tname` assignments, after confirming there are no remaining metadata references. It inlines Native identity casts and exact primitive helpers for arithmetic, strings, array/object reads, type checks, and Map/Set reads. Calls must match the frozen host implementation and their arguments must be simple identifiers or literals. Void array/map/set mutations inline only when the original call is an expression statement. The direct expressions retain source operator grouping and each argument's evaluation count. Static getters with one primitive literal return are inlined. Internal Engine/Writer method names are shortened while constructor, bridge and document-diagnostic entry points stay stable.
 
@@ -37,7 +39,32 @@ The declarations in `generated/engine.d.ts` are a checked boundary: generated va
 
 `pnpm dafny:verify:scanner` verifies the executed `FlowSeparatorAt`, `ScanFlowPlainLine`, `TrimTrailingWs`, `SkipInlineSpaces`, `IsSpaceOrEolAt`, and `IsDocMarkerAt` methods plus their ghost specification dependencies under Dafny 4.11.0 with UTF-16 characters. It writes CSV proof logs and a machine-readable coverage report to `results/dafny-scanner-proof/`. The methods establish their stated lexical boundary, first-stop, maximal trailing-whitespace suffix, consumed-inline-whitespace-prefix, and document-marker contracts. All six methods have empty heap frames except `SkipInlineSpaces`, which permits changes only to the cursor field. Four selected predicates have no generated verification conditions and are recorded as `no-verification-conditions`, not as semantic proofs.
 
-These six conditional method proofs require `len as int == |src|` and their stated cursor or span bounds. `IsDocMarkerAt` also requires conditional arithmetic slack when its input index equals `lineStart`; no selected caller proof establishes that `lineStart` is the actual beginning of a source line. No caller has been proved to establish these preconditions. Native host bindings, the remaining parser and serializer methods, other scanner methods, and the backend/output postpass remain trusted or unproved. This checkpoint proves neither complete parsing nor full YAML semantic equivalence. Dafny generation still uses `--no-verify` for the full source tree, and CPU and memory performance acceptance remains separate.
+`pnpm dafny:verify:options` verifies five executed methods in the retained
+`SurfaceOptions` module: the yaml parse/stringify and js-yaml loadAll slot
+selectors, the yaml stringify primitive check, and recognized option-rule
+decisions. The pinned selected run reports six proof obligations. Ten valid
+body mutations are rejected by the selected correctness proofs. The ghost
+`SurfaceValues` model and `OwnRuleCode` are source-pinned; the broad selected
+run emits no verification condition for the `OwnRuleCode` ghost function, so
+that absence is recorded explicitly. The public option rules call these
+generated decisions, while the AST-based contract checker compares all four
+TypeScript option tables against `OwnRuleCode` codes 1–7.
+Generated-runtime tests replace each retained decision method with a frozen
+sentinel and call the exported yaml and js-yaml entry points, checking that the
+same sentinel reaches the caller. A temporary bypass of the yaml parse selector
+was rejected by this test; this route check does not prove parser behavior.
+
+These option proofs are conditional on the supplied host-observation booleans
+matching the ghost descriptors. The correspondence for JavaScript truthiness,
+`typeof`, array classification, strict identity and string equality is not
+proved by Dafny. `SurfaceValues` distinguishes `document.all`-like HTMLDDA for
+the loose-nullish options check, but this does not prove a browser host
+classifier. Option property enumeration/getters, proxy throws, prototype rule
+lookup, thrown-value identity, complete validation order, parser/writer
+meaning, and public-operation completion remain outside the selected proofs.
+The manifest therefore reports no fully verified public operations.
+
+The six conditional scanner method proofs require `len as int == |src|` and their stated cursor or span bounds. `IsDocMarkerAt` also requires conditional arithmetic slack when its input index equals `lineStart`; no selected caller proof establishes that `lineStart` is the actual beginning of a source line. No caller has been proved to establish these preconditions. Native host bindings, the remaining parser and serializer methods, other scanner methods, and the backend/output postpass remain trusted or unproved. These selected tranches prove neither complete parsing nor full YAML semantic equivalence. Dafny generation still uses `--no-verify` for the full source tree, and CPU and memory performance acceptance remains separate.
 
 Generated JavaScript carries the Dafny Project copyright and MIT SPDX notice. The accompanying `Dafny-LICENSE.txt` is included in the npm package.
 

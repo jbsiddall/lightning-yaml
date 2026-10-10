@@ -19,3 +19,13 @@ export const Serializer: {
     Stringify(value: unknown): string;
   };
 };
+
+export const SurfaceOptions: {
+  __default: {
+    SelectYamlParseOptions(secondFunction: boolean, secondTruthy: boolean, thirdUndefined: boolean): boolean;
+    SelectYamlStringifyOptions(secondFunction: boolean, secondArray: boolean, secondTruthy: boolean, thirdUndefined: boolean): boolean;
+    SelectJsYamlLoadAllOptions(secondObject: boolean): boolean;
+    RejectYamlOptionsPrimitive(looselyNullish: boolean, objectType: boolean): boolean;
+    RejectRecognizedOption(code: number, undefinedValue: boolean, truthyValue: boolean, coreSchemaIdentity: boolean, exactlyTrue: boolean, coreText: boolean, version12Text: boolean): boolean;
+  };
+};

@@ -140,11 +140,18 @@ import { parse, stringify } from 'lightning-yaml/yaml';
 
 > **Status — partial compatibility.** The subpaths provide selected functions,
 > not the full `yaml` or `js-yaml` export surfaces or every call signature.
-> Unsupported options throw instead of being silently ignored. Each shim's
+> The two shims have different option names and argument precedence. See the
+> [native API contract](docs/contracts/native.md), [`yaml` contract](docs/contracts/yaml.md), and
+> [`js-yaml` contract](docs/contracts/js-yaml.md) for current supported, ignored,
+> and rejected calls, including known open mismatches. The checked
+> [public-surface contract ledger](scripts/public-surface-contract-manifest.json)
+> inventories the public surface, summarizes current behavior, and lists proof
+> status and remaining formal-contract gaps; it does not claim the complete
+> parser, writer, or host boundary is verified. Each shim's
 > **option-support matrix**
 > ([js-yaml](https://lightning-yaml.dev/api/js-yaml-compat/readme/#option-support-matrix),
 > [yaml](https://lightning-yaml.dev/api/yaml-compat/readme/#option-support-matrix))
-> lists which options are easy or hard to support next.
+> gives the upstream-oriented list of future compatibility work.
 <!-- js-yaml:5.2.1 yaml:2.9.0 ly:6598b78 -->
 
 ## Project priorities
@@ -213,11 +220,11 @@ are unrelated spec edge cases, not merge keys (the suite doesn't exercise `<<`).
 
 ## Decisions and deviations
 
-The **single, authoritative list** of places lightning-yaml knowingly departs
-from the YAML 1.2 spec, or from how `js-yaml` / `yaml` behave — kept here, in the
-open, so every exception stays visible rather than buried in a code comment. If
-lightning-yaml differs from the spec or another library in a way **not** listed
-here, treat it as a bug and
+The **single, authoritative list** of approved places lightning-yaml knowingly
+departs from the YAML 1.2 spec or intentionally differs from `js-yaml` / `yaml`
+is kept here, in the open. Known compatibility defects and undocumented gaps
+are not approved deviations; they remain bugs to fix. If lightning-yaml differs
+from the spec or another library in a way **not** listed here, treat it as a bug and
 [open an issue](https://github.com/jbsiddall/lightning-yaml/issues).
 
 - **Lenient by default: a tab used as block indentation is tolerated, not
@@ -240,13 +247,18 @@ here, treat it as a bug and
   The installed js-yaml 5.2.1 and `yaml` 2.9.0 defaults also leave it literal.
   It's neither expanded nor rejected today.
   <!-- js-yaml:5.2.1 yaml:2.9.0 ly:67d2e0b -->
-- **Compat options that aren't implemented yet throw.** The
-  `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
-  (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we
-  can't yet honour throws a clear error naming it — rather than silently leaving
-  the output unchanged. A boolean flag left at the value lightning-yaml already
-  produces (e.g. `mapAsMap: false`) still works; any other value throws. This
-  covers `yaml`'s `JSON.stringify`-style positional indent shorthand too —
+- **The compatibility shims have separate, partial option sets.** The
+  `lightning-yaml/js-yaml` and `lightning-yaml/yaml` TypeScript surfaces resemble
+  their respective libraries, but they do not accept the same options and use
+  different overload precedence. Recognized options that are not supported
+  throw; each shim also ignores nullish, primitive, and array option bags, and
+  skips own options whose value is `undefined`. Some rule-table lookups can
+  encounter inherited `Object.prototype` names and throw a raw `TypeError`; this
+  is a pre-existing open defect, not an approved behavior. The `js-yaml` shim's
+  `load('')` also returns `null`, unlike upstream; that mismatch is undocumented
+  as a deliberate deviation and remains open. See the [yaml contract](docs/contracts/yaml.md)
+  and [js-yaml contract](docs/contracts/js-yaml.md) for the current details. The
+  `yaml` shim also supports `JSON.stringify`-style positional indent shorthand —
   `stringify(value, 4)` or `stringify(value, replacer, 4)` — where a number or
   string throws even for a width real `yaml` would quietly clamp to its own
   default rather than honour — e.g. a negative number.

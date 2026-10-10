@@ -802,7 +802,9 @@ function createManifest(generatedText, nativeText) {
 
 function validateManifest(actual, expected) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error('generated output shape differs from scripts/dafny-shape-manifest.json; review and update the pinned shape manifest');
-  if (actual.metadata.parentTraits !== 6 || actual.metadata.typeNames !== 6 || actual.metadata.otherRefs !== 0) throw new Error('unsupported Dafny reflection metadata shape');
+  // The exact metadata counts are already pinned by the reviewed manifest.
+  // Require the generated program to have no residual reflection references.
+  if (actual.metadata.otherRefs !== 0) throw new Error('unsupported Dafny reflection metadata references');
   for (const [className, map] of Object.entries(actual.methodRenames)) {
     if (!Object.values(map).includes('m0')) throw new Error(`${className} has no mapped internal method`);
     if (new Set(Object.values(map)).size !== Object.keys(map).length) throw new Error(`${className} method mangling collides`);

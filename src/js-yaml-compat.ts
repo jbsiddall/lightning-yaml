@@ -116,7 +116,8 @@
  */
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
-import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
+import { validateOptions, notYetSupported, activatesFeature, acceptAny, rejectsRecognizedOption, RecognizedRule, type OptionRule } from "./compat-options.ts";
+import { SurfaceOptions } from "./dafny/generated/engine.js";
 
 // ---------------------------------------------------------------------------
 // YAMLException — shaped like js-yaml's (name/reason/message + a cheap mark).
@@ -296,24 +297,27 @@ export interface DumpOptions {
 
 /** Only the default `CORE_SCHEMA` is a no-op; other schemas change scalar typing. */
 const schemaCoreOnly: OptionRule = (v) =>
-  v === CORE_SCHEMA
-    ? null
-    : "must be the default CORE schema — other schemas change scalar typing, which is not implemented yet";
+  rejectsRecognizedOption(RecognizedRule.RequireCoreSchemaIdentity, v, CORE_SCHEMA)
+    ? "must be the default CORE schema — other schemas change scalar typing, which is not implemented yet"
+    : null;
 
 const failOption = (message: string): never => {
   throw new YAMLException(`lightning-yaml js-yaml compat: ${message}`);
 };
 
 const LOAD_OPTION_RULES: Record<string, OptionRule> = {
-  filename: () => null, // honoured — threaded into a thrown YAMLException's mark
+  filename: acceptAny, // honoured — threaded into a thrown YAMLException's mark
   schema: schemaCoreOnly,
   json: (v) =>
-    v === true
-      ? null // last-wins is already our default (= `json: true`)
-      : "= false (throw on duplicate keys) is not supported yet — lightning-yaml keeps last-wins for JSON.parse parity",
+    rejectsRecognizedOption(RecognizedRule.RequireExactlyTrue, v)
+      ? "= false (throw on duplicate keys) is not supported yet — lightning-yaml keeps last-wins for JSON.parse parity"
+      : null, // last-wins is already our default (= `json: true`)
   maxAliases: notYetSupported,
   maxDepth: notYetSupported,
-  maxTotalMergeKeys: () => "is not supported — merge keys (`<<`) are outside YAML 1.2 core",
+  maxTotalMergeKeys: (v) =>
+    rejectsRecognizedOption(RecognizedRule.RejectEveryDefinedValue, v)
+      ? "is not supported — merge keys (`<<`) are outside YAML 1.2 core"
+      : null,
 };
 
 const DUMP_OPTION_RULES: Record<string, OptionRule> = {
@@ -373,7 +377,10 @@ export function loadAll(input: string, iteratorOrOpts?: ((doc: unknown) => void)
   // ignored). Otherwise (an iterator, `null`, or omitted 2nd arg) the options are the 3rd arg. This
   // asymmetry is deliberate — each shim matches its own real library — so do NOT "DRY" it into a shared
   // resolver with yaml-compat.ts; the two must stay opposite. (Locked by a regression test.)
-  const options = iteratorOrOpts != null && typeof iteratorOrOpts === "object" ? iteratorOrOpts : opts;
+  const useSecond = SurfaceOptions.__default.SelectJsYamlLoadAllOptions(
+    iteratorOrOpts != null && typeof iteratorOrOpts === "object",
+  );
+  const options = (useSecond ? iteratorOrOpts : opts) as LoadOptions | null | undefined;
   validateOptions(options, LOAD_OPTION_RULES, failOption);
   let docs: unknown[];
   try {

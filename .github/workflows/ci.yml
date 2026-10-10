@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check public contract inventory
+        run: pnpm check:public-contracts
+
       - name: Install pinned Dafny compiler
         run: dotnet tool install --tool-path .tools/dafny --add-source https://api.nuget.org/v3/index.json Dafny --version 4.11.0
 
@@ -63,6 +66,17 @@ jobs:
         with:
           name: dafny-scanner-proof
           path: results/dafny-scanner-proof/
+          if-no-files-found: ignore
+
+      - name: Verify scoped Dafny option contracts
+        run: DAFNY="$GITHUB_WORKSPACE/.tools/dafny/dafny" pnpm dafny:verify:options
+
+      - name: Upload options verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dafny-options-proof
+          path: results/dafny-options-proof/
           if-no-files-found: ignore
 
       - name: Typecheck

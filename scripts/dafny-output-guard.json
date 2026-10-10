@@ -11,7 +11,12 @@
         "DafnyCore.__default.Parse",
         "DafnyCore.__default.ParseAll",
         "Serializer.Writer.__ctor",
-        "Serializer.Writer.Stringify"
+        "Serializer.Writer.Stringify",
+        "SurfaceOptions.__default.SelectYamlParseOptions",
+        "SurfaceOptions.__default.SelectYamlStringifyOptions",
+        "SurfaceOptions.__default.SelectJsYamlLoadAllOptions",
+        "SurfaceOptions.__default.RejectYamlOptionsPrimitive",
+        "SurfaceOptions.__default.RejectRecognizedOption"
       ]
     }
   ],
@@ -23,11 +28,11 @@
   ],
   "shapeManifest": "./dafny-shape-manifest.json",
   "declarationSha256": {
-    "../src/dafny/generated/engine.d.ts": "95303b5bb7b7e1b4581328b50a1650fc77c1d6b38dc8088311492c890b8e3668"
+    "../src/dafny/generated/engine.d.ts": "e7e2690f5848682bca7237d347adc5ce57e655e55872cc2782d6c04d95b45a92"
   },
   "sourceSha256": {
     "../src/dafny/native.ts": "38b6fbc407a1224b0727972ced9dc89bfce9deebec49dbf5da25c1eb101d6b38",
-    "./dafny-shape-manifest.json": "d3e293f74eb3ed810c139b83ef00e985e986dc59ba131b619e6e2f4012f67582"
+    "./dafny-shape-manifest.json": "56f62bc5b31b486ae961c2343e0c088d2cffb5f10f85a13786978e35ff079d52"
   },
   "allowedCalls": [
     "(_this.src)[0].charCodeAt",

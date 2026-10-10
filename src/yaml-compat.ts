@@ -105,7 +105,8 @@
  */
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify } from "./core.ts";
-import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
+import { validateOptions, notYetSupported, activatesFeature, acceptAny, rejectsRecognizedOption, RecognizedRule, type OptionRule } from "./compat-options.ts";
+import { SurfaceOptions } from "./dafny/generated/engine.js";
 
 // ---------------------------------------------------------------------------
 // Options-dispatch rules. Unsupported options throw a `YAMLCompatError` rather
@@ -125,20 +126,20 @@ const failOption = (message: string): never => {
 
 /** Only the default `core` schema is a no-op; others change scalar typing. */
 const schemaCoreOnly: OptionRule = (v) =>
-  v === "core"
-    ? null
-    : `"${String(v)}" changes scalar typing — only the default "core" schema is supported`;
+  rejectsRecognizedOption(RecognizedRule.RequireCoreText, v)
+    ? `"${String(v)}" changes scalar typing — only the default "core" schema is supported`
+    : null;
 
 /** We target YAML 1.2 core; `1.1` (and other versions) change scalar typing. */
 const version12Only: OptionRule = (v) =>
-  v === "1.2"
-    ? null
-    : `"${String(v)}" is not supported — lightning-yaml targets YAML 1.2 core only`;
+  rejectsRecognizedOption(RecognizedRule.RequireVersion12Text, v)
+    ? `"${String(v)}" is not supported — lightning-yaml targets YAML 1.2 core only`
+    : null;
 
 const PARSE_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   version: version12Only,
-  prettyErrors: () => null, // no-op: our thrown errors already carry line/column
+  prettyErrors: acceptAny, // no-op: our thrown errors already carry line/column
   mapAsMap: activatesFeature("would return mappings as `Map` rather than plain objects — not supported yet"),
   intAsBigInt: activatesFeature("would return large integers as exact `BigInt` — not supported yet"),
   uniqueKeys: activatesFeature("would throw on duplicate keys — not supported yet (lightning-yaml keeps last-wins)"),
@@ -226,7 +227,12 @@ export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unkn
   // there is never silently dropped. (Truthy-gating is behaviour-neutral for parse — validateOptions
   // tolerates a scalar bag either way — but it mirrors real yaml and applies the same truthy-gate rule
   // as stringify below.)
-  const optionBag = opts === undefined && typeof reviverOrOpts !== "function" && reviverOrOpts ? reviverOrOpts : opts;
+  const useSecond = SurfaceOptions.__default.SelectYamlParseOptions(
+    typeof reviverOrOpts === "function",
+    !!reviverOrOpts,
+    opts === undefined,
+  );
+  const optionBag = (useSecond ? reviverOrOpts : opts) as Record<string, unknown> | null | undefined;
   validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
   const value = ourParse(src);
   if (!reviver) return value;
@@ -309,11 +315,19 @@ export function parseDocument(src: string, opts?: Record<string, unknown>): Comp
 // ---------------------------------------------------------------------------
 
 export function stringify(value: unknown, replacerOrOptions?: unknown, options?: unknown): string {
-  const hasReplacer = typeof replacerOrOptions === "function" || Array.isArray(replacerOrOptions);
+  const secondFunction = typeof replacerOrOptions === "function";
+  const secondArray = !secondFunction && Array.isArray(replacerOrOptions);
+  const hasReplacer = secondFunction || secondArray;
   // Real `yaml` promotes the 2nd arg to options only in the 2-arg form (no 3rd arg) AND only when it's
   // TRUTHY — a falsy 2nd arg (`false`/`0`/`""`, e.g. a conditional `cond && replacer`) means "no options",
   // like `null`/omitted. A present 3rd arg always wins. (Matches real yaml's `options === undefined && replacer`.)
-  const optionsSlot = options === undefined && !hasReplacer && replacerOrOptions ? replacerOrOptions : options;
+  const useSecond = SurfaceOptions.__default.SelectYamlStringifyOptions(
+    secondFunction,
+    secondArray,
+    !!replacerOrOptions,
+    options === undefined,
+  );
+  const optionsSlot = useSecond ? replacerOrOptions : options;
   // After the truthy gate above, a falsy 2nd arg already fell through as "no options", so a non-object
   // reaching here is a truthy 2nd-arg shorthand or a scalar handed straight to the 3rd-arg slot. A
   // number/string is `yaml.stringify`'s `JSON.stringify`-style indent shorthand (number = width, string
@@ -326,7 +340,9 @@ export function stringify(value: unknown, replacerOrOptions?: unknown, options?:
   // custom indent, so we reject every such value (both the 2-arg `stringify(v, -3)` and 3-arg positions) —
   // a deliberate, fail-loud-safe superset of real yaml's clamp table, documented in README's "Decisions
   // and deviations" (the compat-options-throw bullet, which names this shorthand).
-  if (optionsSlot != null && typeof optionsSlot !== "object") {
+  const nullishOptions = optionsSlot == null;
+  const objectOptions = optionsSlot !== null && typeof optionsSlot === "object";
+  if (SurfaceOptions.__default.RejectYamlOptionsPrimitive(nullishOptions, objectOptions)) {
     failOption(
       typeof optionsSlot === "number" || typeof optionsSlot === "string"
         ? "the JSON.stringify-style indent shorthand (stringify(value, replacer, indent)) is not supported yet — custom indent width is unimplemented"

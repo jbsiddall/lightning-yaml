@@ -1,7 +1,7 @@
 // Dafny program compiled into JavaScript by Dafny 4.11.0.
 // Copyright by the contributors to the Dafny Project.
 // SPDX-License-Identifier: MIT
-// Sources sha256 ed2d990faef2741b18e710e42fad3f233ad7e5df9257f555654a289f56631502; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
+// Sources sha256 a72200e813c70e285016478697c3963c647d7167c080381635daf24ab5fec0f0; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
 import { native_$$_toString as n0, nativeArrayGet as n1, nativeArrayLength as n2, nativeArrayPush as n3, nativeByteGet as n4, nativeByteLength as n5, nativeByteSet as n6, nativeCodeUnitAt as n7, nativeConcat as n8, nativeCreateArray as n9, nativeCreateObject as n10, nativeCreateUint8Array as n11, nativeEmptyMap as n12, nativeEuclideanDivisionNumber as n13, nativeEuclideanModuloNumber as n14, nativeFail as n15, nativeFormatNumber as n16, nativeIndexOf as n17, nativeIsMap as n18, nativeIsSet as n19, nativeIsUint8Array as n20, nativeJoin as n21, nativeJsEqual as n22, nativeJsonQuote as n23, nativeMapCreate as n24, nativeMapGet as n25, nativeMapKeys as n26, nativeMapSet as n27, nativeMapSize as n28, nativeNoDocumentValue as n29, nativeNotNumericValue as n30, nativeNullValue as n31, nativeNumberAdd as n32, nativeNumberIsNaN as n33, nativeNumberIsNegativeInfinity as n34, nativeNumberIsNegativeZero as n35, nativeNumberIsPositiveInfinity as n36, nativeNumberLessEqual as n37, nativeNumberMulAdd as n38, nativeObjectKeys as n39, nativeObjectSetSafe as n40, nativeParseNumber as n41, nativeParseSpecialNumber as n42, nativeRepeat as n43, nativeSameValue as n44, nativeSetCreate as n45, nativeSetValues as n46, nativeSlice as n47, nativeStringFallback as n48, nativeStringFromCharCode as n49, nativeStringFromCodePoint as n50, nativeUndefinedValue as n51 } from '../native.ts';
 
 let TagValues = (function () {
@@ -7267,6 +7267,63 @@ let Serializer = (function () {
     };
     return $module;
 })();
+let SurfaceOptions = (function () {
+    let $module = {};
+    $module.__default = class __default {
+        constructor() {
+        }
+        static SelectYamlParseOptions(secondFunction, secondTruthy, thirdUndefined) {
+            let useSecond = false;
+            useSecond = ((thirdUndefined) && (!(secondFunction))) && (secondTruthy);
+            return useSecond;
+        }
+        static SelectYamlStringifyOptions(secondFunction, secondArray, secondTruthy, thirdUndefined) {
+            let useSecond = false;
+            useSecond = ((thirdUndefined) && (!((secondFunction) || (secondArray)))) && (secondTruthy);
+            return useSecond;
+        }
+        static SelectJsYamlLoadAllOptions(secondObject) {
+            let useSecond = false;
+            useSecond = secondObject;
+            return useSecond;
+        }
+        static RejectYamlOptionsPrimitive(looselyNullish, objectType) {
+            let reject = false;
+            reject = (!(looselyNullish)) && (!(objectType));
+            return reject;
+        }
+        static RejectRecognizedOption(code, undefinedValue, truthyValue, coreSchemaIdentity, exactlyTrue, coreText, version12Text) {
+            let reject = false;
+            if (undefinedValue) {
+                reject = false;
+                return reject;
+            }
+            if ((code) === (1)) {
+                reject = false;
+            }
+            else if ((code) === (2)) {
+                reject = !(coreSchemaIdentity);
+            }
+            else if ((code) === (3)) {
+                reject = !(exactlyTrue);
+            }
+            else if ((code) === (4)) {
+                reject = true;
+            }
+            else if ((code) === (5)) {
+                reject = truthyValue;
+            }
+            else if ((code) === (6)) {
+                reject = !(coreText);
+            }
+            else {
+                reject = !(version12Text);
+            }
+            return reject;
+        }
+    };
+    return $module;
+})();
 
 
-export { DafnyCore, Serializer };
+export { DafnyCore, Serializer, SurfaceOptions };
