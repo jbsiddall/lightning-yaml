@@ -9,7 +9,7 @@ const atomicWrite = (path, value) => {
   renameSync(temporary, path);
 };
 
-export async function supervise({ command, args, cwd, env = process.env, out, groupsFile = `${out}.children`, limitMs = 60_000, stdio = "ignore" }) {
+export async function supervise({ command, args, cwd, env = process.env, out, groupsFile = `${out}.${process.pid}.children`, limitMs = 60_000, stdio = "ignore" }) {
   const started = process.hrtime.bigint();
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(groupsFile, "");

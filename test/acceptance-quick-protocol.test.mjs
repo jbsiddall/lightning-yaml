@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CPU_ROWS, LIMIT_MS, MEMORY_ROWS, runChild, summarize, validateCpuRows } from "../bench/acceptance/quick-runner.mjs";
+import { CPU_ROWS, LIMIT_MS, MEMORY_ROWS, runChild, summarize, validateCpuRows, assertDiagnosticParity } from "../bench/acceptance/quick-runner.mjs";
 import { supervise } from "../bench/acceptance/quick-supervisor.mjs";
+import { diagnosticInputs } from "../bench/acceptance/profile-workloads.mjs";
 
 const baseCpu = Object.fromEntries(CPU_ROWS.map((key) => [key, { medianNsPerCall: 100 }]));
 const candidateCpu = Object.fromEntries(CPU_ROWS.map((key) => [key, { medianNsPerCall: 120 }]));
@@ -93,5 +94,30 @@ test("supervisor propagates a failed runner", async () => {
     const result = await supervise({ command: process.execPath, args: ["-e", `require("node:fs").writeFileSync(${JSON.stringify(out)},JSON.stringify({protocol:"quick-estimate-v1",status:"complete",rows:{cpu:[],memory:[]},errors:[]}));process.exit(7)`], out, cwd: dir, limitMs: 3_000 });
     assert.equal(result.exitCode, 7);
     assert.equal(JSON.parse(readFileSync(out, "utf8")).status, "error");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("diagnostic preflight rejects a wrong unescaped-longquotes result", () => {
+  assert.ok(CPU_ROWS.includes("diagnostic.parse · unescaped-longquotes"));
+  const unescaped = diagnosticInputs.find(({ name }) => name === "unescaped-longquotes").text;
+  const parse = (text) => ({ value: text === unescaped ? "correct unescaped" : "escaped result" });
+  const baseline = { parse };
+  const candidate = { parse: (text) => ({ value: text === unescaped ? "wrong unescaped" : parse(text).value }) };
+  assert.throws(() => assertDiagnosticParity(baseline, candidate), /unescaped-longquotes/);
+});
+
+test("worker close kills a ready SIGTERM-resistant stdio-ignored descendant", async () => {
+  const { mkdtempSync, existsSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "quick-worker-close-test-"));
+  const marker = join(dir, "survived");
+  const descendant = "process.on('SIGTERM',()=>{});process.stdout.write('ready');setTimeout(()=>require('node:fs').writeFileSync(process.argv[1],'leaked'),500);setInterval(()=>{},1000)";
+  const parent = `const {spawn}=require('node:child_process');const c=spawn(process.execPath,['-e',${JSON.stringify(descendant)},${JSON.stringify(marker)}],{stdio:['ignore','pipe','ignore']});c.stdout.once('data',()=>{process.stdout.write(JSON.stringify({ready:true})+'\\n',()=>process.exit(0))});`;
+  try {
+    const result = await runChild(process.execPath, ["-e", parent], Number(process.hrtime.bigint() / 1_000_000n) + 2_000);
+    assert.deepEqual(result, { ready: true });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    assert.equal(existsSync(marker), false, "descendant survived normal leader exit");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

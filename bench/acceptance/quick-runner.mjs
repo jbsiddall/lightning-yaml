@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { cpus, arch, platform, release } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { sameGraph } from "./graph-equal.mjs";
 import { assertExactRows } from "./rowset.mjs";
 import { diagnosticInputs } from "./profile-workloads.mjs";
@@ -51,19 +51,28 @@ function fingerprint(root) {
 }
 
 function loadSource(root) {
-  return import(`file://${join(root, "bench/candidates.ts")}`).then(({ candidateByName }) => candidateByName("lightning-yaml"));
+  return import(pathToFileURL(join(root, "bench/candidates.ts"))).then(({ candidateByName }) => candidateByName("lightning-yaml"));
 }
 function fixtureModules(root) {
   return Promise.all([
-    import(`file://${join(root, "bench/fixtures/datasets.ts")}`),
-    import(`file://${join(root, "bench/oracle.ts")}`),
+    import(pathToFileURL(join(root, "bench/fixtures/datasets.ts"))),
+    import(pathToFileURL(join(root, "bench/oracle.ts"))),
   ]);
+}
+
+export function assertDiagnosticParity(base, next) {
+  const names = CPU_ROWS.filter((key) => key.startsWith("diagnostic.parse · ")).map((key) => key.slice("diagnostic.parse · ".length));
+  assertExactRows(names, ["escaped-longquotes", "unescaped-longquotes"], "diagnostic preflight");
+  for (const name of names) {
+    const text = diagnosticInputs.find((input) => input.name === name).text;
+    assert.ok(sameGraph(base.parse(text), next.parse(text)), `diagnostic preflight differs: ${name}`);
+  }
 }
 
 export async function preflight(baseline, candidate) {
   const [base, next, [baseFixtures], [nextFixtures], baseApi, nextApi, nextOracle] = await Promise.all([
     loadSource(baseline), loadSource(candidate), fixtureModules(baseline).then(([fixtures]) => [fixtures]), fixtureModules(candidate).then(([fixtures]) => [fixtures]),
-    import(`file://${join(baseline, "src/index.ts")}`), import(`file://${join(candidate, "src/index.ts")}`), import(`file://${join(candidate, "bench/oracle.ts")}`),
+    import(pathToFileURL(join(baseline, "src/index.ts"))), import(pathToFileURL(join(candidate, "src/index.ts"))), import(pathToFileURL(join(candidate, "bench/oracle.ts"))),
   ]);
   const datasets = ["small-records", "medium-records", "yaml-plain-medium-records", "yaml-rich-medium", "yaml-rich-small"];
   for (const name of datasets) {
@@ -82,8 +91,7 @@ export async function preflight(baseline, candidate) {
   const yamlDef = nextFixtures.datasetByName("yaml-plain-medium-records");
   const yamlText = nextFixtures.loadFixtureText(yamlDef);
   assert.ok(sameGraph(baseApi.parse(yamlText, options), nextApi.parse(yamlText, options)), "options preflight differs");
-  const diag = diagnosticInputs.find(({ name }) => name === "escaped-longquotes").text;
-  assert.ok(sameGraph(base.parse(diag), next.parse(diag)), "diagnostic preflight differs");
+  assertDiagnosticParity(base, next);
 }
 
 function stopChild(child) {
@@ -110,6 +118,9 @@ export async function runChild(command, args, deadline, env = process.env) {
   if (expired) await cleanup;
   try {
     clearTimeout(timer);
+    if (Number.isSafeInteger(child.pid) && child.pid > 1) {
+      try { process.kill(-child.pid, "SIGKILL"); } catch {}
+    }
     if (activeGroupsFile) {
       const pids = readFileSync(activeGroupsFile, "utf8").split("\n").filter((pid) => pid && pid !== String(child.pid));
       writeFileSync(activeGroupsFile, pids.length ? `${pids.join("\n")}\n` : "");
