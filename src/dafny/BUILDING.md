@@ -1,6 +1,25 @@
 # Rebuilding the generated Dafny module
 
-The checked-in `src/dafny/generated/engine.js` is produced from the Dafny sources with the official Dafny 4.11.0 compiler using `translate js --unicode-char false --no-verify --include-runtime`. UTF-16 character representation is explicit; generated-code translation still skips verification for the full evolving source tree. A separate CI verification step verifies a selected scanner tranche against the original source with Dafny 4.11.0's legacy `/compileTarget:js /compile:0` verifier options, so the JS-only `{:nativeType "number"}` declarations remain present. CI pins Z3 4.16.0 by the SHA-256 of its official release archive because Dafny's NuGet package does not include Z3. `translate` emits JavaScript without running its generic runtime, which keeps the compiler's BigNumber helper out of the build and avoids adding a runtime dependency. Run `pnpm dafny:generate` with `dafny` 4.11.0 available on `PATH`, or set `DAFNY` to the compiler executable. `pnpm dafny:check` also compares the regenerated artifact byte-for-byte and runs the output-boundary mutation tests.
+The shared Dafny implementation modules live in `src/dafny/core/`: `Native.dfy`,
+`TagValues.dfy`, `Engine.dfy`, and `Serializer.dfy`. This is a source-organization
+boundary; it does not claim complete public-surface contracts. TypeScript host
+bindings, diagnostics, the bridge, and generated output remain under `src/dafny/`.
+
+The checked-in `src/dafny/generated/engine.js` is produced from those sources with
+the official Dafny 4.11.0 compiler using
+`translate js --unicode-char false --no-verify --include-runtime`. UTF-16 character
+representation is explicit; generated-code translation still skips verification
+for the full evolving source tree. A separate CI verification step verifies a
+selected scanner tranche against the original source with Dafny 4.11.0's legacy
+`/compileTarget:js /compile:0` verifier options, so the JS-only
+`{:nativeType "number"}` declarations remain present. CI pins Z3 4.16.0 by the
+SHA-256 of its official release archive because Dafny's NuGet package does not
+include Z3. `translate` emits JavaScript without running its generic runtime,
+which keeps the compiler's BigNumber helper out of the build and avoids adding a
+runtime dependency. Run `pnpm dafny:generate` with `dafny` 4.11.0 available on
+`PATH`, or set `DAFNY` to the compiler executable. `pnpm dafny:check` also compares
+the regenerated artifact byte-for-byte and runs the output-boundary mutation
+tests.
 
 CI installs the exact [`Dafny` 4.11.0 NuGet tool](https://www.nuget.org/packages/Dafny/4.11.0) from the official NuGet v3 feed with .NET SDK 8.0.408. This pins the published package version and source feed; the tool bootstrap itself is not covered by the JavaScript lockfile. The generator verifies the compiler-reported version, and the generated header records a SHA-256 digest of every Dafny source file in compilation order.
 

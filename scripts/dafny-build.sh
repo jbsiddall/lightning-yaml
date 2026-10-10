@@ -18,5 +18,5 @@ trap 'rm -rf "$temporary"' EXIT
 cd "$repo_root"
 "$compiler" translate js --unicode-char false --no-verify --include-runtime \
   --output "$temporary/Native.js" \
-  src/dafny/Native.dfy src/dafny/TagValues.dfy src/dafny/Engine.dfy src/dafny/Serializer.dfy
+  src/dafny/core/Native.dfy src/dafny/core/TagValues.dfy src/dafny/core/Engine.dfy src/dafny/core/Serializer.dfy
 node scripts/build-dafny.cjs "$@" --input "$temporary/Native.js"

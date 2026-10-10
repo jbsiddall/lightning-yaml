@@ -9,7 +9,7 @@ const { isPinnedDafnyVersion } = require('./dafny-version.cjs');
 const root = resolve(dirname(__filename), '..');
 const dafny = process.env.DAFNY || 'dafny';
 const z3 = process.env.DAFNY_Z3 || 'z3';
-const enginePath = resolve(process.env.DAFNY_SCANNER_ENGINE || join(root, 'src/dafny/Engine.dfy'));
+const enginePath = resolve(process.env.DAFNY_SCANNER_ENGINE || join(root, 'src/dafny/core/Engine.dfy'));
 const outputRoot = resolve(process.env.DAFNY_SCANNER_PROOF_OUTPUT || join(root, 'results/dafny-scanner-proof'));
 const output = join(outputRoot, `run-${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}`);
 const methods = [
@@ -442,10 +442,10 @@ try {
   );
 
   const inputs = [
-    join(root, 'src/dafny/Native.dfy'),
-    join(root, 'src/dafny/TagValues.dfy'),
+    join(root, 'src/dafny/core/Native.dfy'),
+    join(root, 'src/dafny/core/TagValues.dfy'),
     enginePath,
-    join(root, 'src/dafny/Serializer.dfy'),
+    join(root, 'src/dafny/core/Serializer.dfy'),
   ];
   const selected = [];
   for (const [index, group] of verificationGroups.entries()) {
@@ -530,9 +530,9 @@ try {
     const check = checkMutationLog(mutationLog, mutationOutput, mutation.symbol);
     mutationChecks.push({ mutationId, mutation: mutation.label, outcome: 'rejected as expected', ...check });
   }
-  const sourceFiles = ['src/dafny/Native.dfy', 'src/dafny/TagValues.dfy', 'src/dafny/Serializer.dfy'];
+  const sourceFiles = ['src/dafny/core/Native.dfy', 'src/dafny/core/TagValues.dfy', 'src/dafny/core/Serializer.dfy'];
   const sourceHashes = Object.fromEntries(sourceFiles.map((file) => [file, sha256(readFileSync(join(root, file)))]));
-  sourceHashes['src/dafny/Engine.dfy'] = sha256(readFileSync(enginePath));
+  sourceHashes['src/dafny/core/Engine.dfy'] = sha256(readFileSync(enginePath));
   const generatedRuntime = readFileSync(join(root, 'src/dafny/generated/engine.js'));
   const runtimeHeader = generatedRuntime.toString('utf8').match(/^\/\/ Sources sha256 ([0-9a-f]{64});/m);
   const verifierPath = realpathSync(dafny.includes('/') ? dafny : spawnSync('which', [dafny], { encoding: 'utf8' }).stdout.trim());

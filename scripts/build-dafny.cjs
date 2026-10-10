@@ -8,10 +8,10 @@ const ts = require('typescript');
 const ROOT = path.resolve(__dirname, '..');
 const COMPILER_VERSION = '4.11.0';
 const SOURCES = [
-  'src/dafny/Native.dfy',
-  'src/dafny/TagValues.dfy',
-  'src/dafny/Engine.dfy',
-  'src/dafny/Serializer.dfy',
+  'src/dafny/core/Native.dfy',
+  'src/dafny/core/TagValues.dfy',
+  'src/dafny/core/Engine.dfy',
+  'src/dafny/core/Serializer.dfy',
 ];
 const OUTPUT = 'src/dafny/generated/engine.js';
 const MODULES = new Set(['TagValues', 'DafnyCore', 'Serializer']);
