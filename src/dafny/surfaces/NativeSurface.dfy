@@ -78,8 +78,8 @@ module NativeSurface {
       if !SurfaceHost.IsNullish(options, world, optionsHandle) {
         var firstOptimizationsRead, firstOptimizationsEvent := SurfaceHost.ReadProperty(
           options, "optimizations", engine, engine.tagHelpers, writer, world, optionsHandle);
-        events := events + [firstOptimizationsEvent];
         firstHistory := [firstOptimizationsEvent];
+        events := firstHistory;
         if SurfaceHost.CompletionIsThrown(firstOptimizationsRead) {
           completion := firstOptimizationsRead;
           normalized := M.NormalizationFailure(firstOptimizationsEvent.outcome.value);
@@ -95,9 +95,9 @@ module NativeSurface {
           var internStringsRead, internStringsEvent := SurfaceHost.ReadProperty(
             firstOptimizations, "internStrings", engine, engine.tagHelpers, writer,
             world, firstOptimizationsHandle);
-          events := events + [internStringsEvent];
           internEvents := internEvents + [internStringsEvent];
           internHistory := [internStringsEvent];
+          events := firstHistory + internHistory;
           if SurfaceHost.CompletionIsThrown(internStringsRead) {
             completion := internStringsRead;
             normalized := M.NormalizationFailure(internStringsEvent.outcome.value);
@@ -118,8 +118,8 @@ module NativeSurface {
 
         var strictRead, strictEvent := SurfaceHost.ReadProperty(
           options, "strict", engine, engine.tagHelpers, writer, world, optionsHandle);
-        events := events + [strictEvent];
         strictHistory := [strictEvent];
+        events := firstHistory + internHistory + strictHistory;
         if SurfaceHost.CompletionIsThrown(strictRead) {
           completion := strictRead;
           normalized := M.NormalizationFailure(strictEvent.outcome.value);
@@ -150,8 +150,8 @@ module NativeSurface {
 
         var secondOptimizationsRead, secondOptimizationsEvent := SurfaceHost.ReadProperty(
           options, "optimizations", engine, engine.tagHelpers, writer, world, optionsHandle);
-        events := events + [secondOptimizationsEvent];
         secondHistory := [secondOptimizationsEvent];
+        events := firstHistory + internHistory + strictHistory + secondHistory;
         if SurfaceHost.CompletionIsThrown(secondOptimizationsRead) {
           completion := secondOptimizationsRead;
           normalized := M.NormalizationFailure(secondOptimizationsEvent.outcome.value);
@@ -192,8 +192,9 @@ module NativeSurface {
           var budgetRead, budgetEvent := SurfaceHost.ReadProperty(
             secondOptimizations, "keyCacheMaxKb", engine, engine.tagHelpers, writer,
             world, secondOptimizationsHandle);
-          events := events + [budgetEvent];
           budgetHistory := [budgetEvent];
+          events := firstHistory + internHistory + strictHistory +
+            secondHistory + budgetHistory;
           if SurfaceHost.CompletionIsThrown(budgetRead) {
             completion := budgetRead;
             normalized := M.NormalizationFailure(budgetEvent.outcome.value);
@@ -247,14 +248,13 @@ module NativeSurface {
       var multiplied, multiplyEvent := SurfaceHost.MultiplyBy1024(
         keyCacheBudgetValue, engine, engine.tagHelpers, writer, world,
         keyCacheBudgetHandle, useDefault);
-      events := events + [multiplyEvent];
+      events := firstHistory + internHistory + strictHistory +
+        secondHistory + budgetHistory + [multiplyEvent];
       if SurfaceHost.CompletionIsThrown(multiplied) {
         completion := multiplied;
         normalized := M.NormalizationFailure(multiplyEvent.outcome.value);
         assert F.PrefixFacts(world.values,optionsHandle,undefinedHandle,
           firstHistory,internHistory,strictHistory,secondHistory,budgetHistory);
-        assert events == firstHistory+internHistory+strictHistory+
-          secondHistory+budgetHistory+[multiplyEvent];
         F.Complete(world.values,optionsHandle,undefinedHandle,
           firstHistory,internHistory,strictHistory,secondHistory,budgetHistory,
           multiplyEvent,normalized);
@@ -268,8 +268,6 @@ module NativeSurface {
       normalized := ready;
       assert F.PrefixFacts(world.values,optionsHandle,undefinedHandle,
         firstHistory,internHistory,strictHistory,secondHistory,budgetHistory);
-      assert events == firstHistory+internHistory+strictHistory+
-        secondHistory+budgetHistory+[multiplyEvent];
       F.Complete(world.values,optionsHandle,undefinedHandle,
         firstHistory,internHistory,strictHistory,secondHistory,budgetHistory,
         multiplyEvent,normalized);
