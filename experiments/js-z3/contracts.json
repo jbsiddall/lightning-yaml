@@ -1,0 +1,15 @@
+{
+  "exampleRoot": "./examples",
+  "claims": [
+    { "name": "yaml-hex-escape", "file": "main.mjs", "export": "yamlEscapeValue", "params": [{"name":"highCode","type":"number"},{"name":"lowCode","type":"number"}], "args": [52,49], "expected": 65 },
+    { "name": "add-two-equivalence", "file": "offsets.mjs", "export": "addTwoForward", "params": [{"name":"value","type":"number"}], "equivalentTo": "addTwoReverse" },
+    { "name": "cursor-termination", "file": "cursor.mjs", "export": "advanceToEnd", "params": [{"name":"start","type":"number"},{"name":"end","type":"number"}], "requires": {"op":"and","args":[{"op":"ge","args":[{"var":"start"},{"const":0}]},{"op":"le","args":[{"var":"start"},{"var":"end"}]},{"op":"le","args":[{"var":"end"},{"const":9007199254740991}]}]}, "ensures": {"op":"eq","args":[{"var":"result"},{"var":"end"}] }
+    }
+  ],
+  "loops": {
+    "advanceToEnd:0": {
+      "invariant": {"op":"and","args":[{"op":"ge","args":[{"var":"cursor"},{"var":"start"}]},{"op":"le","args":[{"var":"cursor"},{"var":"end"}]}]},
+      "decreases": {"op":"sub","args":[{"var":"end"},{"var":"cursor"}]}
+    }
+  }
+}
