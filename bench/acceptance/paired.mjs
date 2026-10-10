@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { assertExactRows } from "./rowset.mjs";
 import { builtProfileKeys, sourceProfileKeys } from "./profile-workloads.mjs";
+import { acceptanceScopeDetails, acceptanceStatus, classifyOverThreshold, parseAcceptanceScope } from "./scope.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TOOL_ROOT = resolve(HERE, "../..");
@@ -53,9 +54,9 @@ function parseArgs(values) {
 
 function usage() {
   console.log(`Usage:
-  node bench/acceptance/paired.mjs plan --baseline ROOT --candidate ROOT [--runs 7] [--out DIR]
+  node bench/acceptance/paired.mjs plan --baseline ROOT --candidate ROOT [--runs 7] [--out DIR] [--acceptance all|cpu-memory]
   node --import tsx bench/acceptance/paired.mjs preflight --baseline ROOT --candidate ROOT
-  LY_PERF_AUTHORIZED=YES node bench/acceptance/paired.mjs measure --baseline ROOT --candidate ROOT [--runs 7] [--out DIR]
+  LY_PERF_AUTHORIZED=YES node bench/acceptance/paired.mjs measure --baseline ROOT --candidate ROOT [--runs 7] [--out DIR] [--acceptance all|cpu-memory]
 
 `);
 }
@@ -207,6 +208,20 @@ function median(values) {
   return xs.length % 2 ? xs[mid] : (xs[mid - 1] + xs[mid]) / 2;
 }
 
+function collectionRows(runs) {
+  return {
+    scope: "full collection for every acceptance scope",
+    speedRowsPerSide: fixtureNamesExpected.length * 2,
+    sourceProfileRowsPerSide: sourceProfileKeys().length,
+    builtProfileRowsPerSide: builtProfileKeys().length,
+    memoryRowsPerSide: fixtureNamesExpected.length * 2,
+    memoryIterationsPerSample: 25,
+    startupFormatsPerSidePerRun: ["esm", "cjs"],
+    bundleMatrixPerSide: ["bun", "deno", "rolldown", "vite", "webpack"],
+    rounds: runs,
+  };
+}
+
 function percentile(values, p) {
   const xs = [...values].sort((a, b) => a - b);
   if (xs.length === 1) return xs[0];
@@ -276,6 +291,7 @@ async function main() {
   if (!mode || mode === "--help") return usage();
   const opts = parseArgs(args);
   if (opts.help) return usage();
+  const acceptance = acceptanceScopeDetails(parseAcceptanceScope(opts.acceptance));
   const baseline = resolve(opts.baseline ?? "");
   const candidate = resolve(opts.candidate ?? "");
   assert.ok(opts.baseline && opts.candidate, "--baseline and --candidate are required");
@@ -286,7 +302,7 @@ async function main() {
 
   if (mode === "plan") {
     const inputs = validateInputs(baseline, candidate);
-    console.log(JSON.stringify({ mode, runs, outDir, inputs, schedule: ["semantic preflight", "build outputs", "built ESM/CJS semantic preflight", "7 × rotated full speed matrix", "7 × rotated facade/option/diagnostic profiles", "7 × rotated built ESM/CJS warm-facade profiles", "7 × rotated 25-iteration memory matrix", "7 × fresh ESM/CJS import pairs", "one sequential bundle-size matrix per tree", "paired row validation and summary"], cpuBenchmarksRun: false }, null, 2));
+    console.log(JSON.stringify({ mode, runs, outDir, acceptance, collectionRows: collectionRows(runs), inputs, schedule: ["semantic preflight", "build outputs", "built ESM/CJS semantic preflight", `${runs} × rotated full speed matrix`, `${runs} × rotated facade/option/diagnostic profiles`, `${runs} × rotated built ESM/CJS warm-facade profiles`, `${runs} × rotated 25-iteration memory matrix`, `${runs} × fresh ESM/CJS import pairs`, "one sequential bundle-size matrix per tree", "paired row validation and summary"], cpuBenchmarksRun: false }, null, 2));
     return;
   }
   if (mode === "preflight") {
@@ -304,7 +320,7 @@ async function main() {
   mkdirSync(outDir, { recursive: true });
   ensureCandidateFixtures(candidate, baseline);
   ensureCandidateBundleToolchain(candidate, baseline);
-  writeFileSync(join(outDir, "input-manifest.json"), `${JSON.stringify({ startedAt: new Date().toISOString(), runs, inputs, acceptanceHarnessSha256: inputs.acceptanceHarnessSha256, sourceProfileKeys: sourceProfileKeys(), builtProfileKeys: builtProfileKeys() }, null, 2)}\n`);
+  writeFileSync(join(outDir, "input-manifest.json"), `${JSON.stringify({ startedAt: new Date().toISOString(), runs, acceptance, collectionRows: collectionRows(runs), inputs, acceptanceHarnessSha256: inputs.acceptanceHarnessSha256, sourceProfileKeys: sourceProfileKeys(), builtProfileKeys: builtProfileKeys() }, null, 2)}\n`);
 
   const preflight = runSample(sampleCommand(TOOL_ROOT, join(HERE, "preflight.mjs"), [baseline, candidate]));
   writeFileSync(join(outDir, "preflight.log"), preflight.stdout + preflight.stderr);
@@ -471,16 +487,16 @@ async function main() {
     const pairs = base.map((v, i) => ({ base: v, candidate: cand[i] }));
     startupSummary.push({ format: kind, baselineMedianNs: median(base), candidateMedianNs: median(cand), ...ratiosFromPairs(pairs) });
   }
-  const summary = { generatedAt: new Date().toISOString(), runs, threshold: 1.15, speed: speedSummary, profiles: profileSummary, memory: memorySummary, startup: startupSummary, bundle: bundleSummary, bundleVersions: { baseline: bundleDocs.baseline.env.bundlers, candidate: bundleDocs.candidate.env.bundlers } };
-  const misses = [];
-  for (const row of speedSummary) if (row.medianRatio > 1.15) misses.push({ metric: "time", ...row });
-  for (const row of profileSummary) if (row.medianRatio > 1.15) misses.push({ metric: "facade-profile-time", ...row });
-  for (const row of memorySummary) if (row.peakRss.medianRatio > 1.15) misses.push({ metric: "peak-rss", ...row });
+  const summary = { generatedAt: new Date().toISOString(), runs, threshold: 1.15, acceptanceScope: acceptance, collectionRows: collectionRows(runs), speed: speedSummary, profiles: profileSummary, memory: memorySummary, startup: startupSummary, bundle: bundleSummary, bundleVersions: { baseline: bundleDocs.baseline.env.bundlers, candidate: bundleDocs.candidate.env.bundlers } };
+  const allMisses = [];
+  for (const row of speedSummary) if (row.medianRatio > 1.15) allMisses.push({ metric: "time", ...row });
+  for (const row of profileSummary) if (row.medianRatio > 1.15) allMisses.push({ metric: "facade-profile-time", ...row });
+  for (const row of memorySummary) if (row.peakRss.medianRatio > 1.15) allMisses.push({ metric: "peak-rss", ...row });
   for (const row of memorySummary) {
-    if (typeof row.heapRatio === "object" && row.heapRatio.medianRatio > 1.15) misses.push({ metric: "retained-heap", ...row });
+    if (typeof row.heapRatio === "object" && row.heapRatio.medianRatio > 1.15) allMisses.push({ metric: "retained-heap", ...row });
   }
-  for (const row of startupSummary) if (row.medianRatio > 1.15) misses.push({ metric: "cold-import", ...row });
-  for (const row of bundleSummary) if (row.candidateGzip / row.baselineGzip > 1.15) misses.push({ metric: "gzip-size", ...row, medianRatio: row.candidateGzip / row.baselineGzip });
+  for (const row of startupSummary) if (row.medianRatio > 1.15) allMisses.push({ metric: "cold-import", ...row });
+  for (const row of bundleSummary) if (row.candidateGzip / row.baselineGzip > 1.15) allMisses.push({ metric: "gzip-size", ...row, medianRatio: row.candidateGzip / row.baselineGzip });
 
   const finalInputs = validateInputs(baseline, candidate);
   for (const side of ["baseline", "candidate"]) {
@@ -496,11 +512,14 @@ async function main() {
   };
   assert.deepEqual(finalBuiltArtifacts, builtArtifacts, "built dist artifacts changed during measurement");
   summary.finalIntegrityCheck = { sourceTreesUnchanged: true, builtArtifactsUnchanged: true, acceptanceHarnessSha256: inputs.acceptanceHarnessSha256 };
-  summary.over15Percent = misses;
-  summary.acceptance = misses.length === 0 ? "pass" : "fail: investigate every over-threshold row; no aggregate score substitutes for row-level review";
+  const classifiedMisses = classifyOverThreshold(allMisses, acceptance.name);
+  summary.over15Percent = classifiedMisses.over15Percent;
+  summary.informationalOver15Percent = classifiedMisses.informationalOver15Percent;
+  summary.allOver15Percent = classifiedMisses.allOver15Percent;
+  summary.acceptance = acceptanceStatus(acceptance.name, summary.over15Percent);
   writeFileSync(join(outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
   writeFileSync(join(outDir, "environment.json"), `${JSON.stringify({ generatedAt: new Date().toISOString(), ...inputs }, null, 2)}\n`);
-  console.log(JSON.stringify({ outDir, acceptance: summary.acceptance, over15PercentRows: misses.length, rows: { speed: speedSummary.length, profiles: profileSummary.length, memory: memorySummary.length, startup: startupSummary.length, bundle: bundleSummary.length } }, null, 2));
+  console.log(JSON.stringify({ outDir, acceptance: summary.acceptance, acceptanceScope: acceptance.name, over15PercentRows: summary.over15Percent.length, informationalOver15PercentRows: summary.informationalOver15Percent.length, allOver15PercentRows: summary.allOver15Percent.length, rows: { speed: speedSummary.length, profiles: profileSummary.length, memory: memorySummary.length, startup: startupSummary.length, bundle: bundleSummary.length } }, null, 2));
 }
 
 main().catch((error) => {
