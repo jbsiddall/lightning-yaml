@@ -1,0 +1,435 @@
+#!/usr/bin/env node
+
+const { createHash } = require('node:crypto');
+const { spawnSync } = require('node:child_process');
+const { mkdirSync, readFileSync, realpathSync, writeFileSync } = require('node:fs');
+const { dirname, join, resolve } = require('node:path');
+
+const root = resolve(dirname(__filename), '..');
+const dafny = process.env.DAFNY || 'dafny';
+const z3 = process.env.DAFNY_Z3 || 'z3';
+const enginePath = resolve(process.env.DAFNY_SCANNER_ENGINE || join(root, 'src/dafny/Engine.dfy'));
+const outputRoot = resolve(process.env.DAFNY_SCANNER_PROOF_OUTPUT || join(root, 'results/dafny-scanner-proof'));
+const output = join(outputRoot, `run-${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}`);
+const methods = [
+  'FlowSeparatorAt',
+  'ScanFlowPlainLine',
+  'TrimTrailingWs',
+  'SkipInlineSpaces',
+];
+const dependencies = [
+  'FlowIndicator',
+  'InlineWs',
+  'LineBreak',
+  'FlowDelimiter',
+  'SeparatorChar',
+  'SeparatorAt',
+  'PlainStop',
+  'PlainPrefix',
+  'FirstPlainStop',
+  'WsRange',
+  'TrimmedEnd',
+  'FirstNonInlineWs',
+  'CharFlowDelimiter',
+  'PrefixExtend',
+  'WsRangeExtendLeft',
+];
+const expectedKinds = {
+  FlowSeparatorAt: ['well-formedness', 'correctness'],
+  ScanFlowPlainLine: ['well-formedness', 'correctness'],
+  TrimTrailingWs: ['well-formedness', 'correctness'],
+  SkipInlineSpaces: ['well-formedness', 'correctness'],
+  FlowIndicator: ['well-formedness'],
+  InlineWs: [],
+  LineBreak: [],
+  FlowDelimiter: [],
+  SeparatorChar: [],
+  SeparatorAt: ['well-formedness'],
+  PlainStop: ['well-formedness'],
+  PlainPrefix: ['well-formedness'],
+  FirstPlainStop: ['well-formedness'],
+  WsRange: ['well-formedness'],
+  TrimmedEnd: ['well-formedness'],
+  FirstNonInlineWs: ['well-formedness'],
+  CharFlowDelimiter: ['well-formedness', 'correctness'],
+  PrefixExtend: ['well-formedness', 'correctness'],
+  WsRangeExtendLeft: ['well-formedness', 'correctness'],
+};
+const verificationGroups = [
+  { names: ['FlowSeparatorAt', 'SeparatorAt'], pattern: '*SeparatorAt*' },
+  ...methods.filter((name) => name !== 'FlowSeparatorAt').map((name) => ({ names: [name], pattern: `*${name}*` })),
+  { names: ['FlowIndicator'], pattern: '*FlowIndicator*' },
+  { names: ['InlineWs', 'FirstNonInlineWs'], pattern: '*InlineWs*' },
+  { names: ['LineBreak'], pattern: '*LineBreak*' },
+  { names: ['FlowDelimiter', 'CharFlowDelimiter'], pattern: '*FlowDelimiter*' },
+  { names: ['SeparatorChar'], pattern: '*SeparatorChar*' },
+  { names: ['PlainStop', 'FirstPlainStop'], pattern: '*PlainStop*' },
+  { names: ['PlainPrefix'], pattern: '*PlainPrefix*' },
+  { names: ['WsRange', 'WsRangeExtendLeft'], pattern: '*WsRange*' },
+  { names: ['TrimmedEnd'], pattern: '*TrimmedEnd*' },
+  { names: ['PrefixExtend'], pattern: '*PrefixExtend*' },
+];
+
+function sha256(bytes) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i += 1;
+      } else if (c === '"') {
+        quoted = false;
+      } else {
+        cell += c;
+      }
+    } else if (c === '"' && cell.length === 0) {
+      quoted = true;
+    } else if (c === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (c === '\n') {
+      row.push(cell.replace(/\r$/, ''));
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += c;
+    }
+  }
+  if (cell.length || row.length) {
+    row.push(cell.replace(/\r$/, ''));
+    rows.push(row);
+  }
+  if (!rows.length) throw new Error('Dafny CSV log is empty');
+  const headers = rows.shift();
+  return rows.filter((cells) => cells.length).map((cells) => Object.fromEntries(headers.map((header, i) => [header, cells[i] ?? ''])));
+}
+
+function run(args, options = {}, executable = dafny) {
+  const result = spawnSync(executable, args, {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 90_000,
+    maxBuffer: 4 * 1024 * 1024,
+    ...options,
+  });
+  if (result.error && (result.status !== 0 || (!result.stdout && !result.stderr))) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`Dafny exited ${result.status ?? 'without an exit code'}\n${result.stdout}\n${result.stderr}`);
+  }
+  return `${result.stdout}\n${result.stderr}`;
+}
+
+function runExpectedVerificationFailure(args) {
+  const result = spawnSync(dafny, args, {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 90_000,
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  if (result.error && (result.status !== 4 || (!result.stdout && !result.stderr))) throw result.error;
+  if (result.status !== 4) throw new Error(`Expected a selected verification failure, got exit ${result.status}:\n${result.stdout}\n${result.stderr}`);
+  return `${result.stdout}\n${result.stderr}`;
+}
+
+function recordSelection(csvPath, consoleLog, names, pattern) {
+  const expectedRows = names.reduce((count, name) => count + expectedKinds[name].length, 0);
+  let rows = [];
+  try {
+    const csv = readFileSync(csvPath, 'utf8');
+    rows = csv.trim() ? parseCsv(csv) : [];
+  } catch (error) {
+    if (error.code !== 'ENOENT' || expectedRows !== 0) throw error;
+  }
+  const parsed = rows.map((row) => {
+    const match = row['TestResult.DisplayName'].match(/^(.*?) \(([^()]*)\)$/);
+    if (!match) throw new Error(`Malformed Dafny result symbol: ${row['TestResult.DisplayName']}`);
+    return { row, name: match[1], kind: match[2] };
+  });
+  const expectedNames = new Set(names.map((name) => `DafnyCore.Engine.${name}`));
+  if (parsed.some(({ name }) => !expectedNames.has(name))) throw new Error(`CSV contains an unexpected selected symbol: ${parsed.map(({ name }) => name).join(', ')}`);
+  if (parsed.some(({ row }) => row['TestResult.Outcome'] !== 'Passed')) {
+    throw new Error('A selected verification result is not Passed');
+  }
+  for (const name of names) {
+    const fullName = `DafnyCore.Engine.${name}`;
+    const symbolRows = parsed.filter((entry) => entry.name === fullName);
+    if (new Set(symbolRows.map((entry) => entry.kind)).size !== symbolRows.length) throw new Error(`${name}: duplicate verification result row`);
+    const observedKinds = symbolRows.map((entry) => entry.kind).sort();
+    const expected = [...expectedKinds[name]].sort();
+    if (JSON.stringify(observedKinds) !== JSON.stringify(expected)) {
+      throw new Error(`${name}: expected result kinds ${expected.join(',') || '(no proof obligations)'}, observed ${observedKinds.join(',') || '(none)'}`);
+    }
+  }
+  const summary = consoleLog.match(/Dafny program verifier finished with (\d+) verified, (\d+) errors?/);
+  const count = Number(summary?.[1]);
+  const errors = Number(summary?.[2]);
+  if (!Number.isInteger(count) || errors !== 0 || count !== parsed.length || count === 0) {
+    if (!(summary && expectedRows === 0 && count === 0 && errors === 0 && parsed.length === 0)) {
+      throw new Error(`Verifier summary for ${pattern} does not match selected CSV rows (${count} verified, ${errors} errors, ${parsed.length} rows)`);
+    }
+  }
+  return names.map((name) => {
+    const fullName = `DafnyCore.Engine.${name}`;
+    const found = parsed.filter((entry) => entry.name === fullName);
+    return {
+      name: fullName,
+      status: expectedKinds[name].length ? 'verified' : 'no-verification-conditions',
+      procedureFilters: [`/proc:${pattern}`],
+      proofObligations: found.map(({ row, kind }) => ({
+        kind,
+        outcome: row['TestResult.Outcome'],
+        duration: row['TestResult.Duration'],
+        resourceCount: Number(row['TestResult.ResourceCount']),
+      })),
+      log: resolve(csvPath),
+    };
+  });
+}
+
+function methodSection(source, name) {
+  const start = source.indexOf(`method ${name}(`);
+  if (start < 0) throw new Error(`Method not found: ${name}`);
+  const body = source.indexOf('\n    {', start);
+  if (body < 0) throw new Error(`Method body not found: ${name}`);
+  return source.slice(start, body).replace(/\s+/g, ' ');
+}
+
+function requireContracts(source) {
+  const expected = {
+    FlowSeparatorAt: [
+      'requires i as int <= len as int',
+      'requires len as int == |src|',
+      'ensures yes == SeparatorAt(src, i as int)',
+    ],
+    ScanFlowPlainLine: [
+      'requires from as int <= len as int',
+      'requires len as int == |src|',
+      'ensures FirstPlainStop(src, from as int, p as int)',
+    ],
+    TrimTrailingWs: [
+      'requires from <= end && end <= len',
+      'requires len as int == |src|',
+      'ensures TrimmedEnd(src, from as int, end as int, p as int)',
+    ],
+    SkipInlineSpaces: [
+      'requires len as int == |src|',
+      'requires pos <= len',
+      'modifies this`pos',
+      'ensures old(pos) <= pos <= len',
+      'ensures FirstNonInlineWs(src, old(pos) as int, pos as int)',
+    ],
+  };
+  for (const [name, clauses] of Object.entries(expected)) {
+    const section = methodSection(source, name);
+    for (const clause of clauses) {
+      if (!section.includes(clause)) throw new Error(`${name}: required contract missing: ${clause}`);
+    }
+  }
+  for (const [name, invariant] of [
+    ['ScanFlowPlainLine', 'invariant PlainPrefix(src, from as int, p as int)'],
+    ['TrimTrailingWs', 'invariant WsRange(src, p as int, end as int)'],
+    ['SkipInlineSpaces', 'invariant WsRange(src, begin as int, pos as int)'],
+  ]) {
+    const start = source.indexOf(`method ${name}(`);
+    const next = source.indexOf('\n    method ', start + 1);
+    const section = source.slice(start, next < 0 ? source.length : next).replace(/\s+/g, ' ');
+    if (!section.includes(invariant)) throw new Error(`${name}: required loop invariant missing: ${invariant}`);
+  }
+  const ghostDefinitions = [
+    "ghost predicate InlineWs(c: char) reads {} { c == ' ' || c == '\\t' }",
+    "ghost predicate LineBreak(c: char) reads {} { c == '\\n' || c == '\\r' }",
+    "ghost predicate FlowDelimiter(c: char) reads {} { c == ',' || c == '[' || c == ']' || c == '{' || c == '}' }",
+    'ghost predicate SeparatorChar(c: char) reads {} { InlineWs(c) || LineBreak(c) || FlowDelimiter(c) }',
+    'ghost predicate SeparatorAt(s: string, i: int) reads {} requires 0 <= i <= |s| { i == |s| || SeparatorChar(s[i]) }',
+    'ghost predicate PlainStop(s: string, start: int, i: int) reads {} requires 0 <= start <= i < |s| { FlowDelimiter(s[i]) || LineBreak(s[i]) || (s[i] == \':\' && SeparatorAt(s, i + 1)) || (s[i] == \'#\' && start < i && InlineWs(s[i - 1])) }',
+    'ghost predicate PlainPrefix(s: string, start: int, end: int) reads {} requires 0 <= start <= end <= |s| { forall k: int | start <= k < end :: !PlainStop(s, start, k) }',
+    'ghost predicate FirstPlainStop(s: string, start: int, end: int) reads {} requires 0 <= start <= end <= |s| { PlainPrefix(s, start, end) && (end == |s| || PlainStop(s, start, end)) }',
+    'ghost predicate WsRange(s: string, start: int, end: int) reads {} requires 0 <= start <= end <= |s| { forall k: int | start <= k < end :: InlineWs(s[k]) }',
+    'ghost predicate TrimmedEnd(s: string, from: int, end: int, p: int) reads {} requires 0 <= from <= p <= end <= |s| { WsRange(s, p, end) && (p == from || !InlineWs(s[p - 1])) }',
+    'ghost predicate FirstNonInlineWs(s: string, from: int, p: int) reads {} requires 0 <= from <= p <= |s| { WsRange(s, from, p) && (p == |s| || !InlineWs(s[p])) }',
+    'lemma CharFlowDelimiter(c: char) ensures FlowDelimiter(c) == FlowIndicator(c as Unit)',
+    'lemma PrefixExtend(s: string, start: int, p: int) requires 0 <= start <= p < |s| requires PlainPrefix(s, start, p) && !PlainStop(s, start, p) ensures PlainPrefix(s, start, p + 1)',
+    'lemma WsRangeExtendLeft(s: string, from: int, p: int, end: int) requires 0 <= from < p <= end <= |s| requires WsRange(s, p, end) && InlineWs(s[p - 1]) ensures WsRange(s, p - 1, end)',
+  ];
+  const normalized = source.replace(/\s+/g, ' ');
+  for (const fragment of ghostDefinitions) {
+    if (!normalized.includes(fragment)) throw new Error(`Scanner specification definition changed or weakened: ${fragment}`);
+  }
+}
+
+function checkMutationLog(logPath, consoleLog, expectedSymbol) {
+  const rows = parseCsv(readFileSync(logPath, 'utf8'));
+  const fullName = `DafnyCore.Engine.${expectedSymbol}`;
+  if (rows.length !== 2 || rows.some((row) => !row['TestResult.DisplayName'].startsWith(`${fullName} (`))) {
+    throw new Error(`${expectedSymbol} mutation: verifier did not report exactly its two selected obligations`);
+  }
+  const outcomes = Object.fromEntries(rows.map((row) => [row['TestResult.DisplayName'].slice(fullName.length + 2, -1), row['TestResult.Outcome']]));
+  if (outcomes['well-formedness'] !== 'Passed' || outcomes.correctness !== 'Failed') {
+    throw new Error(`${expectedSymbol} mutation: expected well-formedness Passed and correctness Failed`);
+  }
+  const summary = consoleLog.match(/Dafny program verifier finished with (\d+) verified, (\d+) errors?/);
+  if (!summary || Number(summary[2]) !== 1 || Number(summary[1]) !== 1) {
+    throw new Error(`${expectedSymbol} mutation: verifier summary was not 1 verified, 1 error`);
+  }
+  return { symbol: fullName, wellFormedness: 'Passed', correctness: 'Failed as expected', log: resolve(logPath) };
+}
+
+try {
+  mkdirSync(output, { recursive: true });
+  const version = run(['--version']).trim();
+  if (!/(^|\s)4\.11\.0(?:\s|$)/.test(version)) throw new Error(`Dafny 4.11.0 required; got ${version}`);
+  const z3Version = run(['--version'], {}, z3).trim();
+  if (!/^Z3 version 4\.16\.0\b/.test(z3Version)) throw new Error(`Z3 4.16.0 required; got ${z3Version}`);
+  const z3Path = realpathSync(z3.includes('/') ? z3 : spawnSync('which', [z3], { encoding: 'utf8' }).stdout.trim());
+  process.env.PATH = `${dirname(z3Path)}:${process.env.PATH ?? ''}`;
+  const engineText = readFileSync(enginePath, 'utf8');
+  if (/\b(?:assume|admit)\b|\{:axiom\b|\{:verify\s+false\b/.test(engineText)) {
+    throw new Error('Engine.dfy contains an assume/admit/axiom/disabled-verification marker');
+  }
+  for (const name of [...methods, ...dependencies]) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const declaration = new RegExp(`\\b(?:method|lemma|function|ghost\\s+predicate)\\s+${escaped}\\b`);
+    if (!declaration.test(engineText)) throw new Error(`Expected declaration not found: ${name}`);
+  }
+  requireContracts(engineText);
+  const weakTrim = engineText.replace(
+    'ensures TrimmedEnd(src, from as int, end as int, p as int)',
+    'ensures WsRange(src, p as int, end as int)',
+  );
+  if (weakTrim === engineText) throw new Error('TrimmedEnd mutation setup did not change the contract');
+  try {
+    requireContracts(weakTrim);
+    throw new Error('Weak TrimTrailingWs contract unexpectedly passed the contract gate');
+  } catch (error) {
+    if (!String(error.message).includes('TrimTrailingWs: required contract missing')) throw error;
+  }
+
+  const inputs = [
+    join(root, 'src/dafny/Native.dfy'),
+    join(root, 'src/dafny/TagValues.dfy'),
+    enginePath,
+    join(root, 'src/dafny/Serializer.dfy'),
+  ];
+  const selected = [];
+  for (const [index, group] of verificationGroups.entries()) {
+    const groupDir = join(output, `selection-${String(index + 1).padStart(2, '0')}`);
+    mkdirSync(groupDir, { recursive: true });
+    const logPath = join(groupDir, 'selected-symbols.csv');
+    const consoleLog = run([
+      '/unicodeChar:0',
+      '/compileTarget:js',
+      '/compile:0',
+      '/timeLimit:60',
+      `/proverOpt:PROVER_PATH=${z3Path}`,
+      `/verificationLogger:csv;LogFileName=${logPath}`,
+      `/proc:${group.pattern}`,
+      ...inputs,
+    ]);
+    writeFileSync(join(groupDir, 'selected-symbols.stdout.txt'), consoleLog);
+    selected.push(...recordSelection(logPath, consoleLog, group.names, group.pattern));
+  }
+
+  const mutationChecks = [];
+  const mutations = [
+    {
+      symbol: 'ScanFlowPlainLine',
+      label: 'removing the flow-delimiter stopping rule',
+      from: 'if FlowIndicator(c) || c == 10 || c == 13 { break; }',
+      to: 'if c == 10 || c == 13 { break; }',
+    },
+    {
+      symbol: 'SkipInlineSpaces',
+      label: 'removing cursor consumption',
+      from: '        pos := pos + 1;',
+      to: '        // deliberately removed cursor consumption',
+    },
+  ];
+  for (const mutation of mutations) {
+    let mutatedSource = engineText;
+    if (mutation.symbol === 'SkipInlineSpaces') {
+      const start = engineText.indexOf('    method SkipInlineSpaces()');
+      const next = engineText.indexOf('\n    method ', start + 1);
+      const section = engineText.slice(start, next);
+      if (!section.includes(mutation.from)) throw new Error(`${mutation.symbol} mutation setup did not find the increment`);
+      mutatedSource = engineText.slice(0, start) + section.replace(mutation.from, mutation.to) + engineText.slice(next);
+    } else {
+      if (!engineText.includes(mutation.from)) throw new Error(`${mutation.symbol} mutation setup did not find the stopping rule`);
+      mutatedSource = engineText.replace(mutation.from, mutation.to);
+    }
+    const mutationDir = join(output, `mutation-${mutation.symbol}`);
+    mkdirSync(mutationDir, { recursive: true });
+    const mutationSource = join(mutationDir, 'Engine.dfy');
+    const mutationLog = join(mutationDir, 'verification.csv');
+    writeFileSync(mutationSource, mutatedSource);
+    const mutationInputs = inputs.map((file) => file === enginePath ? mutationSource : file);
+    const mutationOutput = runExpectedVerificationFailure([
+      '/unicodeChar:0',
+      '/compileTarget:js',
+      '/compile:0',
+      '/timeLimit:60',
+      `/proverOpt:PROVER_PATH=${z3Path}`,
+      `/verificationLogger:csv;LogFileName=${mutationLog}`,
+      `/proc:*${mutation.symbol}*`,
+      ...mutationInputs,
+    ]);
+    writeFileSync(join(mutationDir, 'verifier.stdout.txt'), mutationOutput);
+    const check = checkMutationLog(mutationLog, mutationOutput, mutation.symbol);
+    mutationChecks.push({ mutation: mutation.label, outcome: 'rejected as expected', ...check });
+  }
+  const sourceFiles = ['src/dafny/Native.dfy', 'src/dafny/TagValues.dfy', 'src/dafny/Serializer.dfy'];
+  const sourceHashes = Object.fromEntries(sourceFiles.map((file) => [file, sha256(readFileSync(join(root, file)))]));
+  sourceHashes['src/dafny/Engine.dfy'] = sha256(readFileSync(enginePath));
+  const generatedRuntime = readFileSync(join(root, 'src/dafny/generated/engine.js'));
+  const runtimeHeader = generatedRuntime.toString('utf8').match(/^\/\/ Sources sha256 ([0-9a-f]{64});/m);
+  const verifierPath = realpathSync(dafny.includes('/') ? dafny : spawnSync('which', [dafny], { encoding: 'utf8' }).stdout.trim());
+  const report = {
+    schemaVersion: 1,
+    compiler: {
+      version,
+      launcherExecutable: verifierPath,
+      launcherExecutableSha256: sha256(readFileSync(verifierPath)),
+      packageTrust: 'CI installs the official NuGet Dafny 4.11.0 package; the launcher hash is not a hash of the full .NET payload.',
+    },
+    solver: { version: z3Version, executable: z3Path, executableSha256: sha256(readFileSync(z3Path)), packageTrust: 'CI pins the official Z3 4.16.0 release archive by SHA-256.' },
+    options: { command: 'legacy Dafny verifier', unicodeChar: false, compileTarget: 'js', compile: false, verificationTimeLimitSeconds: 60, solverOverride: `/proverOpt:PROVER_PATH=${z3Path}`, logFormat: 'csv', selectedProcedurePatterns: verificationGroups.map(({ pattern }) => pattern), noVerify: false },
+    sources: sourceHashes,
+    engineVerifierInput: enginePath,
+    generatedRuntime: { path: 'src/dafny/generated/engine.js', sha256: sha256(generatedRuntime), sourceHeaderSha256: runtimeHeader?.[1] ?? null },
+    verifierNativeSourceTransformation: 'none; original Native.dfy is verified directly under the JavaScript compilation target',
+    verifiedMethods: selected.filter((entry) => methods.some((name) => entry.name.endsWith(`.${name}`))),
+    specificationDependencies: selected.filter((entry) => dependencies.some((name) => entry.name.endsWith(`.${name}`))),
+    mutationChecks: [
+      { mutation: 'weakening TrimTrailingWs maximal-suffix contract', outcome: 'rejected by exact contract inventory' },
+      ...mutationChecks,
+    ],
+    semanticCoverage: 'The four executed scanner methods prove their lexical first-boundary, maximal trailing suffix, and exact consumed-prefix contracts under their stated source and cursor preconditions.',
+    callerConditionsNotProved: ['len as int == |src| at entry', 'entry cursor/span bounds for each caller'],
+    frames: {
+      FlowSeparatorAt: 'empty modifies frame (default)',
+      ScanFlowPlainLine: 'empty modifies frame (default)',
+      TrimTrailingWs: 'empty modifies frame (default)',
+      SkipInlineSpaces: 'modifies this`pos only',
+    },
+    trustedOrUnverified: [
+      'UTF-16 character semantics and Dafny translator/backend behavior.',
+      'Native host functions are not in the selected dependency paths.',
+      'No parser callers are proved to establish the selected preconditions.',
+      'Other Engine, Native, Serializer, and pipeline methods remain unverified.',
+      'This does not establish full YAML semantic equivalence or performance acceptance.',
+    ],
+  };
+  writeFileSync(join(output, 'coverage.json'), `${JSON.stringify(report, null, 2)}\n`);
+  process.stdout.write(`Verified ${methods.length} scanner methods and checked ${dependencies.length} specification dependencies.\nCoverage: ${join(output, 'coverage.json')}\n`);
+} catch (error) {
+  process.stderr.write(`${error.stack ?? error}\n`);
+  process.exitCode = 1;
+}

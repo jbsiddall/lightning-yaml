@@ -98,10 +98,117 @@ module DafnyCore {
       c == 44 || c == 91 || c == 93 || c == 123 || c == 125
     }
 
+    ghost predicate InlineWs(c: char) reads {} {
+      c == ' ' || c == '\t'
+    }
+
+    ghost predicate LineBreak(c: char) reads {} {
+      c == '\n' || c == '\r'
+    }
+
+    ghost predicate FlowDelimiter(c: char) reads {} {
+      c == ',' || c == '[' || c == ']' || c == '{' || c == '}'
+    }
+
+    ghost predicate SeparatorChar(c: char) reads {} {
+      InlineWs(c) || LineBreak(c) || FlowDelimiter(c)
+    }
+
+    ghost predicate SeparatorAt(s: string, i: int) reads {}
+      requires 0 <= i <= |s|
+    {
+      i == |s| || SeparatorChar(s[i])
+    }
+
+    ghost predicate PlainStop(s: string, start: int, i: int) reads {}
+      requires 0 <= start <= i < |s|
+    {
+      FlowDelimiter(s[i]) || LineBreak(s[i]) ||
+      (s[i] == ':' && SeparatorAt(s, i + 1)) ||
+      (s[i] == '#' && start < i && InlineWs(s[i - 1]))
+    }
+
+    ghost predicate PlainPrefix(s: string, start: int, end: int) reads {}
+      requires 0 <= start <= end <= |s|
+    {
+      forall k: int | start <= k < end :: !PlainStop(s, start, k)
+    }
+
+    ghost predicate FirstPlainStop(s: string, start: int, end: int) reads {}
+      requires 0 <= start <= end <= |s|
+    {
+      PlainPrefix(s, start, end) &&
+      (end == |s| || PlainStop(s, start, end))
+    }
+
+    ghost predicate WsRange(s: string, start: int, end: int) reads {}
+      requires 0 <= start <= end <= |s|
+    {
+      forall k: int | start <= k < end :: InlineWs(s[k])
+    }
+
+    ghost predicate TrimmedEnd(s: string, from: int, end: int, p: int) reads {}
+      requires 0 <= from <= p <= end <= |s|
+    {
+      WsRange(s, p, end) && (p == from || !InlineWs(s[p - 1]))
+    }
+
+    ghost predicate FirstNonInlineWs(s: string, from: int, p: int) reads {}
+      requires 0 <= from <= p <= |s|
+    {
+      WsRange(s, from, p) && (p == |s| || !InlineWs(s[p]))
+    }
+
+    lemma CharFlowDelimiter(c: char)
+      ensures FlowDelimiter(c) == FlowIndicator(c as Unit)
+    {
+      assert (c as Unit) == 44 <==> c == ',';
+      assert (c as Unit) == 91 <==> c == '[';
+      assert (c as Unit) == 93 <==> c == ']';
+      assert (c as Unit) == 123 <==> c == '{';
+      assert (c as Unit) == 125 <==> c == '}';
+    }
+
+    lemma PrefixExtend(s: string, start: int, p: int)
+      requires 0 <= start <= p < |s|
+      requires PlainPrefix(s, start, p) && !PlainStop(s, start, p)
+      ensures PlainPrefix(s, start, p + 1)
+    {
+      forall k: int | start <= k < p + 1
+        ensures !PlainStop(s, start, k)
+      {
+        if k < p {
+          assert !PlainStop(s, start, k);
+        } else {
+          assert k == p;
+          assert !PlainStop(s, start, p);
+        }
+      }
+    }
+
+    lemma WsRangeExtendLeft(s: string, from: int, p: int, end: int)
+      requires 0 <= from < p <= end <= |s|
+      requires WsRange(s, p, end) && InlineWs(s[p - 1])
+      ensures WsRange(s, p - 1, end)
+    {
+      forall k: int | p - 1 <= k < end
+        ensures InlineWs(s[k])
+      {
+        if k == p - 1 {
+          assert InlineWs(s[p - 1]);
+        } else {
+          assert p <= k < end;
+          assert InlineWs(s[k]);
+        }
+      }
+    }
+
     function IsDigit(c: Unit): bool { 48 <= c < 58 }
 
     method FlowSeparatorAt(i: Index) returns (yes: bool)
       requires i as int <= len as int
+      requires len as int == |src|
+      ensures yes == SeparatorAt(src, i as int)
     {
       if i == len { yes := true; return; }
       var c := src[i] as Unit;
@@ -110,13 +217,18 @@ module DafnyCore {
 
     method ScanFlowPlainLine(from: Index) returns (p: Index)
       requires from as int <= len as int
+      requires len as int == |src|
       ensures from <= p <= len
+      ensures FirstPlainStop(src, from as int, p as int)
     {
       p := from;
       while p < len
         invariant from <= p <= len
+        invariant PlainPrefix(src, from as int, p as int)
+        decreases (len as int) - (p as int)
       {
         var c := src[p] as Unit;
+        CharFlowDelimiter(src[p]);
         if FlowIndicator(c) || c == 10 || c == 13 { break; }
         if c == 58 {
           if p + 1 == len { break; }
@@ -126,20 +238,26 @@ module DafnyCore {
           var prev := src[p - 1] as Unit;
           if prev == 32 || prev == 9 { break; }
         }
+        PrefixExtend(src, from as int, p as int);
         p := p + 1;
       }
     }
 
     method TrimTrailingWs(from: Index, end: Index) returns (p: Index)
       requires from <= end && end <= len
+      requires len as int == |src|
       ensures from <= p <= end
+      ensures TrimmedEnd(src, from as int, end as int, p as int)
     {
       p := end;
       while p > from
         invariant from <= p <= end
+        invariant WsRange(src, p as int, end as int)
+        decreases (p as int) - (from as int)
       {
         var c := src[p - 1] as Unit;
         if c != 32 && c != 9 { break; }
+        WsRangeExtendLeft(src, from as int, p as int, end as int);
         p := p - 1;
       }
     }
@@ -398,9 +516,17 @@ module DafnyCore {
     }
 
     method SkipInlineSpaces()
+      requires len as int == |src|
+      requires pos <= len
+      modifies this`pos
+      ensures old(pos) <= pos <= len
+      ensures FirstNonInlineWs(src, old(pos) as int, pos as int)
     {
+      ghost var begin := pos;
       while pos < len && ((src[pos] as Unit) == 32 || (src[pos] as Unit) == 9)
-        invariant pos <= len
+        invariant begin <= pos <= len
+        invariant WsRange(src, begin as int, pos as int)
+        decreases (len as int) - (pos as int)
       {
         pos := pos + 1;
       }

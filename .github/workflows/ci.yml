@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -40,8 +40,30 @@ jobs:
       - name: Install pinned Dafny compiler
         run: dotnet tool install --tool-path .tools/dafny --add-source https://api.nuget.org/v3/index.json Dafny --version 4.11.0
 
+      - name: Install pinned Z3 solver
+        run: |
+          set -eu
+          archive="$RUNNER_TEMP/z3-4.16.0-x64-glibc-2.39.zip"
+          curl --fail --location --silent --show-error \
+            https://github.com/Z3Prover/z3/releases/download/z3-4.16.0/z3-4.16.0-x64-glibc-2.39.zip \
+            --output "$archive"
+          echo "7288c49a5bd6dbafd7b0b0d1f65956b91672da24b08f09242919af159be3418e  $archive" | sha256sum --check
+          unzip -q "$archive" -d "$RUNNER_TEMP/z3"
+          echo "$RUNNER_TEMP/z3/z3-4.16.0-x64-glibc-2.39/bin" >> "$GITHUB_PATH"
+
       - name: Check generated Dafny output and boundary
         run: DAFNY="$GITHUB_WORKSPACE/.tools/dafny/dafny" pnpm dafny:check
+
+      - name: Verify scoped Dafny scanner contracts
+        run: DAFNY="$GITHUB_WORKSPACE/.tools/dafny/dafny" pnpm dafny:verify:scanner
+
+      - name: Upload scanner verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dafny-scanner-proof
+          path: results/dafny-scanner-proof/
+          if-no-files-found: ignore
 
       - name: Typecheck
         run: pnpm typecheck
