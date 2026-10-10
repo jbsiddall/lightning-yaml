@@ -38,9 +38,13 @@ describe("property graph model", () => {
       value: "ordinary property",
       enumerable: true,
     });
-    expect(
-      compareGraph(boundary, decodeGraph(encodeGraph(boundary))).equal,
-    ).toBe(true);
+    const decodedBoundary = decodeGraph(encodeGraph(boundary)) as unknown[];
+    expect(Object.hasOwn(decodedBoundary, "4294967295")).toBe(true);
+    expect(Reflect.get(decodedBoundary, "4294967295")).toBe(
+      "ordinary property",
+    );
+    expect(compareGraph(boundary, decodedBoundary).equal).toBe(true);
+    expect(compareGraph(boundary, []).equal).toBe(false);
   });
 
   it("round trips built in brands, bytes, dates, and ordered collections", () => {
