@@ -23,5 +23,11 @@ for (const row of results) {
   assert.ok(Number.isFinite(row.peakRssBytes) && row.peakRssBytes > 0, `invalid RSS: ${JSON.stringify(row)}`);
   assert.ok(Number.isFinite(row.heapDeltaBytes), `invalid heap delta: ${JSON.stringify(row)}`);
 }
-memory.emitMemoryYaml("ours", results);
+const writeReportProgress = console.log;
+console.log = (...args) => console.error(...args);
+try {
+  memory.emitMemoryYaml("ours", results);
+} finally {
+  console.log = writeReportProgress;
+}
 console.log(JSON.stringify({ generatedAt: new Date().toISOString(), root, iterations, results }));
