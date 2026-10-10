@@ -1,18 +1,8 @@
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
-import { Native as host } from '../src/dafny/native.ts';
+import { loadGeneratedEngine } from './helpers/load-generated-engine.mjs';
 
-const generatedPath = fileURLToPath(new URL('../src/dafny/Native.js', import.meta.url));
-const generatedRequire = createRequire(generatedPath);
-const generatedModule = { exports: {} };
-const source = readFileSync(generatedPath, 'utf8');
-new Function('require', 'module', 'exports', 'host',
-  `${source}\nNative.__default = Object.assign({}, host.__default); module.exports = { Parse: DafnyCore.__default.Parse, ParseAll: DafnyCore.__default.ParseAll };`)(
-  generatedRequire, generatedModule, generatedModule.exports, host,
-);
-const { Parse, ParseAll } = generatedModule.exports;
+const { DafnyCore } = loadGeneratedEngine();
+const { Parse, ParseAll } = DafnyCore.__default;
 
 assert.deepStrictEqual(Parse('[0, -0, +42, 007, 00, 0o17, 0o777, 0x1A, 0xFF, 0xdeadBEEF]'), [0, -0, 42, 7, 0, 15, 511, 26, 255, 0xdeadbeef]);
 assert.ok(Object.is(Parse('-0'), -0));

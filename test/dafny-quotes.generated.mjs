@@ -1,23 +1,12 @@
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
-import { Native as host } from '../src/dafny/native.ts';
+import { loadGeneratedEngine } from './helpers/load-generated-engine.mjs';
 
-const generatedPath = fileURLToPath(new URL('../src/dafny/Native.js', import.meta.url));
-const generatedRequire = createRequire(generatedPath);
-const generatedModule = { exports: {} };
-const source = readFileSync(generatedPath, 'utf8');
-const wiredHost = { ...host };
-if (process.env.LY_INJECT_BAD_ESCAPER) wiredHost.stringFromCharCode = () => '?';
-if (process.env.LY_INJECT_BAD_FOLD) wiredHost.repeat = () => '';
-new Function(
-  'require', 'module', 'exports', 'host',
-  `${source}\nNative.__default = Object.assign({}, host.__default); module.exports = { Parse: DafnyCore.__default.Parse, Engine: DafnyCore.Engine };`
-)(generatedRequire, generatedModule, generatedModule.exports, wiredHost);
-
-const parse = generatedModule.exports.Parse;
-const Engine = generatedModule.exports.Engine;
+const overrides = {};
+if (process.env.LY_INJECT_BAD_ESCAPER) overrides.stringFromCharCode = () => '?';
+if (process.env.LY_INJECT_BAD_FOLD) overrides.repeat = () => '';
+const generated = loadGeneratedEngine(overrides);
+const parse = generated.DafnyCore.__default.Parse;
+const Engine = generated.DafnyCore.Engine;
 const lf = String.fromCharCode(10);
 const cr = String.fromCharCode(13);
 const crlf = cr + lf;
@@ -66,7 +55,7 @@ const nested = new Engine();
 nested.Reset('"a' + lf + 'b"', false, false, 4194304);
 nested.flowIndentFloor = 0;
 assert.throws(
-  () => nested.ParseDoubleQuoted(),
+  () => generated.engineMethod(nested, 'ParseDoubleQuoted')(),
   (error) => error.name === 'YAMLParseError' && error.message === 'insufficient indentation for a multi-line quoted scalar (line 2, column 1)',
 );
 

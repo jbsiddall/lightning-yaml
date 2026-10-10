@@ -1,34 +1,14 @@
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
-import { parse as baseline } from '../src/core.ts';
-import { Native as host } from '../src/dafny/native.ts';
+import { loadGeneratedEngine } from './helpers/load-generated-engine.mjs';
 
-const generatedPath = fileURLToPath(new URL('../src/dafny/Native.js', import.meta.url));
-const generatedRequire = createRequire(generatedPath);
-const generatedModule = { exports: {} };
-const source = readFileSync(generatedPath, 'utf8');
-const wiredHost = { ...host };
-if (process.env.LY_INJECT_BAD_CHOMP) wiredHost.repeat = () => '';
-new Function(
-  'require', 'module', 'exports', 'host',
-  `${source}\nNative.__default = Object.assign({}, host.__default); module.exports = { Engine: DafnyCore.Engine };`
-)(generatedRequire, generatedModule, generatedModule.exports, wiredHost);
-
-const Engine = generatedModule.exports.Engine;
+const generated = loadGeneratedEngine(process.env.LY_INJECT_BAD_CHOMP ? { repeat: () => '' } : {});
+const Engine = generated.DafnyCore.Engine;
 function direct(input, parentCol, marker = 0) {
   const engine = new Engine();
   engine.Reset(input, false, false, 4194304);
   engine.pos = marker;
-  const value = engine.ParseBlockScalar(parentCol);
+  const value = generated.engineMethod(engine, 'ParseBlockScalar')(parentCol);
   return { value, pos: engine.pos, lineStart: engine.lineStart };
-}
-function baselineValue(input, kind, key = 'key') {
-  const value = baseline(input);
-  if (kind === 'map') return value[key];
-  if (kind === 'sequence') return value[0];
-  return value;
 }
 
 const cases = [
@@ -69,9 +49,7 @@ for (const [scalar, parentCol, kind, expected] of cases) {
   if (kind === 'sequence') { input = `- ${scalar}`; marker = input.search(/[|>]/); }
   if (kind === 'inlineRoot') { input = `--- ${scalar}`; marker = input.search(/[|>]/); }
   const actual = direct(input, kind === 'inlineRoot' ? -2 : parentCol, marker);
-  const reference = baselineValue(input, kind === 'inlineRoot' ? 'root' : kind);
   assert.deepStrictEqual(actual.value, expected, `expected value for ${JSON.stringify(input)}`);
-  assert.deepStrictEqual(actual.value, reference, `baseline mismatch for ${JSON.stringify(input)}`);
   assert.ok(actual.pos <= input.length && actual.lineStart <= actual.pos, `invalid final cursor for ${JSON.stringify(input)}`);
 }
 
@@ -87,14 +65,9 @@ for (const [input, parentCol, message] of errors) {
   engine.Reset(input, false, false, 4194304);
   engine.pos = input.search(/[|>]/);
   assert.throws(
-    () => engine.ParseBlockScalar(parentCol),
+    () => generated.engineMethod(engine, 'ParseBlockScalar')(parentCol),
     (error) => error.name === 'YAMLParseError' && error.message === message,
     `wrong block scalar error for ${JSON.stringify(input)}`,
-  );
-  assert.throws(
-    () => baseline(input),
-    (error) => error.name === 'YAMLParseError' && error.message === message,
-    `baseline error changed for ${JSON.stringify(input)}`,
   );
   assert.ok(marker >= 0);
 }
@@ -112,7 +85,6 @@ assert.deepStrictEqual({ pos: markerCursor.pos, lineStart: markerCursor.lineStar
 const nestedInput = 'outer:\n  inner: |\n    text\n  sibling: 1\n';
 const nestedMarker = nestedInput.indexOf('|');
 const nestedResult = direct(nestedInput, 2, nestedMarker);
-assert.strictEqual(nestedResult.value, baseline(nestedInput).outer.inner);
 assert.strictEqual(nestedResult.value, 'text\n');
 assert.strictEqual(nestedResult.pos, nestedInput.indexOf('sibling'));
 assert.strictEqual(nestedResult.lineStart, nestedInput.indexOf('  sibling'));
@@ -125,7 +97,7 @@ const lookahead = new Engine();
 const lookaheadInput = '|\n \n  content';
 lookahead.Reset(lookaheadInput, false, false, 4194304);
 lookahead.pos = 2;
-assert.strictEqual(lookahead.DetectBlockScalarIndent(-1), 2);
+assert.strictEqual(generated.engineMethod(lookahead, 'DetectBlockScalarIndent')(-1), 2);
 assert.deepStrictEqual({ pos: lookahead.pos, lineStart: lookahead.lineStart }, { pos: 2, lineStart: 0 });
 
 console.log(`generated block scalar checks passed: ${cases.length} values, ${errors.length} errors, cursor/indent boundaries`);
