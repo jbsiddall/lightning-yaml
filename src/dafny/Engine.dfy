@@ -106,6 +106,21 @@ module DafnyCore {
       c == '\n' || c == '\r'
     }
 
+    ghost predicate SpaceOrEolBoundaryAt(s: string, i: int) reads {}
+      requires 0 <= i <= |s|
+    {
+      i == |s| || InlineWs(s[i]) || LineBreak(s[i])
+    }
+
+    ghost predicate DocumentMarkerAt(s: string, start: int, i: int) reads {}
+      requires 0 <= i <= |s|
+    {
+      i == start && i + 3 <= |s| &&
+      (s[i] == '-' || s[i] == '.') &&
+      s[i + 1] == s[i] && s[i + 2] == s[i] &&
+      SpaceOrEolBoundaryAt(s, i + 3)
+    }
+
     ghost predicate FlowDelimiter(c: char) reads {} {
       c == ',' || c == '[' || c == ']' || c == '{' || c == '}'
     }
@@ -2401,6 +2416,8 @@ module DafnyCore {
 
     method IsSpaceOrEolAt(i: Index) returns (yes: bool)
       requires i <= len
+      requires len as int == |src|
+      ensures yes == SpaceOrEolBoundaryAt(src, i as int)
     {
       if i == len { yes := true; return; }
       var c := src[i] as Unit;
@@ -3281,6 +3298,9 @@ module DafnyCore {
 
     method IsDocMarkerAt(i: Index) returns (yes: bool)
       requires i <= len
+      requires len as int == |src|
+      requires i != lineStart || (i as int) + 2 < 9007199254740000
+      ensures yes == DocumentMarkerAt(src, lineStart as int, i as int)
     {
       yes := false;
       if i != lineStart || i + 2 >= len { return; }

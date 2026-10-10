@@ -17,6 +17,8 @@ const methods = [
   'ScanFlowPlainLine',
   'TrimTrailingWs',
   'SkipInlineSpaces',
+  'IsSpaceOrEolAt',
+  'IsDocMarkerAt',
 ];
 const dependencies = [
   'FlowIndicator',
@@ -34,6 +36,8 @@ const dependencies = [
   'CharFlowDelimiter',
   'PrefixExtend',
   'WsRangeExtendLeft',
+  'SpaceOrEolBoundaryAt',
+  'DocumentMarkerAt',
 ];
 const expectedKinds = {
   FlowSeparatorAt: ['well-formedness', 'correctness'],
@@ -55,6 +59,10 @@ const expectedKinds = {
   CharFlowDelimiter: ['well-formedness', 'correctness'],
   PrefixExtend: ['well-formedness', 'correctness'],
   WsRangeExtendLeft: ['well-formedness', 'correctness'],
+  IsSpaceOrEolAt: ['well-formedness', 'correctness'],
+  IsDocMarkerAt: ['well-formedness', 'correctness'],
+  SpaceOrEolBoundaryAt: ['well-formedness'],
+  DocumentMarkerAt: ['well-formedness'],
 };
 const verificationGroups = [
   { names: ['FlowSeparatorAt', 'SeparatorAt'], pattern: '*SeparatorAt*' },
@@ -69,6 +77,8 @@ const verificationGroups = [
   { names: ['WsRange', 'WsRangeExtendLeft'], pattern: '*WsRange*' },
   { names: ['TrimmedEnd'], pattern: '*TrimmedEnd*' },
   { names: ['PrefixExtend'], pattern: '*PrefixExtend*' },
+  { names: ['SpaceOrEolBoundaryAt'], pattern: '*SpaceOrEolBoundaryAt*' },
+  { names: ['DocumentMarkerAt'], pattern: '*DocumentMarkerAt*' },
 ];
 
 function sha256(bytes) {
@@ -204,6 +214,27 @@ function methodSection(source, name) {
   return source.slice(start, body).replace(/\s+/g, ' ');
 }
 
+function replaceExactlyOnceInMethod(source, name, from, to) {
+  const start = source.indexOf(`method ${name}(`);
+  if (start < 0) throw new Error(`${name}: mutation method not found`);
+  const next = source.indexOf('\n    method ', start + 1);
+  const end = next < 0 ? source.length : next;
+  const section = source.slice(start, end);
+  const occurrences = section.split(from).length - 1;
+  if (occurrences !== 1) throw new Error(`${name}: expected exactly one mutation target, found ${occurrences}: ${from}`);
+  return source.slice(0, start) + section.replace(from, to) + source.slice(end);
+}
+
+function expectContractInventoryRejection(source, expectedMessage, label) {
+  try {
+    requireContracts(source);
+  } catch (error) {
+    if (String(error.message).includes(expectedMessage)) return;
+    throw new Error(`${label}: rejected for an unexpected reason: ${error.message}`);
+  }
+  throw new Error(`${label}: weakened specification unexpectedly passed the contract inventory`);
+}
+
 function requireContracts(source) {
   const expected = {
     FlowSeparatorAt: [
@@ -228,6 +259,17 @@ function requireContracts(source) {
       'ensures old(pos) <= pos <= len',
       'ensures FirstNonInlineWs(src, old(pos) as int, pos as int)',
     ],
+    IsSpaceOrEolAt: [
+      'requires i <= len',
+      'requires len as int == |src|',
+      'ensures yes == SpaceOrEolBoundaryAt(src, i as int)',
+    ],
+    IsDocMarkerAt: [
+      'requires i <= len',
+      'requires len as int == |src|',
+      'requires i != lineStart || (i as int) + 2 < 9007199254740000',
+      'ensures yes == DocumentMarkerAt(src, lineStart as int, i as int)',
+    ],
   };
   for (const [name, clauses] of Object.entries(expected)) {
     const section = methodSection(source, name);
@@ -248,6 +290,8 @@ function requireContracts(source) {
   const ghostDefinitions = [
     "ghost predicate InlineWs(c: char) reads {} { c == ' ' || c == '\\t' }",
     "ghost predicate LineBreak(c: char) reads {} { c == '\\n' || c == '\\r' }",
+    'ghost predicate SpaceOrEolBoundaryAt(s: string, i: int) reads {} requires 0 <= i <= |s| { i == |s| || InlineWs(s[i]) || LineBreak(s[i]) }',
+    "ghost predicate DocumentMarkerAt(s: string, start: int, i: int) reads {} requires 0 <= i <= |s| { i == start && i + 3 <= |s| && (s[i] == '-' || s[i] == '.') && s[i + 1] == s[i] && s[i + 2] == s[i] && SpaceOrEolBoundaryAt(s, i + 3) }",
     "ghost predicate FlowDelimiter(c: char) reads {} { c == ',' || c == '[' || c == ']' || c == '{' || c == '}' }",
     'ghost predicate SeparatorChar(c: char) reads {} { InlineWs(c) || LineBreak(c) || FlowDelimiter(c) }',
     'ghost predicate SeparatorAt(s: string, i: int) reads {} requires 0 <= i <= |s| { i == |s| || SeparatorChar(s[i]) }',
@@ -284,7 +328,50 @@ function checkMutationLog(logPath, consoleLog, expectedSymbol) {
   return { symbol: fullName, wellFormedness: 'Passed', correctness: 'Failed as expected', log: resolve(logPath) };
 }
 
+function validateGroupMembership(groups, expectedSymbols) {
+  if (new Set(expectedSymbols).size !== expectedSymbols.length) {
+    throw new Error('Configured symbol inventory contains a duplicate name');
+  }
+  const expected = new Set(expectedSymbols);
+  const counts = new Map();
+  for (const group of groups) {
+    for (const name of group.names) {
+      if (!expected.has(name)) throw new Error(`Unknown selected symbol in verification groups: ${name}`);
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+  }
+  const mismatched = [...expected].filter((name) => counts.get(name) !== 1);
+  if (mismatched.length) {
+    throw new Error(`Verification group membership must select every configured symbol exactly once; missing or duplicate: ${mismatched.join(', ')}`);
+  }
+  return [...counts.keys()];
+}
+
+function checkDuplicateGroupFixture() {
+  const fixture = [...verificationGroups, { ...verificationGroups[0], names: [...verificationGroups[0].names] }];
+  try {
+    validateGroupMembership(fixture, [...methods, ...dependencies]);
+  } catch (error) {
+    if (/exactly once/.test(String(error))) return;
+    throw error;
+  }
+  throw new Error('Duplicate verification-group fixture was not rejected');
+}
+
+function checkDuplicateInventoryFixture() {
+  try {
+    validateGroupMembership(verificationGroups, [...methods, ...dependencies, methods[0]]);
+  } catch (error) {
+    if (/inventory contains a duplicate/.test(String(error))) return;
+    throw error;
+  }
+  throw new Error('Duplicate configured-symbol fixture was not rejected');
+}
+
 try {
+  const configuredSymbols = validateGroupMembership(verificationGroups, [...methods, ...dependencies]);
+  checkDuplicateGroupFixture();
+  checkDuplicateInventoryFixture();
   mkdirSync(output, { recursive: true });
   const version = run(['--version']).trim();
   if (!isPinnedDafnyVersion(version)) throw new Error(`Dafny 4.11.0 required; got ${version}`);
@@ -307,12 +394,32 @@ try {
     'ensures WsRange(src, p as int, end as int)',
   );
   if (weakTrim === engineText) throw new Error('TrimmedEnd mutation setup did not change the contract');
-  try {
-    requireContracts(weakTrim);
-    throw new Error('Weak TrimTrailingWs contract unexpectedly passed the contract gate');
-  } catch (error) {
-    if (!String(error.message).includes('TrimTrailingWs: required contract missing')) throw error;
-  }
+  expectContractInventoryRejection(weakTrim, 'TrimTrailingWs: required contract missing', 'weak TrimTrailingWs contract');
+  const noDocSourceLength = replaceExactlyOnceInMethod(
+    engineText,
+    'IsDocMarkerAt',
+    'requires len as int == |src|',
+    '// source-length condition removed',
+  );
+  expectContractInventoryRejection(noDocSourceLength, 'IsDocMarkerAt: required contract missing: requires len as int == |src|', 'missing document-marker source-length precondition');
+  const weakDocBiconditional = replaceExactlyOnceInMethod(
+    engineText,
+    'IsDocMarkerAt',
+    'ensures yes == DocumentMarkerAt(src, lineStart as int, i as int)',
+    'ensures yes == (i == lineStart)',
+  );
+  expectContractInventoryRejection(weakDocBiconditional, 'IsDocMarkerAt: required contract missing', 'weakened document-marker biconditional');
+  let alignedSpecAndBody = engineText.replace(
+    'SpaceOrEolBoundaryAt(s, i + 3)',
+    'true',
+  );
+  if (alignedSpecAndBody === engineText) throw new Error('aligned document-marker specification mutation target not found');
+  alignedSpecAndBody = replaceExactlyOnceInMethod(alignedSpecAndBody, 'IsDocMarkerAt', 'yes := sep;', 'yes := true;');
+  expectContractInventoryRejection(
+    alignedSpecAndBody,
+    'Scanner specification definition changed or weakened: ghost predicate DocumentMarkerAt',
+    'aligned document-marker body/specification weakening',
+  );
 
   const inputs = [
     join(root, 'src/dafny/Native.dfy'),
@@ -353,19 +460,33 @@ try {
       from: '        pos := pos + 1;',
       to: '        // deliberately removed cursor consumption',
     },
+    {
+      symbol: 'IsSpaceOrEolAt',
+      label: 'removing tab separator recognition',
+      from: 'yes := c == 32 || c == 9 || c == 10 || c == 13;',
+      to: 'yes := c == 32 || c == 10 || c == 13;',
+    },
+    {
+      symbol: 'IsDocMarkerAt',
+      label: 'dropping document-end dot recognition',
+      from: 'if c != 45 && c != 46 { return; }',
+      to: 'if c != 45 { return; }',
+    },
+    {
+      symbol: 'IsDocMarkerAt',
+      label: 'rejecting a marker at a nonzero stored lineStart',
+      from: 'if i != lineStart || i + 2 >= len { return; }',
+      to: 'if i != lineStart || i != 0 || i + 2 >= len { return; }',
+    },
+    {
+      symbol: 'IsDocMarkerAt',
+      label: 'removing the marker separator check',
+      from: 'yes := sep;',
+      to: 'yes := true;',
+    },
   ];
   for (const mutation of mutations) {
-    let mutatedSource = engineText;
-    if (mutation.symbol === 'SkipInlineSpaces') {
-      const start = engineText.indexOf('    method SkipInlineSpaces()');
-      const next = engineText.indexOf('\n    method ', start + 1);
-      const section = engineText.slice(start, next);
-      if (!section.includes(mutation.from)) throw new Error(`${mutation.symbol} mutation setup did not find the increment`);
-      mutatedSource = engineText.slice(0, start) + section.replace(mutation.from, mutation.to) + engineText.slice(next);
-    } else {
-      if (!engineText.includes(mutation.from)) throw new Error(`${mutation.symbol} mutation setup did not find the stopping rule`);
-      mutatedSource = engineText.replace(mutation.from, mutation.to);
-    }
+    const mutatedSource = replaceExactlyOnceInMethod(engineText, mutation.symbol, mutation.from, mutation.to);
     const mutationDir = join(output, `mutation-${mutation.symbol}`);
     mkdirSync(mutationDir, { recursive: true });
     const mutationSource = join(mutationDir, 'Engine.dfy');
@@ -394,6 +515,7 @@ try {
   const verifierPath = realpathSync(dafny.includes('/') ? dafny : spawnSync('which', [dafny], { encoding: 'utf8' }).stdout.trim());
   const report = {
     schemaVersion: 1,
+    selectorMembership: { expectedSymbols: configuredSymbols.length, selectedExactlyOnce: true, duplicateGroupFixture: 'rejected', duplicateInventoryFixture: 'rejected' },
     compiler: {
       version,
       launcherExecutable: verifierPath,
@@ -412,13 +534,15 @@ try {
       { mutation: 'weakening TrimTrailingWs maximal-suffix contract', outcome: 'rejected by exact contract inventory' },
       ...mutationChecks,
     ],
-    semanticCoverage: 'The four executed scanner methods prove their lexical first-boundary, maximal trailing suffix, and exact consumed-prefix contracts under their stated source and cursor preconditions.',
-    callerConditionsNotProved: ['len as int == |src| at entry', 'entry cursor/span bounds for each caller'],
+    semanticCoverage: 'The six executed scanner methods prove FlowSeparatorAt lexical first-boundary recognition, ScanFlowPlainLine lexical first-stop behavior, TrimTrailingWs maximal trailing-whitespace removal, SkipInlineSpaces exact consumed-prefix behavior, IsSpaceOrEolAt exact horizontal-space-or-line-break recognition, and IsDocMarkerAt exact three-character document-marker recognition with a required following boundary.',
+    callerConditionsNotProved: ['len as int == |src| at entry', 'entry cursor/span bounds for each caller', 'for IsDocMarkerAt, the conditional arithmetic slack i != lineStart || i + 2 < 9007199254740000', 'that IsDocMarkerAt callers supply the actual beginning of a source line as lineStart'],
     frames: {
       FlowSeparatorAt: 'empty modifies frame (default)',
       ScanFlowPlainLine: 'empty modifies frame (default)',
       TrimTrailingWs: 'empty modifies frame (default)',
       SkipInlineSpaces: 'modifies this`pos only',
+      IsSpaceOrEolAt: 'empty modifies frame (default)',
+      IsDocMarkerAt: 'empty modifies frame (default)',
     },
     trustedOrUnverified: [
       'UTF-16 character semantics and Dafny translator/backend behavior.',
