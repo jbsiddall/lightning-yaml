@@ -164,7 +164,9 @@ function extract(generated, digest) {
   const lowered = extractModules(generated);
   const shape = require('./dafny-shape-transform.cjs').transformGenerated(
     lowered, fs.readFileSync(path.join(ROOT, 'src/dafny/native.ts'), 'utf8'));
-  return `// Dafny program compiled into JavaScript by Dafny ${COMPILER_VERSION}.\n// Copyright by the contributors to the Dafny Project.\n// SPDX-License-Identifier: MIT\n// Sources sha256 ${digest}; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.\nimport { Native } from '../native.ts';\n\n${shape.text}\n\nexport { DafnyCore, Serializer };\n`;
+  const imports = shape.nativeImports.map(({ binding, alias }) => `${binding} as ${alias}`).join(', ');
+  if (!imports) throw new Error('generated Dafny output has no native helper imports');
+  return `// Dafny program compiled into JavaScript by Dafny ${COMPILER_VERSION}.\n// Copyright by the contributors to the Dafny Project.\n// SPDX-License-Identifier: MIT\n// Sources sha256 ${digest}; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.\nimport { ${imports} } from '../native.ts';\n\n${shape.text}\n\nexport { DafnyCore, Serializer };\n`;
 }
 
 function main() {

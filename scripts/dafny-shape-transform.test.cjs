@@ -5,10 +5,19 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const ts = require('typescript');
-const { discoverCharCodeSites, discoverInstanceFields, discoverSyntheticTempSites, inlineSyntheticTemps, mangleInstanceFields, nativeIdentityInventory } = require('./dafny-shape-transform.cjs');
+const { discoverCharCodeSites, discoverInstanceFields, discoverSyntheticTempSites, discoverThisAliasSites, inlineSyntheticTemps, inlineThisAliases, mangleInstanceFields, nativeIdentityInventory, validateNativeDiagnostics } = require('./dafny-shape-transform.cjs');
 
 const nativePath = path.resolve(__dirname, '../src/dafny/native.ts');
 const native = fs.readFileSync(nativePath, 'utf8');
+const diagnosticNativePath = path.resolve(__dirname, '../src/dafny/native-diagnostics.ts');
+const diagnosticNative = fs.readFileSync(diagnosticNativePath, 'utf8');
+
+test('diagnostic Native namespace uses each exact shared binding once', () => {
+  assert.equal(validateNativeDiagnostics(diagnosticNative, native), true);
+  const changed = diagnosticNative.replace('arrayGet: nativeArrayGet', 'arrayGet: nativeArraySet');
+  assert.notEqual(changed, diagnosticNative);
+  assert.throws(() => validateNativeDiagnostics(changed, native), /namespace differs from shared definitions/);
+});
 
 test('shape audit rejects a Native identity helper that no longer returns its argument', () => {
   const changed = native.replace('stringValue(s: string): string { return s; }',
@@ -95,4 +104,23 @@ test('synthetic output temporary audit rejects escaping closures and complex ass
   assert.throws(() => discoverSyntheticTempSites(ts.createSourceFile('closure.js', escaped, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS)), /escapes its generated method/);
   const extraRead = 'class Engine { m() { let _out0; _out0 = make(); value = _out0; other = _out0; } } class Writer { m() { let x; x = 0; } }';
   assert.throws(() => discoverSyntheticTempSites(ts.createSourceFile('extra-read.js', extraRead, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS)), /unpinned read or write/);
+});
+
+test('lexical this alias is removed only for direct methods without nested closures', () => {
+  const generated = `class Engine {
+    read() { let _this = this; return (_this).state; }
+  }
+  class Writer { read() { return 0; } }`;
+  const source = ts.createSourceFile('this-alias.js', generated, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const sites = discoverThisAliasSites(source);
+  assert.deepEqual({ ...sites }, { 'Engine.read': 2 });
+  const transformed = inlineThisAliases(generated, sites);
+  assert.doesNotMatch(transformed.text, /_this/);
+  assert.match(transformed.text, /return \(this\)\.state/);
+  const captured = `class Engine {
+    read() { let _this = this; return () => _this.state; }
+  }
+  class Writer { read() { return 0; } }`;
+  const capturedSource = ts.createSourceFile('captured-this.js', captured, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  assert.throws(() => discoverThisAliasSites(capturedSource), /unsupported lexical this alias/);
 });

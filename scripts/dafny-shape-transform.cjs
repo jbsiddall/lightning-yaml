@@ -60,33 +60,164 @@ function visitClass(node, callback) {
 
 function nativeIdentityInventory(nativeText) {
   const source = ts.createSourceFile('native.ts', nativeText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  const declaration = source.statements.find(statement => ts.isVariableStatement(statement) &&
-    statement.declarationList.declarations.some(item => ts.isIdentifier(item.name) && item.name.text === 'Native'));
-  if (!declaration) throw new Error('Native declaration missing');
-  const binding = declaration.declarationList.declarations.find(item => ts.isIdentifier(item.name) && item.name.text === 'Native');
-  const frozen = unparen(binding.initializer);
-  if (!ts.isCallExpression(frozen) || frozen.expression.getText(source) !== 'Object.freeze') throw new Error('Native freeze shape changed');
-  const host = unparen(frozen.arguments[0]);
-  const property = host.properties.find(item => ts.isPropertyAssignment(item) && item.name.getText(source) === '__default');
-  const hostFreeze = unparen(property?.initializer);
-  if (!ts.isCallExpression(hostFreeze) || hostFreeze.expression.getText(source) !== 'Object.freeze') throw new Error('Native.__default freeze shape changed');
-  const object = unparen(hostFreeze.arguments[0]);
+  const functions = new Map();
+  const constants = new Set();
+  function bindingFor(name) { return `native${name[0].toUpperCase()}${name.slice(1)}`; }
+  const declaredMethods = new Set();
+  for (const statement of source.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      const initializer = unparen(declaration.initializer);
+      if (ts.isIdentifier(declaration.name) && ts.isFunctionExpression(initializer) && initializer.name) declaredMethods.add(initializer.name.text);
+    }
+  }
+  for (const statement of source.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name) || !declaration.name.text.startsWith('native')) continue;
+      const binding = declaration.name.text;
+      const initializer = unparen(declaration.initializer);
+      if (ts.isFunctionExpression(initializer) && initializer.name) {
+        const member = initializer.name.text;
+        if (bindingFor(member) !== binding || functions.has(member) || constants.has(member)) throw new Error(`invalid shared native binding ${binding}`);
+        let hasThisOrSuper = false, crossHelper = '';
+        function inspect(node) {
+          if (node.kind === ts.SyntaxKind.ThisKeyword || node.kind === ts.SyntaxKind.SuperKeyword) hasThisOrSuper = true;
+          if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && declaredMethods.has(node.expression.text) && node.expression.text !== member) crossHelper = node.expression.text;
+          ts.forEachChild(node, inspect);
+        }
+        inspect(initializer.body);
+        if (hasThisOrSuper || crossHelper) throw new Error(`shared native helper ${member} uses this/super or another native helper`);
+        functions.set(member, initializer);
+      } else {
+        const member = binding.slice('native'.length);
+        if (!member || !/^[A-Z_$]/.test(member) || functions.has(member) || constants.has(member)) throw new Error(`invalid shared native constant ${binding}`);
+        constants.add(member[0].toLowerCase() + member.slice(1));
+      }
+    }
+  }
+  if (!functions.size) throw new Error('named shared native definitions missing');
   const shapes = Object.create(null);
-  for (const method of object.properties) {
-    if (!ts.isMethodDeclaration(method) || !ts.isIdentifier(method.name) || !IDENTITY_NAMES.includes(method.name.text)) continue;
+  for (const [name, method] of functions) {
+    if (!IDENTITY_NAMES.includes(name)) continue;
     if (method.parameters.length !== 1 || !ts.isIdentifier(method.parameters[0].name) || !method.body || method.body.statements.length !== 1 ||
-        !ts.isReturnStatement(method.body.statements[0]) || !method.body.statements[0].expression) throw new Error(`Native.${method.name.text} is not a single-return cast`);
+        !ts.isReturnStatement(method.body.statements[0]) || !method.body.statements[0].expression) throw new Error(`Native.${name} is not a single-return cast`);
     const returned = peelCasts(method.body.statements[0].expression);
-    if (!ts.isIdentifier(returned) || returned.text !== method.parameters[0].name.text) throw new Error(`Native.${method.name.text} is not an identity cast`);
-    shapes[method.name.text] = method.parameters[0].name.text;
+    if (!ts.isIdentifier(returned) || returned.text !== method.parameters[0].name.text) throw new Error(`Native.${name} is not an identity cast`);
+    shapes[name] = method.parameters[0].name.text;
   }
   if (Object.keys(shapes).length !== IDENTITY_NAMES.length) throw new Error('Native identity helper inventory changed');
-  const simpleMethods = object.properties.filter(item => ts.isMethodDeclaration(item) && ts.isIdentifier(item.name) && SIMPLE_NATIVE_NAMES.includes(item.name.text));
-  const voidMethods = object.properties.filter(item => ts.isMethodDeclaration(item) && ts.isIdentifier(item.name) && VOID_NATIVE_NAMES.includes(item.name.text));
+  const simpleMethods = [...functions.entries()].filter(([name]) => SIMPLE_NATIVE_NAMES.includes(name)).map(([, method]) => method);
+  const voidMethods = [...functions.entries()].filter(([name]) => VOID_NATIVE_NAMES.includes(name)).map(([, method]) => method);
   if (simpleMethods.length !== SIMPLE_NATIVE_NAMES.length || voidMethods.length !== VOID_NATIVE_NAMES.length) throw new Error('Native primitive helper inventory changed');
   for (const method of simpleMethods) validateNativeSimpleBody(method, source);
   for (const method of voidMethods) validateNativeVoidBody(method, source);
   return shapes;
+}
+
+function nativeBindings(nativeText) {
+  const source = ts.createSourceFile('native.ts', nativeText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const bindings = Object.create(null);
+  for (const statement of source.statements) {
+    if (!ts.isVariableStatement(statement) || !statement.modifiers?.some(mod => mod.kind === ts.SyntaxKind.ExportKeyword)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name) || !declaration.name.text.startsWith('native')) continue;
+      const binding = declaration.name.text;
+      let member;
+      const initializer = unparen(declaration.initializer);
+      if (ts.isFunctionExpression(initializer) && initializer.name) member = initializer.name.text;
+      else {
+        const suffix = binding.slice('native'.length);
+        if (!suffix || !/^[A-Z_$]/.test(suffix)) throw new Error(`invalid shared native binding ${binding}`);
+        member = suffix[0].toLowerCase() + suffix.slice(1);
+      }
+      if (bindings[member]) throw new Error(`duplicate shared native member ${member}`);
+      const expected = `native${member[0].toUpperCase()}${member.slice(1)}`;
+      if (binding !== expected) throw new Error(`shared native binding name changed for ${member}`);
+      bindings[member] = binding;
+    }
+  }
+  if (Object.keys(bindings).length !== 78) throw new Error('shared native definition inventory changed');
+  return bindings;
+}
+
+function validateNativeDiagnostics(diagnosticsText, nativeText) {
+  const bindings = nativeBindings(nativeText);
+  const source = ts.createSourceFile('native-diagnostics.ts', diagnosticsText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const imports = source.statements.filter(ts.isImportDeclaration);
+  if (imports.length !== 1 || imports[0].moduleSpecifier.text !== './native.ts' || !imports[0].importClause?.namedBindings ||
+      !ts.isNamedImports(imports[0].importClause.namedBindings)) throw new Error('native diagnostic bindings import shape changed');
+  const imported = imports[0].importClause.namedBindings.elements.map(specifier => specifier.propertyName?.text || specifier.name.text);
+  const exports = Object.values(bindings);
+  if (JSON.stringify(imported) !== JSON.stringify(exports)) throw new Error('native diagnostic imports differ from shared native definitions');
+  const nativeDeclaration = source.statements.find(statement => ts.isVariableStatement(statement) &&
+    statement.declarationList.declarations.some(declaration => ts.isIdentifier(declaration.name) && declaration.name.text === 'Native'));
+  const declaration = nativeDeclaration?.declarationList.declarations.find(item => ts.isIdentifier(item.name) && item.name.text === 'Native');
+  const outer = declaration && unparen(declaration.initializer);
+  const root = outer && ts.isCallExpression(outer) && ts.isPropertyAccessExpression(outer.expression) && outer.expression.expression.getText(source) === 'Object' && outer.expression.name.text === 'freeze'
+    ? unparen(outer.arguments[0]) : undefined;
+  const defaultMember = root && ts.isObjectLiteralExpression(root) && root.properties.find(property => ts.isPropertyAssignment(property) && property.name.getText(source) === '__default');
+  const innerCall = defaultMember && unparen(defaultMember.initializer);
+  const object = innerCall && ts.isCallExpression(innerCall) && ts.isPropertyAccessExpression(innerCall.expression) && innerCall.expression.expression.getText(source) === 'Object' && innerCall.expression.name.text === 'freeze'
+    ? unparen(innerCall.arguments[0]) : undefined;
+  if (!object || !ts.isObjectLiteralExpression(object)) throw new Error('native diagnostic namespace must freeze the shared definitions');
+  const entries = object.properties.map(property => {
+    if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.initializer)) throw new Error('native diagnostic namespace contains a nonshared binding');
+    return [property.name.getText(source), property.initializer.text];
+  });
+  const expected = Object.entries(bindings).map(([member, binding]) => [member, binding]);
+  if (JSON.stringify(entries) !== JSON.stringify(expected)) throw new Error('native diagnostic namespace differs from shared definitions');
+  return true;
+}
+
+function gatherNativeBindingSites(source, bindings) {
+  const sites = Object.create(null);
+  const accesses = new Map();
+  function walk(node, moduleName = '', className = '', methodName = '') {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && ['DafnyCore', 'Serializer', 'TagValues'].includes(node.name.text)) moduleName = node.name.text;
+    if (ts.isClassExpression(node) || ts.isClassDeclaration(node)) className = node.name?.text || className;
+    if (ts.isMethodDeclaration(node)) methodName = node.name?.getText(source) || methodName;
+    if (ts.isPropertyAccessExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+        ts.isIdentifier(node.expression.expression) && node.expression.expression.text === 'Native' && node.expression.name.text === '__default') {
+      if (!Object.hasOwn(bindings, node.name.text)) throw new Error(`generated output references unknown Native.${node.name.text}`);
+      const member = node.name.text, site = `${moduleName}.${className}.${methodName}`;
+      accesses.set(node, member);
+      sites[member] ||= Object.create(null);
+      sites[member][site] = (sites[member][site] || 0) + 1;
+    }
+    if (ts.isIdentifier(node) && node.text === 'Native' &&
+        !(ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node)) {
+      throw new Error('generated output has a bare Native namespace reference');
+    }
+    ts.forEachChild(node, child => walk(child, moduleName, className, methodName));
+  }
+  walk(source);
+  const ordered = Object.keys(sites).sort().map((member, index) => ({
+    member, binding: bindings[member], alias: `n${index}`, sites: sites[member],
+  }));
+  return { sites, ordered, accesses };
+}
+
+function inlineNativeBindings(text, nativeText, expectedBindings) {
+  const source = parse(text);
+  const bindings = nativeBindings(nativeText);
+  const actual = gatherNativeBindingSites(source, bindings);
+  const actualShape = actual.ordered.map(({ member, binding, alias, sites }) => ({ member, binding, alias, sites }));
+  if (JSON.stringify(actualShape) !== JSON.stringify(expectedBindings)) throw new Error('Native shared binding callsite inventory changed');
+  const aliases = new Map(expectedBindings.map(({ member, alias }) => [member, alias]));
+  const transformed = printerTransform(source, context => root => {
+    function visit(node) {
+      if (ts.isPropertyAccessExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+          ts.isIdentifier(node.expression.expression) && node.expression.expression.text === 'Native' && node.expression.name.text === '__default') {
+        const alias = aliases.get(node.name.text);
+        if (!alias) throw new Error(`unmanifested Native.${node.name.text} binding`);
+        return ts.factory.createIdentifier(alias);
+      }
+      return ts.visitEachChild(node, visit, context);
+    }
+    return ts.visitNode(root, visit);
+  });
+  return { text: transformed, nativeImports: expectedBindings.map(({ binding, alias }) => ({ binding, alias })) };
 }
 
 function isParam(node, params, index) {
@@ -286,7 +417,7 @@ function discoverGetters(source) {
 
 function discoverCharCodeSites(source) {
   const sites = Object.create(null);
-  const allowedReceivers = new Set(['_this.src', 's', 'text', 'expected', '_0_handle']);
+  const allowedReceivers = new Set(['_this.src', 'this.src', 's', 'text', 'expected', '_0_handle']);
   function walk(node, className = '', methodName = '') {
     if (ts.isClassExpression(node) || ts.isClassDeclaration(node)) className = node.name?.text || className;
     if (ts.isMethodDeclaration(node)) methodName = node.name?.getText(source) || methodName;
@@ -337,7 +468,7 @@ function discoverMethodAccessSites(source, methodMaps) {
     const mapped = shortMaps[className];
     if (mapped && ts.isPropertyAccessExpression(node) && mapped[node.name.text] && mapped[node.name.text] !== node.name.text) {
       const receiver = unparen(node.expression);
-      if (!(ts.isIdentifier(receiver) && ['_this', 'this'].includes(receiver.text))) throw new Error(`unsupported escaped ${className}.${node.name.text} reference`);
+      if (!(ts.isThis(receiver) || (ts.isIdentifier(receiver) && receiver.text === '_this'))) throw new Error(`unsupported escaped ${className}.${node.name.text} reference through ${receiver.getText(source)}`);
       accesses[className][node.name.text] = (accesses[className][node.name.text] || 0) + 1;
     } else if (!mapped && ts.isPropertyAccessExpression(node) && internalNames.has(node.name.text)) {
       throw new Error(`internal method reference escaped Engine/Writer class: ${node.name.text}`);
@@ -512,6 +643,79 @@ function inlineSyntheticTemps(text, expectedSites) {
   return { text: transformed, siteCounts: actualSites };
 }
 
+function discoverThisAliasSites(source) {
+  const sites = Object.create(null);
+  function walk(node, className = '') {
+    if ((ts.isClassExpression(node) || ts.isClassDeclaration(node)) && node.name) className = node.name.text;
+    if (ts.isMethodDeclaration(node) && node.body) {
+      const methodName = node.name?.getText(source) || '';
+      const body = node.body.statements;
+      const aliases = [];
+      let nestedFunctions = 0;
+      let references = 0;
+      function inspect(current, nested = false) {
+        if (ts.isFunctionExpression(current) || ts.isArrowFunction(current) || ts.isFunctionDeclaration(current)) {
+          nestedFunctions++;
+          nested = true;
+        }
+        if (ts.isVariableDeclaration(current) && ts.isIdentifier(current.name) && current.name.text === '_this') aliases.push(current);
+        if (ts.isIdentifier(current) && current.text === '_this') references++;
+        ts.forEachChild(current, child => inspect(child, nested));
+      }
+      inspect(node.body);
+      if (aliases.length) {
+        const alias = aliases[0];
+        const first = body[0];
+        if (aliases.length !== 1 || !first || !ts.isVariableStatement(first) || first.declarationList.declarations.length !== 1 ||
+            first.declarationList.declarations[0] !== alias || !ts.isThis(alias.initializer) ||
+            alias.parent !== first.declarationList || nestedFunctions !== 0 || references < 1) {
+          throw new Error(`unsupported lexical this alias in ${className}.${methodName}`);
+        }
+        sites[`${className}.${methodName}`] = references;
+      }
+      return;
+    }
+    ts.forEachChild(node, child => walk(child, className));
+  }
+  walk(source);
+  return sites;
+}
+
+function inlineThisAliases(text, expectedSites) {
+  const source = parse(text);
+  const actual = discoverThisAliasSites(source);
+  if (JSON.stringify(actual) !== JSON.stringify(expectedSites)) throw new Error('lexical this alias inventory changed');
+  const transformedSites = Object.create(null);
+  const transformed = printerTransform(source, context => root => {
+    function visit(node, className = '') {
+      if ((ts.isClassExpression(node) || ts.isClassDeclaration(node)) && node.name) className = node.name.text;
+      if (ts.isMethodDeclaration(node) && node.body) {
+        const key = `${className}.${node.name?.getText(source) || ''}`;
+        if (Object.hasOwn(expectedSites, key)) {
+          const statements = node.body.statements.slice(1).map(statement => ts.visitNode(statement, child => visit(child, className)));
+          let count = 0;
+          function replaceAlias(current) {
+            if (ts.isIdentifier(current) && current.text === '_this') {
+              count++;
+              return ts.factory.createThis();
+            }
+            return ts.visitEachChild(current, replaceAlias, context);
+          }
+          const body = ts.factory.updateBlock(node.body, statements.map(statement => ts.visitNode(statement, replaceAlias)));
+          if (count !== expectedSites[key] - 1) throw new Error(`lexical this alias rewrite count changed in ${key}`);
+          transformedSites[key] = count + 1;
+          return ts.factory.updateMethodDeclaration(node, node.modifiers, node.asteriskToken, node.name,
+            node.questionToken, node.typeParameters, node.parameters, node.type, body);
+        }
+      }
+      return ts.visitEachChild(node, child => visit(child, className), context);
+    }
+    return ts.visitNode(root, node => visit(node));
+  });
+  if (JSON.stringify(transformedSites) !== JSON.stringify(expectedSites)) throw new Error('lexical this alias rewrite inventory changed');
+  return { text: transformed, sites: transformedSites };
+}
+
 function mangleInstanceFields(text, expectedMaps, expectedCounts) {
   const source = parse(text);
   const actual = discoverInstanceFields(source);
@@ -570,13 +774,21 @@ function createManifest(generatedText, nativeText) {
   const methods = discoverMethods(source);
   const methodAccessSites = discoverMethodAccessSites(source, methods);
   const instanceFields = discoverInstanceFields(source);
+  const thisAliasSites = discoverThisAliasSites(source);
+  const afterAliasesText = inlineThisAliases(generatedText, thisAliasSites).text;
+  const afterAliases = parse(afterAliasesText);
+  const afterIdentityAliases = inlineIdentityCalls(afterAliasesText, identitySites);
+  const simpleNativeSites = gatherSimpleNativeSites(parse(afterIdentityAliases));
+  const afterSimple = parse(inlineSimpleNativeExpressions(afterIdentityAliases, simpleNativeSites));
+  const nativeSiteInventory = gatherNativeBindingSites(afterSimple, nativeBindings(nativeText));
   return {
     version: 1,
     nativeSha256: sha256(nativeText),
     nativeIdentityHelpers: Object.keys(native).sort(),
     identitySites,
-    simpleNativeSites: gatherSimpleNativeSites(afterIdentity),
-    charCodeSites: discoverCharCodeSites(source),
+    simpleNativeSites,
+    nativeBindingSites: nativeSiteInventory.ordered.map(({ member, binding, alias, sites }) => ({ member, binding, alias, sites })),
+    charCodeSites: discoverCharCodeSites(afterAliases),
     getters: discoverGetters(source),
     metadata: discoverMetadata(source),
     methodRenames: methods,
@@ -584,6 +796,7 @@ function createManifest(generatedText, nativeText) {
     fieldRenames: instanceFields.fieldMaps,
     fieldAccessSites: instanceFields.fieldCounts,
     syntheticTempSites: discoverSyntheticTempSites(source),
+    thisAliasSites,
   };
 }
 
@@ -747,7 +960,7 @@ function mangleInternalMethods(text, expectedMaps, expectedAccessSites) {
       const map = renameMaps[className];
       if (map && ts.isPropertyAccessExpression(node) && map[node.name.text] && map[node.name.text] !== node.name.text) {
         const receiver = unparen(node.expression);
-        if (!(ts.isIdentifier(receiver) && ['_this', 'this'].includes(receiver.text))) throw new Error(`unsupported escaped ${className}.${node.name.text} reference`);
+        if (!(ts.isThis(receiver) || (ts.isIdentifier(receiver) && receiver.text === '_this'))) throw new Error(`unsupported escaped ${className}.${node.name.text} reference`);
         accessCounts[className][node.name.text] = (accessCounts[className][node.name.text] || 0) + 1;
         const expr = ts.visitNode(node.expression, child => visit(child, className));
         return ts.factory.updatePropertyAccessExpression(node, expr, ts.factory.createIdentifier(map[node.name.text]));
@@ -771,14 +984,17 @@ function transformGenerated(generatedText, nativeText) {
   const actual = createManifest(generatedText, nativeText);
   validateManifest(actual, manifest);
   let transformed = inlineSyntheticTemps(generatedText, manifest.syntheticTempSites).text;
+  transformed = inlineThisAliases(transformed, manifest.thisAliasSites).text;
   transformed = inlineIdentityCalls(transformed, manifest.identitySites);
   transformed = inlineSimpleNativeExpressions(transformed, manifest.simpleNativeSites);
+  const nativeResult = inlineNativeBindings(transformed, nativeText, manifest.nativeBindingSites);
+  transformed = nativeResult.text;
   transformed = inlineIndexedStringCodeUnits(transformed, manifest.charCodeSites);
   transformed = inlineStaticGetters(transformed, manifest.getters);
   transformed = removeReflectionMetadata(transformed, manifest.metadata);
   const renamed = mangleInternalMethods(transformed, manifest.methodRenames, manifest.methodAccessSites);
   const fields = mangleInstanceFields(renamed.text, manifest.fieldRenames, manifest.fieldAccessSites);
-  return { text: fields.text, methodAccessCounts: renamed.accessCounts, fieldAccessCounts: fields.accessCounts };
+  return { text: fields.text, nativeImports: nativeResult.nativeImports, methodAccessCounts: renamed.accessCounts, fieldAccessCounts: fields.accessCounts };
 }
 
 if (require.main === module && process.argv.includes('--write-manifest')) {
@@ -795,12 +1011,18 @@ module.exports = {
   transformGenerated,
   createManifest,
   nativeIdentityInventory,
+  nativeBindings,
+  validateNativeDiagnostics,
+  gatherNativeBindingSites,
+  inlineNativeBindings,
   validateNativeSimpleBody,
   discoverCharCodeSites,
   discoverInstanceFields,
   mangleInstanceFields,
   discoverSyntheticTempSites,
   inlineSyntheticTemps,
+  discoverThisAliasSites,
+  inlineThisAliases,
   gatherSimpleNativeSites,
   inlineIdentityCalls,
 };

@@ -26,8 +26,8 @@
     "../src/dafny/generated/engine.d.ts": "95303b5bb7b7e1b4581328b50a1650fc77c1d6b38dc8088311492c890b8e3668"
   },
   "sourceSha256": {
-    "../src/dafny/native.ts": "9261b15bd765a07c5aacf9ce37267e6fe966b23ec6bdb596617c7d9b28424ce2",
-    "./dafny-shape-manifest.json": "96ba70bb30cce971a3550b42589c02c1dd4bdf310b11506e6482c7b647ee10b8"
+    "../src/dafny/native.ts": "38b6fbc407a1224b0727972ced9dc89bfce9deebec49dbf5da25c1eb101d6b38",
+    "./dafny-shape-manifest.json": "d3e293f74eb3ed810c139b83ef00e985e986dc59ba131b619e6e2f4012f67582"
   },
   "allowedCalls": [
     "(_this.src)[0].charCodeAt",

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { Native } from '../../src/dafny/native.ts';
+import { Native } from '../../src/dafny/native-diagnostics.ts';
 
 const sourceUrl = new URL('../../src/dafny/generated/engine.js', import.meta.url);
 const source = readFileSync(sourceUrl, 'utf8');
@@ -10,19 +10,26 @@ if (!engineMethods) throw new Error('shape manifest does not contain the generat
 if (!engineFields) throw new Error('shape manifest does not contain the generated Engine field map');
 
 export function loadGeneratedEngine(overrides = {}) {
-  const importLine = "import { Native } from '../native.ts';";
+  const importPattern = /^import \{ ([^\n]+) \} from '\.\.\/native\.ts';$/m;
   const exportLine = 'export { DafnyCore, Serializer };';
-  if (!source.includes(importLine) || !source.includes(exportLine)) {
+  const importMatch = source.match(importPattern);
+  if (!importMatch || !source.includes(exportLine)) {
     throw new Error('generated engine module shape changed; update this diagnostic loader');
   }
   const module = { exports: {} };
-  const wiredNative = {
-    __default: { ...Native.__default, ...overrides },
-  };
+  const bindings = importMatch[1].split(', ').map(specifier => {
+    const match = specifier.match(/^(native[\w$]+) as (n\d+)$/);
+    if (!match) throw new Error(`unsupported generated native import ${specifier}`);
+    const [, binding, alias] = match;
+    const suffix = binding.slice('native'.length);
+    const member = suffix[0] === '_' ? suffix : suffix[0].toLowerCase() + suffix.slice(1);
+    const value = Object.hasOwn(overrides, member) ? overrides[member] : Native.__default[member];
+    return { alias, value };
+  });
   const executable = source
-    .replace(importLine, '')
+    .replace(importPattern, '')
     .replace(exportLine, 'module.exports = { DafnyCore, Serializer };');
-  new Function('Native', 'module', executable)(wiredNative, module);
+  new Function(...bindings.map(({ alias }) => alias), 'module', executable)(...bindings.map(({ value }) => value), module);
   return {
     ...module.exports,
     engineMethod(instance, name) {
