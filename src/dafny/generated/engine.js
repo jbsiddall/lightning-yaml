@@ -1,7 +1,7 @@
 // Dafny program compiled into JavaScript by Dafny 4.11.0.
 // Copyright by the contributors to the Dafny Project.
 // SPDX-License-Identifier: MIT
-// Sources sha256 49286bcb6b6ab3bfd1ebdc54c64e9f086e268af228cbff8f131a09b87e3a20a5; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
+// Sources sha256 dbb326adee2f620b6a343c645b49cf087ad9a54f2b1219944fe7779e5efbff52; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.
 import { native_$$_toString as n0, nativeArrayGet as n1, nativeArrayLength as n2, nativeArrayPush as n3, nativeByteGet as n4, nativeByteLength as n5, nativeByteSet as n6, nativeCodeUnitAt as n7, nativeConcat as n8, nativeCreateArray as n9, nativeCreateObject as n10, nativeCreateUint8Array as n11, nativeEmptyMap as n12, nativeEuclideanDivisionNumber as n13, nativeEuclideanModuloNumber as n14, nativeFail as n15, nativeFormatNumber as n16, nativeIndexOf as n17, nativeIsMap as n18, nativeIsSet as n19, nativeIsUint8Array as n20, nativeJoin as n21, nativeJsEqual as n22, nativeJsonQuote as n23, nativeMapCreate as n24, nativeMapGet as n25, nativeMapKeys as n26, nativeMapSet as n27, nativeMapSize as n28, nativeNoDocumentValue as n29, nativeNotNumericValue as n30, nativeNullValue as n31, nativeNumberAdd as n32, nativeNumberIsNaN as n33, nativeNumberIsNegativeInfinity as n34, nativeNumberIsNegativeZero as n35, nativeNumberIsPositiveInfinity as n36, nativeNumberLessEqual as n37, nativeNumberMulAdd as n38, nativeObjectKeys as n39, nativeObjectSetSafe as n40, nativeParseNumber as n41, nativeParseSpecialNumber as n42, nativeRepeat as n43, nativeSameValue as n44, nativeSetCreate as n45, nativeSetValues as n46, nativeSlice as n47, nativeStringFallback as n48, nativeStringFromCharCode as n49, nativeStringFromCodePoint as n50, nativeUndefinedValue as n51, nativeSurfaceCaptureEndStream as n52, nativeSurfaceCaptureIsArray as n53, nativeSurfaceCaptureNormalizationRecord as n54, nativeSurfaceCaptureParseAll as n55, nativeSurfaceCaptureParseSingle as n56, nativeSurfaceCaptureReset as n57, nativeSurfaceCaptureTypeError as n58, nativeSurfaceCaptureWriterStringify as n59, nativeSurfaceCompletionIsThrown as n60, nativeSurfaceCompletionValue as n61, nativeSurfaceIsExactlyTrue as n62, nativeSurfaceIsNullish as n63, nativeSurfaceIsString as n64, nativeSurfaceIsTruthy as n65, nativeSurfaceMultiplyBy1024 as n66, nativeSurfaceNormalizationBudget as n67, nativeSurfaceNormalizationIntern as n68, nativeSurfaceNormalizationStrict as n69, nativeSurfaceReadProperty as n70, nativeSurfaceReturnedString as n71, nativeSurfaceTemplateString as n72 } from '../native.ts';
 
 let TagValues = (function () {
@@ -7481,22 +7481,26 @@ let NativeSurface = (function () {
                     _2_keyCacheBudgetValue = n61(_11_budgetRead);
                 }
             }
-            if (n63(_2_keyCacheBudgetValue)) {
+            let _12_useDefault;
+            _12_useDefault = n63(_2_keyCacheBudgetValue);
+            if (_12_useDefault) {
                 _2_keyCacheBudgetValue = 4096;
             }
-            let _12_multiplied;
+            let _13_multiplied;
             let _out5;
-            _12_multiplied =
+            _13_multiplied =
                 n66(_2_keyCacheBudgetValue, this.engine, this.engine.tagHelpers, this.writer);
-            if (n60(_12_multiplied)) {
-                completion = _12_multiplied;
+            if (n60(_13_multiplied)) {
+                completion = _13_multiplied;
                 return completion;
             }
-            let _13_keyCacheBudget;
-            _13_keyCacheBudget = n61(_12_multiplied);
+            let _14_keyCacheBudget;
+            _14_keyCacheBudget = n61(_13_multiplied);
+            let _15_record;
             let _out6;
-            completion =
-                n54(_4_strict, _3_internValues, _13_keyCacheBudget);
+            _15_record =
+                n54(_4_strict, _3_internValues, _14_keyCacheBudget);
+            completion = _15_record;
             return completion;
         }
         SelectCompletionAfterCleanup(pending, cleanup, cleanupThrown) {
@@ -7530,53 +7534,59 @@ let NativeSurface = (function () {
             _0_pending =
                 (this).NormalizeParseOptions(options);
             if (!(n60(_0_pending))) {
-                let _1_normalized;
-                _1_normalized = n61(_0_pending);
+                let _1_normalizationRecord;
+                _1_normalizationRecord = n61(_0_pending);
                 let _2_strict;
-                _2_strict = n69(_1_normalized);
+                _2_strict = n69(_1_normalizationRecord);
                 let _3_intern;
-                _3_intern = n68(_1_normalized);
+                _3_intern = n68(_1_normalizationRecord);
                 let _4_budget;
-                _4_budget = n67(_1_normalized);
+                _4_budget = n67(_1_normalizationRecord);
+                let _5_reset;
                 let _out1;
-                _0_pending =
+                _5_reset =
                     n57(this.engine, text, _2_strict, _3_intern, _4_budget);
+                _0_pending = _5_reset;
                 if (!(n60(_0_pending))) {
+                    let _6_parsed = undefined;
                     if (allDocuments) {
                         let _out2;
-                        _0_pending =
+                        _6_parsed =
                             n55(this.engine);
                     }
                     else {
                         let _out3;
-                        _0_pending =
+                        _6_parsed =
                             n56(this.engine);
                     }
+                    _0_pending = _6_parsed;
                     if ((allDocuments) && (!(n60(_0_pending)))) {
-                        let _5_value;
-                        _5_value = n61(_0_pending);
-                        let _6_arrayCheck;
+                        let _7_value;
+                        _7_value = n61(_0_pending);
+                        let _8_arrayCheck;
                         let _out4;
-                        _6_arrayCheck =
-                            n53(_5_value, this.engine, this.engine.tagHelpers, this.writer);
-                        if (n60(_6_arrayCheck)) {
-                            _0_pending = _6_arrayCheck;
+                        _8_arrayCheck =
+                            n53(_7_value, this.engine, this.engine.tagHelpers, this.writer);
+                        if (n60(_8_arrayCheck)) {
+                            _0_pending = _8_arrayCheck;
                         }
-                        else if (!(n65(n61(_6_arrayCheck)))) {
+                        else if (!(n65(n61(_8_arrayCheck)))) {
+                            let _9_typeError;
                             let _out5;
-                            _0_pending =
+                            _9_typeError =
                                 n58("Dafny parseAll returned a non-array value", this.engine, this.engine.tagHelpers, this.writer);
+                            _0_pending = _9_typeError;
                         }
                     }
                 }
             }
-            let _7_cleanup;
+            let _10_cleanup;
             let _out6;
-            _7_cleanup =
+            _10_cleanup =
                 n52(this.engine);
             let _out7;
             completion =
-                (this).SelectCompletionAfterCleanup(_0_pending, _7_cleanup, n60(_7_cleanup));
+                (this).SelectCompletionAfterCleanup(_0_pending, _10_cleanup, n60(_10_cleanup));
             return completion;
         }
         Stringify(value) {
@@ -7592,9 +7602,11 @@ let NativeSurface = (function () {
             let _1_text;
             _1_text = n61(_0_written);
             if (!(n64(_1_text))) {
+                let _2_typeError;
                 let _out1;
-                completion =
+                _2_typeError =
                     n58("Dafny stringify returned a non-string value", this.engine, this.engine.tagHelpers, this.writer);
+                completion = _2_typeError;
                 return completion;
             }
             completion = _0_written;

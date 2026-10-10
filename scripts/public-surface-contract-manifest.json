@@ -3192,14 +3192,32 @@
   },
   "verifiedSurfaceClaims": [],
   "localProofScope": {
-    "claim": "Six scanner recognizers have local proof evidence only; they are not public surface or whole-parser proofs.",
-    "coverage": "See scripts/verify-dafny-scanner.cjs and generated coverage; caller preconditions and transitive Engine/Writer semantics are not established here."
+    "claim": "Eight scanner methods have local proof evidence only. Native normalization/parse flow contracts are attached, but the repository's exact-source Native proof gate is pending; neither constitutes a complete public-operation proof.",
+    "coverage": "See scripts/verify-dafny-scanner.cjs and scripts/verify-dafny-native.cjs. Scanner caller preconditions, host-profile authenticity, raw host binding, and transitive Engine/Writer semantics remain open. Native MultiplyBudget numeric/default correspondence also remains open."
+  },
+  "conditionalNativeAdapterFlow": {
+    "status": "attached-proof-gate-pending",
+    "methods": [
+      "NativeSurface.Adapter.NormalizeParseOptions",
+      "NativeSurface.Adapter.ParseCompletion",
+      "NativeSurface.Adapter.Parse",
+      "NativeSurface.Adapter.ParseAll",
+      "NativeSurface.Adapter.Stringify"
+    ],
+    "scope": "Routed method bodies compose conditional event-trace contracts under host-open atomic observations and the protected-context profile. Selected exact-source body/dependency verification is not yet complete.",
+    "open": [
+      "Host authenticity and raw observation-to-JavaScript binding",
+      "Default-budget and raw JavaScript numeric multiplication/coercion/result correspondence",
+      "End-to-end parser and writer semantics",
+      "Compatibility facade and constructor completion relations"
+    ],
+    "verifiedPublicOperations": []
   },
   "contractCompleteness": {
     "sourceInventory": "Complete for the checked TypeScript/package export, type, default-alias, class/document member, options field/rule, and package-map sets at the pinned source snapshot.",
     "behavioralSpecification": "Partial consumer-facing current-behavior summary. No row claims that all call traces, postconditions, failure branches, or host effects are fully specified.",
     "unresolvedFormalContracts": [
-      "No executable Dafny SurfaceRequest/Completion or event-trace postcondition is yet connected to any public TS call.",
+      "No complete surface-wide Dafny request/completion relation connects every public TypeScript entry, overload, constructor, default alias, and package build to its result, failure, and effects.",
       "No finite JavaScript heap model captures all descriptors, prototypes, accessors, proxies, realms, functions, reentrancy, and callback heap edits.",
       "No complete per-entry validation trace captures Object.keys snapshots, property/getter/proxy completions, inherited rule lookup, failure identity, and cleanup.",
       "No independent complete YAML syntax witness, scalar conversion, tags, document/alias graph construction, parser errors, numeric conversion, and cache behavior relation is proved.",

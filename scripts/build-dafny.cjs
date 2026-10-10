@@ -17,11 +17,37 @@ const SOURCES = [
   'src/dafny/core/SurfaceHelpers.dfy',
   'src/dafny/core/SurfaceErrors.dfy',
   'src/dafny/core/SurfaceHost.dfy',
+  'src/dafny/core/SurfaceModel.dfy',
+  'src/dafny/core/NativeContracts.dfy',
+  'src/dafny/core/FacadeFlow.dfy',
+  'src/dafny/core/FacadeContracts.dfy',
+  'src/dafny/core/PublicObjects.dfy',
+  'src/dafny/core/ObjectsAndErrors.dfy',
+  'src/dafny/core/ErrorTranslation.dfy',
+  'src/dafny/core/HostObservation.dfy',
+  'src/dafny/core/SurfaceWitness.dfy',
+  'src/dafny/core/NativeTraceLemmas.dfy',
+  'src/dafny/core/NativePhaseIntro.dfy',
+  'src/dafny/core/NativePrefixComposition.dfy',
+  'src/dafny/core/NativeParseComposition.dfy',
+  'src/dafny/core/NativeParseTransport.dfy',
   'src/dafny/surfaces/NativeSurface.dfy',
 ];
 const OUTPUT = 'src/dafny/generated/engine.js';
 const MODULES = new Set(['TagValues', 'DafnyCore', 'Serializer', 'SurfaceOptions', 'SurfaceHelpers', 'SurfaceErrors', 'NativeSurface']);
-const OMITTED = new Set(['_dafny', '_System', '_module', 'SurfaceValues', 'SurfaceHost']);
+const OMITTED = new Set([
+  '_dafny', '_System', '_module', 'SurfaceValues', 'SurfaceHost',
+  'SurfaceModel', 'NativeContracts', 'FacadeFlow', 'FacadeContracts',
+  'PublicObjects', 'ObjectsAndErrors', 'ErrorTranslation',
+  'HostObservation', 'SurfaceWitness',
+  'NativeTraceLemmas',
+  'NativePhaseIntro',
+  'NativePrefixComposition',
+  'NativeParseComposition',
+  'NativeParseTransport',
+]);
+const OMITTED_MODEL_MODULES = new Set([...OMITTED].filter(name =>
+  !['_dafny', '_System', '_module', 'SurfaceHost'].includes(name)));
 const DAFNY_RUNTIME_SITES = {
   areEqual: {
     'Helpers.BuildOmap': 1,
@@ -135,8 +161,22 @@ function lowerDafnyRuntime(sourceText) {
     }
   }
   if (lowered.includes('_dafny')) throw new Error('Dafny runtime reference remains after the audited lowering pass');
-  if (/\bSurfaceValues\b/.test(lowered)) throw new Error('omitted ghost module SurfaceValues remains reachable in generated output');
+  assertNoOmittedModelReferences(lowered);
   return lowered;
+}
+
+function assertNoOmittedModelReferences(sourceText, additionalOmitted = []) {
+  const omittedModules = new Set([...OMITTED_MODEL_MODULES, ...additionalOmitted]);
+  const source = ts.createSourceFile('omitted-module-check.js', sourceText,
+    ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  if (source.parseDiagnostics.length) throw new Error('lowered Dafny output was not valid JavaScript');
+  function visit(node) {
+    if (ts.isIdentifier(node) && omittedModules.has(node.text)) {
+      throw new Error(`omitted model/proof module ${node.text} remains reachable in generated output`);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
 }
 
 function extractModules(generated) {
@@ -229,6 +269,7 @@ function extract(generated, digest) {
   const result = ts.transform(source, [context => root => ts.visitNode(root, node => rewrite(node, context))]);
   const surfaceText = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed }).printFile(result.transformed[0]);
   result.dispose();
+  assertNoOmittedModelReferences(surfaceText, ['SurfaceHost']);
   const sort = obj => Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)));
   if (JSON.stringify(sort(actualSurfaceSites)) !== JSON.stringify(sort(expectedSurfaceSites))) {
     throw new Error(`SurfaceHost callsite inventory changed: ${JSON.stringify(actualSurfaceSites)}`);
@@ -270,5 +311,9 @@ function main() {
   }
 }
 
-try { main(); }
-catch (error) { process.stderr.write(`Dafny generation: ${error.message}\n`); process.exitCode = 1; }
+if (require.main === module) {
+  try { main(); }
+  catch (error) { process.stderr.write(`Dafny generation: ${error.message}\n`); process.exitCode = 1; }
+}
+
+module.exports = { assertNoOmittedModelReferences, OMITTED_MODEL_MODULES };

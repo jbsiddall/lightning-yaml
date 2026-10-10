@@ -141,8 +141,9 @@ import { parse, stringify } from 'lightning-yaml/yaml';
 > **Status — partial compatibility.** The subpaths provide selected functions,
 > not the full `yaml` or `js-yaml` export surfaces or every call signature.
 > The two shims have different option names and argument precedence. See the
-> [native API contract](docs/contracts/native.md), [`yaml` contract](docs/contracts/yaml.md), and
-> [`js-yaml` contract](docs/contracts/js-yaml.md) for current supported, ignored,
+> [contract index](docs/contracts/index.md), [native API contract](docs/contracts/native.md),
+> [`yaml` contract](docs/contracts/yaml.md), and [`js-yaml` contract](docs/contracts/js-yaml.md)
+> for current supported, ignored,
 > and rejected calls, including known open mismatches. The checked
 > [public-surface contract ledger](scripts/public-surface-contract-manifest.json)
 > inventories the public surface, summarizes current behavior, and lists proof

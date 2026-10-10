@@ -1,5 +1,9 @@
 # `lightning-yaml/js-yaml` contract
 
+See the [contract index](index.md) for the shared Dafny core/surface boundary
+and the current proof status. This page records consumer behavior; none of its
+complete public YAML operations are formally guaranteed yet.
+
 This entry exports `load`, `loadAll`, `dump`, `YAMLException`, three tag-definition helpers, `Schema`, and four schema singletons. Its default object initially contains the same twelve named references and is an ordinary mutable object. The type-only exports are `Mark`, `TagDefinition`, `LoadOptions`, and `DumpOptions`.
 
 ## Calls, callbacks, and errors

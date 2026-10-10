@@ -18,7 +18,9 @@ const methods = [
   'TrimTrailingWs',
   'SkipInlineSpaces',
   'IsSpaceOrEolAt',
+  'IsSpaceOrEol',
   'IsDocMarkerAt',
+  'LooksLikeDocMarkerAt',
 ];
 const dependencies = [
   'FlowIndicator',
@@ -60,13 +62,17 @@ const expectedKinds = {
   PrefixExtend: ['well-formedness', 'correctness'],
   WsRangeExtendLeft: ['well-formedness', 'correctness'],
   IsSpaceOrEolAt: ['well-formedness', 'correctness'],
+  IsSpaceOrEol: ['well-formedness', 'correctness'],
   IsDocMarkerAt: ['well-formedness', 'correctness'],
+  LooksLikeDocMarkerAt: ['well-formedness', 'correctness'],
   SpaceOrEolBoundaryAt: ['well-formedness'],
   DocumentMarkerAt: ['well-formedness'],
 };
 const verificationGroups = [
   { names: ['FlowSeparatorAt', 'SeparatorAt'], pattern: '*SeparatorAt*' },
-  ...methods.filter((name) => name !== 'FlowSeparatorAt').map((name) => ({ names: [name], pattern: `*${name}*` })),
+  ...methods.filter((name) => name !== 'FlowSeparatorAt' && name !== 'IsSpaceOrEolAt' && name !== 'IsSpaceOrEol')
+    .map((name) => ({ names: [name], pattern: `*${name}*` })),
+  { names: ['IsSpaceOrEolAt', 'IsSpaceOrEol'], pattern: '*IsSpaceOrEol*' },
   { names: ['FlowIndicator'], pattern: '*FlowIndicator*' },
   { names: ['InlineWs', 'FirstNonInlineWs'], pattern: '*InlineWs*' },
   { names: ['LineBreak'], pattern: '*LineBreak*' },
@@ -264,11 +270,20 @@ function requireContracts(source) {
       'requires len as int == |src|',
       'ensures yes == SpaceOrEolBoundaryAt(src, i as int)',
     ],
+    IsSpaceOrEol: [
+      'ensures yes == (InlineWs(c as char) || LineBreak(c as char))',
+    ],
     IsDocMarkerAt: [
       'requires i <= len',
       'requires len as int == |src|',
       'requires i != lineStart || (i as int) + 2 < 9007199254740000',
       'ensures yes == DocumentMarkerAt(src, lineStart as int, i as int)',
+    ],
+    LooksLikeDocMarkerAt: [
+      'requires i <= len',
+      'requires len as int == |src|',
+      'requires (i as int) + 2 < 9007199254740000',
+      'ensures yes == DocumentMarkerAt(src, i as int, i as int)',
     ],
   };
   for (const [name, clauses] of Object.entries(expected)) {
@@ -311,21 +326,37 @@ function requireContracts(source) {
   }
 }
 
-function checkMutationLog(logPath, consoleLog, expectedSymbol) {
+function checkMutationLog(logPath, consoleLog, expectedSymbol, selectedSymbols = [expectedSymbol]) {
   const rows = parseCsv(readFileSync(logPath, 'utf8'));
-  const fullName = `DafnyCore.Engine.${expectedSymbol}`;
-  if (rows.length !== 2 || rows.some((row) => !row['TestResult.DisplayName'].startsWith(`${fullName} (`))) {
-    throw new Error(`${expectedSymbol} mutation: verifier did not report exactly its two selected obligations`);
+  const targetName = `DafnyCore.Engine.${expectedSymbol}`;
+  const expectedRows = selectedSymbols.reduce((count, name) => count + expectedKinds[name].length, 0);
+  const names = new Set(selectedSymbols.map((name) => `DafnyCore.Engine.${name}`));
+  if (rows.length !== expectedRows || rows.some((row) => {
+    const match = row['TestResult.DisplayName'].match(/^(.*?) \(([^()]*)\)$/);
+    return !match || !names.has(match[1]);
+  })) {
+    throw new Error(`${expectedSymbol} mutation: verifier did not report the exact selected obligations`);
   }
-  const outcomes = Object.fromEntries(rows.map((row) => [row['TestResult.DisplayName'].slice(fullName.length + 2, -1), row['TestResult.Outcome']]));
-  if (outcomes['well-formedness'] !== 'Passed' || outcomes.correctness !== 'Failed') {
-    throw new Error(`${expectedSymbol} mutation: expected well-formedness Passed and correctness Failed`);
+  const outcomes = new Map(rows.map((row) => {
+    const [, name, kind] = row['TestResult.DisplayName'].match(/^(.*?) \(([^()]*)\)$/);
+    return [`${name}#${kind}`, row['TestResult.Outcome']];
+  }));
+  for (const name of selectedSymbols) {
+    for (const kind of expectedKinds[name]) {
+      const expected = `DafnyCore.Engine.${name}` === targetName && kind === 'correctness'
+        ? 'Failed'
+        : 'Passed';
+      if (outcomes.get(`DafnyCore.Engine.${name}#${kind}`) !== expected) {
+        throw new Error(`${expectedSymbol} mutation: ${name} ${kind} expected ${expected}`);
+      }
+    }
   }
   const summary = consoleLog.match(/Dafny program verifier finished with (\d+) verified, (\d+) errors?/);
-  if (!summary || Number(summary[2]) !== 1 || Number(summary[1]) !== 1) {
-    throw new Error(`${expectedSymbol} mutation: verifier summary was not 1 verified, 1 error`);
+  const expectedPassed = expectedRows - 1;
+  if (!summary || Number(summary[2]) !== 1 || Number(summary[1]) !== expectedPassed) {
+    throw new Error(`${expectedSymbol} mutation: verifier summary was not ${expectedPassed} verified, 1 error`);
   }
-  return { symbol: fullName, wellFormedness: 'Passed', correctness: 'Failed as expected', log: resolve(logPath) };
+  return { symbol: targetName, wellFormedness: 'Passed', correctness: 'Failed as expected', log: resolve(logPath) };
 }
 
 function validateGroupMembership(groups, expectedSymbols) {
@@ -487,6 +518,12 @@ try {
       to: 'yes := c == 32 || c == 10 || c == 13;',
     },
     {
+      symbol: 'IsSpaceOrEol',
+      label: 'dropping carriage-return recognition',
+      from: 'yes := c == 32 || c == 9 || c == 10 || c == 13;',
+      to: 'yes := c == 32 || c == 9 || c == 10;',
+    },
+    {
       symbol: 'IsDocMarkerAt',
       label: 'dropping document-end dot recognition',
       from: 'if c != 45 && c != 46 { return; }',
@@ -503,6 +540,12 @@ try {
       label: 'removing the marker separator check',
       from: 'yes := sep;',
       to: 'yes := true;',
+    },
+    {
+      symbol: 'LooksLikeDocMarkerAt',
+      label: 'dropping document-end dot recognition at parser cursor',
+      from: 'if c != 45 && c != 46 { return; }',
+      to: 'if c != 45 { return; }',
     },
   ];
   const mutationOutputIds = mutations.map((mutation, index) => `mutation-${String(index + 1).padStart(2, '0')}-${mutation.symbol}`);
@@ -527,7 +570,10 @@ try {
       ...mutationInputs,
     ]);
     writeFileSync(join(mutationDir, 'verifier.stdout.txt'), mutationOutput);
-    const check = checkMutationLog(mutationLog, mutationOutput, mutation.symbol);
+    const selectedSymbols = mutation.symbol === 'IsSpaceOrEol'
+      ? ['IsSpaceOrEol', 'IsSpaceOrEolAt']
+      : [mutation.symbol];
+    const check = checkMutationLog(mutationLog, mutationOutput, mutation.symbol, selectedSymbols);
     mutationChecks.push({ mutationId, mutation: mutation.label, outcome: 'rejected as expected', ...check });
   }
   const sourceFiles = ['src/dafny/core/Native.dfy', 'src/dafny/core/TagValues.dfy', 'src/dafny/core/Serializer.dfy'];
@@ -558,7 +604,7 @@ try {
       { mutation: 'weakening TrimTrailingWs maximal-suffix contract', outcome: 'rejected by exact contract inventory' },
       ...mutationChecks,
     ],
-    semanticCoverage: 'The six executed scanner methods prove FlowSeparatorAt lexical first-boundary recognition, ScanFlowPlainLine lexical first-stop behavior, TrimTrailingWs maximal trailing-whitespace removal, SkipInlineSpaces exact consumed-prefix behavior, IsSpaceOrEolAt exact horizontal-space-or-line-break recognition, and IsDocMarkerAt exact three-character document-marker recognition with a required following boundary.',
+    semanticCoverage: 'The eight executed scanner methods prove FlowSeparatorAt lexical first-boundary recognition, ScanFlowPlainLine lexical first-stop behavior, TrimTrailingWs maximal trailing-whitespace removal, SkipInlineSpaces exact consumed-prefix behavior, IsSpaceOrEolAt and IsSpaceOrEol exact horizontal-space-or-line-break recognition, and IsDocMarkerAt and LooksLikeDocMarkerAt exact three-character document-marker recognition with a required following boundary.',
     callerConditionsNotProved: ['len as int == |src| at entry', 'entry cursor/span bounds for each caller', 'for IsDocMarkerAt, the conditional arithmetic slack i != lineStart || i + 2 < 9007199254740000', 'that IsDocMarkerAt callers supply the actual beginning of a source line as lineStart'],
     frames: {
       FlowSeparatorAt: 'empty modifies frame (default)',

@@ -1,5 +1,9 @@
 # `lightning-yaml/yaml` contract
 
+See the [contract index](index.md) for the shared Dafny core/surface boundary
+and the current proof status. This page records consumer behavior; none of its
+complete public YAML operations are formally guaranteed yet.
+
 This entry provides a small compatibility surface for the `yaml` package. Its `parse`, `parseAllDocuments`, `parseDocument`, and `stringify` functions are also present on the mutable default object as the same initial function references. `Reviver` and `CompatDocument` are type-only exports.
 
 ## Parsing and document wrappers

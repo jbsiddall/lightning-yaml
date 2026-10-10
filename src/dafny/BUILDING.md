@@ -38,7 +38,7 @@ The declarations in `generated/engine.d.ts` are a checked boundary: generated va
 
 ## Scoped scanner verification
 
-`pnpm dafny:verify:scanner` verifies the executed `FlowSeparatorAt`, `ScanFlowPlainLine`, `TrimTrailingWs`, `SkipInlineSpaces`, `IsSpaceOrEolAt`, and `IsDocMarkerAt` methods plus their ghost specification dependencies under Dafny 4.11.0 with UTF-16 characters. It writes CSV proof logs and a machine-readable coverage report to `results/dafny-scanner-proof/`. The methods establish their stated lexical boundary, first-stop, maximal trailing-whitespace suffix, consumed-inline-whitespace-prefix, and document-marker contracts. All six methods have empty heap frames except `SkipInlineSpaces`, which permits changes only to the cursor field. Four selected predicates have no generated verification conditions and are recorded as `no-verification-conditions`, not as semantic proofs.
+`pnpm dafny:verify:scanner` verifies eight executed methods: `FlowSeparatorAt`, `ScanFlowPlainLine`, `TrimTrailingWs`, `SkipInlineSpaces`, `IsSpaceOrEolAt`, `IsSpaceOrEol`, `IsDocMarkerAt`, and `LooksLikeDocMarkerAt`, plus their ghost specification dependencies under Dafny 4.11.0 with UTF-16 characters. It writes CSV proof logs and a machine-readable coverage report to `results/dafny-scanner-proof/`. The methods establish their stated lexical boundary, first-stop, maximal trailing-whitespace suffix, consumed-inline-whitespace-prefix, and document-marker contracts. All eight methods have empty heap frames except `SkipInlineSpaces`, which permits changes only to the cursor field. Four selected predicates have no generated verification conditions and are recorded as `no-verification-conditions`, not as semantic proofs. Each method has an isolated altered-body mutation rejected by its selected correctness proof.
 
 `pnpm dafny:verify:options` verifies five executed methods in the retained
 `SurfaceOptions` module: the yaml parse/stringify and js-yaml loadAll slot
@@ -83,13 +83,18 @@ cleanup, stringify, exception-string, and not-implemented-message control
 bodies. Their host operations capture raw return/throw completions. Generated
 route tests exercise those methods through public entry points and check
 getter/coercion order, cleanup error identity, and eager adapter construction.
-These bodies still lack attached complete ordered-trace postconditions and
-selected proofs; host getter/coercion correspondence and the generated parser/
-writer semantics remain open. The methods must not be counted as complete
-public-operation contracts from their route tests or from
-`SelectCompletionAfterCleanup` alone.
+Normalization and parse/reset/cleanup have attached conditional ordered-trace
+postconditions. Isolated replays passed for normalization and ParseCompletion,
+and the Adapter-method filter produced 2,968 passing correctness batches; the
+last command exited on a deprecated CLI warning, and the checked-in proof
+runner has not yet completed its helper/dependency inventory. Do not report the
+Native flow tranche as fully verified until `pnpm dafny:verify:native` passes
+with the final exact-source inputs. Host observation correspondence, protected
+context authenticity, numeric budget multiplication, and generated parser/
+writer semantics remain open. The methods are not complete public-operation
+contracts based on route tests or `SelectCompletionAfterCleanup` alone.
 
-The six conditional scanner method proofs require `len as int == |src|` and their stated cursor or span bounds. `IsDocMarkerAt` also requires conditional arithmetic slack when its input index equals `lineStart`; no selected caller proof establishes that `lineStart` is the actual beginning of a source line. No caller has been proved to establish these preconditions. Native host bindings, the remaining parser and serializer methods, other scanner methods, and the backend/output postpass remain trusted or unproved. These selected tranches prove neither complete parsing nor full YAML semantic equivalence. Dafny generation still uses `--no-verify` for the full source tree, and CPU and memory performance acceptance remains separate.
+The eight conditional scanner method proofs require `len as int == |src|` and their stated cursor or span bounds. `IsDocMarkerAt` requires conditional arithmetic slack when its input index equals `lineStart`; no selected caller proof establishes that `lineStart` is the actual beginning of a source line. `LooksLikeDocMarkerAt` requires its actual cursor to be in range and enough arithmetic slack. No caller has been proved to establish these preconditions. Native host bindings, the remaining parser and serializer methods, and the backend/output postpass remain trusted or unproved. These selected tranches prove neither complete parsing nor full YAML semantic equivalence. Dafny generation still uses `--no-verify` for the full source tree, and CPU and memory performance acceptance remains separate.
 
 Generated JavaScript carries the Dafny Project copyright and MIT SPDX notice. The accompanying `Dafny-LICENSE.txt` is included in the npm package.
 

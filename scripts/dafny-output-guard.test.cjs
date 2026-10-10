@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const { audit } = require('./check-dafny-output.cjs');
+const { assertNoOmittedModelReferences, OMITTED_MODEL_MODULES } = require('./build-dafny.cjs');
 
 const base = __dirname;
 const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, 'dafny-output-guard.json'), 'utf8'));
@@ -19,6 +20,26 @@ const config = {
   sourceSha256: manifest.sourceSha256,
   shapeManifest: manifest.shapeManifest,
 };
+
+test('Dafny generator guards every omitted proof/model module from output reachability', () => {
+  assert.ok(OMITTED_MODEL_MODULES.size > 10);
+  const buildSource = fs.readFileSync(path.join(__dirname, 'build-dafny.cjs'), 'utf8');
+  assert.match(buildSource, /assertNoOmittedModelReferences\(lowered\)/,
+    'module reachability check must remain wired into generation');
+  for (const name of OMITTED_MODEL_MODULES) {
+    assert.throws(
+      () => assertNoOmittedModelReferences(`const retained = ${name}.unexpected;`),
+      new RegExp(`omitted model/proof module ${name} remains reachable`),
+      `${name} should be rejected from emitted JavaScript`,
+    );
+  }
+  assert.throws(
+    () => assertNoOmittedModelReferences('const retained = SurfaceHost.unexpected;', ['SurfaceHost']),
+    /omitted model\/proof module SurfaceHost remains reachable/,
+    'rewritten ABI calls must not leave SurfaceHost references behind',
+  );
+  assert.doesNotThrow(() => assertNoOmittedModelReferences('const retained = 1;'));
+});
 
 function override(file, transform) {
   const original = fs.readFileSync(file, 'utf8');

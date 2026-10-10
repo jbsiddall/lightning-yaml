@@ -1765,11 +1765,16 @@ module DafnyCore {
     }
 
     method IsSpaceOrEol(c: Unit) returns (yes: bool)
+      ensures yes == (InlineWs(c as char) || LineBreak(c as char))
     {
       yes := c == 32 || c == 9 || c == 10 || c == 13;
     }
 
     method LooksLikeDocMarkerAt(i: Index) returns (yes: bool)
+      requires i <= len
+      requires len as int == |src|
+      requires (i as int) + 2 < 9007199254740000
+      ensures yes == DocumentMarkerAt(src, i as int, i as int)
     {
       yes := false;
       if i + 2 >= len { return; }

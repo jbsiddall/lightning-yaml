@@ -26,8 +26,33 @@ Each parse call resets the shared parser and calls `EndStream` from `finally`, i
 
 ## Formal-contract status
 
-The checked ledger in [`public-surface-contract-manifest.json`](../../scripts/public-surface-contract-manifest.json) distinguishes behavior summaries from verified behavior and lists the remaining formal-contract gaps. Six scanner methods have local proofs and are dependencies only. Root parsing, output semantics, host JavaScript correspondence, and end-to-end caller guarantees remain open; inventory presence and regression tests are not proofs.
+The checked ledger in [`public-surface-contract-manifest.json`](../../scripts/public-surface-contract-manifest.json) distinguishes behavior summaries from verified behavior and lists the remaining formal-contract gaps. Eight scanner methods have local proofs and are dependencies only. Root parsing, output semantics, host JavaScript correspondence, and end-to-end caller guarantees remain open; inventory presence and regression tests are not proofs.
 
 The `SurfaceOptions` tranche is integrated: five generated methods have conditional proofs over supplied host classifications (six verification obligations, with ten behavior-changing body mutations rejected). The source-derived checker finds all 26 option-tranche constructs. These results do not prove JavaScript host classification, property/getter behavior, or any complete public operation. The manifest continues to report no verified public operations.
+
+The actual `NativeSurface.Adapter` normalization and parse/reset/cleanup bodies
+carry ordered-trace postconditions. Their proof is conditional on individual
+host-operation contracts and a HOST-OPEN protected-context profile. That profile
+assumes callback-controlled code cannot replace the Adapter's Engine/Writer
+slots or the Engine's `tagHelpers` slot; it still permits ordinary reentrant
+changes to parser and writer state. The profile's authenticity in JavaScript,
+raw-value/heap observation correspondence, and parser-core meaning remain open.
+The exact-source verification and dependency inventory must be replayed from
+`pnpm dafny:verify:native` before these body clauses are described as verified.
+This conditional adapter flow is not a complete public-operation guarantee.
+
+The current ghost `MultiplyBudget` event records that the numeric operation was
+reached in the right order. It does not yet relate its result to the raw
+`keyCacheMaxKb * 1024` JavaScript operation, the default value, coercion, or
+`NumberValue` construction. Those numeric clauses remain open.
+
+Native iteration failure text and exact raw failure correspondence are open for
+modified iterator/`Reflect.apply` globals; the present captured iterator helper
+does not match all native `for...of` diagnostics.
+
+The conditional adapter proof is not the final shared surface architecture.
+Shared Dafny contracts and models belong under `core/`, with entry-specific
+method bodies under `surfaces/`; compatibility facades and package aliases still
+need their own routed-operation contracts.
 
 Known open items include the quoted-key cache defect (issue #234) and host numeric conversion obligations. They are recorded as current defects or pending obligations, not approved YAML deviations. The manifest checker compares source exports, option fields/rules, default aliases, package exports, and behavioral rows against this ledger. Function/class identity, `name`/`length`, prototype, and property descriptors follow the actual JavaScript build; the existing built-package tests cover representative export resolution, not every descriptor.

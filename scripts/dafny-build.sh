@@ -21,5 +21,15 @@ cd "$repo_root"
   src/dafny/core/Native.dfy src/dafny/core/TagValues.dfy src/dafny/core/Engine.dfy src/dafny/core/Serializer.dfy \
   src/dafny/core/SurfaceValues.dfy src/dafny/core/SurfaceOptions.dfy \
   src/dafny/core/SurfaceHelpers.dfy src/dafny/core/SurfaceErrors.dfy src/dafny/core/SurfaceHost.dfy \
+  src/dafny/core/SurfaceModel.dfy src/dafny/core/NativeContracts.dfy \
+  src/dafny/core/FacadeFlow.dfy src/dafny/core/FacadeContracts.dfy \
+  src/dafny/core/PublicObjects.dfy src/dafny/core/ObjectsAndErrors.dfy \
+  src/dafny/core/ErrorTranslation.dfy src/dafny/core/HostObservation.dfy \
+  src/dafny/core/SurfaceWitness.dfy \
+  src/dafny/core/NativeTraceLemmas.dfy \
+  src/dafny/core/NativePhaseIntro.dfy \
+  src/dafny/core/NativePrefixComposition.dfy \
+  src/dafny/core/NativeParseComposition.dfy \
+  src/dafny/core/NativeParseTransport.dfy \
   src/dafny/surfaces/NativeSurface.dfy
 node scripts/build-dafny.cjs "$@" --input "$temporary/Native.js"

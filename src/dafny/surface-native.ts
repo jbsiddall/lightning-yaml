@@ -11,7 +11,7 @@ export type SurfaceCompletion =
   | { readonly kind: 0; readonly value: unknown }
   | { readonly kind: 1; readonly value: unknown };
 
-const returnedUndefined: SurfaceCompletion = Object.freeze({ kind: 0, value: undefined });
+const returnedUndefined: SurfaceCompletion = { kind: 0, value: undefined };
 const completed = (kind: 0 | 1, value: unknown): SurfaceCompletion =>
   kind === 0 && value === undefined ? returnedUndefined : { kind, value };
 
