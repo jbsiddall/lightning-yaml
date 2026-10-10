@@ -65,3 +65,6 @@ The optional lightning-yaml annotation used to exercise the intrinsic lives in
 [`workloads/lightning-array-push.patch`](workloads/lightning-array-push.patch).
 It is a separate, manually reviewed project overlay and is never applied by
 compiler setup.
+
+The [first measured screen](results/README.md) records mixed results and its
+raw samples. The candidate remains experimental.
