@@ -114,7 +114,7 @@ test("worker close kills a ready SIGTERM-resistant stdio-ignored descendant", as
   const ready = join(dir, "ready");
   const marker = join(dir, "survived");
   const descendant = "const fs=require('node:fs');process.on('SIGTERM',()=>{});fs.writeFileSync(process.argv[1],'ready');setTimeout(()=>fs.writeFileSync(process.argv[2],'leaked'),500);setInterval(()=>{},1000)";
-  const parent = `const {spawn}=require('node:child_process');const fs=require('node:fs');spawn(process.execPath,['-e',${JSON.stringify(descendant)},${JSON.stringify(ready)},${JSON.stringify(marker)}],{stdio:'ignore'});const poll=setInterval(()=>{if(fs.existsSync(${JSON.stringify(ready)})){clearInterval(poll);process.stdout.write(JSON.stringify({ready:true})+'\\n',()=>process.exit(0))}},2);`;
+  const parent = `const {spawn}=require('node:child_process');const fs=require('node:fs');spawn(process.execPath,['-e',${JSON.stringify(descendant)},${JSON.stringify(ready)},${JSON.stringify(marker)}],{stdio:'ignore'});const poll=setInterval(()=>{if(fs.existsSync(${JSON.stringify(ready)})){clearInterval(poll);fs.writeSync(1,JSON.stringify({ready:true})+'\\n');process.exit(0)}},2);`;
   try {
     const result = await runChild(process.execPath, ["-e", parent], Number(process.hrtime.bigint() / 1_000_000n) + 2_000);
     assert.deepEqual(result, { ready: true });
