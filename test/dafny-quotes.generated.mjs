@@ -53,7 +53,7 @@ for (const [input, message] of errors) {
 
 const nested = new Engine();
 nested.Reset('"a' + lf + 'b"', false, false, 4194304);
-nested.flowIndentFloor = 0;
+generated.setEngineField(nested, 'flowIndentFloor', 0);
 assert.throws(
   () => generated.engineMethod(nested, 'ParseDoubleQuoted')(),
   (error) => error.name === 'YAMLParseError' && error.message === 'insufficient indentation for a multi-line quoted scalar (line 2, column 1)',

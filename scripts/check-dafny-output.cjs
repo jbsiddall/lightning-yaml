@@ -182,6 +182,38 @@ function audit({ generated = [], wholeFiles = [], allowedCalls = [], allowedCons
         }
       }
     }
+    if (shape?.fieldRenames && shape?.fieldAccessSites) {
+      for (const entry of generated) {
+        const generatedSource = sources.get(path.resolve(base, entry.file));
+        if (!generatedSource) continue;
+        const actualCounts = Object.fromEntries(Object.keys(shape.fieldRenames).map(name => [name, Object.create(null)]));
+        function selfReceiver(node) {
+          while (ts.isParenthesizedExpression(node)) node = node.expression;
+          return ts.isThis(node) || (ts.isIdentifier(node) && ['_this', 'this'].includes(node.text));
+        }
+        function countFields(node, className = '') {
+          if ((ts.isClassExpression(node) || ts.isClassDeclaration(node)) && node.name && shape.fieldRenames[node.name.text]) className = node.name.text;
+          const fieldMap = shape.fieldRenames[className];
+          if (fieldMap && ts.isPropertyAccessExpression(node) && selfReceiver(node.expression)) {
+            for (const original of Object.keys(fieldMap)) {
+              if (fieldMap[original] === node.name.text) {
+                actualCounts[className][original] = (actualCounts[className][original] || 0) + 1;
+                break;
+              }
+            }
+          }
+          ts.forEachChild(node, child => countFields(child, className));
+        }
+        countFields(generatedSource);
+        for (const [className, map] of Object.entries(shape.fieldRenames)) {
+          const expectedCounts = shape.fieldAccessSites[className] || {};
+          const actual = Object.fromEntries(Object.keys(map).sort().map(name => [name, actualCounts[className][name] || 0]));
+          if (JSON.stringify(actual) !== JSON.stringify(expectedCounts)) {
+            diagnostics.push(`${generatedSource.fileName}: generated ${className} instance field map differs from the pinned output-shape manifest`);
+          }
+        }
+      }
+    }
   }
 
   function moduleSource(specifier, source) {

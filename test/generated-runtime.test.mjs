@@ -4,7 +4,7 @@ import { DafnyCore, Serializer } from '../src/dafny/generated/engine.js';
 import { parseAllWithDafny, parseWithDafny, stringifyWithDafny } from '../src/dafny/bridge.ts';
 import { YAMLParseError } from '../src/errors.ts';
 
-test('checked generated ESM executes parser and fresh-writer serializer roots', () => {
+test('checked generated ESM executes parser and serializer roots', () => {
   assert.deepEqual(DafnyCore.__default.Parse('a: 1', false), { a: 1 });
   assert.deepEqual(DafnyCore.__default.ParseAll('---\na: 1\n---\nb: 2', false), [{ a: 1 }, { b: 2 }]);
   const writer = new Serializer.Writer();

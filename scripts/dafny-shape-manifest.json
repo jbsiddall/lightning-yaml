@@ -190,6 +190,105 @@
         "Writer.WriteRootStringScalar": 1,
         "Writer.EncodeBase64": 9
       },
+      "arrayLength": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 2,
+        "Helpers.ValidatePairs": 2,
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyArray": 1,
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseFlowMap": 1,
+        "Engine.ParseBlockMapBody": 1,
+        "Writer.IndentSpaces": 1,
+        "Writer.DumpScanRefs": 3,
+        "Writer.IsEmptyContainer": 2,
+        "Writer.WriteCollectionBody": 3
+      },
+      "arrayGet": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 2,
+        "Helpers.ValidatePairs": 1,
+        "Engine.StringifyKeyArray": 1,
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseFlowMap": 5,
+        "Engine.PublishRecordKeys": 1,
+        "Engine.ParseBlockMapBody": 4,
+        "Writer.IndentSpaces": 2,
+        "Writer.DumpScanRefs": 2,
+        "Writer.WriteCollectionBody": 2
+      },
+      "objectGet": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 1,
+        "Engine.StringifyKeyMapping": 2,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteCollectionBody": 1
+      },
+      "isNull": {
+        "Helpers.BuildSet": 1,
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyValue": 1,
+        "Engine.KeyToString": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "setAdd": {
+        "Helpers.BuildSet": 1
+      },
+      "jsEqual": {
+        "Helpers.BuildOmap": 1,
+        "Helpers.ValidatePairs": 1,
+        "Engine.IsNullWord": 5,
+        "Engine.IsBoolWord": 6,
+        "Engine.ResolvePlainText": 1,
+        "Engine.ScanTag": 1,
+        "Engine.ApplyScalarTag": 20,
+        "Engine.ParseTaggedFlowContent": 4,
+        "Engine.ParseFlowMap": 1,
+        "Engine.ParseBlockScalar": 1,
+        "Engine.ParseTagDirectiveArgs": 2,
+        "Engine.ParseDirectives": 2,
+        "Engine.ParseBlockNode": 2,
+        "Engine.ApplyCollectionTag": 24,
+        "Engine.ParseTaggedBlockNode": 7,
+        "Engine.ParseBlockMapBody": 1,
+        "Writer.LooksLikeTypedScalar": 10,
+        "Writer.WriteRootStringScalar": 2,
+        "Writer.WriteBinaryScalar": 1
+      },
+      "mapSet": {
+        "Helpers.BuildOmap": 1,
+        "Engine.InternKey": 1,
+        "Engine.RegisterPendingAnchor": 1,
+        "Engine.InternValue": 1,
+        "Engine.ParseTagDirectiveArgs": 1,
+        "Writer.DumpScanRefs": 2,
+        "Writer.DumpAssignAnchor": 1,
+        "Writer.WriteCollectionBody": 1
+      },
+      "isObject": {
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyValue": 1,
+        "Engine.KeyToString": 1,
+        "Engine.IsTabRestrictedCollection": 1,
+        "Engine.IsPlainMapping": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "isArray": {
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyNode": 1,
+        "Engine.IsTabRestrictedCollection": 1,
+        "Engine.IsPlainMapping": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
       "numberMulAdd": {
         "Engine.HexValueGeneric": 1,
         "Engine.OctalValueGeneric": 1,
@@ -205,11 +304,70 @@
         "Engine.TryNumberGeneric": 1,
         "Engine.TryFlowNumber": 1
       },
+      "isBoolean": {
+        "Engine.StringifyKeyValue": 1,
+        "Writer.WriteScalar": 1
+      },
+      "isNumber": {
+        "Engine.StringifyKeyValue": 1,
+        "Writer.WriteScalar": 1
+      },
+      "isString": {
+        "Engine.StringifyKeyValue": 1,
+        "Engine.StringifyKeyMapping": 2,
+        "Engine.KeyToString": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "mapGet": {
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.InternKey": 1,
+        "Engine.ParseAlias": 1,
+        "Engine.ScanTag": 3,
+        "Engine.InternValue": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.DumpNeedsAnchor": 1,
+        "Writer.WriteCollectionBody": 1,
+        "Writer.WriteEntryValue": 1
+      },
+      "arrayPush": {
+        "Engine.StringifyKeyNode": 1,
+        "Engine.ParseFlowSeq": 6,
+        "Engine.ParseFlowMap": 5,
+        "Engine.PublishRecordKeys": 1,
+        "Engine.ParseBlockSeqBody": 3,
+        "Engine.ParseBlockMapBody": 5,
+        "Engine.ParseAll": 1,
+        "Writer.__ctor": 1,
+        "Writer.IndentSpaces": 1,
+        "Writer.EncodeSingleQuoted": 5,
+        "Writer.EncodeDoubleQuoted": 5,
+        "Writer.EncodeBase64": 12
+      },
+      "isUndefined": {
+        "Engine.InternKey": 1,
+        "Engine.ParseAlias": 1,
+        "Engine.ScanTag": 3,
+        "Engine.InternValue": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.DumpNeedsAnchor": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteCollectionBody": 1,
+        "Writer.WriteEntryValue": 1
+      },
       "numberAdd": {
         "Engine.InternKey": 1
       },
       "numberLessEqual": {
         "Engine.InternKey": 1
+      },
+      "mapSize": {
+        "Engine.InternValue": 1,
+        "Writer.WriteCollectionBody": 1
+      },
+      "mapHas": {
+        "Engine.ParseTagDirectiveArgs": 1
       }
     },
     "inline": {
@@ -240,6 +398,87 @@
         "Writer.EncodeSingleQuoted": 2,
         "Writer.EncodeDoubleQuoted": 2,
         "Writer.WriteRootStringScalar": 1
+      },
+      "arrayLength": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 2,
+        "Helpers.ValidatePairs": 2,
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyArray": 1,
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseFlowMap": 1,
+        "Engine.ParseBlockMapBody": 1,
+        "Writer.DumpScanRefs": 3,
+        "Writer.IsEmptyContainer": 2,
+        "Writer.WriteCollectionBody": 3
+      },
+      "arrayGet": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 2,
+        "Helpers.ValidatePairs": 1,
+        "Engine.StringifyKeyArray": 1,
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseFlowMap": 5,
+        "Engine.PublishRecordKeys": 1,
+        "Engine.ParseBlockMapBody": 4,
+        "Writer.DumpScanRefs": 2,
+        "Writer.WriteCollectionBody": 2
+      },
+      "objectGet": {
+        "Helpers.BuildSet": 1,
+        "Helpers.BuildOmap": 1,
+        "Engine.StringifyKeyMapping": 2,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteCollectionBody": 1
+      },
+      "isNull": {
+        "Helpers.BuildSet": 1,
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyValue": 1,
+        "Engine.KeyToString": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "isObject": {
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyValue": 1,
+        "Engine.KeyToString": 1,
+        "Engine.IsTabRestrictedCollection": 1,
+        "Engine.IsPlainMapping": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "isArray": {
+        "Helpers.SinglePairKeys": 1,
+        "Engine.StringifyKeyNode": 1,
+        "Engine.IsTabRestrictedCollection": 1,
+        "Engine.IsPlainMapping": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.WriteEntryValue": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "jsEqual": {
+        "Engine.IsNullWord": 5,
+        "Engine.IsBoolWord": 6,
+        "Engine.ResolvePlainText": 1,
+        "Engine.ScanTag": 1,
+        "Engine.ApplyScalarTag": 20,
+        "Engine.ParseTaggedFlowContent": 4,
+        "Engine.ParseFlowMap": 1,
+        "Engine.ParseBlockScalar": 1,
+        "Engine.ParseTagDirectiveArgs": 2,
+        "Engine.ParseDirectives": 2,
+        "Engine.ApplyCollectionTag": 24,
+        "Engine.ParseTaggedBlockNode": 6,
+        "Engine.ParseBlockMapBody": 1,
+        "Writer.LooksLikeTypedScalar": 10,
+        "Writer.WriteRootStringScalar": 1,
+        "Writer.WriteBinaryScalar": 1
       },
       "numberMulAdd": {
         "Engine.HexValueGeneric": 1,
@@ -275,6 +514,67 @@
         "Writer.WriteCollectionBody": 3,
         "Writer.WriteEntryValue": 7,
         "Writer.WriteDocumentValue": 6
+      },
+      "isBoolean": {
+        "Engine.StringifyKeyValue": 1,
+        "Writer.WriteScalar": 1
+      },
+      "isNumber": {
+        "Engine.StringifyKeyValue": 1,
+        "Writer.WriteScalar": 1
+      },
+      "isString": {
+        "Engine.StringifyKeyValue": 1,
+        "Engine.StringifyKeyMapping": 2,
+        "Engine.KeyToString": 1,
+        "Engine.ParseTaggedBlockNode": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteDocumentValue": 1
+      },
+      "mapGet": {
+        "Engine.StringifyKeyMapping": 1,
+        "Engine.ParseAlias": 1,
+        "Engine.ScanTag": 3,
+        "Engine.InternValue": 1
+      },
+      "isUndefined": {
+        "Engine.InternKey": 1,
+        "Engine.ParseAlias": 1,
+        "Engine.ScanTag": 3,
+        "Engine.InternValue": 1,
+        "Writer.DumpScanRefs": 1,
+        "Writer.DumpNeedsAnchor": 1,
+        "Writer.WriteScalar": 1,
+        "Writer.WriteCollectionBody": 1,
+        "Writer.WriteEntryValue": 1
+      },
+      "mapSize": {
+        "Engine.InternValue": 1
+      },
+      "mapHas": {
+        "Engine.ParseTagDirectiveArgs": 1
+      }
+    },
+    "statementInline": {
+      "setAdd": {
+        "Helpers.BuildSet": 1
+      },
+      "mapSet": {
+        "Helpers.BuildOmap": 1,
+        "Engine.RegisterPendingAnchor": 1,
+        "Engine.InternValue": 1,
+        "Engine.ParseTagDirectiveArgs": 1
+      },
+      "arrayPush": {
+        "Engine.ParseFlowSeq": 6,
+        "Engine.ParseFlowMap": 5,
+        "Engine.PublishRecordKeys": 1,
+        "Engine.ParseBlockSeqBody": 2,
+        "Engine.ParseBlockMapBody": 5,
+        "Engine.ParseAll": 1,
+        "Writer.EncodeSingleQuoted": 3,
+        "Writer.EncodeDoubleQuoted": 3,
+        "Writer.EncodeBase64": 3
       }
     }
   },
@@ -1014,6 +1314,536 @@
       "WriteRootStringScalar": 1,
       "WriteDocumentValue": 1,
       "DumpFinish": 1
+    }
+  },
+  "fieldRenames": {
+    "Engine": {
+      "afterInlineProperty": "_f0",
+      "anchorMap": "_f1",
+      "bareDocAllowed": "_f2",
+      "colOverride": "_f3",
+      "depth": "_f4",
+      "flowFolded": "_f5",
+      "flowIndentFloor": "_f6",
+      "flowSpanned": "_f7",
+      "flowWsCrossedLine": "_f8",
+      "foldedBreaks": "_f9",
+      "hasAnchorMap": "_fa",
+      "hasFlowFolded": "_fb",
+      "hasLastRecordKeys": "_fc",
+      "hasPendingAnchorName": "_fd",
+      "hasTagHandles": "_fe",
+      "hasValueCache": "_ff",
+      "inlineMapValue": "_fg",
+      "keyCache": "_fh",
+      "keyCacheBytes": "_fi",
+      "keyCacheMaxBytes": "_fj",
+      "lastNumberIsFloat": "_fk",
+      "lastRecordKeys": "_fl",
+      "nextBackslash": "_fm",
+      "nextNewline": "_fn",
+      "pendingAnchorName": "_fo",
+      "plainStoppedAtColon": "_fp",
+      "plainStoppedAtComment": "_fq",
+      "quotedMultiline": "_fr",
+      "strict": "_fs",
+      "tagHandles": "_ft",
+      "tagHelpers": "_fu",
+      "valueCache": "_fv",
+      "valueCacheEnabled": "_fw"
+    },
+    "Writer": {
+      "dumpAnchorSeq": "_f0",
+      "dumpAnchors": "_f1",
+      "dumpDepth": "_f2",
+      "dumpFlattenSink": "_f3",
+      "dumpHasShared": "_f4",
+      "dumpKeyCache": "_f5",
+      "dumpRefCounts": "_f6",
+      "indentCache": "_f7",
+      "out": "_f8"
+    }
+  },
+  "fieldAccessSites": {
+    "Engine": {
+      "afterInlineProperty": 5,
+      "anchorMap": 6,
+      "bareDocAllowed": 7,
+      "colOverride": 6,
+      "depth": 30,
+      "flowFolded": 9,
+      "flowIndentFloor": 11,
+      "flowSpanned": 7,
+      "flowWsCrossedLine": 9,
+      "foldedBreaks": 7,
+      "hasAnchorMap": 6,
+      "hasFlowFolded": 10,
+      "hasLastRecordKeys": 9,
+      "hasPendingAnchorName": 34,
+      "hasTagHandles": 8,
+      "hasValueCache": 5,
+      "inlineMapValue": 5,
+      "keyCache": 4,
+      "keyCacheBytes": 4,
+      "keyCacheMaxBytes": 4,
+      "lastNumberIsFloat": 7,
+      "lastRecordKeys": 9,
+      "nextBackslash": 6,
+      "nextNewline": 10,
+      "pendingAnchorName": 30,
+      "plainStoppedAtColon": 11,
+      "plainStoppedAtComment": 11,
+      "quotedMultiline": 11,
+      "strict": 7,
+      "tagHandles": 8,
+      "tagHelpers": 10,
+      "valueCache": 5,
+      "valueCacheEnabled": 4
+    },
+    "Writer": {
+      "dumpAnchorSeq": 6,
+      "dumpAnchors": 6,
+      "dumpDepth": 14,
+      "dumpFlattenSink": 4,
+      "dumpHasShared": 10,
+      "dumpKeyCache": 7,
+      "dumpRefCounts": 9,
+      "indentCache": 7,
+      "out": 29
+    }
+  },
+  "syntheticTempSites": {
+    "Helpers.StripBase64Whitespace": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Helpers.DecodeBinary": {
+      "identifier": 6,
+      "self-property": 0
+    },
+    "Helpers.BuildSet": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Helpers.BuildOmap": {
+      "identifier": 7,
+      "self-property": 0
+    },
+    "Helpers.ValidatePairs": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Helpers.SinglePairKeys": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "__default.Parse": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "__default.ParseAll": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.Reset": {
+      "identifier": 0,
+      "self-property": 1
+    },
+    "Engine.HexValueGeneric": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.HexValue": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.TryNumber": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.TryNumberGeneric": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ResolvePlain": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ResolvePlainText": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.SkipFlowWsSlow": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ScanFlowPlainEnd": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.FoldFlowPlain": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ParseFlowPlain": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyScalar": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyValue": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyArray": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyMapping": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Engine.StringifyKeyNode": {
+      "identifier": 9,
+      "self-property": 0
+    },
+    "Engine.FastMatchBlockKey": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.KeyToString": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.InternNodeKey": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.InternKey": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.TryFlowNumber": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ParseFlowValue": {
+      "identifier": 10,
+      "self-property": 0
+    },
+    "Engine.ParseFlowKey": {
+      "identifier": 14,
+      "self-property": 0
+    },
+    "Engine.ParseFlowKeyAnchored": {
+      "identifier": 17,
+      "self-property": 0
+    },
+    "Engine.ParseFlowKeyTagged": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedFlowKeyRaw": {
+      "identifier": 12,
+      "self-property": 0
+    },
+    "Engine.RegisterPendingAnchor": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseAlias": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ScanTagSuffixRaw": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.DecodeTagPercent": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ScanTag": {
+      "identifier": 10,
+      "self-property": 0
+    },
+    "Engine.ApplyScalarTag": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedFlowValue": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedFlowContent": {
+      "identifier": 10,
+      "self-property": 0
+    },
+    "Engine.ParseAnchoredFlowValue": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.MakeSinglePair": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseFlowExplicitEntry": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ParseFlowSeq": {
+      "identifier": 11,
+      "self-property": 0
+    },
+    "Engine.ParseFlowMap": {
+      "identifier": 17,
+      "self-property": 0
+    },
+    "Engine.PublishRecordKeys": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.LooksLikeDocMarkerAt": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.InternValue": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.FoldFlowBreak": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseDoubleQuoted": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseDoubleQuotedSlow": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ReadHex": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseSingleQuoted": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.ParseSingleQuotedSlow": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.DetectBlockScalarIndent": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockScalar": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ReadDirectiveToken": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseYamlDirectiveArgs": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseTagDirectiveArgs": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ParseDirectives": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ResolveBlockPlain": {
+      "identifier": 6,
+      "self-property": 0
+    },
+    "Engine.ResolveBlockPlainRaw": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseBlockValue": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Engine.RejectBlockCollectionTabIndent": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseRootBlockNode": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockNode": {
+      "identifier": 21,
+      "self-property": 0
+    },
+    "Engine.ApplyCollectionTag": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedBlockNode": {
+      "identifier": 35,
+      "self-property": 0
+    },
+    "Engine.ParseBlockSeq": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockSeqBody": {
+      "identifier": 6,
+      "self-property": 0
+    },
+    "Engine.ParseExplicitKey": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseExplicitKeyBody": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseExplicitValue": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseExplicitValueBody": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapExplicit": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapExplicitBody": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMap": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapKey": {
+      "identifier": 13,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapKeyAnchored": {
+      "identifier": 5,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapKeyTagged": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Engine.ParseTaggedBlockMapKeyRaw": {
+      "identifier": 11,
+      "self-property": 0
+    },
+    "Engine.ParseBlockMapBody": {
+      "identifier": 23,
+      "self-property": 0
+    },
+    "Engine.ParseAll": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.IsDocMarkerAt": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Engine.ParseNextDocument": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "__default.Stringify": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.__ctor": {
+      "identifier": 0,
+      "self-property": 1
+    },
+    "Writer.IndentSpaces": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Writer.DumpScanRefs": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Writer.DumpNeedsAnchor": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.DumpAssignAnchor": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.LooksLikeTypedScalar": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.TryNumberGeneric": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Writer.IsPlainScalarSafe": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.EncodeSingleQuoted": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.EncodeDoubleQuoted": {
+      "identifier": 2,
+      "self-property": 0
+    },
+    "Writer.WriteStringScalar": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Writer.WriteRootStringScalar": {
+      "identifier": 4,
+      "self-property": 0
+    },
+    "Writer.WriteScalar": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Writer.EncodeBase64": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.WriteBinaryScalar": {
+      "identifier": 1,
+      "self-property": 0
+    },
+    "Writer.IsEmptyContainer": {
+      "identifier": 3,
+      "self-property": 0
+    },
+    "Writer.WriteCollectionBody": {
+      "identifier": 11,
+      "self-property": 0
+    },
+    "Writer.WriteEntryValue": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Writer.WriteDocumentValue": {
+      "identifier": 8,
+      "self-property": 0
+    },
+    "Writer.Stringify": {
+      "identifier": 1,
+      "self-property": 3
     }
   }
 }

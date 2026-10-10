@@ -132,7 +132,7 @@ function lowerDafnyRuntime(sourceText) {
   return lowered;
 }
 
-function extract(generated, digest) {
+function extractModules(generated) {
   const source = ts.createSourceFile('generated.js', generated, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
   if (source.parseDiagnostics.length) throw new Error('Dafny output was not valid JavaScript');
   const retained = [];
@@ -157,7 +157,11 @@ function extract(generated, digest) {
     retained.push(statement.getText(source));
   }
   for (const name of MODULES) if (!seen.has(name)) throw new Error(`Dafny output is missing module binding ${name}`);
-  const lowered = lowerDafnyRuntime(retained.join('\n\n'));
+  return lowerDafnyRuntime(retained.join('\n\n'));
+}
+
+function extract(generated, digest) {
+  const lowered = extractModules(generated);
   const shape = require('./dafny-shape-transform.cjs').transformGenerated(
     lowered, fs.readFileSync(path.join(ROOT, 'src/dafny/native.ts'), 'utf8'));
   return `// Dafny program compiled into JavaScript by Dafny ${COMPILER_VERSION}.\n// Copyright by the contributors to the Dafny Project.\n// SPDX-License-Identifier: MIT\n// Sources sha256 ${digest}; extraction and guarded output-shape lowering are audited in scripts/build-dafny.cjs.\nimport { Native } from '../native.ts';\n\n${shape.text}\n\nexport { DafnyCore, Serializer };\n`;
@@ -165,10 +169,22 @@ function extract(generated, digest) {
 
 function main() {
   const check = process.argv.includes('--check');
+  const writeShapeManifest = process.argv.includes('--write-shape-manifest');
   const inputIndex = process.argv.indexOf('--input');
   if (inputIndex < 0 || !process.argv[inputIndex + 1]) throw new Error('the compiler wrapper must pass --input <Dafny JS output>');
   const digest = sourceDigest();
-  const artifact = extract(fs.readFileSync(process.argv[inputIndex + 1], 'utf8'), digest);
+  const compilerOutput = fs.readFileSync(process.argv[inputIndex + 1], 'utf8');
+  if (writeShapeManifest) {
+    if (check) throw new Error('--write-shape-manifest cannot be combined with --check');
+    const lowered = extractModules(compilerOutput);
+    const manifestPath = path.join(ROOT, 'scripts/dafny-shape-manifest.json');
+    const transform = require('./dafny-shape-transform.cjs');
+    const manifest = transform.createManifest(lowered, fs.readFileSync(path.join(ROOT, 'src/dafny/native.ts'), 'utf8'));
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+    process.stdout.write(`Wrote reviewed-shape candidate ${path.relative(ROOT, manifestPath)} from Dafny ${COMPILER_VERSION}; update and review its guard digest before generation\n`);
+    return;
+  }
+  const artifact = extract(compilerOutput, digest);
   const outputPath = path.join(ROOT, OUTPUT);
   if (check) {
     const current = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';

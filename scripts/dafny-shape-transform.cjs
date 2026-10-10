@@ -14,12 +14,22 @@ const IDENTITY_NAMES = [
   'boolValue', 'booleanValue', 'mapFromValue', 'mapValue', 'numberAsCounter',
   'numberValue', 'setValue', 'stringValue', 'stringValueOf',
 ];
-const SIMPLE_NATIVE_NAMES = ['concat', 'numberAdd', 'numberLessEqual', 'numberMulAdd', 'numberNegate', 'slice', 'stringLength'];
+const SIMPLE_NATIVE_NAMES = [
+  'arrayGet', 'arrayLength', 'concat', 'isArray', 'isBoolean', 'isNull', 'isNumber', 'isObject', 'isString', 'isUndefined',
+  'jsEqual', 'mapGet', 'mapHas', 'mapSize', 'numberAdd', 'numberLessEqual', 'numberMulAdd', 'numberNegate',
+  'objectGet', 'setHas', 'slice', 'stringLength',
+];
+const VOID_NATIVE_NAMES = ['arrayPush', 'arraySet', 'mapSet', 'setAdd'];
 const KEEP_METHODS = {
   Engine: new Set(['__ctor', 'Reset', 'EndStream', 'ParseSingle', 'ParseAll', 'IsDocMarkerAt',
     'ConsumeDocStartMarker', 'ConsumeDocEndMarker', 'ParseNextDocument']),
   Writer: new Set(['__ctor', 'Stringify']),
 };
+// Runtime fields inspected by the generated-parser diagnostic tests are part
+// of the test ABI. Other Engine/Writer state stays per-instance but is private
+// to the generated implementation and may receive short property names.
+const KEEP_FIELDS = { Engine: new Set(['pos', 'len', 'src', 'lineStart']), Writer: new Set() };
+const REMOVED_METADATA_FIELDS = new Set(['_tname']);
 
 function sha256(text) { return crypto.createHash('sha256').update(text).digest('hex'); }
 function unparen(node) { while (ts.isParenthesizedExpression(node)) node = node.expression; return node; }
@@ -72,8 +82,10 @@ function nativeIdentityInventory(nativeText) {
   }
   if (Object.keys(shapes).length !== IDENTITY_NAMES.length) throw new Error('Native identity helper inventory changed');
   const simpleMethods = object.properties.filter(item => ts.isMethodDeclaration(item) && ts.isIdentifier(item.name) && SIMPLE_NATIVE_NAMES.includes(item.name.text));
-  if (simpleMethods.length !== SIMPLE_NATIVE_NAMES.length) throw new Error('Native simple-expression helper inventory changed');
+  const voidMethods = object.properties.filter(item => ts.isMethodDeclaration(item) && ts.isIdentifier(item.name) && VOID_NATIVE_NAMES.includes(item.name.text));
+  if (simpleMethods.length !== SIMPLE_NATIVE_NAMES.length || voidMethods.length !== VOID_NATIVE_NAMES.length) throw new Error('Native primitive helper inventory changed');
   for (const method of simpleMethods) validateNativeSimpleBody(method, source);
+  for (const method of voidMethods) validateNativeVoidBody(method, source);
   return shapes;
 }
 
@@ -83,6 +95,10 @@ function isParam(node, params, index) {
 }
 function binary(node, operator, left, right, params) {
   return ts.isBinaryExpression(node) && node.operatorToken.kind === operator && isParam(node.left, params, left) && isParam(node.right, params, right);
+}
+function typeofComparison(node, operator, type, params, index = 0) {
+  return ts.isBinaryExpression(node) && node.operatorToken.kind === operator && ts.isTypeOfExpression(peelCasts(node.left)) &&
+    isParam(node.left.expression, params, index) && ts.isStringLiteral(node.right) && node.right.text === type;
 }
 function validateNativeSimpleBody(method, source) {
   if (!method.body || method.body.statements.length !== 1 || !ts.isReturnStatement(method.body.statements[0]) || !method.body.statements[0].expression) throw new Error(`Native.${method.name.text} body is not a single expression`);
@@ -115,8 +131,74 @@ function validateNativeSimpleBody(method, source) {
       valid = params.length === 1 && ts.isPropertyAccessExpression(value) && value.name.text === 'length' && isParam(value.expression, params, 0);
       break;
     }
+    case 'arrayGet': case 'objectGet': {
+      const value = peelCasts(expr);
+      valid = params.length === 2 && ts.isElementAccessExpression(value) && isParam(value.expression, params, 0) && isParam(value.argumentExpression, params, 1);
+      break;
+    }
+    case 'arrayLength': case 'mapSize': {
+      const value = peelCasts(expr);
+      valid = params.length === 1 && ts.isPropertyAccessExpression(value) && value.name.text === (method.name.text === 'arrayLength' ? 'length' : 'size') && isParam(value.expression, params, 0);
+      break;
+    }
+    case 'mapGet': case 'mapHas': case 'setHas': {
+      const value = peelCasts(expr);
+      const expected = method.name.text === 'mapGet' ? 'get' : 'has';
+      valid = params.length === 2 && ts.isCallExpression(value) && ts.isPropertyAccessExpression(value.expression) && value.expression.name.text === expected &&
+        isParam(value.expression.expression, params, 0) && value.arguments.length === 1 && isParam(value.arguments[0], params, 1);
+      break;
+    }
+    case 'isNull': case 'isUndefined':
+      valid = params.length === 1 && ts.isBinaryExpression(expr) && expr.operatorToken.kind === ts.SyntaxKind.EqualsEqualsEqualsToken &&
+        isParam(expr.left, params, 0) && (method.name.text === 'isNull' ? expr.right.kind === ts.SyntaxKind.NullKeyword : ts.isIdentifier(expr.right) && expr.right.text === 'undefined');
+      break;
+    case 'isBoolean': case 'isNumber': case 'isString':
+      valid = params.length === 1 && typeofComparison(expr, ts.SyntaxKind.EqualsEqualsEqualsToken,
+        method.name.text === 'isBoolean' ? 'boolean' : method.name.text === 'isNumber' ? 'number' : 'string', params);
+      break;
+    case 'isArray': {
+      const value = peelCasts(expr);
+      valid = params.length === 1 && ts.isCallExpression(value) && value.expression.getText(source) === 'Array.isArray' &&
+        value.arguments.length === 1 && isParam(value.arguments[0], params, 0);
+      break;
+    }
+    case 'isObject': {
+      const value = peelCasts(expr);
+      valid = params.length === 1 && ts.isBinaryExpression(value) && value.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+        typeofComparison(value.left, ts.SyntaxKind.EqualsEqualsEqualsToken, 'object', params) &&
+        ts.isBinaryExpression(value.right) && value.right.operatorToken.kind === ts.SyntaxKind.ExclamationEqualsEqualsToken &&
+        isParam(value.right.left, params, 0) && value.right.right.kind === ts.SyntaxKind.NullKeyword;
+      break;
+    }
+    case 'jsEqual': valid = params.length === 2 && binary(expr, ts.SyntaxKind.EqualsEqualsEqualsToken, 0, 1, params); break;
   }
   if (!valid) throw new Error(`Native.${method.name.text} body no longer matches its audited primitive expression`);
+}
+
+function validateNativeVoidBody(method, source) {
+  if (!method.body || method.body.statements.length !== 1 || !ts.isExpressionStatement(method.body.statements[0])) throw new Error(`Native.${method.name.text} is not a single primitive statement`);
+  const expr = method.body.statements[0].expression;
+  const params = method.parameters;
+  let valid = false;
+  const expectedMethod = method.name.text === 'arrayPush' ? 'push' : method.name.text === 'mapSet' ? 'set' : 'add';
+  switch (method.name.text) {
+    case 'arrayPush': case 'mapSet': case 'setAdd': {
+      const value = peelCasts(expr);
+      const arity = method.name.text === 'arrayPush' || method.name.text === 'setAdd' ? 1 : 2;
+      valid = params.length === arity + 1 && ts.isCallExpression(value) && ts.isPropertyAccessExpression(value.expression) &&
+        value.expression.name.text === expectedMethod && isParam(value.expression.expression, params, 0) && value.arguments.length === arity &&
+        value.arguments.every((arg, i) => isParam(arg, params, i + 1));
+      break;
+    }
+    case 'arraySet': {
+      const value = peelCasts(expr);
+      valid = params.length === 3 && ts.isBinaryExpression(value) && value.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        ts.isElementAccessExpression(value.left) && isParam(value.left.expression, params, 0) && isParam(value.left.argumentExpression, params, 1) &&
+        isParam(value.right, params, 2);
+      break;
+    }
+  }
+  if (!valid) throw new Error(`Native.${method.name.text} body no longer matches its audited primitive statement`);
 }
 
 function isSimpleArgument(node) {
@@ -126,25 +208,30 @@ function isSimpleArgument(node) {
 }
 
 function gatherSimpleNativeSites(source) {
-  const calls = Object.create(null), inline = Object.create(null);
+  const calls = Object.create(null), inline = Object.create(null), statementInline = Object.create(null);
   function walk(node, className = '', methodName = '') {
     if (ts.isClassExpression(node) || ts.isClassDeclaration(node)) className = node.name?.text || className;
     if (ts.isMethodDeclaration(node)) methodName = node.name?.getText(source) || methodName;
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
         ts.isPropertyAccessExpression(node.expression.expression) && node.expression.expression.expression.getText(source) === 'Native' &&
-        node.expression.expression.name.text === '__default' && SIMPLE_NATIVE_NAMES.includes(node.expression.name.text)) {
+        node.expression.expression.name.text === '__default' && [...SIMPLE_NATIVE_NAMES, ...VOID_NATIVE_NAMES].includes(node.expression.name.text)) {
       const name = node.expression.name.text, site = `${className}.${methodName}`;
       calls[name] ||= Object.create(null);
       calls[name][site] = (calls[name][site] || 0) + 1;
       if (node.arguments.every(isSimpleArgument)) {
-        inline[name] ||= Object.create(null);
-        inline[name][site] = (inline[name][site] || 0) + 1;
+        if (SIMPLE_NATIVE_NAMES.includes(name)) {
+          inline[name] ||= Object.create(null);
+          inline[name][site] = (inline[name][site] || 0) + 1;
+        } else if (ts.isExpressionStatement(node.parent) && node.parent.expression === node) {
+          statementInline[name] ||= Object.create(null);
+          statementInline[name][site] = (statementInline[name][site] || 0) + 1;
+        }
       }
     }
     ts.forEachChild(node, child => walk(child, className, methodName));
   }
   walk(source);
-  return { calls, inline };
+  return { calls, inline, statementInline };
 }
 
 function gatherIdentitySites(source) {
@@ -261,6 +348,199 @@ function discoverMethodAccessSites(source, methodMaps) {
   return accesses;
 }
 
+function isSelfReceiver(node) {
+  node = unparen(node);
+  return ts.isThis(node) || (ts.isIdentifier(node) && ['_this', 'this'].includes(node.text));
+}
+
+function discoverInstanceFields(source) {
+  const fieldMaps = Object.create(null);
+  const fieldCounts = Object.create(null);
+  for (const className of ['Engine', 'Writer']) {
+    const fields = new Set();
+    const accesses = Object.create(null);
+    let found = 0;
+    function walk(node, within = false) {
+      if ((ts.isClassExpression(node) || ts.isClassDeclaration(node)) && node.name?.text === className) {
+        within = true;
+      }
+      if (within && ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+          ts.isPropertyAccessExpression(node.left) && isSelfReceiver(node.left.expression)) {
+        fields.add(node.left.name.text);
+      }
+      if (within && ts.isPropertyAccessExpression(node) && isSelfReceiver(node.expression)) {
+        accesses[node.name.text] = (accesses[node.name.text] || 0) + 1;
+        found++;
+      }
+      ts.forEachChild(node, child => walk(child, within));
+    }
+    walk(source);
+    if (!found) throw new Error(`generated ${className} instance fields missing`);
+    const names = [...fields].filter(name => !KEEP_FIELDS[className].has(name) && !REMOVED_METADATA_FIELDS.has(name)).sort();
+    const map = Object.create(null);
+    let next = 0;
+    for (const name of names) map[name] = `_f${(next++).toString(36)}`;
+    if (new Set(Object.values(map)).size !== Object.keys(map).length) throw new Error(`${className} field mangling collides`);
+    for (const name of Object.keys(map)) {
+      if (!accesses[name]) throw new Error(`assigned ${className}.${name} has no instance access`);
+    }
+    fieldMaps[className] = map;
+    fieldCounts[className] = Object.fromEntries(Object.keys(map).sort().map(name => [name, accesses[name]]));
+  }
+  const owners = new Map();
+  for (const [className, map] of Object.entries(fieldMaps)) {
+    for (const name of Object.keys(map)) owners.set(name, className);
+  }
+  function rejectEscaped(node, className = '') {
+    if ((ts.isClassExpression(node) || ts.isClassDeclaration(node)) && node.name && fieldMaps[node.name.text]) className = node.name.text;
+    if (ts.isPropertyAccessExpression(node) && owners.has(node.name.text)) {
+      const owner = owners.get(node.name.text);
+      if (className !== owner || !isSelfReceiver(node.expression)) {
+        throw new Error(`unsupported escaped ${owner}.${node.name.text} field reference`);
+      }
+    }
+    if (ts.isElementAccessExpression(node) && node.argumentExpression && ts.isStringLiteral(node.argumentExpression) && owners.has(node.argumentExpression.text) && isSelfReceiver(node.expression)) {
+      throw new Error(`unsupported dynamic ${className}.${node.argumentExpression.text} field reference`);
+    }
+    ts.forEachChild(node, child => rejectEscaped(child, className));
+  }
+  rejectEscaped(source);
+  return { fieldMaps, fieldCounts };
+}
+
+function assignmentStatement(node) {
+  if (!node || !ts.isExpressionStatement(node) || !ts.isBinaryExpression(node.expression) || node.expression.operatorToken.kind !== ts.SyntaxKind.EqualsToken) return undefined;
+  return node.expression;
+}
+
+function safeTempTarget(node) {
+  if (ts.isIdentifier(node)) return 'identifier';
+  if (ts.isPropertyAccessExpression(node) && isSelfReceiver(node.expression)) return 'self-property';
+  return undefined;
+}
+
+function discoverSyntheticTempSites(source) {
+  const sites = Object.create(null);
+  function walk(node, className = '', methodName = '') {
+    if ((ts.isClassExpression(node) || ts.isClassDeclaration(node)) && node.name) className = node.name.text;
+    if (ts.isMethodDeclaration(node)) {
+      methodName = node.name?.getText(source) || methodName;
+      if (!node.body) return;
+      let hasClosure = false;
+      const declarations = new Map();
+      const pairs = new Map();
+      const occurrences = new Map();
+      function inspect(current) {
+        if (ts.isFunctionExpression(current) || ts.isArrowFunction(current)) hasClosure = true;
+        if (ts.isVariableDeclaration(current) && ts.isIdentifier(current.name) && /^_out\d+$/.test(current.name.text)) {
+          declarations.set(current.name.text, (declarations.get(current.name.text) || 0) + 1);
+          if (current.initializer) throw new Error(`synthetic output ${current.name.text} has an initializer`);
+        }
+        if (ts.isIdentifier(current) && /^_out\d+$/.test(current.text)) occurrences.set(current.text, (occurrences.get(current.text) || 0) + 1);
+        ts.forEachChild(current, inspect);
+      }
+      inspect(node.body);
+      function scanBlocks(current) {
+        if (ts.isBlock(current)) {
+          for (let i = 0; i + 1 < current.statements.length; i++) {
+            const first = assignmentStatement(current.statements[i]);
+            const second = assignmentStatement(current.statements[i + 1]);
+            if (!first || !ts.isIdentifier(first.left) || !/^_out\d+$/.test(first.left.text) || !second ||
+                !ts.isIdentifier(second.right) || second.right.text !== first.left.text) continue;
+            if (hasClosure || declarations.get(first.left.text) !== 1) throw new Error(`synthetic output ${first.left.text} escapes its generated method`);
+            const target = safeTempTarget(second.left);
+            if (!target) throw new Error(`unsupported synthetic output target ${second.left.getText(source)}`);
+            const key = `${className}.${methodName}`;
+            if (!sites[key]) sites[key] = { identifier: 0, 'self-property': 0 };
+            sites[key][target]++;
+            pairs.set(first.left.text, (pairs.get(first.left.text) || 0) + 1);
+            i++;
+          }
+        }
+        ts.forEachChild(current, scanBlocks);
+      }
+      scanBlocks(node.body);
+      for (const [name, count] of pairs) {
+        if (occurrences.get(name) !== 1 + 2 * count) throw new Error(`synthetic output ${name} has an unpinned read or write`);
+      }
+      return;
+    }
+    ts.forEachChild(node, child => walk(child, className, methodName));
+  }
+  walk(source);
+  return sites;
+}
+
+function inlineSyntheticTemps(text, expectedSites) {
+  const source = parse(text);
+  const actualSites = discoverSyntheticTempSites(source);
+  if (JSON.stringify(actualSites) !== JSON.stringify(expectedSites)) throw new Error('synthetic output temporary site inventory changed');
+  const counts = Object.create(null);
+  const transformed = printerTransform(source, context => root => {
+    function visit(node, className = '', methodName = '') {
+      if ((ts.isClassExpression(node) || ts.isClassDeclaration(node)) && node.name) className = node.name.text;
+      if (ts.isMethodDeclaration(node)) methodName = node.name?.getText(source) || methodName;
+      if (ts.isBlock(node)) {
+        const statements = [];
+        for (let i = 0; i < node.statements.length; i++) {
+          const first = assignmentStatement(node.statements[i]);
+          const second = assignmentStatement(node.statements[i + 1]);
+          if (first && ts.isIdentifier(first.left) && /^_out\d+$/.test(first.left.text) && second &&
+              ts.isIdentifier(second.right) && second.right.text === first.left.text && safeTempTarget(second.left)) {
+            const key = `${className}.${methodName}`;
+            if (!expectedSites[key]) throw new Error('synthetic output pair moved outside its pinned method');
+            const target = safeTempTarget(second.left);
+            if (!counts[key]) counts[key] = { identifier: 0, 'self-property': 0 };
+            counts[key][target]++;
+            const rhs = ts.visitNode(first.right, child => visit(child, className, methodName));
+            const nextExpr = ts.factory.updateBinaryExpression(second, second.left, second.operatorToken, rhs);
+            statements.push(ts.factory.updateExpressionStatement(node.statements[i + 1], nextExpr));
+            i++;
+          } else statements.push(ts.visitNode(node.statements[i], child => visit(child, className, methodName)));
+        }
+        return ts.factory.updateBlock(node, statements);
+      }
+      return ts.visitEachChild(node, child => visit(child, className, methodName), context);
+    }
+    return ts.visitNode(root, node => visit(node));
+  });
+  const normalized = Object.fromEntries(Object.keys(expectedSites).map(key => [key, {
+    identifier: counts[key]?.identifier || 0,
+    'self-property': counts[key]?.['self-property'] || 0,
+  }]));
+  if (JSON.stringify(normalized) !== JSON.stringify(expectedSites)) throw new Error('synthetic output rewrite count changed');
+  return { text: transformed, siteCounts: actualSites };
+}
+
+function mangleInstanceFields(text, expectedMaps, expectedCounts) {
+  const source = parse(text);
+  const actual = discoverInstanceFields(source);
+  if (JSON.stringify(actual.fieldMaps) !== JSON.stringify(expectedMaps) || JSON.stringify(actual.fieldCounts) !== JSON.stringify(expectedCounts)) {
+    throw new Error('instance field inventory or access counts changed');
+  }
+  const counts = Object.fromEntries(Object.keys(expectedMaps).map(name => [name, Object.create(null)]));
+  const transformed = printerTransform(source, context => root => {
+    function visit(node, className = '') {
+      if ((ts.isClassExpression(node) || ts.isClassDeclaration(node)) && node.name && expectedMaps[node.name.text]) className = node.name.text;
+      const map = expectedMaps[className];
+      if (map && ts.isPropertyAccessExpression(node) && map[node.name.text]) {
+        if (!isSelfReceiver(node.expression)) throw new Error(`unsupported escaped ${className}.${node.name.text} field reference`);
+        counts[className][node.name.text] = (counts[className][node.name.text] || 0) + 1;
+        const receiver = ts.visitNode(node.expression, child => visit(child, className));
+        return ts.factory.updatePropertyAccessExpression(node, receiver, ts.factory.createIdentifier(map[node.name.text]));
+      }
+      return ts.visitEachChild(node, child => visit(child, className), context);
+    }
+    return ts.visitNode(root, node => visit(node));
+  });
+  const normalizedCounts = Object.fromEntries(Object.entries(expectedMaps).map(([className, map]) => [
+    className,
+    Object.fromEntries(Object.keys(map).sort().map(name => [name, counts[className][name] || 0])),
+  ]));
+  if (JSON.stringify(normalizedCounts) !== JSON.stringify(expectedCounts)) throw new Error('instance field reference escaped its declaring class');
+  return { text: transformed, accessCounts: normalizedCounts };
+}
+
 function discoverMetadata(source) {
   let parentTraits = 0, typeNames = 0, otherRefs = 0;
   function walk(node) {
@@ -285,19 +565,25 @@ function discoverMetadata(source) {
 function createManifest(generatedText, nativeText) {
   const source = parse(generatedText);
   const native = nativeIdentityInventory(nativeText);
+  const identitySites = gatherIdentitySites(source);
+  const afterIdentity = parse(inlineIdentityCalls(generatedText, identitySites));
   const methods = discoverMethods(source);
   const methodAccessSites = discoverMethodAccessSites(source, methods);
+  const instanceFields = discoverInstanceFields(source);
   return {
     version: 1,
     nativeSha256: sha256(nativeText),
     nativeIdentityHelpers: Object.keys(native).sort(),
-    identitySites: gatherIdentitySites(source),
-    simpleNativeSites: gatherSimpleNativeSites(source),
+    identitySites,
+    simpleNativeSites: gatherSimpleNativeSites(afterIdentity),
     charCodeSites: discoverCharCodeSites(source),
     getters: discoverGetters(source),
     metadata: discoverMetadata(source),
     methodRenames: methods,
     methodAccessSites,
+    fieldRenames: instanceFields.fieldMaps,
+    fieldAccessSites: instanceFields.fieldCounts,
+    syntheticTempSites: discoverSyntheticTempSites(source),
   };
 }
 
@@ -361,8 +647,13 @@ function inlineSimpleNativeExpressions(text, expectedSites) {
       if (ts.isMethodDeclaration(node)) methodName = node.name?.getText(source) || methodName;
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
           ts.isPropertyAccessExpression(node.expression.expression) && node.expression.expression.expression.getText(source) === 'Native' &&
-          node.expression.expression.name.text === '__default' && SIMPLE_NATIVE_NAMES.includes(node.expression.name.text) && node.arguments.every(isSimpleArgument)) {
+          node.expression.expression.name.text === '__default' &&
+          [...SIMPLE_NATIVE_NAMES, ...VOID_NATIVE_NAMES].includes(node.expression.name.text) && node.arguments.every(isSimpleArgument)) {
         const name = node.expression.name.text;
+        const statementOnly = VOID_NATIVE_NAMES.includes(name);
+        if (statementOnly && !(ts.isExpressionStatement(node.parent) && node.parent.expression === node)) {
+          return ts.visitEachChild(node, child => visit(child, className, methodName), context);
+        }
         const args = node.arguments.map(arg => ts.visitNode(arg, child => visit(child, className, methodName)));
         const left = args[0];
         switch (name) {
@@ -373,6 +664,27 @@ function inlineSimpleNativeExpressions(text, expectedSites) {
           case 'numberLessEqual': return ts.factory.createBinaryExpression(left, ts.SyntaxKind.LessThanEqualsToken, args[1]);
           case 'slice': return ts.factory.createCallExpression(ts.factory.createPropertyAccessExpression(left, 'slice'), undefined, args.slice(1));
           case 'stringLength': return ts.factory.createPropertyAccessExpression(left, 'length');
+          case 'arrayGet': case 'objectGet': return ts.factory.createElementAccessExpression(left, args[1]);
+          case 'arrayLength': return ts.factory.createPropertyAccessExpression(left, 'length');
+          case 'mapGet': return ts.factory.createCallExpression(ts.factory.createPropertyAccessExpression(left, 'get'), undefined, [args[1]]);
+          case 'mapHas': case 'setHas': return ts.factory.createCallExpression(ts.factory.createPropertyAccessExpression(left, 'has'), undefined, [args[1]]);
+          case 'mapSize': return ts.factory.createPropertyAccessExpression(left, 'size');
+          case 'isNull': return ts.factory.createBinaryExpression(left, ts.SyntaxKind.EqualsEqualsEqualsToken, ts.factory.createNull());
+          case 'isUndefined': return ts.factory.createBinaryExpression(left, ts.SyntaxKind.EqualsEqualsEqualsToken, ts.factory.createIdentifier('undefined'));
+          case 'isBoolean': case 'isNumber': case 'isString':
+            return ts.factory.createBinaryExpression(ts.factory.createTypeOfExpression(left), ts.SyntaxKind.EqualsEqualsEqualsToken,
+              ts.factory.createStringLiteral(name === 'isBoolean' ? 'boolean' : name === 'isNumber' ? 'number' : 'string'));
+          case 'isObject':
+            return ts.factory.createBinaryExpression(
+              ts.factory.createBinaryExpression(ts.factory.createTypeOfExpression(left), ts.SyntaxKind.EqualsEqualsEqualsToken, ts.factory.createStringLiteral('object')),
+              ts.SyntaxKind.AmpersandAmpersandToken,
+              ts.factory.createBinaryExpression(left, ts.SyntaxKind.ExclamationEqualsEqualsToken, ts.factory.createNull()));
+          case 'isArray': return ts.factory.createCallExpression(ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier('Array'), 'isArray'), undefined, [left]);
+          case 'jsEqual': return ts.factory.createBinaryExpression(left, ts.SyntaxKind.EqualsEqualsEqualsToken, args[1]);
+          case 'arrayPush': return ts.factory.createCallExpression(ts.factory.createPropertyAccessExpression(left, 'push'), undefined, [args[1]]);
+          case 'arraySet': return ts.factory.createBinaryExpression(ts.factory.createElementAccessExpression(left, args[1]), ts.SyntaxKind.EqualsToken, args[2]);
+          case 'mapSet': return ts.factory.createCallExpression(ts.factory.createPropertyAccessExpression(left, 'set'), undefined, [args[1], args[2]]);
+          case 'setAdd': return ts.factory.createCallExpression(ts.factory.createPropertyAccessExpression(left, 'add'), undefined, [args[1]]);
         }
       }
       return ts.visitEachChild(node, child => visit(child, className, methodName), context);
@@ -458,17 +770,21 @@ function transformGenerated(generatedText, nativeText) {
   const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
   const actual = createManifest(generatedText, nativeText);
   validateManifest(actual, manifest);
-  let transformed = inlineIdentityCalls(generatedText, manifest.identitySites);
+  let transformed = inlineSyntheticTemps(generatedText, manifest.syntheticTempSites).text;
+  transformed = inlineIdentityCalls(transformed, manifest.identitySites);
   transformed = inlineSimpleNativeExpressions(transformed, manifest.simpleNativeSites);
   transformed = inlineIndexedStringCodeUnits(transformed, manifest.charCodeSites);
   transformed = inlineStaticGetters(transformed, manifest.getters);
   transformed = removeReflectionMetadata(transformed, manifest.metadata);
   const renamed = mangleInternalMethods(transformed, manifest.methodRenames, manifest.methodAccessSites);
-  return { text: renamed.text, methodAccessCounts: renamed.accessCounts };
+  const fields = mangleInstanceFields(renamed.text, manifest.fieldRenames, manifest.fieldAccessSites);
+  return { text: fields.text, methodAccessCounts: renamed.accessCounts, fieldAccessCounts: fields.accessCounts };
 }
 
 if (require.main === module && process.argv.includes('--write-manifest')) {
-  const generatedPath = path.join(ROOT, 'src/dafny/generated/engine.js');
+  const inputIndex = process.argv.indexOf('--input');
+  if (inputIndex < 0 || !process.argv[inputIndex + 1]) throw new Error('--write-manifest requires --input <unshaped extracted Dafny module JS>');
+  const generatedPath = path.resolve(process.argv[inputIndex + 1]);
   const nativePath = path.join(ROOT, 'src/dafny/native.ts');
   const manifest = createManifest(fs.readFileSync(generatedPath, 'utf8'), fs.readFileSync(nativePath, 'utf8'));
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
@@ -481,4 +797,10 @@ module.exports = {
   nativeIdentityInventory,
   validateNativeSimpleBody,
   discoverCharCodeSites,
+  discoverInstanceFields,
+  mangleInstanceFields,
+  discoverSyntheticTempSites,
+  inlineSyntheticTemps,
+  gatherSimpleNativeSites,
+  inlineIdentityCalls,
 };

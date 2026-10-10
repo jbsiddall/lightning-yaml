@@ -102,8 +102,8 @@ let TagValues = (function () {
                         _3_c = Native.__default.codeUnitAt(raw, _2_i);
                         let _4_isWs;
                         let _out0;
-                        _out0 = (_this).IsBase64Whitespace(_3_c);
-                        _4_isWs = _out0;
+                        _4_isWs =
+                            (_this).IsBase64Whitespace(_3_c);
                         if (_4_isWs) {
                             _1_hasWs = true;
                             break L0;
@@ -128,8 +128,8 @@ let TagValues = (function () {
                 }
                 let _7_isWs;
                 let _out1;
-                _out1 = (_this).IsBase64Whitespace(_6_c);
-                _7_isWs = _out1;
+                _7_isWs =
+                    (_this).IsBase64Whitespace(_6_c);
                 if ((_7_isWs) || ((_6_c) === (-1))) {
                     if ((_2_i) > (_5_seg)) {
                         clean = Native.__default.concat(clean, raw.slice(_5_seg, _2_i));
@@ -147,8 +147,8 @@ let TagValues = (function () {
             (_this).lastError = "";
             let _0_clean;
             let _out0;
-            _out0 = (_this).StripBase64Whitespace(raw);
-            _0_clean = _out0;
+            _0_clean =
+                (_this).StripBase64Whitespace(raw);
             let _1_n;
             _1_n = _0_clean.length;
             if ((_1_n) === (0)) {
@@ -180,8 +180,8 @@ let TagValues = (function () {
                 _7_code = Native.__default.codeUnitAt(_0_clean, _6_i);
                 let _8_digit;
                 let _out1;
-                _out1 = (_this).BASE64__INV(_7_code);
-                _8_digit = _out1;
+                _8_digit =
+                    (_this).BASE64__INV(_7_code);
                 if (((_7_code) >= (256)) || ((_8_digit) === (-1))) {
                     (_this).lastError = "malformed !!binary content: invalid base64 character";
                     return bytes;
@@ -205,25 +205,25 @@ let TagValues = (function () {
                 _14_c3Code = Native.__default.codeUnitAt(_0_clean, (_6_i) + (3));
                 let _15_c0;
                 let _out2;
-                _out2 = (_this).BASE64__INV(_11_c0Code);
-                _15_c0 = _out2;
+                _15_c0 =
+                    (_this).BASE64__INV(_11_c0Code);
                 let _16_c1;
                 let _out3;
-                _out3 = (_this).BASE64__INV(_12_c1Code);
-                _16_c1 = _out3;
+                _16_c1 =
+                    (_this).BASE64__INV(_12_c1Code);
                 let _17_c2;
                 _17_c2 = 0;
                 if ((_13_c2Code) !== (61)) {
                     let _out4;
-                    _out4 = (_this).BASE64__INV(_13_c2Code);
-                    _17_c2 = _out4;
+                    _17_c2 =
+                        (_this).BASE64__INV(_13_c2Code);
                 }
                 let _18_c3;
                 _18_c3 = 0;
                 if ((_14_c3Code) !== (61)) {
                     let _out5;
-                    _out5 = (_this).BASE64__INV(_14_c3Code);
-                    _18_c3 = _out5;
+                    _18_c3 =
+                        (_this).BASE64__INV(_14_c3Code);
                 }
                 let _19_triple;
                 _19_triple = ((((_15_c0) * (262144)) + ((_16_c1) * (4096))) + ((_17_c2) * (64))) + (_18_c3);
@@ -256,34 +256,31 @@ let TagValues = (function () {
             (_this).lastError = "";
             let _0_nativeSet;
             let _out0;
-            _out0 = Native.__default.setCreate();
-            _0_nativeSet = _out0;
+            _0_nativeSet =
+                Native.__default.setCreate();
             let _1_keys;
             let _out1;
-            _out1 = Native.__default.objectKeys(mapValue);
-            _1_keys = _out1;
+            _1_keys =
+                Native.__default.objectKeys(mapValue);
             let _2_n;
             let _out2;
-            _out2 = Native.__default.arrayLength(_1_keys);
-            _2_n = _out2;
+            _2_n = _1_keys.length;
             let _3_i;
             _3_i = 0;
             while ((_3_i) < (_2_n)) {
                 let _4_keyValue;
                 let _out3;
-                _out3 = Native.__default.arrayGet(_1_keys, _3_i);
-                _4_keyValue = _out3;
+                _4_keyValue = _1_keys[_3_i];
                 let _5_key;
                 _5_key = _4_keyValue;
                 let _6_value;
                 let _out4;
-                _out4 = Native.__default.objectGet(mapValue, _5_key);
-                _6_value = _out4;
-                if (!(Native.__default.isNull(_6_value))) {
+                _6_value = mapValue[_5_key];
+                if (!(_6_value === null)) {
                     (_this).lastError = "!!set: every key must have a null value";
                     return setValue;
                 }
-                Native.__default.setAdd(_0_nativeSet, _4_keyValue);
+                _0_nativeSet.add(_4_keyValue);
                 _3_i = (_3_i) + (1);
             }
             setValue = _0_nativeSet;
@@ -296,41 +293,36 @@ let TagValues = (function () {
             (_this).lastError = "";
             let _0_nativeMap;
             let _out0;
-            _out0 = Native.__default.mapCreate();
-            _0_nativeMap = _out0;
+            _0_nativeMap =
+                Native.__default.mapCreate();
             let _1_n;
             let _out1;
-            _out1 = Native.__default.arrayLength(sequence);
-            _1_n = _out1;
+            _1_n = sequence.length;
             let _2_i;
             _2_i = 0;
             while ((_2_i) < (_1_n)) {
                 let _3_entry;
                 let _out2;
-                _out2 = Native.__default.arrayGet(sequence, _2_i);
-                _3_entry = _out2;
+                _3_entry = sequence[_2_i];
                 let _4_keys;
                 let _out3;
-                _out3 = (_this).SinglePairKeys(_3_entry);
-                _4_keys = _out3;
+                _4_keys =
+                    (_this).SinglePairKeys(_3_entry);
                 if (!Native.__default.jsEqual(_this.lastError, "")) {
                     return mapValue;
                 }
                 let _5_keyValue;
                 let _out4;
-                _out4 = Native.__default.arrayGet(_4_keys, 0);
-                _5_keyValue = _out4;
+                _5_keyValue = _4_keys[0];
                 let _6_key;
                 _6_key = _5_keyValue;
                 let _7_value;
                 let _out5;
-                _out5 = Native.__default.objectGet(_3_entry, _6_key);
-                _7_value = _out5;
-                Native.__default.mapSet(_0_nativeMap, _5_keyValue, _7_value);
+                _7_value = _3_entry[_6_key];
+                _0_nativeMap.set(_5_keyValue, _7_value);
                 _2_i = (_2_i) + (1);
                 let _out6;
-                _out6 = Native.__default.arrayLength(sequence);
-                _1_n = _out6;
+                _1_n = sequence.length;
             }
             mapValue = _0_nativeMap;
             return mapValue;
@@ -340,26 +332,23 @@ let TagValues = (function () {
             (_this).lastError = "";
             let _0_n;
             let _out0;
-            _out0 = Native.__default.arrayLength(sequence);
-            _0_n = _out0;
+            _0_n = sequence.length;
             let _1_i;
             _1_i = 0;
             while ((_1_i) < (_0_n)) {
                 let _2_entry;
                 let _out1;
-                _out1 = Native.__default.arrayGet(sequence, _1_i);
-                _2_entry = _out1;
+                _2_entry = sequence[_1_i];
                 let _3_keys;
                 let _out2;
-                _out2 = (_this).SinglePairKeys(_2_entry);
-                _3_keys = _out2;
+                _3_keys =
+                    (_this).SinglePairKeys(_2_entry);
                 if (!Native.__default.jsEqual(_this.lastError, "")) {
                     return;
                 }
                 _1_i = (_1_i) + (1);
                 let _out3;
-                _out3 = Native.__default.arrayLength(sequence);
-                _0_n = _out3;
+                _0_n = sequence.length;
             }
             return;
         }
@@ -368,17 +357,16 @@ let TagValues = (function () {
             let keys = undefined;
             keys = Native.__default.undefinedValue;
             (_this).lastError = "";
-            if (((!(Native.__default.isObject(entry))) || (Native.__default.isNull(entry))) || (Native.__default.isArray(entry))) {
+            if (((!(typeof entry === "object" && entry !== null)) || (entry === null)) || (Array.isArray(entry))) {
                 (_this).lastError = "each entry must be a single-key mapping ('- key: value')";
                 return keys;
             }
             let _out0;
-            _out0 = Native.__default.objectKeys(entry);
-            keys = _out0;
+            keys =
+                Native.__default.objectKeys(entry);
             let _0_n;
             let _out1;
-            _out1 = Native.__default.arrayLength(keys);
-            _0_n = _out1;
+            _0_n = keys.length;
             if ((_0_n) !== (1)) {
                 (_this).lastError = "each entry must have exactly one key (one sequence indicator per pair)";
                 keys = Native.__default.undefinedValue;
@@ -402,8 +390,8 @@ let DafnyCore = (function () {
             _0_engine = _nw0;
             (_0_engine).Reset(text, isStrict, false, 4194304);
             let _out0;
-            _out0 = (_0_engine).ParseSingle();
-            value = _out0;
+            value =
+                (_0_engine).ParseSingle();
             return value;
         }
         static ParseAll(text, isStrict) {
@@ -414,8 +402,8 @@ let DafnyCore = (function () {
             _0_engine = _nw0;
             (_0_engine).Reset(text, isStrict, false, 4194304);
             let _out0;
-            _out0 = (_0_engine).ParseAll();
-            documents = _out0;
+            documents =
+                (_0_engine).ParseAll();
             return documents;
         }
     };
@@ -425,46 +413,46 @@ let DafnyCore = (function () {
             this.pos = 0;
             this.len = 0;
             this.lineStart = 0;
-            this.depth = 0;
-            this.strict = false;
-            this.plainStoppedAtColon = false;
-            this.plainStoppedAtComment = false;
-            this.quotedMultiline = false;
-            this.flowFolded = "";
-            this.hasFlowFolded = false;
-            this.flowWsCrossedLine = false;
-            this.flowSpanned = false;
-            this.flowIndentFloor = 0;
-            this.nextBackslash = 0;
-            this.nextNewline = 0;
-            this.keyCache = undefined;
-            this.keyCacheBytes = undefined;
-            this.keyCacheMaxBytes = undefined;
-            this.valueCache = undefined;
-            this.hasValueCache = false;
-            this.valueCacheEnabled = false;
-            this.lastRecordKeys = undefined;
-            this.hasLastRecordKeys = false;
-            this.tagHandles = undefined;
-            this.hasTagHandles = false;
-            this.anchorMap = undefined;
-            this.hasAnchorMap = false;
-            this.pendingAnchorName = "";
-            this.hasPendingAnchorName = false;
-            this.afterInlineProperty = false;
-            this.inlineMapValue = false;
-            this.colOverride = 0;
-            this.bareDocAllowed = false;
-            this.foldedBreaks = 0;
-            this.tagHelpers = undefined;
-            this.lastNumberIsFloat = false;
+            this._f4 = 0;
+            this._fs = false;
+            this._fp = false;
+            this._fq = false;
+            this._fr = false;
+            this._f5 = "";
+            this._fb = false;
+            this._f8 = false;
+            this._f7 = false;
+            this._f6 = 0;
+            this._fm = 0;
+            this._fn = 0;
+            this._fh = undefined;
+            this._fi = undefined;
+            this._fj = undefined;
+            this._fv = undefined;
+            this._ff = false;
+            this._fw = false;
+            this._fl = undefined;
+            this._fc = false;
+            this._ft = undefined;
+            this._fe = false;
+            this._f1 = undefined;
+            this._fa = false;
+            this._fo = "";
+            this._fd = false;
+            this._f0 = false;
+            this._fg = false;
+            this._f3 = 0;
+            this._f2 = false;
+            this._f9 = 0;
+            this._fu = undefined;
+            this._fk = false;
         }
         __ctor() {
             let _this = this;
             let _nw0 = new TagValues.Helpers();
             _nw0.__ctor();
-            (_this).tagHelpers = _nw0;
-            (_this).lastNumberIsFloat = false;
+            (_this)._fu = _nw0;
+            (_this)._fk = false;
             (_this).Reset("", true, false, 4194304);
             return;
         }
@@ -474,39 +462,39 @@ let DafnyCore = (function () {
             (_this).pos = 0;
             (_this).len = (text).length;
             (_this).lineStart = 0;
-            (_this).depth = 0;
-            (_this).strict = isStrict;
-            (_this).plainStoppedAtColon = false;
-            (_this).plainStoppedAtComment = false;
-            (_this).quotedMultiline = false;
-            (_this).flowFolded = "";
-            (_this).hasFlowFolded = false;
-            (_this).flowWsCrossedLine = false;
-            (_this).flowSpanned = false;
-            (_this).flowIndentFloor = -1;
-            (_this).nextBackslash = -1;
-            (_this).nextNewline = -1;
+            (_this)._f4 = 0;
+            (_this)._fs = isStrict;
+            (_this)._fp = false;
+            (_this)._fq = false;
+            (_this)._fr = false;
+            (_this)._f5 = "";
+            (_this)._fb = false;
+            (_this)._f8 = false;
+            (_this)._f7 = false;
+            (_this)._f6 = -1;
+            (_this)._fm = -1;
+            (_this)._fn = -1;
             let _out0;
-            _out0 = Native.__default.mapCreate();
-            (_this).keyCache = _out0;
-            (_this).keyCacheBytes = 0;
-            (_this).keyCacheMaxBytes = keyCacheBudget;
-            (_this).valueCache = Native.__default.undefinedValue;
-            (_this).hasValueCache = false;
-            (_this).valueCacheEnabled = internValues;
-            (_this).lastRecordKeys = Native.__default.undefinedValue;
-            (_this).hasLastRecordKeys = false;
-            (_this).tagHandles = Native.__default.undefinedValue;
-            (_this).hasTagHandles = false;
-            (_this).anchorMap = Native.__default.undefinedValue;
-            (_this).hasAnchorMap = false;
-            (_this).pendingAnchorName = "";
-            (_this).hasPendingAnchorName = false;
-            (_this).afterInlineProperty = false;
-            (_this).inlineMapValue = false;
-            (_this).colOverride = -1;
-            (_this).bareDocAllowed = true;
-            (_this).foldedBreaks = 0;
+            (_this)._fh =
+                Native.__default.mapCreate();
+            (_this)._fi = 0;
+            (_this)._fj = keyCacheBudget;
+            (_this)._fv = Native.__default.undefinedValue;
+            (_this)._ff = false;
+            (_this)._fw = internValues;
+            (_this)._fl = Native.__default.undefinedValue;
+            (_this)._fc = false;
+            (_this)._ft = Native.__default.undefinedValue;
+            (_this)._fe = false;
+            (_this)._f1 = Native.__default.undefinedValue;
+            (_this)._fa = false;
+            (_this)._fo = "";
+            (_this)._fd = false;
+            (_this)._f0 = false;
+            (_this)._fg = false;
+            (_this)._f3 = -1;
+            (_this)._f2 = true;
+            (_this)._f9 = 0;
             if (((_this.len) > (0)) && ((_this.src.charCodeAt(0)) === (65279))) {
                 (_this).pos = 1;
                 (_this).lineStart = 1;
@@ -591,17 +579,17 @@ let DafnyCore = (function () {
         m5(s) {
             let _this = this;
             let yes = false;
-            yes = ((((Native.__default.jsEqual(s, "")) || (Native.__default.jsEqual(s, "~"))) || (Native.__default.jsEqual(s, "null"))) || (Native.__default.jsEqual(s, "Null"))) || (Native.__default.jsEqual(s, "NULL"));
+            yes = ((((s === "") || (s === "~")) || (s === "null")) || (s === "Null")) || (s === "NULL");
             return yes;
         }
         m6(s) {
             let _this = this;
             let value = undefined;
-            if (((Native.__default.jsEqual(s, "true")) || (Native.__default.jsEqual(s, "True"))) || (Native.__default.jsEqual(s, "TRUE"))) {
+            if (((s === "true") || (s === "True")) || (s === "TRUE")) {
                 value = true;
                 return value;
             }
-            if (((Native.__default.jsEqual(s, "false")) || (Native.__default.jsEqual(s, "False"))) || (Native.__default.jsEqual(s, "FALSE"))) {
+            if (((s === "false") || (s === "False")) || (s === "FALSE")) {
                 value = false;
                 return value;
             }
@@ -622,8 +610,8 @@ let DafnyCore = (function () {
             while ((_0_p) < (to)) {
                 let _2_digit;
                 let _out0;
-                _out0 = (_this).m19(s.charCodeAt(_0_p));
-                _2_digit = _out0;
+                _2_digit =
+                    (_this).m19(s.charCodeAt(_0_p));
                 if ((_2_digit) < (0)) {
                     return value;
                 }
@@ -670,8 +658,8 @@ let DafnyCore = (function () {
             while ((_0_p) < (to)) {
                 let _2_digit;
                 let _out0;
-                _out0 = (_this).m19(_this.src.charCodeAt(_0_p));
-                _2_digit = _out0;
+                _2_digit =
+                    (_this).m19(_this.src.charCodeAt(_0_p));
                 if ((_2_digit) < (0)) {
                     return value;
                 }
@@ -732,13 +720,13 @@ let DafnyCore = (function () {
                 if (((_4_base) === (120)) || ((_4_base) === (111))) {
                     if ((_4_base) === (120)) {
                         let _out0;
-                        _out0 = (_this).m9((_0_p) + (2), to);
-                        value = _out0;
+                        value =
+                            (_this).m9((_0_p) + (2), to);
                     }
                     else {
                         let _out1;
-                        _out1 = (_this).ma((_0_p) + (2), to);
-                        value = _out1;
+                        value =
+                            (_this).ma((_0_p) + (2), to);
                     }
                     return value;
                 }
@@ -831,7 +819,7 @@ let DafnyCore = (function () {
             let _this = this;
             let value = undefined;
             value = Native.__default.notNumericValue;
-            (_this).lastNumberIsFloat = false;
+            (_this)._fk = false;
             let _0_n;
             _0_n = s.length;
             if ((_0_n) === (0)) {
@@ -858,13 +846,13 @@ let DafnyCore = (function () {
                 if (((_5_base) === (120)) || ((_5_base) === (111))) {
                     if ((_5_base) === (120)) {
                         let _out0;
-                        _out0 = (_this).m7(s, (_1_p) + (2), _0_n);
-                        value = _out0;
+                        value =
+                            (_this).m7(s, (_1_p) + (2), _0_n);
                     }
                     else {
                         let _out1;
-                        _out1 = (_this).m8(s, (_1_p) + (2), _0_n);
-                        value = _out1;
+                        value =
+                            (_this).m8(s, (_1_p) + (2), _0_n);
                     }
                     return value;
                 }
@@ -881,12 +869,12 @@ let DafnyCore = (function () {
                 let _10_nan;
                 _10_nan = (((((_6_a) === (110)) && ((_7_b) === (97))) && ((_8_d) === (110))) || ((((_6_a) === (78)) && ((_7_b) === (97))) && ((_8_d) === (78)))) || ((((_6_a) === (78)) && ((_7_b) === (65))) && ((_8_d) === (78)));
                 if (_9_inf) {
-                    (_this).lastNumberIsFloat = true;
+                    (_this)._fk = true;
                     value = Native.__default.parseSpecialNumber(((_3_negative) ? ("-Infinity") : ("Infinity")));
                     return value;
                 }
                 if ((!(_4_signed)) && (_10_nan)) {
-                    (_this).lastNumberIsFloat = true;
+                    (_this)._fk = true;
                     value = Native.__default.parseSpecialNumber("NaN");
                     return value;
                 }
@@ -940,7 +928,7 @@ let DafnyCore = (function () {
                 }
             }
             if ((_1_p) === (_0_n)) {
-                (_this).lastNumberIsFloat = _15_isFloat;
+                (_this)._fk = _15_isFloat;
                 if ((!(_15_isFloat)) && ((_11_digitsSeen) <= (15))) {
                     if (_3_negative) {
                         value = -_12_accumulator;
@@ -967,8 +955,8 @@ let DafnyCore = (function () {
             if (((((_this).m1(_0_c)) || ((_0_c) === (45))) || ((_0_c) === (43))) || ((_0_c) === (46))) {
                 let _1_number = undefined;
                 let _out0;
-                _out0 = (_this).mb(from, to);
-                _1_number = _out0;
+                _1_number =
+                    (_this).mb(from, to);
                 if (!(Native.__default.sameValue(_1_number, Native.__default.notNumericValue))) {
                     value = _1_number;
                     return value;
@@ -978,16 +966,16 @@ let DafnyCore = (function () {
             _2_text = Native.__default.slice(_this.src, from, to);
             let _3_isNull = false;
             let _out1;
-            _out1 = (_this).m5(_2_text);
-            _3_isNull = _out1;
+            _3_isNull =
+                (_this).m5(_2_text);
             if (_3_isNull) {
                 value = Native.__default.nullValue;
                 return value;
             }
             let _4_boolValue = undefined;
             let _out2;
-            _out2 = (_this).m6(_2_text);
-            _4_boolValue = _out2;
+            _4_boolValue =
+                (_this).m6(_2_text);
             if (!(Native.__default.sameValue(_4_boolValue, Native.__default.notNumericValue))) {
                 value = _4_boolValue;
                 return value;
@@ -998,7 +986,7 @@ let DafnyCore = (function () {
         me(text) {
             let _this = this;
             let value = undefined;
-            if (Native.__default.jsEqual(text, "")) {
+            if (text === "") {
                 value = Native.__default.nullValue;
                 return value;
             }
@@ -1009,8 +997,8 @@ let DafnyCore = (function () {
             if (((((_this).m1(_1_c)) || ((_1_c) === (45))) || ((_1_c) === (43))) || ((_1_c) === (46))) {
                 let _2_number = undefined;
                 let _out0;
-                _out0 = (_this).mc(text);
-                _2_number = _out0;
+                _2_number =
+                    (_this).mc(text);
                 if (!(Native.__default.sameValue(_2_number, Native.__default.notNumericValue))) {
                     value = _2_number;
                     return value;
@@ -1018,16 +1006,16 @@ let DafnyCore = (function () {
             }
             let _3_isNull = false;
             let _out1;
-            _out1 = (_this).m5(text);
-            _3_isNull = _out1;
+            _3_isNull =
+                (_this).m5(text);
             if (_3_isNull) {
                 value = Native.__default.nullValue;
                 return value;
             }
             let _4_boolValue = undefined;
             let _out2;
-            _out2 = (_this).m6(text);
-            _4_boolValue = _out2;
+            _4_boolValue =
+                (_this).m6(text);
             if (!(Native.__default.sameValue(_4_boolValue, Native.__default.notNumericValue))) {
                 value = _4_boolValue;
                 return value;
@@ -1072,13 +1060,13 @@ let DafnyCore = (function () {
         mh() {
             let _this = this;
             if ((_this.pos) >= (_this.len)) {
-                (_this).flowWsCrossedLine = false;
+                (_this)._f8 = false;
                 return;
             }
             let _0_first;
             _0_first = _this.src.charCodeAt(_this.pos);
             if ((((((((_0_first) !== (32)) && ((_0_first) !== (9))) && ((_0_first) !== (10))) && ((_0_first) !== (13))) && ((_0_first) !== (35))) && ((_0_first) !== (45))) && ((_0_first) !== (46))) {
-                (_this).flowWsCrossedLine = false;
+                (_this)._f8 = false;
                 return;
             }
             (_this).mi();
@@ -1086,7 +1074,7 @@ let DafnyCore = (function () {
         }
         mi() {
             let _this = this;
-            (_this).flowWsCrossedLine = false;
+            (_this)._f8 = false;
             let _0_p;
             _0_p = _this.pos;
             let _1_lineHead;
@@ -1100,12 +1088,12 @@ let DafnyCore = (function () {
                         _3_c = _this.src.charCodeAt(_0_p);
                         if (((((_3_c) === (32)) || ((_3_c) === (9))) || ((_3_c) === (10))) || ((_3_c) === (13))) {
                             if (((_3_c) === (10)) || ((_3_c) === (13))) {
-                                (_this).flowWsCrossedLine = true;
-                                (_this).flowSpanned = true;
+                                (_this)._f8 = true;
+                                (_this)._f7 = true;
                                 _1_lineHead = (_0_p) + (1);
                                 _2_badTab = false;
                             }
-                            else if (((((_3_c) === (9)) && ((_1_lineHead) >= (0))) && ((_this.flowIndentFloor) >= (0))) && (((_0_p) - (_1_lineHead)) <= (_this.flowIndentFloor))) {
+                            else if (((((_3_c) === (9)) && ((_1_lineHead) >= (0))) && ((_this._f6) >= (0))) && (((_0_p) - (_1_lineHead)) <= (_this._f6))) {
                                 _2_badTab = true;
                             }
                             _0_p = (_0_p) + (1);
@@ -1123,8 +1111,8 @@ let DafnyCore = (function () {
                             let _5_nl;
                             _5_nl = Native.__default.indexOf(_this.src, "\n", _0_p);
                             if ((_5_nl) >= (0)) {
-                                (_this).flowWsCrossedLine = true;
-                                (_this).flowSpanned = true;
+                                (_this)._f8 = true;
+                                (_this)._f7 = true;
                             }
                             if ((_5_nl) < (0)) {
                                 _0_p = _this.len;
@@ -1139,14 +1127,14 @@ let DafnyCore = (function () {
                         if ((((_3_c) === (45)) || ((_3_c) === (46))) && ((((_0_p) === (0)) || ((_this.src.charCodeAt((_0_p) - (1))) === (10))) || ((_this.src.charCodeAt((_0_p) - (1))) === (13)))) {
                             let _6_marker = false;
                             let _out0;
-                            _out0 = (_this).m1o(_0_p);
-                            _6_marker = _out0;
+                            _6_marker =
+                                (_this).m1o(_0_p);
                             if (_6_marker) {
                                 (_this).pos = _0_p;
                                 (_this).mg("a document marker is not allowed inside a flow collection");
                             }
                         }
-                        if ((((_1_lineHead) >= (0)) && ((_this.flowIndentFloor) >= (0))) && ((_2_badTab) || (((_0_p) - (_1_lineHead)) <= (_this.flowIndentFloor)))) {
+                        if ((((_1_lineHead) >= (0)) && ((_this._f6) >= (0))) && ((_2_badTab) || (((_0_p) - (_1_lineHead)) <= (_this._f6)))) {
                             (_this).pos = _0_p;
                             (_this).mg("insufficient indentation for a multi-line flow collection");
                         }
@@ -1167,22 +1155,22 @@ let DafnyCore = (function () {
                     (_this).mg("a plain scalar cannot start with '%', '@', '`', '|', or '>'");
                 }
             }
-            (_this).hasFlowFolded = false;
-            (_this).flowFolded = "";
+            (_this)._fb = false;
+            (_this)._f5 = "";
             let _1_start;
             _1_start = _this.pos;
             let _2_firstStop = 0;
             let _out0;
-            _out0 = (_this).m3(_1_start);
-            _2_firstStop = _out0;
+            _2_firstStop =
+                (_this).m3(_1_start);
             let _3_firstEnd = 0;
             let _out1;
-            _out1 = (_this).m4(_1_start, _2_firstStop);
-            _3_firstEnd = _out1;
+            _3_firstEnd =
+                (_this).m4(_1_start, _2_firstStop);
             if (((_2_firstStop) < (_this.len)) && (((_this.src.charCodeAt(_2_firstStop)) === (10)) || ((_this.src.charCodeAt(_2_firstStop)) === (13)))) {
                 let _out2;
-                _out2 = (_this).mk(_1_start, _3_firstEnd, _2_firstStop);
-                end = _out2;
+                end =
+                    (_this).mk(_1_start, _3_firstEnd, _2_firstStop);
             }
             else {
                 (_this).pos = _2_firstStop;
@@ -1257,8 +1245,8 @@ let DafnyCore = (function () {
                                 _9_marker = false;
                                 if (((_4_q) > (0)) && (((_this.src.charCodeAt((_4_q) - (1))) === (10)) || ((_this.src.charCodeAt((_4_q) - (1))) === (13)))) {
                                     let _out0;
-                                    _out0 = (_this).m1o(_4_q);
-                                    _9_marker = _out0;
+                                    _9_marker =
+                                        (_this).m1o(_4_q);
                                 }
                                 if (_9_marker) {
                                     _6_continues = false;
@@ -1272,7 +1260,7 @@ let DafnyCore = (function () {
                         if (!(_1_folded)) {
                             _0_result = Native.__default.slice(_this.src, start, firstEnd);
                             _1_folded = true;
-                            (_this).flowSpanned = true;
+                            (_this)._f7 = true;
                         }
                         if ((_3_breaks) > (1)) {
                             _0_result = Native.__default.concat(_0_result, Native.__default.repeat("\n", (_3_breaks) - (1)));
@@ -1282,12 +1270,12 @@ let DafnyCore = (function () {
                         }
                         let _10_segmentStop = 0;
                         let _out1;
-                        _out1 = (_this).m3(_4_q);
-                        _10_segmentStop = _out1;
+                        _10_segmentStop =
+                            (_this).m3(_4_q);
                         let _11_segmentEnd = 0;
                         let _out2;
-                        _out2 = (_this).m4(_4_q, _10_segmentStop);
-                        _11_segmentEnd = _out2;
+                        _11_segmentEnd =
+                            (_this).m4(_4_q, _10_segmentStop);
                         _0_result = Native.__default.concat(_0_result, Native.__default.slice(_this.src, _4_q, _11_segmentEnd));
                         lastEnd = _11_segmentEnd;
                         if (((_10_segmentStop) < (_this.len)) && (((_this.src.charCodeAt(_10_segmentStop)) === (10)) || ((_this.src.charCodeAt(_10_segmentStop)) === (13)))) {
@@ -1295,15 +1283,15 @@ let DafnyCore = (function () {
                             break C6;
                         }
                         (_this).pos = _10_segmentStop;
-                        (_this).flowFolded = _0_result;
-                        (_this).hasFlowFolded = true;
+                        (_this)._f5 = _0_result;
+                        (_this)._fb = true;
                         return lastEnd;
                     }
                 }
             }
             if (_1_folded) {
-                (_this).flowFolded = _0_result;
-                (_this).hasFlowFolded = true;
+                (_this)._f5 = _0_result;
+                (_this)._fb = true;
             }
             else {
                 lastEnd = firstEnd;
@@ -1317,18 +1305,18 @@ let DafnyCore = (function () {
             _0_start = _this.pos;
             let _1_end = 0;
             let _out0;
-            _out0 = (_this).mj();
-            _1_end = _out0;
+            _1_end =
+                (_this).mj();
             if ((_1_end) === (_0_start)) {
                 (_this).mg("expected a flow node");
             }
-            if (_this.hasFlowFolded) {
-                value = _this.flowFolded;
+            if (_this._fb) {
+                value = _this._f5;
             }
             else {
                 let _out1;
-                _out1 = (_this).md(_0_start, _1_end);
-                value = _out1;
+                value =
+                    (_this).md(_0_start, _1_end);
             }
             return value;
         }
@@ -1349,16 +1337,16 @@ let DafnyCore = (function () {
             _3_structural = ((((Native.__default.indexOf(text, ": ", 0)) >= (0)) || ((Native.__default.indexOf(text, " #", 0)) >= (0))) || ((Native.__default.indexOf(text, "\n", 0)) >= (0))) || (((text)[(_0_n) - (1)]) === (':'));
             let _4_nullWord = false;
             let _out0;
-            _out0 = (_this).m5(text);
-            _4_nullWord = _out0;
+            _4_nullWord =
+                (_this).m5(text);
             let _5_boolWord = undefined;
             let _out1;
-            _out1 = (_this).m6(text);
-            _5_boolWord = _out1;
+            _5_boolWord =
+                (_this).m6(text);
             let _6_number = undefined;
             let _out2;
-            _out2 = (_this).mc(text);
-            _6_number = _out2;
+            _6_number =
+                (_this).mc(text);
             let _7_retyped;
             _7_retyped = ((_4_nullWord) || (!(Native.__default.sameValue(_5_boolWord, Native.__default.notNumericValue)))) || (!(Native.__default.sameValue(_6_number, Native.__default.notNumericValue)));
             if (((_2_leading) || (_3_structural)) || (_7_retyped)) {
@@ -1372,11 +1360,11 @@ let DafnyCore = (function () {
         mn(value) {
             let _this = this;
             let rendered = "";
-            if (Native.__default.isNull(value)) {
+            if (value === null) {
                 rendered = "null";
                 return rendered;
             }
-            if (Native.__default.isBoolean(value)) {
+            if (typeof value === "boolean") {
                 let _0_boolean;
                 _0_boolean = value;
                 if (_0_boolean) {
@@ -1387,22 +1375,22 @@ let DafnyCore = (function () {
                 }
                 return rendered;
             }
-            if (Native.__default.isNumber(value)) {
+            if (typeof value === "number") {
                 rendered = Native.__default.formatNumber(value);
                 return rendered;
             }
-            if (Native.__default.isString(value)) {
+            if (typeof value === "string") {
                 let _1_s;
                 _1_s = value;
                 let _out0;
-                _out0 = (_this).mm(_1_s);
-                rendered = _out0;
+                rendered =
+                    (_this).mm(_1_s);
                 return rendered;
             }
-            if (Native.__default.isObject(value)) {
+            if (typeof value === "object" && value !== null) {
                 let _out1;
-                _out1 = (_this).mq(value);
-                rendered = _out1;
+                rendered =
+                    (_this).mq(value);
                 return rendered;
             }
             rendered = Native.__default.stringFallback(value);
@@ -1413,8 +1401,7 @@ let DafnyCore = (function () {
             let rendered = "";
             let _0_n = 0;
             let _out0;
-            _out0 = Native.__default.arrayLength(items);
-            _0_n = _out0;
+            _0_n = items.length;
             if ((_0_n) === (0)) {
                 rendered = open + close;
                 return rendered;
@@ -1428,12 +1415,11 @@ let DafnyCore = (function () {
                 }
                 let _2_item = undefined;
                 let _out1;
-                _out1 = Native.__default.arrayGet(items, _1_i);
-                _2_item = _out1;
+                _2_item = items[_1_i];
                 let _3_itemText = "";
                 let _out2;
-                _out2 = (_this).mn(_2_item);
-                _3_itemText = _out2;
+                _3_itemText =
+                    (_this).mn(_2_item);
                 rendered = rendered + _3_itemText;
                 _1_i = (_1_i) + (1);
             }
@@ -1445,8 +1431,7 @@ let DafnyCore = (function () {
             let rendered = "";
             let _0_n = 0;
             let _out0;
-            _out0 = Native.__default.arrayLength(keys);
-            _0_n = _out0;
+            _0_n = keys.length;
             if ((_0_n) === (0)) {
                 rendered = "{}";
                 return rendered;
@@ -1460,46 +1445,42 @@ let DafnyCore = (function () {
                 }
                 let _2_keyValue = undefined;
                 let _out1;
-                _out1 = Native.__default.arrayGet(keys, _1_i);
-                _2_keyValue = _out1;
+                _2_keyValue = keys[_1_i];
                 let _3_keyText = "";
-                if (Native.__default.isString(_2_keyValue)) {
+                if (typeof _2_keyValue === "string") {
                     _3_keyText = _2_keyValue;
                 }
                 else {
                     let _out2;
-                    _out2 = (_this).ms(_2_keyValue);
-                    _3_keyText = _out2;
+                    _3_keyText =
+                        (_this).ms(_2_keyValue);
                 }
                 let _4_safeKey;
                 let _out3;
-                _out3 = (_this).mm(_3_keyText);
-                _4_safeKey = _out3;
+                _4_safeKey =
+                    (_this).mm(_3_keyText);
                 rendered = Native.__default.concat(rendered, _4_safeKey + ": ");
                 let _5_child = undefined;
                 if (nativeMap) {
                     let _6_nativeMapValue;
                     _6_nativeMapValue = value;
                     let _out4;
-                    _out4 = Native.__default.mapGet(_6_nativeMapValue, _2_keyValue);
-                    _5_child = _out4;
+                    _5_child = _6_nativeMapValue.get(_2_keyValue);
                 }
                 else {
-                    if (Native.__default.isString(_2_keyValue)) {
+                    if (typeof _2_keyValue === "string") {
                         let _out5;
-                        _out5 = Native.__default.objectGet(value, _2_keyValue);
-                        _5_child = _out5;
+                        _5_child = value[_2_keyValue];
                     }
                     else {
                         let _out6;
-                        _out6 = Native.__default.objectGet(value, _3_keyText);
-                        _5_child = _out6;
+                        _5_child = value[_3_keyText];
                     }
                 }
                 let _7_childText = "";
                 let _out7;
-                _out7 = (_this).mn(_5_child);
-                _7_childText = _out7;
+                _7_childText =
+                    (_this).mn(_5_child);
                 rendered = rendered + _7_childText;
                 _1_i = (_1_i) + (1);
             }
@@ -1509,17 +1490,17 @@ let DafnyCore = (function () {
         mq(value) {
             let _this = this;
             let rendered = "";
-            if (Native.__default.isArray(value)) {
+            if (Array.isArray(value)) {
                 let _out0;
-                _out0 = (_this).mo(value, "[", "]");
-                rendered = _out0;
+                rendered =
+                    (_this).mo(value, "[", "]");
                 return rendered;
             }
             if (Native.__default.isUint8Array(value)) {
                 let _0_bytes;
                 let _out1;
-                _out1 = Native.__default.createArray();
-                _0_bytes = _out1;
+                _0_bytes =
+                    Native.__default.createArray();
                 let _1_n = 0;
                 _1_n = Native.__default.byteLength(value);
                 let _2_i;
@@ -1529,37 +1510,37 @@ let DafnyCore = (function () {
                     _2_i = (_2_i) + (1);
                 }
                 let _out2;
-                _out2 = (_this).mo(_0_bytes, "[", "]");
-                rendered = _out2;
+                rendered =
+                    (_this).mo(_0_bytes, "[", "]");
                 return rendered;
             }
             if (Native.__default.isSet(value)) {
                 let _3_values = undefined;
                 let _out3;
-                _out3 = Native.__default.setValues(value);
-                _3_values = _out3;
+                _3_values =
+                    Native.__default.setValues(value);
                 let _out4;
-                _out4 = (_this).mo(_3_values, "[", "]");
-                rendered = _out4;
+                rendered =
+                    (_this).mo(_3_values, "[", "]");
                 return rendered;
             }
             if (Native.__default.isMap(value)) {
                 let _4_mapKeys = undefined;
                 let _out5;
-                _out5 = Native.__default.mapKeys(value);
-                _4_mapKeys = _out5;
+                _4_mapKeys =
+                    Native.__default.mapKeys(value);
                 let _out6;
-                _out6 = (_this).mp(value, _4_mapKeys, true);
-                rendered = _out6;
+                rendered =
+                    (_this).mp(value, _4_mapKeys, true);
                 return rendered;
             }
             let _5_keys = undefined;
             let _out7;
-            _out7 = Native.__default.objectKeys(value);
-            _5_keys = _out7;
+            _5_keys =
+                Native.__default.objectKeys(value);
             let _out8;
-            _out8 = (_this).mp(value, _5_keys, false);
-            rendered = _out8;
+            rendered =
+                (_this).mp(value, _5_keys, false);
             return rendered;
         }
         mr(expected) {
@@ -1592,8 +1573,8 @@ let DafnyCore = (function () {
             }
             let _3_separator = false;
             let _out0;
-            _out0 = (_this).m29(((_this.pos) + (_1_n)) + (1));
-            _3_separator = _out0;
+            _3_separator =
+                (_this).m29(((_this.pos) + (_1_n)) + (1));
             if (!(_3_separator)) {
                 return matchedKey;
             }
@@ -1604,18 +1585,18 @@ let DafnyCore = (function () {
         ms(value) {
             let _this = this;
             let key = "";
-            if (Native.__default.isString(value)) {
+            if (typeof value === "string") {
                 key = value;
                 return key;
             }
-            if (Native.__default.isNull(value)) {
+            if (value === null) {
                 key = "";
                 return key;
             }
-            if (Native.__default.isObject(value)) {
+            if (typeof value === "object" && value !== null) {
                 let _out0;
-                _out0 = (_this).mq(value);
-                key = _out0;
+                key =
+                    (_this).mq(value);
                 return key;
             }
             key = Native.__default.stringFallback(value);
@@ -1625,11 +1606,11 @@ let DafnyCore = (function () {
             let _this = this;
             let key = "";
             let _out0;
-            _out0 = (_this).ms(value);
-            key = _out0;
+            key =
+                (_this).ms(value);
             let _out1;
-            _out1 = (_this).mu(key);
-            key = _out1;
+            key =
+                (_this).mu(key);
             return key;
         }
         mu(text) {
@@ -1639,21 +1620,21 @@ let DafnyCore = (function () {
             _0_value = text;
             let _1_cached;
             let _out0;
-            _out0 = Native.__default.mapGet(_this.keyCache, _0_value);
-            _1_cached = _out0;
-            if (!(Native.__default.isUndefined(_1_cached))) {
+            _1_cached =
+                Native.__default.mapGet(_this._fh, _0_value);
+            if (!(_1_cached === undefined)) {
                 key = _1_cached;
                 return key;
             }
             let _2_bytes;
             _2_bytes = Native.__default.numberMulAdd(text.length, 2, 0);
             let _3_total;
-            _3_total = Native.__default.numberAdd(_this.keyCacheBytes, _2_bytes);
+            _3_total = Native.__default.numberAdd(_this._fi, _2_bytes);
             let _4_withinBudget = false;
-            _4_withinBudget = Native.__default.numberLessEqual(_3_total, _this.keyCacheMaxBytes);
+            _4_withinBudget = Native.__default.numberLessEqual(_3_total, _this._fj);
             if (_4_withinBudget) {
-                Native.__default.mapSet(_this.keyCache, _0_value, _0_value);
-                (_this).keyCacheBytes = _3_total;
+                Native.__default.mapSet(_this._fh, _0_value, _0_value);
+                (_this)._fi = _3_total;
             }
             key = text;
             return key;
@@ -1782,8 +1763,8 @@ let DafnyCore = (function () {
                     }
                     let _11_boundary = false;
                     let _out0;
-                    _out0 = (_this).mw(_1_p);
-                    _11_boundary = _out0;
+                    _11_boundary =
+                        (_this).mw(_1_p);
                     if (((_1_p) > (_6_digits)) && (_11_boundary)) {
                         (_this).pos = _1_p;
                         value = _7_accumulator;
@@ -1804,8 +1785,8 @@ let DafnyCore = (function () {
                 _16_nan = (((((_12_a) === (110)) && ((_13_b) === (97))) && ((_14_d) === (110))) || ((((_12_a) === (78)) && ((_13_b) === (97))) && ((_14_d) === (78)))) || ((((_12_a) === (78)) && ((_13_b) === (65))) && ((_14_d) === (78)));
                 let _17_boundary = false;
                 let _out1;
-                _out1 = (_this).mw((_1_p) + (4));
-                _17_boundary = _out1;
+                _17_boundary =
+                    (_this).mw((_1_p) + (4));
                 if ((_15_inf) && (_17_boundary)) {
                     (_this).pos = (_1_p) + (4);
                     value = Native.__default.parseSpecialNumber(((_3_negative) ? ("-Infinity") : ("Infinity")));
@@ -1867,8 +1848,8 @@ let DafnyCore = (function () {
             }
             let _24_boundary = false;
             let _out2;
-            _out2 = (_this).mw(_1_p);
-            _24_boundary = _out2;
+            _24_boundary =
+                (_this).mw(_1_p);
             if (!(_24_boundary)) {
                 return value;
             }
@@ -1896,44 +1877,44 @@ let DafnyCore = (function () {
             _0_c = _this.src.charCodeAt(_this.pos);
             if ((_0_c) === (123)) {
                 let _out0;
-                _out0 = (_this).m1k();
-                value = _out0;
+                value =
+                    (_this).m1k();
                 return value;
             }
             if ((_0_c) === (91)) {
                 let _out1;
-                _out1 = (_this).m1j();
-                value = _out1;
+                value =
+                    (_this).m1j();
                 return value;
             }
             if ((_0_c) === (34)) {
                 let _out2;
-                _out2 = (_this).m1r();
-                value = _out2;
+                value =
+                    (_this).m1r();
                 return value;
             }
             if ((_0_c) === (39)) {
                 let _out3;
-                _out3 = (_this).m1v();
-                value = _out3;
+                value =
+                    (_this).m1v();
                 return value;
             }
             if ((_0_c) === (38)) {
                 let _out4;
-                _out4 = (_this).m1g();
-                value = _out4;
+                value =
+                    (_this).m1g();
                 return value;
             }
             if ((_0_c) === (33)) {
                 let _out5;
-                _out5 = (_this).m1e();
-                value = _out5;
+                value =
+                    (_this).m1e();
                 return value;
             }
             if ((_0_c) === (42)) {
                 let _out6;
-                _out6 = (_this).m15();
-                value = _out6;
+                value =
+                    (_this).m15();
                 return value;
             }
             if (((((_this).m1(_0_c)) || ((_0_c) === (45))) || ((_0_c) === (43))) || ((_0_c) === (46))) {
@@ -1941,8 +1922,8 @@ let DafnyCore = (function () {
                 _1_numericStart = _this.pos;
                 let _2_number;
                 let _out7;
-                _out7 = (_this).mx();
-                _2_number = _out7;
+                _2_number =
+                    (_this).mx();
                 if (!(Native.__default.sameValue(_2_number, Native.__default.notNumericValue))) {
                     value = _2_number;
                     return value;
@@ -1950,8 +1931,8 @@ let DafnyCore = (function () {
                 if ((_0_c) === (45)) {
                     let _3_dashSeparator = false;
                     let _out8;
-                    _out8 = (_this).m2((_this.pos) + (1));
-                    _3_dashSeparator = _out8;
+                    _3_dashSeparator =
+                        (_this).m2((_this.pos) + (1));
                     if (_3_dashSeparator) {
                         (_this).mg("a block sequence '-' indicator is not allowed in a flow collection");
                     }
@@ -1959,8 +1940,8 @@ let DafnyCore = (function () {
                 (_this).pos = _1_numericStart;
             }
             let _out9;
-            _out9 = (_this).ml();
-            value = _out9;
+            value =
+                (_this).ml();
             return value;
         }
         mz() {
@@ -1973,60 +1954,60 @@ let DafnyCore = (function () {
             _0_c = _this.src.charCodeAt(_this.pos);
             if ((_0_c) === (38)) {
                 let _out0;
-                _out0 = (_this).m10();
-                key = _out0;
+                key =
+                    (_this).m10();
                 return key;
             }
             if ((_0_c) === (33)) {
                 let _out1;
-                _out1 = (_this).m11();
-                key = _out1;
+                key =
+                    (_this).m11();
                 return key;
             }
             if ((_0_c) === (42)) {
                 let _1_alias = undefined;
                 let _out2;
-                _out2 = (_this).m15();
-                _1_alias = _out2;
+                _1_alias =
+                    (_this).m15();
                 let _2_aliasKey = "";
                 let _out3;
-                _out3 = (_this).ms(_1_alias);
-                _2_aliasKey = _out3;
+                _2_aliasKey =
+                    (_this).ms(_1_alias);
                 let _out4;
-                _out4 = (_this).mu(_2_aliasKey);
-                key = _out4;
+                key =
+                    (_this).mu(_2_aliasKey);
                 return key;
             }
             if ((_0_c) === (34)) {
                 let _3_quoted = undefined;
                 let _out5;
-                _out5 = (_this).m1r();
-                _3_quoted = _out5;
+                _3_quoted =
+                    (_this).m1r();
                 let _out6;
-                _out6 = (_this).mu(_3_quoted);
-                key = _out6;
+                key =
+                    (_this).mu(_3_quoted);
                 return key;
             }
             if ((_0_c) === (39)) {
                 let _4_quoted = undefined;
                 let _out7;
-                _out7 = (_this).m1v();
-                _4_quoted = _out7;
+                _4_quoted =
+                    (_this).m1v();
                 let _out8;
-                _out8 = (_this).mu(_4_quoted);
-                key = _out8;
+                key =
+                    (_this).mu(_4_quoted);
                 return key;
             }
             let _5_start;
             _5_start = _this.pos;
             let _6_end = 0;
             let _out9;
-            _out9 = (_this).mj();
-            _6_end = _out9;
-            if (_this.hasFlowFolded) {
+            _6_end =
+                (_this).mj();
+            if (_this._fb) {
                 let _out10;
-                _out10 = (_this).mu(_this.flowFolded);
-                key = _out10;
+                key =
+                    (_this).mu(_this._f5);
                 return key;
             }
             if ((_6_end) === (_5_start)) {
@@ -2034,16 +2015,16 @@ let DafnyCore = (function () {
             }
             let _7_plainKey;
             let _out11;
-            _out11 = (_this).md(_5_start, _6_end);
-            _7_plainKey = _out11;
+            _7_plainKey =
+                (_this).md(_5_start, _6_end);
             (_this).m14(_7_plainKey);
             let _8_resolvedKey = "";
             let _out12;
-            _out12 = (_this).ms(_7_plainKey);
-            _8_resolvedKey = _out12;
+            _8_resolvedKey =
+                (_this).ms(_7_plainKey);
             let _out13;
-            _out13 = (_this).mu(_8_resolvedKey);
-            key = _out13;
+            key =
+                (_this).mu(_8_resolvedKey);
             return key;
         }
         m10() {
@@ -2052,8 +2033,8 @@ let DafnyCore = (function () {
             (_this).pos = (_this.pos) + (1);
             let _0_name = "";
             let _out0;
-            _out0 = (_this).m13();
-            _0_name = _out0;
+            _0_name =
+                (_this).m13();
             (_this).mh();
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (38))) {
                 (_this).mg("a node may carry at most one anchor");
@@ -2064,8 +2045,8 @@ let DafnyCore = (function () {
             _2_hasTag = false;
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (33))) {
                 let _out1;
-                _out1 = (_this).m1b();
-                _1_tag = _out1;
+                _1_tag =
+                    (_this).m1b();
                 (_this).m1c(true);
                 _2_hasTag = true;
                 (_this).mh();
@@ -2080,88 +2061,88 @@ let DafnyCore = (function () {
                 (_this).mg("an alias node cannot carry an anchor property");
             }
             let _3_savedName;
-            _3_savedName = _this.pendingAnchorName;
+            _3_savedName = _this._fo;
             let _4_savedHasName;
-            _4_savedHasName = _this.hasPendingAnchorName;
-            (_this).pendingAnchorName = _0_name;
-            (_this).hasPendingAnchorName = true;
+            _4_savedHasName = _this._fd;
+            (_this)._fo = _0_name;
+            (_this)._fd = true;
             let _5_raw = undefined;
             if (_2_hasTag) {
                 let _out2;
-                _out2 = (_this).m12(_1_tag);
-                _5_raw = _out2;
+                _5_raw =
+                    (_this).m12(_1_tag);
                 (_this).m14(_5_raw);
                 let _6_taggedKey = "";
                 let _out3;
-                _out3 = (_this).ms(_5_raw);
-                _6_taggedKey = _out3;
+                _6_taggedKey =
+                    (_this).ms(_5_raw);
                 let _out4;
-                _out4 = (_this).mu(_6_taggedKey);
-                key = _out4;
+                key =
+                    (_this).mu(_6_taggedKey);
             }
             else if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (34))) {
                 let _out5;
-                _out5 = (_this).m1r();
-                _5_raw = _out5;
+                _5_raw =
+                    (_this).m1r();
                 (_this).m14(_5_raw);
                 let _7_quotedKey = "";
                 let _out6;
-                _out6 = (_this).ms(_5_raw);
-                _7_quotedKey = _out6;
+                _7_quotedKey =
+                    (_this).ms(_5_raw);
                 let _out7;
-                _out7 = (_this).mu(_7_quotedKey);
-                key = _out7;
+                key =
+                    (_this).mu(_7_quotedKey);
             }
             else if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (39))) {
                 let _out8;
-                _out8 = (_this).m1v();
-                _5_raw = _out8;
+                _5_raw =
+                    (_this).m1v();
                 (_this).m14(_5_raw);
                 let _8_singleQuotedKey = "";
                 let _out9;
-                _out9 = (_this).ms(_5_raw);
-                _8_singleQuotedKey = _out9;
+                _8_singleQuotedKey =
+                    (_this).ms(_5_raw);
                 let _out10;
-                _out10 = (_this).mu(_8_singleQuotedKey);
-                key = _out10;
+                key =
+                    (_this).mu(_8_singleQuotedKey);
             }
             else {
                 let _9_start;
                 _9_start = _this.pos;
                 let _10_end = 0;
                 let _out11;
-                _out11 = (_this).mj();
-                _10_end = _out11;
-                if (_this.hasFlowFolded) {
-                    _5_raw = _this.flowFolded;
+                _10_end =
+                    (_this).mj();
+                if (_this._fb) {
+                    _5_raw = _this._f5;
                     (_this).m14(_5_raw);
                     let _11_foldedKey = "";
                     let _out12;
-                    _out12 = (_this).ms(_5_raw);
-                    _11_foldedKey = _out12;
+                    _11_foldedKey =
+                        (_this).ms(_5_raw);
                     let _out13;
-                    _out13 = (_this).mu(_11_foldedKey);
-                    key = _out13;
+                    key =
+                        (_this).mu(_11_foldedKey);
                 }
                 else {
                     if ((_10_end) === (_9_start)) {
                         (_this).mg("expected a mapping key");
                     }
                     let _out14;
-                    _out14 = (_this).md(_9_start, _10_end);
-                    _5_raw = _out14;
+                    _5_raw =
+                        (_this).md(_9_start, _10_end);
                     (_this).m14(_5_raw);
                     let _12_resolvedKey = "";
                     let _out15;
-                    _out15 = (_this).ms(_5_raw);
-                    _12_resolvedKey = _out15;
+                    _12_resolvedKey =
+                        (_this).ms(_5_raw);
                     let _out16;
-                    _out16 = (_this).mu(_12_resolvedKey);
-                    key = _out16;
+                    key =
+                        (_this).mu(_12_resolvedKey);
                 }
             }
-            (_this).pendingAnchorName = _3_savedName;
-            (_this).hasPendingAnchorName = _4_savedHasName;
+            (_this)._fo = _3_savedName;
+            (_this)._fd = _4_savedHasName;
             return key;
         }
         m11() {
@@ -2169,8 +2150,8 @@ let DafnyCore = (function () {
             let key = "";
             let _0_tag = "";
             let _out0;
-            _out0 = (_this).m1b();
-            _0_tag = _out0;
+            _0_tag =
+                (_this).m1b();
             (_this).m1c(true);
             (_this).mh();
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (33))) {
@@ -2183,8 +2164,8 @@ let DafnyCore = (function () {
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (38))) {
                 (_this).pos = (_this.pos) + (1);
                 let _out1;
-                _out1 = (_this).m13();
-                _1_anchorName = _out1;
+                _1_anchorName =
+                    (_this).m13();
                 _2_touched = true;
                 (_this).mh();
                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (38))) {
@@ -2198,29 +2179,29 @@ let DafnyCore = (function () {
                 (_this).mg("an alias node cannot carry a tag/anchor property");
             }
             let _3_savedName;
-            _3_savedName = _this.pendingAnchorName;
+            _3_savedName = _this._fo;
             let _4_savedHasName;
-            _4_savedHasName = _this.hasPendingAnchorName;
+            _4_savedHasName = _this._fd;
             if (_2_touched) {
-                (_this).pendingAnchorName = _1_anchorName;
-                (_this).hasPendingAnchorName = true;
+                (_this)._fo = _1_anchorName;
+                (_this)._fd = true;
             }
             let _5_raw = undefined;
             let _out2;
-            _out2 = (_this).m12(_0_tag);
-            _5_raw = _out2;
+            _5_raw =
+                (_this).m12(_0_tag);
             if (_2_touched) {
                 (_this).m14(_5_raw);
-                (_this).pendingAnchorName = _3_savedName;
-                (_this).hasPendingAnchorName = _4_savedHasName;
+                (_this)._fo = _3_savedName;
+                (_this)._fd = _4_savedHasName;
             }
             let _6_taggedKey = "";
             let _out3;
-            _out3 = (_this).ms(_5_raw);
-            _6_taggedKey = _out3;
+            _6_taggedKey =
+                (_this).ms(_5_raw);
             let _out4;
-            _out4 = (_this).mu(_6_taggedKey);
-            key = _out4;
+            key =
+                (_this).mu(_6_taggedKey);
             return key;
         }
         m12(tag) {
@@ -2229,75 +2210,75 @@ let DafnyCore = (function () {
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (34))) {
                 let _0_quoted = undefined;
                 let _out0;
-                _out0 = (_this).m1r();
-                _0_quoted = _out0;
+                _0_quoted =
+                    (_this).m1r();
                 let _out1;
-                _out1 = (_this).m1d(tag, _0_quoted);
-                value = _out1;
+                value =
+                    (_this).m1d(tag, _0_quoted);
                 return value;
             }
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (39))) {
                 let _1_quoted = undefined;
                 let _out2;
-                _out2 = (_this).m1v();
-                _1_quoted = _out2;
+                _1_quoted =
+                    (_this).m1v();
                 let _out3;
-                _out3 = (_this).m1d(tag, _1_quoted);
-                value = _out3;
+                value =
+                    (_this).m1d(tag, _1_quoted);
                 return value;
             }
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (123))) {
                 let _2_mapping = undefined;
                 let _out4;
-                _out4 = (_this).m1k();
-                _2_mapping = _out4;
+                _2_mapping =
+                    (_this).m1k();
                 let _out5;
-                _out5 = (_this).m2l(tag, _2_mapping, "map");
-                value = _out5;
+                value =
+                    (_this).m2l(tag, _2_mapping, "map");
                 return value;
             }
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (91))) {
                 let _3_sequence = undefined;
                 let _out6;
-                _out6 = (_this).m1j();
-                _3_sequence = _out6;
+                _3_sequence =
+                    (_this).m1j();
                 let _out7;
-                _out7 = (_this).m2l(tag, _3_sequence, "seq");
-                value = _out7;
+                value =
+                    (_this).m2l(tag, _3_sequence, "seq");
                 return value;
             }
             let _4_separator;
             _4_separator = (_this.pos) >= (_this.len);
             if ((_this.pos) < (_this.len)) {
                 let _out8;
-                _out8 = (_this).m2(_this.pos);
-                _4_separator = _out8;
+                _4_separator =
+                    (_this).m2(_this.pos);
             }
             if (_4_separator) {
                 let _out9;
-                _out9 = (_this).m1d(tag, "");
-                value = _out9;
+                value =
+                    (_this).m1d(tag, "");
                 return value;
             }
             let _5_start;
             _5_start = _this.pos;
             let _6_end = 0;
             let _out10;
-            _out10 = (_this).mj();
-            _6_end = _out10;
+            _6_end =
+                (_this).mj();
             let _7_raw;
-            if (_this.hasFlowFolded) {
-                _7_raw = _this.flowFolded;
+            if (_this._fb) {
+                _7_raw = _this._f5;
             }
             else {
                 _7_raw = Native.__default.slice(_this.src, _5_start, _6_end);
             }
-            if (!(_this.hasFlowFolded)) {
+            if (!(_this._fb)) {
                 (_this).pos = _6_end;
             }
             let _out11;
-            _out11 = (_this).m1d(tag, _7_raw);
-            value = _out11;
+            value =
+                (_this).m1d(tag, _7_raw);
             return value;
         }
         m13() {
@@ -2325,21 +2306,21 @@ let DafnyCore = (function () {
         }
         m14(value) {
             let _this = this;
-            if (_this.hasPendingAnchorName) {
-                if (!(_this.hasAnchorMap)) {
+            if (_this._fd) {
+                if (!(_this._fa)) {
                     let _0_newAnchors;
                     let _out0;
-                    _out0 = Native.__default.mapCreate();
-                    _0_newAnchors = _out0;
-                    (_this).anchorMap = _0_newAnchors;
-                    (_this).hasAnchorMap = true;
+                    _0_newAnchors =
+                        Native.__default.mapCreate();
+                    (_this)._f1 = _0_newAnchors;
+                    (_this)._fa = true;
                 }
                 let _1_name;
-                _1_name = _this.pendingAnchorName;
+                _1_name = _this._fo;
                 let _2_anchors;
-                _2_anchors = _this.anchorMap;
-                Native.__default.mapSet(_2_anchors, _1_name, value);
-                (_this).hasPendingAnchorName = false;
+                _2_anchors = _this._f1;
+                _2_anchors.set(_1_name, value);
+                (_this)._fd = false;
             }
             return;
         }
@@ -2349,20 +2330,19 @@ let DafnyCore = (function () {
             (_this).pos = (_this.pos) + (1);
             let _0_name = "";
             let _out0;
-            _out0 = (_this).m13();
-            _0_name = _out0;
+            _0_name =
+                (_this).m13();
             (_this).mf();
-            if (!(_this.hasAnchorMap)) {
+            if (!(_this._fa)) {
                 (_this).mg(Native.__default.concat("unresolved alias '*", _0_name + "' (no matching anchor)"));
             }
             let _1_key;
             _1_key = _0_name;
             let _2_anchors;
-            _2_anchors = _this.anchorMap;
+            _2_anchors = _this._f1;
             let _out1;
-            _out1 = Native.__default.mapGet(_2_anchors, _1_key);
-            value = _out1;
-            if (Native.__default.isUndefined(value)) {
+            value = _2_anchors.get(_1_key);
+            if (value === undefined) {
                 (_this).mg(Native.__default.concat("unresolved alias '*", _0_name + "' (no matching anchor)"));
             }
             return value;
@@ -2391,8 +2371,8 @@ let DafnyCore = (function () {
                         _1_c = _this.src.charCodeAt(_this.pos);
                         let _2_valid = false;
                         let _out0;
-                        _out0 = (_this).m17(_1_c);
-                        _2_valid = _out0;
+                        _2_valid =
+                            (_this).m17(_1_c);
                         if (!(_2_valid)) {
                             break L11;
                         }
@@ -2445,11 +2425,11 @@ let DafnyCore = (function () {
                     let _4_hi = 0;
                     let _5_lo = 0;
                     let _out0;
-                    _out0 = (_this).m19(s.charCodeAt((_3_i) + (1)));
-                    _4_hi = _out0;
+                    _4_hi =
+                        (_this).m19(s.charCodeAt((_3_i) + (1)));
                     let _out1;
-                    _out1 = (_this).m19(s.charCodeAt((_3_i) + (2)));
-                    _5_lo = _out1;
+                    _5_lo =
+                        (_this).m19(s.charCodeAt((_3_i) + (2)));
                     if (((_4_hi) < (0)) || ((_5_lo) < (0))) {
                         (_this).mg("malformed '%' escape in a tag");
                     }
@@ -2491,21 +2471,20 @@ let DafnyCore = (function () {
                 (_this).pos = (_this.pos) + (1);
                 let _3_suffix = "";
                 let _out0;
-                _out0 = (_this).m18();
-                _3_suffix = _out0;
+                _3_suffix =
+                    (_this).m18();
                 let _4_key;
                 _4_key = "!!";
                 let _5_tags;
-                _5_tags = _this.tagHandles;
+                _5_tags = _this._ft;
                 let _6_prefixValue;
                 _6_prefixValue = Native.__default.undefinedValue;
-                if (_this.hasTagHandles) {
+                if (_this._fe) {
                     let _out1;
-                    _out1 = Native.__default.mapGet(_5_tags, _4_key);
-                    _6_prefixValue = _out1;
+                    _6_prefixValue = _5_tags.get(_4_key);
                 }
                 let _7_custom;
-                _7_custom = !(Native.__default.isUndefined(_6_prefixValue));
+                _7_custom = !(_6_prefixValue === undefined);
                 let _8_prefix;
                 _8_prefix = "tag:yaml.org,2002:";
                 if (_7_custom) {
@@ -2513,8 +2492,8 @@ let DafnyCore = (function () {
                 }
                 let _9_decoded;
                 let _out2;
-                _out2 = (_this).m1a(_3_suffix);
-                _9_decoded = _out2;
+                _9_decoded =
+                    (_this).m1a(_3_suffix);
                 tag = _8_prefix + _9_decoded;
                 return tag;
             }
@@ -2527,8 +2506,8 @@ let DafnyCore = (function () {
                         _11_c = _this.src.charCodeAt(_this.pos);
                         let _12_word = false;
                         let _out3;
-                        _out3 = (_this).m16(_11_c);
-                        _12_word = _out3;
+                        _12_word =
+                            (_this).m16(_11_c);
                         if (!(_12_word)) {
                             break L12;
                         }
@@ -2542,60 +2521,58 @@ let DafnyCore = (function () {
                 (_this).pos = (_this.pos) + (1);
                 let _14_suffix = "";
                 let _out4;
-                _out4 = (_this).m18();
-                _14_suffix = _out4;
+                _14_suffix =
+                    (_this).m18();
                 let _15_key;
                 _15_key = _13_handle;
                 let _16_tags;
-                _16_tags = _this.tagHandles;
+                _16_tags = _this._ft;
                 let _17_prefixValue;
                 _17_prefixValue = Native.__default.undefinedValue;
-                if (_this.hasTagHandles) {
+                if (_this._fe) {
                     let _out5;
-                    _out5 = Native.__default.mapGet(_16_tags, _15_key);
-                    _17_prefixValue = _out5;
+                    _17_prefixValue = _16_tags.get(_15_key);
                 }
-                if (Native.__default.isUndefined(_17_prefixValue)) {
+                if (_17_prefixValue === undefined) {
                     (_this).mg(Native.__default.concat("undefined tag handle '", _13_handle + "' (no matching %TAG directive in this document)"));
                 }
                 let _18_prefix;
                 _18_prefix = _17_prefixValue;
                 let _19_decoded;
                 let _out6;
-                _out6 = (_this).m1a(_14_suffix);
-                _19_decoded = _out6;
+                _19_decoded =
+                    (_this).m1a(_14_suffix);
                 tag = _18_prefix + _19_decoded;
                 return tag;
             }
             (_this).pos = _10_wordStart;
             let _20_primary = "";
             let _out7;
-            _out7 = (_this).m18();
-            _20_primary = _out7;
-            if (Native.__default.jsEqual(_20_primary, "")) {
+            _20_primary =
+                (_this).m18();
+            if (_20_primary === "") {
                 tag = "!";
                 return tag;
             }
             let _21_primaryKey;
             _21_primaryKey = "!";
             let _22_tags;
-            _22_tags = _this.tagHandles;
+            _22_tags = _this._ft;
             let _23_primaryValue;
             _23_primaryValue = Native.__default.undefinedValue;
-            if (_this.hasTagHandles) {
+            if (_this._fe) {
                 let _out8;
-                _out8 = Native.__default.mapGet(_22_tags, _21_primaryKey);
-                _23_primaryValue = _out8;
+                _23_primaryValue = _22_tags.get(_21_primaryKey);
             }
             let _24_primaryPrefix;
             _24_primaryPrefix = "!";
-            if (!(Native.__default.isUndefined(_23_primaryValue))) {
+            if (!(_23_primaryValue === undefined)) {
                 _24_primaryPrefix = _23_primaryValue;
             }
             let _25_decoded;
             let _out9;
-            _out9 = (_this).m1a(_20_primary);
-            _25_decoded = _out9;
+            _25_decoded =
+                (_this).m1a(_20_primary);
             tag = _24_primaryPrefix + _25_decoded;
             return tag;
         }
@@ -2618,54 +2595,54 @@ let DafnyCore = (function () {
         m1d(tag, raw) {
             let _this = this;
             let value = undefined;
-            if ((Native.__default.jsEqual(tag, "tag:yaml.org,2002:str")) || (Native.__default.jsEqual(tag, "!"))) {
+            if ((tag === "tag:yaml.org,2002:str") || (tag === "!")) {
                 value = raw;
                 return value;
             }
-            if (Native.__default.jsEqual(tag, "tag:yaml.org,2002:null")) {
-                if (((((Native.__default.jsEqual(raw, "")) || (Native.__default.jsEqual(raw, "~"))) || (Native.__default.jsEqual(raw, "null"))) || (Native.__default.jsEqual(raw, "Null"))) || (Native.__default.jsEqual(raw, "NULL"))) {
+            if (tag === "tag:yaml.org,2002:null") {
+                if (((((raw === "") || (raw === "~")) || (raw === "null")) || (raw === "Null")) || (raw === "NULL")) {
                     value = Native.__default.nullValue;
                     return value;
                 }
                 (_this).mg(Native.__default.concat("!!null: '", raw + "' is not a valid core-schema null"));
             }
-            if (Native.__default.jsEqual(tag, "tag:yaml.org,2002:bool")) {
+            if (tag === "tag:yaml.org,2002:bool") {
                 let _out0;
-                _out0 = (_this).m6(raw);
-                value = _out0;
+                value =
+                    (_this).m6(raw);
                 if (Native.__default.sameValue(value, Native.__default.notNumericValue)) {
                     (_this).mg(Native.__default.concat("!!bool: '", raw + "' is not a valid core-schema boolean"));
                 }
                 return value;
             }
-            if ((Native.__default.jsEqual(tag, "tag:yaml.org,2002:int")) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:float"))) {
+            if ((tag === "tag:yaml.org,2002:int") || (tag === "tag:yaml.org,2002:float")) {
                 let _0_number;
                 let _out1;
-                _out1 = (_this).mc(raw);
-                _0_number = _out1;
+                _0_number =
+                    (_this).mc(raw);
                 if (Native.__default.sameValue(_0_number, Native.__default.notNumericValue)) {
-                    (_this).mg(Native.__default.concat("!!", Native.__default.concat(((Native.__default.jsEqual(tag, "tag:yaml.org,2002:int")) ? ("int") : ("float")), Native.__default.concat(": '", raw + "' is not a valid core-schema number"))));
+                    (_this).mg(Native.__default.concat("!!", Native.__default.concat(((tag === "tag:yaml.org,2002:int") ? ("int") : ("float")), Native.__default.concat(": '", raw + "' is not a valid core-schema number"))));
                 }
-                if ((Native.__default.jsEqual(tag, "tag:yaml.org,2002:int")) && (_this.lastNumberIsFloat)) {
+                if ((tag === "tag:yaml.org,2002:int") && (_this._fk)) {
                     (_this).mg(Native.__default.concat("!!int: '", raw + "' is not a valid core-schema integer"));
                 }
                 value = _0_number;
                 return value;
             }
-            if (Native.__default.jsEqual(tag, "tag:yaml.org,2002:binary")) {
+            if (tag === "tag:yaml.org,2002:binary") {
                 let _out2;
-                _out2 = (_this.tagHelpers).DecodeBinary(raw);
-                value = _out2;
+                value =
+                    (_this._fu).DecodeBinary(raw);
                 let _1_binaryError = "";
                 let _out3;
-                _out3 = (_this.tagHelpers).ErrorMessage();
-                _1_binaryError = _out3;
-                if (!Native.__default.jsEqual(_1_binaryError, "")) {
+                _1_binaryError =
+                    (_this._fu).ErrorMessage();
+                if (!(_1_binaryError === "")) {
                     (_this).mg(_1_binaryError);
                 }
                 return value;
             }
-            if (((((Native.__default.jsEqual(tag, "tag:yaml.org,2002:map")) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:seq"))) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:set"))) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:omap"))) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:pairs"))) {
+            if (((((tag === "tag:yaml.org,2002:map") || (tag === "tag:yaml.org,2002:seq")) || (tag === "tag:yaml.org,2002:set")) || (tag === "tag:yaml.org,2002:omap")) || (tag === "tag:yaml.org,2002:pairs")) {
                 (_this).mg("the collection tag requires a mapping/sequence node, not a scalar");
             }
             value = raw;
@@ -2676,8 +2653,8 @@ let DafnyCore = (function () {
             let value = undefined;
             let _0_tag = "";
             let _out0;
-            _out0 = (_this).m1b();
-            _0_tag = _out0;
+            _0_tag =
+                (_this).m1b();
             (_this).m1c(true);
             (_this).mh();
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (33))) {
@@ -2690,8 +2667,8 @@ let DafnyCore = (function () {
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (38))) {
                 (_this).pos = (_this.pos) + (1);
                 let _out1;
-                _out1 = (_this).m13();
-                _1_anchorName = _out1;
+                _1_anchorName =
+                    (_this).m13();
                 _2_touched = true;
                 (_this).mh();
                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (38))) {
@@ -2705,20 +2682,20 @@ let DafnyCore = (function () {
                 (_this).mg("an alias node cannot carry a tag/anchor property");
             }
             let _3_outerPending;
-            _3_outerPending = _this.pendingAnchorName;
+            _3_outerPending = _this._fo;
             let _4_hadOuterPending;
-            _4_hadOuterPending = _this.hasPendingAnchorName;
+            _4_hadOuterPending = _this._fd;
             if (_2_touched) {
-                (_this).pendingAnchorName = _1_anchorName;
-                (_this).hasPendingAnchorName = true;
+                (_this)._fo = _1_anchorName;
+                (_this)._fd = true;
             }
             let _out2;
-            _out2 = (_this).m1f(_0_tag);
-            value = _out2;
+            value =
+                (_this).m1f(_0_tag);
             if (_2_touched) {
                 (_this).m14(value);
-                (_this).pendingAnchorName = _3_outerPending;
-                (_this).hasPendingAnchorName = _4_hadOuterPending;
+                (_this)._fo = _3_outerPending;
+                (_this)._fd = _4_hadOuterPending;
             }
             return value;
         }
@@ -2727,18 +2704,18 @@ let DafnyCore = (function () {
             let value = undefined;
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (123))) {
                 let _out0;
-                _out0 = (_this).m1k();
-                value = _out0;
-                if ((!Native.__default.jsEqual(tag, "tag:yaml.org,2002:map")) && (!Native.__default.jsEqual(tag, "!"))) {
+                value =
+                    (_this).m1k();
+                if ((!(tag === "tag:yaml.org,2002:map")) && (!(tag === "!"))) {
                     (_this).mg("tag does not match a flow mapping node");
                 }
                 return value;
             }
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (91))) {
                 let _out1;
-                _out1 = (_this).m1j();
-                value = _out1;
-                if ((!Native.__default.jsEqual(tag, "tag:yaml.org,2002:seq")) && (!Native.__default.jsEqual(tag, "!"))) {
+                value =
+                    (_this).m1j();
+                if ((!(tag === "tag:yaml.org,2002:seq")) && (!(tag === "!"))) {
                     (_this).mg("tag does not match a flow sequence node");
                 }
                 return value;
@@ -2746,48 +2723,48 @@ let DafnyCore = (function () {
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (34))) {
                 let _0_quoted = undefined;
                 let _out2;
-                _out2 = (_this).m1r();
-                _0_quoted = _out2;
+                _0_quoted =
+                    (_this).m1r();
                 let _out3;
-                _out3 = (_this).m1d(tag, _0_quoted);
-                value = _out3;
+                value =
+                    (_this).m1d(tag, _0_quoted);
                 return value;
             }
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (39))) {
                 let _1_quoted = undefined;
                 let _out4;
-                _out4 = (_this).m1v();
-                _1_quoted = _out4;
+                _1_quoted =
+                    (_this).m1v();
                 let _out5;
-                _out5 = (_this).m1d(tag, _1_quoted);
-                value = _out5;
+                value =
+                    (_this).m1d(tag, _1_quoted);
                 return value;
             }
             let _2_separator;
             _2_separator = (_this.pos) >= (_this.len);
             if ((_this.pos) < (_this.len)) {
                 let _out6;
-                _out6 = (_this).m2(_this.pos);
-                _2_separator = _out6;
+                _2_separator =
+                    (_this).m2(_this.pos);
             }
             if (_2_separator) {
                 let _out7;
-                _out7 = (_this).m1d(tag, "");
-                value = _out7;
+                value =
+                    (_this).m1d(tag, "");
                 return value;
             }
             let _3_start;
             _3_start = _this.pos;
             let _4_end = 0;
             let _out8;
-            _out8 = (_this).mj();
-            _4_end = _out8;
+            _4_end =
+                (_this).mj();
             let _5_raw;
             _5_raw = Native.__default.slice(_this.src, _3_start, _4_end);
             (_this).pos = _4_end;
             let _out9;
-            _out9 = (_this).m1d(tag, _5_raw);
-            value = _out9;
+            value =
+                (_this).m1d(tag, _5_raw);
             return value;
         }
         m1g() {
@@ -2796,21 +2773,21 @@ let DafnyCore = (function () {
             (_this).pos = (_this.pos) + (1);
             let _0_name = "";
             let _out0;
-            _out0 = (_this).m13();
-            _0_name = _out0;
+            _0_name =
+                (_this).m13();
             (_this).mf();
             let _1_savedPending;
-            _1_savedPending = _this.pendingAnchorName;
+            _1_savedPending = _this._fo;
             let _2_hadSavedPending;
-            _2_hadSavedPending = _this.hasPendingAnchorName;
-            (_this).pendingAnchorName = _0_name;
-            (_this).hasPendingAnchorName = true;
+            _2_hadSavedPending = _this._fd;
+            (_this)._fo = _0_name;
+            (_this)._fd = true;
             let _out1;
-            _out1 = (_this).my();
-            value = _out1;
+            value =
+                (_this).my();
             (_this).m14(value);
-            (_this).pendingAnchorName = _1_savedPending;
-            (_this).hasPendingAnchorName = _2_hadSavedPending;
+            (_this)._fo = _1_savedPending;
+            (_this)._fd = _2_hadSavedPending;
             return value;
         }
         m1h(key) {
@@ -2822,12 +2799,12 @@ let DafnyCore = (function () {
             _0_value = Native.__default.nullValue;
             if (((((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) !== (44))) && ((_this.src.charCodeAt(_this.pos)) !== (93))) && ((_this.src.charCodeAt(_this.pos)) !== (125))) {
                 let _out0;
-                _out0 = (_this).my();
-                _0_value = _out0;
+                _0_value =
+                    (_this).my();
             }
             let _out1;
-            _out1 = Native.__default.createObject();
-            pair = _out1;
+            pair =
+                Native.__default.createObject();
             (_this).mv(pair, key, _0_value);
             (_this).mh();
             return pair;
@@ -2842,41 +2819,41 @@ let DafnyCore = (function () {
             if ((((((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) !== (58))) && ((_this.src.charCodeAt(_this.pos)) !== (44))) && ((_this.src.charCodeAt(_this.pos)) !== (93))) && ((_this.src.charCodeAt(_this.pos)) !== (125))) {
                 let _1_keyValue;
                 let _out0;
-                _out0 = (_this).my();
-                _1_keyValue = _out0;
+                _1_keyValue =
+                    (_this).my();
                 let _out1;
-                _out1 = (_this).ms(_1_keyValue);
-                _0_key = _out1;
+                _0_key =
+                    (_this).ms(_1_keyValue);
             }
             (_this).mh();
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
                 let _out2;
-                _out2 = (_this).m1h(_0_key);
-                pair = _out2;
+                pair =
+                    (_this).m1h(_0_key);
                 return pair;
             }
             let _out3;
-            _out3 = Native.__default.createObject();
-            pair = _out3;
+            pair =
+                Native.__default.createObject();
             (_this).mv(pair, _0_key, Native.__default.nullValue);
             return pair;
         }
         m1j() {
             let _this = this;
             let result = undefined;
-            (_this).depth = (_this.depth) + (1);
-            if ((_this.depth) > (1000)) {
+            (_this)._f4 = (_this._f4) + (1);
+            if ((_this._f4) > (1000)) {
                 (_this).mg("maximum nesting depth exceeded");
             }
             (_this).pos = (_this.pos) + (1);
             let _out0;
-            _out0 = Native.__default.createArray();
-            result = _out0;
+            result =
+                Native.__default.createArray();
             (_this).m14(result);
             (_this).mh();
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (93))) {
                 (_this).pos = (_this.pos) + (1);
-                (_this).depth = (_this.depth) - (1);
+                (_this)._f4 = (_this._f4) - (1);
                 return result;
             }
             L13: {
@@ -2889,75 +2866,75 @@ let DafnyCore = (function () {
                         _0_emptyKey = false;
                         if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
                             let _out1;
-                            _out1 = (_this).m2((_this.pos) + (1));
-                            _0_emptyKey = _out1;
+                            _0_emptyKey =
+                                (_this).m2((_this.pos) + (1));
                         }
                         if (_0_emptyKey) {
                             let _1_emptyPair;
                             let _out2;
-                            _out2 = (_this).m1h("");
-                            _1_emptyPair = _out2;
-                            Native.__default.arrayPush(result, _1_emptyPair);
+                            _1_emptyPair =
+                                (_this).m1h("");
+                            result.push(_1_emptyPair);
                         }
                         else if (((_this.src.charCodeAt(_this.pos)) === (63)) && (((_this.pos) + (1)) < (_this.len))) {
                             let _2_questionSeparator = false;
                             let _out3;
-                            _out3 = (_this).m2((_this.pos) + (1));
-                            _2_questionSeparator = _out3;
+                            _2_questionSeparator =
+                                (_this).m2((_this.pos) + (1));
                             if (_2_questionSeparator) {
                                 let _3_explicitPair;
                                 let _out4;
-                                _out4 = (_this).m1i();
-                                _3_explicitPair = _out4;
-                                Native.__default.arrayPush(result, _3_explicitPair);
+                                _3_explicitPair =
+                                    (_this).m1i();
+                                result.push(_3_explicitPair);
                             }
                             else {
                                 let _4_item;
                                 let _out5;
-                                _out5 = (_this).my();
-                                _4_item = _out5;
+                                _4_item =
+                                    (_this).my();
                                 (_this).mh();
                                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
-                                    if (_this.flowWsCrossedLine) {
+                                    if (_this._f8) {
                                         (_this).mg("an implicit key in a flow sequence must be on a single line");
                                     }
                                     let _5_itemKey;
                                     let _out6;
-                                    _out6 = (_this).ms(_4_item);
-                                    _5_itemKey = _out6;
+                                    _5_itemKey =
+                                        (_this).ms(_4_item);
                                     let _6_pair;
                                     let _out7;
-                                    _out7 = (_this).m1h(_5_itemKey);
-                                    _6_pair = _out7;
-                                    Native.__default.arrayPush(result, _6_pair);
+                                    _6_pair =
+                                        (_this).m1h(_5_itemKey);
+                                    result.push(_6_pair);
                                 }
                                 else {
-                                    Native.__default.arrayPush(result, _4_item);
+                                    result.push(_4_item);
                                 }
                             }
                         }
                         else {
                             let _7_item;
                             let _out8;
-                            _out8 = (_this).my();
-                            _7_item = _out8;
+                            _7_item =
+                                (_this).my();
                             (_this).mh();
                             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
-                                if (_this.flowWsCrossedLine) {
+                                if (_this._f8) {
                                     (_this).mg("an implicit key in a flow sequence must be on a single line");
                                 }
                                 let _8_itemKey;
                                 let _out9;
-                                _out9 = (_this).ms(_7_item);
-                                _8_itemKey = _out9;
+                                _8_itemKey =
+                                    (_this).ms(_7_item);
                                 let _9_pair;
                                 let _out10;
-                                _out10 = (_this).m1h(_8_itemKey);
-                                _9_pair = _out10;
-                                Native.__default.arrayPush(result, _9_pair);
+                                _9_pair =
+                                    (_this).m1h(_8_itemKey);
+                                result.push(_9_pair);
                             }
                             else {
-                                Native.__default.arrayPush(result, _7_item);
+                                result.push(_7_item);
                             }
                         }
                         (_this).mh();
@@ -2966,14 +2943,14 @@ let DafnyCore = (function () {
                             (_this).mh();
                             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (93))) {
                                 (_this).pos = (_this.pos) + (1);
-                                (_this).depth = (_this.depth) - (1);
+                                (_this)._f4 = (_this._f4) - (1);
                                 return result;
                             }
                             break C13;
                         }
                         if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (93))) {
                             (_this).pos = (_this.pos) + (1);
-                            (_this).depth = (_this.depth) - (1);
+                            (_this)._f4 = (_this._f4) - (1);
                             return result;
                         }
                         (_this).mg("expected ',' or ']' in flow sequence");
@@ -2985,25 +2962,24 @@ let DafnyCore = (function () {
         m1k() {
             let _this = this;
             let result = undefined;
-            (_this).depth = (_this.depth) + (1);
-            if ((_this.depth) > (1000)) {
+            (_this)._f4 = (_this._f4) + (1);
+            if ((_this._f4) > (1000)) {
                 (_this).mg("maximum nesting depth exceeded");
             }
             (_this).pos = (_this.pos) + (1);
             let _out0;
-            _out0 = Native.__default.createObject();
-            result = _out0;
+            result =
+                Native.__default.createObject();
             (_this).m14(result);
             let _0_expected;
-            _0_expected = _this.lastRecordKeys;
+            _0_expected = _this._fl;
             let _1_hasExpected;
-            _1_hasExpected = _this.hasLastRecordKeys;
+            _1_hasExpected = _this._fc;
             let _2_expectedLength;
             _2_expectedLength = 0;
             if (_1_hasExpected) {
                 let _out1;
-                _out1 = Native.__default.arrayLength(_0_expected);
-                _2_expectedLength = _out1;
+                _2_expectedLength = _0_expected.length;
             }
             let _3_produced;
             _3_produced = _0_expected;
@@ -3014,9 +2990,9 @@ let DafnyCore = (function () {
             (_this).mh();
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (125))) {
                 (_this).pos = (_this.pos) + (1);
-                (_this).hasLastRecordKeys = false;
-                (_this).lastRecordKeys = Native.__default.undefinedValue;
-                (_this).depth = (_this.depth) - (1);
+                (_this)._fc = false;
+                (_this)._fl = Native.__default.undefinedValue;
+                (_this)._f4 = (_this._f4) - (1);
                 return result;
             }
             L14: {
@@ -3034,8 +3010,8 @@ let DafnyCore = (function () {
                         if (((_7_c) === (63)) && (((_this.pos) + (1)) < (_this.len))) {
                             let _9_questionSeparator = false;
                             let _out2;
-                            _out2 = (_this).m2((_this.pos) + (1));
-                            _9_questionSeparator = _out2;
+                            _9_questionSeparator =
+                                (_this).m2((_this.pos) + (1));
                             if (_9_questionSeparator) {
                                 _8_explicitKey = true;
                                 (_this).pos = (_this.pos) + (1);
@@ -3043,106 +3019,101 @@ let DafnyCore = (function () {
                                 if (((((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) !== (58))) && ((_this.src.charCodeAt(_this.pos)) !== (44))) && ((_this.src.charCodeAt(_this.pos)) !== (125))) {
                                     let _10_explicitKeyValue;
                                     let _out3;
-                                    _out3 = (_this).my();
-                                    _10_explicitKeyValue = _out3;
+                                    _10_explicitKeyValue =
+                                        (_this).my();
                                     let _out4;
-                                    _out4 = (_this).ms(_10_explicitKeyValue);
-                                    _6_key = _out4;
+                                    _6_key =
+                                        (_this).ms(_10_explicitKeyValue);
                                 }
                             }
                             else {
                                 let _11_fast;
                                 _11_fast = false;
-                                if ((((_4_matched) && (_1_hasExpected)) && ((_5_keyCount) < (_2_expectedLength))) && (!(_this.hasPendingAnchorName))) {
+                                if ((((_4_matched) && (_1_hasExpected)) && ((_5_keyCount) < (_2_expectedLength))) && (!(_this._fd))) {
                                     let _12_expectedValue = undefined;
                                     let _out5;
-                                    _out5 = Native.__default.arrayGet(_0_expected, _5_keyCount);
-                                    _12_expectedValue = _out5;
+                                    _12_expectedValue = _0_expected[_5_keyCount];
                                     let _13_expectedKey;
                                     _13_expectedKey = _12_expectedValue;
                                     let _out6;
-                                    _out6 = (_this).m1l(_13_expectedKey);
-                                    _11_fast = _out6;
+                                    _11_fast =
+                                        (_this).m1l(_13_expectedKey);
                                     if (_11_fast) {
                                         _6_key = _13_expectedKey;
                                     }
                                 }
                                 if (!(_11_fast)) {
                                     let _out7;
-                                    _out7 = (_this).mz();
-                                    _6_key = _out7;
+                                    _6_key =
+                                        (_this).mz();
                                 }
                             }
                         }
                         else {
                             let _14_fast;
                             _14_fast = false;
-                            if ((((_4_matched) && (_1_hasExpected)) && ((_5_keyCount) < (_2_expectedLength))) && (!(_this.hasPendingAnchorName))) {
+                            if ((((_4_matched) && (_1_hasExpected)) && ((_5_keyCount) < (_2_expectedLength))) && (!(_this._fd))) {
                                 let _15_expectedValue = undefined;
                                 let _out8;
-                                _out8 = Native.__default.arrayGet(_0_expected, _5_keyCount);
-                                _15_expectedValue = _out8;
+                                _15_expectedValue = _0_expected[_5_keyCount];
                                 let _16_expectedKey;
                                 _16_expectedKey = _15_expectedValue;
                                 let _out9;
-                                _out9 = (_this).m1l(_16_expectedKey);
-                                _14_fast = _out9;
+                                _14_fast =
+                                    (_this).m1l(_16_expectedKey);
                                 if (_14_fast) {
                                     _6_key = _16_expectedKey;
                                 }
                             }
                             if (!(_14_fast)) {
                                 let _out10;
-                                _out10 = (_this).mz();
-                                _6_key = _out10;
+                                _6_key =
+                                    (_this).mz();
                             }
                         }
                         if (((_4_matched) && (_1_hasExpected)) && ((_5_keyCount) < (_2_expectedLength))) {
                             let _17_expectedValue = undefined;
                             let _out11;
-                            _out11 = Native.__default.arrayGet(_0_expected, _5_keyCount);
-                            _17_expectedValue = _out11;
+                            _17_expectedValue = _0_expected[_5_keyCount];
                             let _18_expectedKey;
                             _18_expectedKey = _17_expectedValue;
-                            if (!Native.__default.jsEqual(_18_expectedKey, _6_key)) {
+                            if (!(_18_expectedKey === _6_key)) {
                                 let _out12;
-                                _out12 = Native.__default.createArray();
-                                _3_produced = _out12;
+                                _3_produced =
+                                    Native.__default.createArray();
                                 let _19_copyIndex;
                                 _19_copyIndex = 0;
                                 while ((_19_copyIndex) < (_5_keyCount)) {
                                     let _20_oldKey = undefined;
                                     let _out13;
-                                    _out13 = Native.__default.arrayGet(_0_expected, _19_copyIndex);
-                                    _20_oldKey = _out13;
-                                    Native.__default.arrayPush(_3_produced, _20_oldKey);
+                                    _20_oldKey = _0_expected[_19_copyIndex];
+                                    _3_produced.push(_20_oldKey);
                                     _19_copyIndex = (_19_copyIndex) + (1);
                                 }
-                                Native.__default.arrayPush(_3_produced, _6_key);
+                                _3_produced.push(_6_key);
                                 _4_matched = false;
                             }
                         }
                         else if (_4_matched) {
                             let _out14;
-                            _out14 = Native.__default.createArray();
-                            _3_produced = _out14;
+                            _3_produced =
+                                Native.__default.createArray();
                             if (_1_hasExpected) {
                                 let _21_copyIndex;
                                 _21_copyIndex = 0;
                                 while ((_21_copyIndex) < (_5_keyCount)) {
                                     let _22_oldKey = undefined;
                                     let _out15;
-                                    _out15 = Native.__default.arrayGet(_0_expected, _21_copyIndex);
-                                    _22_oldKey = _out15;
-                                    Native.__default.arrayPush(_3_produced, _22_oldKey);
+                                    _22_oldKey = _0_expected[_21_copyIndex];
+                                    _3_produced.push(_22_oldKey);
                                     _21_copyIndex = (_21_copyIndex) + (1);
                                 }
                             }
-                            Native.__default.arrayPush(_3_produced, _6_key);
+                            _3_produced.push(_6_key);
                             _4_matched = false;
                         }
                         else {
-                            Native.__default.arrayPush(_3_produced, _6_key);
+                            _3_produced.push(_6_key);
                         }
                         _5_keyCount = (_5_keyCount) + (1);
                         (_this).mh();
@@ -3153,8 +3124,8 @@ let DafnyCore = (function () {
                             (_this).mh();
                             if ((((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) !== (44))) && ((_this.src.charCodeAt(_this.pos)) !== (125))) {
                                 let _out16;
-                                _out16 = (_this).my();
-                                _23_value = _out16;
+                                _23_value =
+                                    (_this).my();
                             }
                         }
                         (_this).mv(result, _6_key, _23_value);
@@ -3165,7 +3136,7 @@ let DafnyCore = (function () {
                             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (125))) {
                                 (_this).pos = (_this.pos) + (1);
                                 (_this).m1m(_0_expected, _1_hasExpected, _3_produced, _4_matched, _5_keyCount, _2_expectedLength);
-                                (_this).depth = (_this.depth) - (1);
+                                (_this)._f4 = (_this._f4) - (1);
                                 return result;
                             }
                             break C14;
@@ -3173,7 +3144,7 @@ let DafnyCore = (function () {
                         if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (125))) {
                             (_this).pos = (_this.pos) + (1);
                             (_this).m1m(_0_expected, _1_hasExpected, _3_produced, _4_matched, _5_keyCount, _2_expectedLength);
-                            (_this).depth = (_this.depth) - (1);
+                            (_this)._f4 = (_this._f4) - (1);
                             return result;
                         }
                         (_this).mg("expected ',' or '}' in flow mapping");
@@ -3213,36 +3184,35 @@ let DafnyCore = (function () {
         m1m(expected, hasExpected, produced, matched, count, expectedLength) {
             let _this = this;
             if (!(matched)) {
-                (_this).lastRecordKeys = produced;
-                (_this).hasLastRecordKeys = true;
+                (_this)._fl = produced;
+                (_this)._fc = true;
                 return;
             }
             if ((count) === (0)) {
-                (_this).lastRecordKeys = Native.__default.undefinedValue;
-                (_this).hasLastRecordKeys = false;
+                (_this)._fl = Native.__default.undefinedValue;
+                (_this)._fc = false;
                 return;
             }
             if ((hasExpected) && ((count) === (expectedLength))) {
-                (_this).lastRecordKeys = expected;
-                (_this).hasLastRecordKeys = true;
+                (_this)._fl = expected;
+                (_this)._fc = true;
                 return;
             }
             let _0_result;
             let _out0;
-            _out0 = Native.__default.createArray();
-            _0_result = _out0;
+            _0_result =
+                Native.__default.createArray();
             let _1_i;
             _1_i = 0;
             while ((_1_i) < (count)) {
                 let _2_key = undefined;
                 let _out1;
-                _out1 = Native.__default.arrayGet(expected, _1_i);
-                _2_key = _out1;
-                Native.__default.arrayPush(_0_result, _2_key);
+                _2_key = expected[_1_i];
+                _0_result.push(_2_key);
                 _1_i = (_1_i) + (1);
             }
-            (_this).lastRecordKeys = _0_result;
-            (_this).hasLastRecordKeys = true;
+            (_this)._fl = _0_result;
+            (_this)._fc = true;
             return;
         }
         m1n(c) {
@@ -3271,41 +3241,39 @@ let DafnyCore = (function () {
                 return yes;
             }
             let _out0;
-            _out0 = (_this).m1n(_this.src.charCodeAt((i) + (3)));
-            yes = _out0;
+            yes =
+                (_this).m1n(_this.src.charCodeAt((i) + (3)));
             return yes;
         }
         m1p(s) {
             let _this = this;
             let value = undefined;
             value = s;
-            if (!(_this.valueCacheEnabled)) {
+            if (!(_this._fw)) {
                 return value;
             }
-            if (!(_this.hasValueCache)) {
+            if (!(_this._ff)) {
                 let _0_newValues;
                 let _out0;
-                _out0 = Native.__default.mapCreate();
-                _0_newValues = _out0;
-                (_this).valueCache = _0_newValues;
-                (_this).hasValueCache = true;
+                _0_newValues =
+                    Native.__default.mapCreate();
+                (_this)._fv = _0_newValues;
+                (_this)._ff = true;
             }
             let _1_values;
-            _1_values = _this.valueCache;
+            _1_values = _this._fv;
             let _2_cached;
             let _out1;
-            _out1 = Native.__default.mapGet(_1_values, value);
-            _2_cached = _out1;
-            if (!(Native.__default.isUndefined(_2_cached))) {
+            _2_cached = _1_values.get(value);
+            if (!(_2_cached === undefined)) {
                 value = _2_cached;
                 return value;
             }
             let _3_cacheSize = 0;
             let _out2;
-            _out2 = Native.__default.mapSize(_1_values);
-            _3_cacheSize = _out2;
+            _3_cacheSize = _1_values.size;
             if ((_3_cacheSize) < (1000000)) {
-                Native.__default.mapSet(_1_values, value, value);
+                _1_values.set(value, value);
             }
             return value;
         }
@@ -3331,8 +3299,8 @@ let DafnyCore = (function () {
                         _1_breaks = (_1_breaks) + (1);
                         let _2_isMarker = false;
                         let _out0;
-                        _out0 = (_this).m1o(_0_i);
-                        _2_isMarker = _out0;
+                        _2_isMarker =
+                            (_this).m1o(_0_i);
                         if (_2_isMarker) {
                             (_this).mg("unterminated quoted string: a document marker interrupts it");
                         }
@@ -3347,7 +3315,7 @@ let DafnyCore = (function () {
                         let _4_cc;
                         _4_cc = _this.src.charCodeAt(_0_i);
                         if (((_4_cc) !== (10)) && ((_4_cc) !== (13))) {
-                            if (((_this.flowIndentFloor) >= (0)) && (((_0_i) - (_3_ls)) <= (_this.flowIndentFloor))) {
+                            if (((_this._f6) >= (0)) && (((_0_i) - (_3_ls)) <= (_this._f6))) {
                                 (_this).pos = _0_i;
                                 (_this).mg("insufficient indentation for a multi-line quoted scalar");
                             }
@@ -3356,15 +3324,15 @@ let DafnyCore = (function () {
                     }
                 }
             }
-            (_this).foldedBreaks = _1_breaks;
-            (_this).quotedMultiline = true;
+            (_this)._f9 = _1_breaks;
+            (_this)._fr = true;
             next = _0_i;
             return next;
         }
         m1r() {
             let _this = this;
             let value = undefined;
-            (_this).quotedMultiline = false;
+            (_this)._fr = false;
             let _0_start;
             _0_start = (_this.pos) + (1);
             let _1_e;
@@ -3372,38 +3340,38 @@ let DafnyCore = (function () {
             if ((_1_e) === (-1)) {
                 (_this).mg("unterminated double-quoted string");
             }
-            if ((_this.nextBackslash) < (_0_start)) {
+            if ((_this._fm) < (_0_start)) {
                 let _2_b;
                 _2_b = Native.__default.indexOf(_this.src, "\\", _0_start);
                 if ((_2_b) === (-1)) {
-                    (_this).nextBackslash = _this.len;
+                    (_this)._fm = _this.len;
                 }
                 else {
-                    (_this).nextBackslash = _2_b;
+                    (_this)._fm = _2_b;
                 }
             }
-            if ((_this.nextBackslash) > (_1_e)) {
-                if ((_this.nextNewline) < (_0_start)) {
+            if ((_this._fm) > (_1_e)) {
+                if ((_this._fn) < (_0_start)) {
                     let _3_n;
                     _3_n = Native.__default.indexOf(_this.src, "\n", _0_start);
                     if ((_3_n) === (-1)) {
-                        (_this).nextNewline = _this.len;
+                        (_this)._fn = _this.len;
                     }
                     else {
-                        (_this).nextNewline = _3_n;
+                        (_this)._fn = _3_n;
                     }
                 }
-                if ((_this.nextNewline) > (_1_e)) {
+                if ((_this._fn) > (_1_e)) {
                     (_this).pos = (_1_e) + (1);
                     let _out0;
-                    _out0 = (_this).m1p(Native.__default.slice(_this.src, _0_start, _1_e));
-                    value = _out0;
+                    value =
+                        (_this).m1p(Native.__default.slice(_this.src, _0_start, _1_e));
                     return value;
                 }
             }
             let _out1;
-            _out1 = (_this).m1s(_0_start);
-            value = _out1;
+            value =
+                (_this).m1s(_0_start);
             return value;
         }
         m1s(start) {
@@ -3514,24 +3482,24 @@ let DafnyCore = (function () {
                             else if ((_4_ec) === (120)) {
                                 let _5_hex;
                                 let _out0;
-                                _out0 = (_this).m1t((_2_i) + (1), 2);
-                                _5_hex = _out0;
+                                _5_hex =
+                                    (_this).m1t((_2_i) + (1), 2);
                                 _0_result = Native.__default.concat(_0_result, Native.__default.stringFromCharCode(_5_hex));
                                 _2_i = (_2_i) + (3);
                             }
                             else if ((_4_ec) === (117)) {
                                 let _6_hex;
                                 let _out1;
-                                _out1 = (_this).m1t((_2_i) + (1), 4);
-                                _6_hex = _out1;
+                                _6_hex =
+                                    (_this).m1t((_2_i) + (1), 4);
                                 _0_result = Native.__default.concat(_0_result, Native.__default.stringFromCharCode(_6_hex));
                                 _2_i = (_2_i) + (5);
                             }
                             else if ((_4_ec) === (85)) {
                                 let _7_cp;
                                 let _out2;
-                                _out2 = (_this).m1t((_2_i) + (1), 8);
-                                _7_cp = _out2;
+                                _7_cp =
+                                    (_this).m1t((_2_i) + (1), 8);
                                 _0_result = Native.__default.concat(_0_result, Native.__default.stringFromCodePoint(_7_cp));
                                 _2_i = (_2_i) + (9);
                             }
@@ -3564,13 +3532,13 @@ let DafnyCore = (function () {
                             }
                             _0_result = Native.__default.concat(_0_result, Native.__default.slice(_this.src, _1_seg, _8_j));
                             let _out3;
-                            _out3 = (_this).m1q(_2_i);
-                            _2_i = _out3;
-                            if ((_this.foldedBreaks) === (1)) {
+                            _2_i =
+                                (_this).m1q(_2_i);
+                            if ((_this._f9) === (1)) {
                                 _0_result = _0_result + " ";
                             }
                             else {
-                                _0_result = Native.__default.concat(_0_result, Native.__default.repeat("\n", (_this.foldedBreaks) - (1)));
+                                _0_result = Native.__default.concat(_0_result, Native.__default.repeat("\n", (_this._f9) - (1)));
                             }
                             _1_seg = _2_i;
                             break C16;
@@ -3593,8 +3561,8 @@ let DafnyCore = (function () {
             while ((_0_k) < (width)) {
                 let _1_d = 0;
                 let _out0;
-                _out0 = (_this).m1u(_this.src.charCodeAt((start) + (_0_k)));
-                _1_d = _out0;
+                _1_d =
+                    (_this).m1u(_this.src.charCodeAt((start) + (_0_k)));
                 value = ((value) * (16)) + (_1_d);
                 _0_k = (_0_k) + (1);
             }
@@ -3622,7 +3590,7 @@ let DafnyCore = (function () {
         m1v() {
             let _this = this;
             let value = undefined;
-            (_this).quotedMultiline = false;
+            (_this)._fr = false;
             let _0_start;
             _0_start = (_this.pos) + (1);
             let _1_e;
@@ -3632,30 +3600,30 @@ let DafnyCore = (function () {
             }
             if ((((_1_e) + (1)) < (_this.len)) && ((_this.src.charCodeAt((_1_e) + (1))) === (39))) {
                 let _out0;
-                _out0 = (_this).m1w(_0_start);
-                value = _out0;
+                value =
+                    (_this).m1w(_0_start);
                 return value;
             }
-            if ((_this.nextNewline) < (_0_start)) {
+            if ((_this._fn) < (_0_start)) {
                 let _2_n;
                 _2_n = Native.__default.indexOf(_this.src, "\n", _0_start);
                 if ((_2_n) === (-1)) {
-                    (_this).nextNewline = _this.len;
+                    (_this)._fn = _this.len;
                 }
                 else {
-                    (_this).nextNewline = _2_n;
+                    (_this)._fn = _2_n;
                 }
             }
-            if ((_this.nextNewline) < (_1_e)) {
+            if ((_this._fn) < (_1_e)) {
                 let _out1;
-                _out1 = (_this).m1w(_0_start);
-                value = _out1;
+                value =
+                    (_this).m1w(_0_start);
                 return value;
             }
             (_this).pos = (_1_e) + (1);
             let _out2;
-            _out2 = (_this).m1p(Native.__default.slice(_this.src, _0_start, _1_e));
-            value = _out2;
+            value =
+                (_this).m1p(Native.__default.slice(_this.src, _0_start, _1_e));
             return value;
         }
         m1w(start) {
@@ -3695,13 +3663,13 @@ let DafnyCore = (function () {
                             }
                             _0_result = Native.__default.concat(_0_result, Native.__default.slice(_this.src, _1_seg, _4_j));
                             let _out0;
-                            _out0 = (_this).m1q(_2_i);
-                            _2_i = _out0;
-                            if ((_this.foldedBreaks) === (1)) {
+                            _2_i =
+                                (_this).m1q(_2_i);
+                            if ((_this._f9) === (1)) {
                                 _0_result = _0_result + " ";
                             }
                             else {
-                                _0_result = Native.__default.concat(_0_result, Native.__default.repeat("\n", (_this.foldedBreaks) - (1)));
+                                _0_result = Native.__default.concat(_0_result, Native.__default.repeat("\n", (_this._f9) - (1)));
                             }
                             _1_seg = _2_i;
                             break C17;
@@ -3724,8 +3692,8 @@ let DafnyCore = (function () {
                     C18: {
                         let _2_marker = false;
                         let _out0;
-                        _out0 = (_this).m1o(_0_p);
-                        _2_marker = _out0;
+                        _2_marker =
+                            (_this).m1o(_0_p);
                         if (((_0_p) >= (_this.len)) || (_2_marker)) {
                             if ((_1_maxBlankIndent) > (effParentCol)) {
                                 indent = _1_maxBlankIndent;
@@ -3939,8 +3907,8 @@ let DafnyCore = (function () {
             }
             else {
                 let _out0;
-                _out0 = (_this).m1x(_9_effParentCol);
-                _10_contentIndent = _out0;
+                _10_contentIndent =
+                    (_this).m1x(_9_effParentCol);
             }
             let _11_result;
             _11_result = "";
@@ -3958,8 +3926,8 @@ let DafnyCore = (function () {
                         }
                         let _15_docMarker = false;
                         let _out1;
-                        _out1 = (_this).IsDocMarkerAt(_this.pos);
-                        _15_docMarker = _out1;
+                        _15_docMarker =
+                            (_this).IsDocMarkerAt(_this.pos);
                         if (_15_docMarker) {
                             break L22;
                         }
@@ -4031,7 +3999,7 @@ let DafnyCore = (function () {
                         }
                         let _23_text;
                         _23_text = Native.__default.slice(_this.src, _17_p, _22_textEnd);
-                        if (Native.__default.jsEqual(_23_text, "")) {
+                        if (_23_text === "") {
                             _14_pendingBreaks = (_14_pendingBreaks) + (1);
                         }
                         else {
@@ -4227,8 +4195,8 @@ let DafnyCore = (function () {
                         _1_c = _this.src.charCodeAt(_this.pos);
                         let _2_space = false;
                         let _out0;
-                        _out0 = (_this).m1n(_1_c);
-                        _2_space = _out0;
+                        _2_space =
+                            (_this).m1n(_1_c);
                         if (_2_space) {
                             break L25;
                         }
@@ -4270,12 +4238,12 @@ let DafnyCore = (function () {
             (_this).mf();
             let _0_token = "";
             let _out0;
-            _out0 = (_this).m24();
-            _0_token = _out0;
+            _0_token =
+                (_this).m24();
             let _1_validVersion = false;
             let _out1;
-            _out1 = (_this).m25(_0_token);
-            _1_validVersion = _out1;
+            _1_validVersion =
+                (_this).m25(_0_token);
             if (!(_1_validVersion)) {
                 (_this).mg("malformed %YAML directive: expected a MAJOR.MINOR version");
             }
@@ -4303,45 +4271,44 @@ let DafnyCore = (function () {
             (_this).mf();
             let _0_handle = "";
             let _out0;
-            _out0 = (_this).m24();
-            _0_handle = _out0;
+            _0_handle =
+                (_this).m24();
             (_this).mf();
             let _1_prefix = "";
             let _out1;
-            _out1 = (_this).m24();
-            _1_prefix = _out1;
-            if (((Native.__default.jsEqual(_0_handle, "")) || ((_0_handle.charCodeAt(0)) !== (33))) || (Native.__default.jsEqual(_1_prefix, ""))) {
+            _1_prefix =
+                (_this).m24();
+            if (((_0_handle === "") || ((_0_handle.charCodeAt(0)) !== (33))) || (_1_prefix === "")) {
                 (_this).mg("malformed %TAG directive: expected a handle and a prefix");
             }
-            if (!(_this.hasTagHandles)) {
+            if (!(_this._fe)) {
                 let _2_newTags;
                 let _out2;
-                _out2 = Native.__default.mapCreate();
-                _2_newTags = _out2;
-                (_this).tagHandles = _2_newTags;
-                (_this).hasTagHandles = true;
+                _2_newTags =
+                    Native.__default.mapCreate();
+                (_this)._ft = _2_newTags;
+                (_this)._fe = true;
             }
             let _3_key;
             _3_key = _0_handle;
             let _4_tags;
-            _4_tags = _this.tagHandles;
+            _4_tags = _this._ft;
             let _5_duplicate = false;
             let _out3;
-            _out3 = Native.__default.mapHas(_4_tags, _3_key);
-            _5_duplicate = _out3;
+            _5_duplicate = _4_tags.has(_3_key);
             if (_5_duplicate) {
                 (_this).mg(Native.__default.concat("duplicate %TAG directive for handle '", _0_handle + "'"));
             }
-            Native.__default.mapSet(_4_tags, _3_key, _1_prefix);
+            _4_tags.set(_3_key, _1_prefix);
             return;
         }
         m28() {
             let _this = this;
             let sawAny = false;
-            (_this).tagHandles = Native.__default.undefinedValue;
-            (_this).hasTagHandles = false;
-            (_this).anchorMap = Native.__default.undefinedValue;
-            (_this).hasAnchorMap = false;
+            (_this)._ft = Native.__default.undefinedValue;
+            (_this)._fe = false;
+            (_this)._f1 = Native.__default.undefinedValue;
+            (_this)._fa = false;
             let _0_sawYaml;
             _0_sawYaml = false;
             sawAny = false;
@@ -4350,16 +4317,16 @@ let DafnyCore = (function () {
                 (_this).pos = (_this.pos) + (1);
                 let _1_name;
                 let _out0;
-                _out0 = (_this).m24();
-                _1_name = _out0;
-                if (Native.__default.jsEqual(_1_name, "YAML")) {
+                _1_name =
+                    (_this).m24();
+                if (_1_name === "YAML") {
                     if (_0_sawYaml) {
                         (_this).mg("a document must not contain more than one %YAML directive");
                     }
                     _0_sawYaml = true;
                     (_this).m26();
                 }
-                else if (Native.__default.jsEqual(_1_name, "TAG")) {
+                else if (_1_name === "TAG") {
                     (_this).m27();
                 }
                 (_this).m23();
@@ -4386,8 +4353,8 @@ let DafnyCore = (function () {
             _0_start = _this.pos;
             let _1_p;
             _1_p = _this.pos;
-            (_this).plainStoppedAtColon = false;
-            (_this).plainStoppedAtComment = false;
+            (_this)._fp = false;
+            (_this)._fq = false;
             L26: {
                 while ((_1_p) < (_this.len)) {
                     C26: {
@@ -4398,13 +4365,13 @@ let DafnyCore = (function () {
                         }
                         if ((_2_c) === (58)) {
                             if (((_1_p) + (1)) === (_this.len)) {
-                                (_this).plainStoppedAtColon = true;
+                                (_this)._fp = true;
                                 break L26;
                             }
                             let _3_next;
                             _3_next = _this.src.charCodeAt((_1_p) + (1));
                             if (((((_3_next) === (32)) || ((_3_next) === (9))) || ((_3_next) === (10))) || ((_3_next) === (13))) {
-                                (_this).plainStoppedAtColon = true;
+                                (_this)._fp = true;
                                 break L26;
                             }
                         }
@@ -4412,7 +4379,7 @@ let DafnyCore = (function () {
                             let _4_prev;
                             _4_prev = _this.src.charCodeAt((_1_p) - (1));
                             if (((_4_prev) === (32)) || ((_4_prev) === (9))) {
-                                (_this).plainStoppedAtComment = true;
+                                (_this)._fq = true;
                                 break L26;
                             }
                         }
@@ -4430,10 +4397,10 @@ let DafnyCore = (function () {
         m2b() {
             let _this = this;
             let breaks = 0;
-            (_this).plainStoppedAtComment = false;
+            (_this)._fq = false;
             (_this).mf();
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (35))) {
-                (_this).plainStoppedAtComment = true;
+                (_this)._fq = true;
                 let _0_commentEnd = 0;
                 _0_commentEnd = Native.__default.indexOf(_this.src, "\n", _this.pos);
                 if ((_0_commentEnd) < (0)) {
@@ -4483,7 +4450,7 @@ let DafnyCore = (function () {
                             break C27;
                         }
                         if ((_3_next) === (35)) {
-                            (_this).plainStoppedAtComment = true;
+                            (_this)._fq = true;
                             let _4_nl = 0;
                             _4_nl = Native.__default.indexOf(_this.src, "\n", _2_p);
                             if ((_4_nl) < (0)) {
@@ -4507,19 +4474,19 @@ let DafnyCore = (function () {
             let value = undefined;
             let _0_breaks = 0;
             let _out0;
-            _out0 = (_this).m2b();
-            _0_breaks = _out0;
+            _0_breaks =
+                (_this).m2b();
             let _1_marker;
             _1_marker = false;
             if (((_this.pos) < (_this.len)) && ((_this.pos) === (_this.lineStart))) {
                 let _out1;
-                _out1 = (_this).IsDocMarkerAt(_this.pos);
-                _1_marker = _out1;
+                _1_marker =
+                    (_this).IsDocMarkerAt(_this.pos);
             }
-            if ((((_this.plainStoppedAtComment) || ((_this.pos) >= (_this.len))) || (((_this.pos) - (_this.lineStart)) <= (parentCol))) || (_1_marker)) {
+            if ((((_this._fq) || ((_this.pos) >= (_this.len))) || (((_this.pos) - (_this.lineStart)) <= (parentCol))) || (_1_marker)) {
                 let _out2;
-                _out2 = (_this).md(start, end);
-                value = _out2;
+                value =
+                    (_this).md(start, end);
                 return value;
             }
             let _2_result;
@@ -4537,22 +4504,22 @@ let DafnyCore = (function () {
                         _3_segmentStart = _this.pos;
                         let _4_segmentEnd = 0;
                         let _out3;
-                        _out3 = (_this).m2a();
-                        _4_segmentEnd = _out3;
+                        _4_segmentEnd =
+                            (_this).m2a();
                         _2_result = Native.__default.concat(_2_result, Native.__default.slice(_this.src, _3_segmentStart, _4_segmentEnd));
-                        if (_this.plainStoppedAtColon) {
+                        if (_this._fp) {
                             (_this).mg("mapping value not allowed in a multi-line plain scalar");
                         }
                         let _out4;
-                        _out4 = (_this).m2b();
-                        _0_breaks = _out4;
+                        _0_breaks =
+                            (_this).m2b();
                         _1_marker = false;
                         if (((_this.pos) < (_this.len)) && ((_this.pos) === (_this.lineStart))) {
                             let _out5;
-                            _out5 = (_this).IsDocMarkerAt(_this.pos);
-                            _1_marker = _out5;
+                            _1_marker =
+                                (_this).IsDocMarkerAt(_this.pos);
                         }
-                        if ((((_this.plainStoppedAtComment) || ((_this.pos) >= (_this.len))) || (((_this.pos) - (_this.lineStart)) <= (parentCol))) || (_1_marker)) {
+                        if ((((_this._fq) || ((_this.pos) >= (_this.len))) || (((_this.pos) - (_this.lineStart)) <= (parentCol))) || (_1_marker)) {
                             break L28;
                         }
                     }
@@ -4566,16 +4533,16 @@ let DafnyCore = (function () {
             let text = "";
             let _0_breaks = 0;
             let _out0;
-            _out0 = (_this).m2b();
-            _0_breaks = _out0;
+            _0_breaks =
+                (_this).m2b();
             let _1_marker;
             _1_marker = false;
             if (((_this.pos) < (_this.len)) && ((_this.pos) === (_this.lineStart))) {
                 let _out1;
-                _out1 = (_this).IsDocMarkerAt(_this.pos);
-                _1_marker = _out1;
+                _1_marker =
+                    (_this).IsDocMarkerAt(_this.pos);
             }
-            if ((((_this.plainStoppedAtComment) || ((_this.pos) >= (_this.len))) || (((_this.pos) - (_this.lineStart)) <= (parentCol))) || (_1_marker)) {
+            if ((((_this._fq) || ((_this.pos) >= (_this.len))) || (((_this.pos) - (_this.lineStart)) <= (parentCol))) || (_1_marker)) {
                 text = Native.__default.slice(_this.src, start, end);
                 return text;
             }
@@ -4593,22 +4560,22 @@ let DafnyCore = (function () {
                         _2_segmentStart = _this.pos;
                         let _3_segmentEnd = 0;
                         let _out2;
-                        _out2 = (_this).m2a();
-                        _3_segmentEnd = _out2;
+                        _3_segmentEnd =
+                            (_this).m2a();
                         text = Native.__default.concat(text, Native.__default.slice(_this.src, _2_segmentStart, _3_segmentEnd));
-                        if (_this.plainStoppedAtColon) {
+                        if (_this._fp) {
                             (_this).mg("mapping value not allowed in a multi-line plain scalar");
                         }
                         let _out3;
-                        _out3 = (_this).m2b();
-                        _0_breaks = _out3;
+                        _0_breaks =
+                            (_this).m2b();
                         _1_marker = false;
                         if (((_this.pos) < (_this.len)) && ((_this.pos) === (_this.lineStart))) {
                             let _out4;
-                            _out4 = (_this).IsDocMarkerAt(_this.pos);
-                            _1_marker = _out4;
+                            _1_marker =
+                                (_this).IsDocMarkerAt(_this.pos);
                         }
-                        if ((((_this.plainStoppedAtComment) || ((_this.pos) >= (_this.len))) || (((_this.pos) - (_this.lineStart)) <= (parentCol))) || (_1_marker)) {
+                        if ((((_this._fq) || ((_this.pos) >= (_this.len))) || (((_this.pos) - (_this.lineStart)) <= (parentCol))) || (_1_marker)) {
                             break L29;
                         }
                     }
@@ -4637,9 +4604,9 @@ let DafnyCore = (function () {
                     (_this).m2h(parentCol);
                 }
                 let _out0;
-                _out0 = (_this).m2k(parentCol, isMapValue);
-                value = _out0;
-                if (_this.strict) {
+                value =
+                    (_this).m2k(parentCol, isMapValue);
+                if (_this._fs) {
                     (_this).m2i(_1_wsStart, _2_contentPos, _3_firstChar, value, parentCol);
                 }
                 return value;
@@ -4647,12 +4614,12 @@ let DafnyCore = (function () {
             if (((isMapValue) && ((_0_nextCol) === (parentCol))) && ((_this.src.charCodeAt(_this.pos)) === (45))) {
                 let _4_separator = false;
                 let _out1;
-                _out1 = (_this).m29((_this.pos) + (1));
-                _4_separator = _out1;
+                _4_separator =
+                    (_this).m29((_this.pos) + (1));
                 if (_4_separator) {
                     let _out2;
-                    _out2 = (_this).m2n(_0_nextCol);
-                    value = _out2;
+                    value =
+                        (_this).m2n(_0_nextCol);
                     return value;
                 }
             }
@@ -4663,11 +4630,11 @@ let DafnyCore = (function () {
             let _this = this;
             let yes = false;
             yes = false;
-            if (Native.__default.isArray(value)) {
+            if (Array.isArray(value)) {
                 yes = true;
                 return yes;
             }
-            if ((((Native.__default.isObject(value)) && (!(Native.__default.isUint8Array(value)))) && (!(Native.__default.isMap(value)))) && (!(Native.__default.isSet(value)))) {
+            if ((((typeof value === "object" && value !== null) && (!(Native.__default.isUint8Array(value)))) && (!(Native.__default.isMap(value)))) && (!(Native.__default.isSet(value)))) {
                 yes = true;
             }
             return yes;
@@ -4675,7 +4642,7 @@ let DafnyCore = (function () {
         m2g(value) {
             let _this = this;
             let yes = false;
-            yes = ((((Native.__default.isObject(value)) && (!(Native.__default.isArray(value)))) && (!(Native.__default.isUint8Array(value)))) && (!(Native.__default.isMap(value)))) && (!(Native.__default.isSet(value)));
+            yes = ((((typeof value === "object" && value !== null) && (!(Array.isArray(value)))) && (!(Native.__default.isUint8Array(value)))) && (!(Native.__default.isMap(value)))) && (!(Native.__default.isSet(value)));
             return yes;
         }
         m2h(parentCol) {
@@ -4700,8 +4667,8 @@ let DafnyCore = (function () {
             let _this = this;
             let _0_restricted = false;
             let _out0;
-            _out0 = (_this).m2f(value);
-            _0_restricted = _out0;
+            _0_restricted =
+                (_this).m2f(value);
             if (!(_0_restricted)) {
                 return;
             }
@@ -4734,9 +4701,9 @@ let DafnyCore = (function () {
             let _2_firstChar;
             _2_firstChar = _this.src.charCodeAt(_this.pos);
             let _out0;
-            _out0 = (_this).m2k(parentCol, false);
-            value = _out0;
-            if ((_this.strict) && ((parentCol) !== (-2))) {
+            value =
+                (_this).m2k(parentCol, false);
+            if ((_this._fs) && ((parentCol) !== (-2))) {
                 (_this).m2i(_0_wsStart, _1_contentPos, _2_firstChar, value, parentCol);
             }
             return value;
@@ -4745,19 +4712,19 @@ let DafnyCore = (function () {
             let _this = this;
             let value = undefined;
             let _0_inlineProperty;
-            _0_inlineProperty = _this.afterInlineProperty;
-            (_this).afterInlineProperty = false;
+            _0_inlineProperty = _this._f0;
+            (_this)._f0 = false;
             let _1_noBlockCollection;
-            _1_noBlockCollection = _this.inlineMapValue;
-            (_this).inlineMapValue = false;
+            _1_noBlockCollection = _this._fg;
+            (_this)._fg = false;
             let _2_col;
-            if ((_this.colOverride) >= (0)) {
-                _2_col = _this.colOverride;
+            if ((_this._f3) >= (0)) {
+                _2_col = _this._f3;
             }
             else {
                 _2_col = (_this.pos) - (_this.lineStart);
             }
-            (_this).colOverride = -1;
+            (_this)._f3 = -1;
             let _3_c;
             _3_c = _this.src.charCodeAt(_this.pos);
             if ((_3_c) === (38)) {
@@ -4766,14 +4733,14 @@ let DafnyCore = (function () {
                 (_this).pos = (_this.pos) + (1);
                 let _5_name = "";
                 let _out0;
-                _out0 = (_this).m13();
-                _5_name = _out0;
+                _5_name =
+                    (_this).m13();
                 let _6_savedPending;
-                _6_savedPending = _this.pendingAnchorName;
+                _6_savedPending = _this._fo;
                 let _7_hadSavedPending;
-                _7_hadSavedPending = _this.hasPendingAnchorName;
-                (_this).pendingAnchorName = _5_name;
-                (_this).hasPendingAnchorName = true;
+                _7_hadSavedPending = _this._fd;
+                (_this)._fo = _5_name;
+                (_this)._fd = true;
                 (_this).mf();
                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (42))) {
                     (_this).mg("an alias node cannot carry an anchor property");
@@ -4791,61 +4758,61 @@ let DafnyCore = (function () {
                         _9_effectiveParentCol = parentCol;
                     }
                     let _out1;
-                    _out1 = (_this).m2e(_9_effectiveParentCol, isMapValue);
-                    value = _out1;
+                    value =
+                        (_this).m2e(_9_effectiveParentCol, isMapValue);
                     let _10_plainMapping = false;
                     let _out2;
-                    _out2 = (_this).m2g(value);
-                    _10_plainMapping = _out2;
-                    if ((((_8_innerAnchor) && (_this.hasPendingAnchorName)) && (Native.__default.jsEqual(_this.pendingAnchorName, _5_name))) && (!(_10_plainMapping))) {
+                    _10_plainMapping =
+                        (_this).m2g(value);
+                    if ((((_8_innerAnchor) && (_this._fd)) && (Native.__default.jsEqual(_this._fo, _5_name))) && (!(_10_plainMapping))) {
                         (_this).mg("a node can have at most one anchor");
                     }
                 }
                 else {
-                    (_this).afterInlineProperty = true;
-                    (_this).colOverride = _4_anchorCol;
+                    (_this)._f0 = true;
+                    (_this)._f3 = _4_anchorCol;
                     let _out3;
-                    _out3 = (_this).m2k(parentCol, isMapValue);
-                    value = _out3;
+                    value =
+                        (_this).m2k(parentCol, isMapValue);
                 }
-                if ((_this.hasPendingAnchorName) && (Native.__default.jsEqual(_this.pendingAnchorName, _5_name))) {
+                if ((_this._fd) && (Native.__default.jsEqual(_this._fo, _5_name))) {
                     (_this).m14(value);
                 }
-                (_this).pendingAnchorName = _6_savedPending;
-                (_this).hasPendingAnchorName = _7_hadSavedPending;
+                (_this)._fo = _6_savedPending;
+                (_this)._fd = _7_hadSavedPending;
                 return value;
             }
             if ((((((_3_c) === (42)) || ((_3_c) === (91))) || ((_3_c) === (123))) || ((_3_c) === (34))) || ((_3_c) === (39))) {
-                (_this).flowSpanned = false;
+                (_this)._f7 = false;
                 let _11_savedFloor;
-                _11_savedFloor = _this.flowIndentFloor;
+                _11_savedFloor = _this._f6;
                 if (((((_3_c) === (91)) || ((_3_c) === (123))) || ((_3_c) === (34))) || ((_3_c) === (39))) {
-                    (_this).flowIndentFloor = parentCol;
+                    (_this)._f6 = parentCol;
                 }
                 let _12_node = undefined;
                 if ((_3_c) === (34)) {
-                    (_this).quotedMultiline = false;
+                    (_this)._fr = false;
                     let _out4;
-                    _out4 = (_this).m1r();
-                    _12_node = _out4;
+                    _12_node =
+                        (_this).m1r();
                 }
                 else if ((_3_c) === (39)) {
-                    (_this).quotedMultiline = false;
+                    (_this)._fr = false;
                     let _out5;
-                    _out5 = (_this).m1v();
-                    _12_node = _out5;
+                    _12_node =
+                        (_this).m1v();
                 }
                 else if ((_3_c) === (42)) {
                     let _out6;
-                    _out6 = (_this).m15();
-                    _12_node = _out6;
+                    _12_node =
+                        (_this).m15();
                 }
                 else {
                     let _out7;
-                    _out7 = (_this).my();
-                    _12_node = _out7;
+                    _12_node =
+                        (_this).my();
                 }
-                (_this).flowIndentFloor = _11_savedFloor;
+                (_this)._f6 = _11_savedFloor;
                 let _13_afterNode;
                 _13_afterNode = _this.pos;
                 (_this).mf();
@@ -4853,8 +4820,8 @@ let DafnyCore = (function () {
                 _14_keySeparator = false;
                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
                     let _out8;
-                    _out8 = (_this).m29((_this.pos) + (1));
-                    _14_keySeparator = _out8;
+                    _14_keySeparator =
+                        (_this).m29((_this.pos) + (1));
                 }
                 if (_14_keySeparator) {
                     if ((parentCol) === (-2)) {
@@ -4863,10 +4830,10 @@ let DafnyCore = (function () {
                     if (_1_noBlockCollection) {
                         (_this).mg("a nested block mapping cannot start on the same line as a mapping key");
                     }
-                    if ((((_3_c) === (34)) || ((_3_c) === (39))) && (_this.quotedMultiline)) {
+                    if ((((_3_c) === (34)) || ((_3_c) === (39))) && (_this._fr)) {
                         (_this).mg("a multi-line quoted scalar cannot be a block mapping key");
                     }
-                    if ((((_3_c) === (91)) || ((_3_c) === (123))) && (_this.flowSpanned)) {
+                    if ((((_3_c) === (91)) || ((_3_c) === (123))) && (_this._f7)) {
                         (_this).mg("a multi-line flow collection cannot be a block mapping key");
                     }
                     if (_0_inlineProperty) {
@@ -4874,11 +4841,11 @@ let DafnyCore = (function () {
                     }
                     let _15_key;
                     let _out9;
-                    _out9 = (_this).ms(_12_node);
-                    _15_key = _out9;
+                    _15_key =
+                        (_this).ms(_12_node);
                     let _out10;
-                    _out10 = (_this).m2w(_2_col, _15_key, true, false);
-                    value = _out10;
+                    value =
+                        (_this).m2w(_2_col, _15_key, true, false);
                     return value;
                 }
                 (_this).pos = _13_afterNode;
@@ -4889,15 +4856,15 @@ let DafnyCore = (function () {
             }
             if (((_3_c) === (124)) || ((_3_c) === (62))) {
                 let _out11;
-                _out11 = (_this).m1z(parentCol);
-                value = _out11;
+                value =
+                    (_this).m1z(parentCol);
                 (_this).m14(value);
                 return value;
             }
             let _16_separator = false;
             let _out12;
-            _out12 = (_this).m29((_this.pos) + (1));
-            _16_separator = _out12;
+            _16_separator =
+                (_this).m29((_this.pos) + (1));
             if (((_3_c) === (45)) && (_16_separator)) {
                 if ((parentCol) === (-2)) {
                     (_this).mg("a block sequence cannot start on the same line as a '---' document start");
@@ -4909,8 +4876,8 @@ let DafnyCore = (function () {
                     (_this).mg("a block sequence cannot start on the same line as a mapping key");
                 }
                 let _out13;
-                _out13 = (_this).m2n(_2_col);
-                value = _out13;
+                value =
+                    (_this).m2n(_2_col);
                 return value;
             }
             if (((_3_c) === (63)) && (_16_separator)) {
@@ -4924,14 +4891,14 @@ let DafnyCore = (function () {
                     (_this).mg("a nested block mapping cannot start on the same line as a mapping key");
                 }
                 let _out14;
-                _out14 = (_this).m2u(_2_col);
-                value = _out14;
+                value =
+                    (_this).m2u(_2_col);
                 return value;
             }
             if ((_3_c) === (33)) {
                 let _out15;
-                _out15 = (_this).m2m(parentCol, _2_col, isMapValue);
-                value = _out15;
+                value =
+                    (_this).m2m(parentCol, _2_col, isMapValue);
                 return value;
             }
             if ((((_3_c) === (37)) || ((_3_c) === (64))) || ((_3_c) === (96))) {
@@ -4941,9 +4908,9 @@ let DafnyCore = (function () {
             _17_start = _this.pos;
             let _18_end = 0;
             let _out16;
-            _out16 = (_this).m2a();
-            _18_end = _out16;
-            if (_this.plainStoppedAtColon) {
+            _18_end =
+                (_this).m2a();
+            if (_this._fp) {
                 if ((parentCol) === (-2)) {
                     (_this).mg("a block mapping cannot start on the same line as a '---' document start");
                 }
@@ -4952,99 +4919,99 @@ let DafnyCore = (function () {
                 }
                 let _19_keyNode;
                 let _out17;
-                _out17 = (_this).md(_17_start, _18_end);
-                _19_keyNode = _out17;
+                _19_keyNode =
+                    (_this).md(_17_start, _18_end);
                 if (_0_inlineProperty) {
                     (_this).m14(_19_keyNode);
                 }
                 let _20_key;
                 let _out18;
-                _out18 = (_this).ms(_19_keyNode);
-                _20_key = _out18;
+                _20_key =
+                    (_this).ms(_19_keyNode);
                 let _out19;
-                _out19 = (_this).m2w(_2_col, _20_key, true, false);
-                value = _out19;
+                value =
+                    (_this).m2w(_2_col, _20_key, true, false);
                 return value;
             }
             let _out20;
-            _out20 = (_this).m2c(_17_start, _18_end, parentCol);
-            value = _out20;
+            value =
+                (_this).m2c(_17_start, _18_end, parentCol);
             (_this).m14(value);
             return value;
         }
         m2l(tag, value, kind) {
             let _this = this;
             let result = undefined;
-            if ((Native.__default.jsEqual(tag, "!")) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:"))) {
+            if ((tag === "!") || (tag === "tag:yaml.org,2002:")) {
                 result = value;
                 return result;
             }
-            if ((Native.__default.jsEqual(tag, "tag:yaml.org,2002:map")) && (Native.__default.jsEqual(kind, "map"))) {
+            if ((tag === "tag:yaml.org,2002:map") && (kind === "map")) {
                 result = value;
                 return result;
             }
-            if ((Native.__default.jsEqual(tag, "tag:yaml.org,2002:seq")) && (Native.__default.jsEqual(kind, "seq"))) {
+            if ((tag === "tag:yaml.org,2002:seq") && (kind === "seq")) {
                 result = value;
                 return result;
             }
-            if (Native.__default.jsEqual(tag, "tag:yaml.org,2002:set")) {
-                if (!Native.__default.jsEqual(kind, "map")) {
+            if (tag === "tag:yaml.org,2002:set") {
+                if (!(kind === "map")) {
                     (_this).mg("the !!set tag requires a mapping node");
                 }
                 let _out0;
-                _out0 = (_this.tagHelpers).BuildSet(value);
-                result = _out0;
+                result =
+                    (_this._fu).BuildSet(value);
                 let _0_setError = "";
                 let _out1;
-                _out1 = (_this.tagHelpers).ErrorMessage();
-                _0_setError = _out1;
-                if (!Native.__default.jsEqual(_0_setError, "")) {
+                _0_setError =
+                    (_this._fu).ErrorMessage();
+                if (!(_0_setError === "")) {
                     (_this).mg(_0_setError);
                 }
                 return result;
             }
-            if (Native.__default.jsEqual(tag, "tag:yaml.org,2002:omap")) {
-                if (!Native.__default.jsEqual(kind, "seq")) {
+            if (tag === "tag:yaml.org,2002:omap") {
+                if (!(kind === "seq")) {
                     (_this).mg("the !!omap tag requires a sequence node");
                 }
                 let _out2;
-                _out2 = (_this.tagHelpers).BuildOmap(value);
-                result = _out2;
+                result =
+                    (_this._fu).BuildOmap(value);
                 let _1_omapError = "";
                 let _out3;
-                _out3 = (_this.tagHelpers).ErrorMessage();
-                _1_omapError = _out3;
-                if (!Native.__default.jsEqual(_1_omapError, "")) {
+                _1_omapError =
+                    (_this._fu).ErrorMessage();
+                if (!(_1_omapError === "")) {
                     (_this).mg(_1_omapError);
                 }
                 return result;
             }
-            if (Native.__default.jsEqual(tag, "tag:yaml.org,2002:pairs")) {
-                if (!Native.__default.jsEqual(kind, "seq")) {
+            if (tag === "tag:yaml.org,2002:pairs") {
+                if (!(kind === "seq")) {
                     (_this).mg("the !!pairs tag requires a sequence node");
                 }
-                (_this.tagHelpers).ValidatePairs(value);
+                (_this._fu).ValidatePairs(value);
                 let _2_pairsError = "";
                 let _out4;
-                _out4 = (_this.tagHelpers).ErrorMessage();
-                _2_pairsError = _out4;
-                if (!Native.__default.jsEqual(_2_pairsError, "")) {
+                _2_pairsError =
+                    (_this._fu).ErrorMessage();
+                if (!(_2_pairsError === "")) {
                     (_this).mg(_2_pairsError);
                 }
                 result = value;
                 return result;
             }
-            if (Native.__default.jsEqual(tag, "tag:yaml.org,2002:map")) {
+            if (tag === "tag:yaml.org,2002:map") {
                 (_this).mg("the !!map tag requires a mapping node");
             }
-            if (Native.__default.jsEqual(tag, "tag:yaml.org,2002:seq")) {
+            if (tag === "tag:yaml.org,2002:seq") {
                 (_this).mg("the !!seq tag requires a sequence node");
             }
-            if ((((((Native.__default.jsEqual(tag, "tag:yaml.org,2002:int")) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:float"))) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:bool"))) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:null"))) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:binary"))) || (Native.__default.jsEqual(tag, "tag:yaml.org,2002:str"))) {
+            if ((((((tag === "tag:yaml.org,2002:int") || (tag === "tag:yaml.org,2002:float")) || (tag === "tag:yaml.org,2002:bool")) || (tag === "tag:yaml.org,2002:null")) || (tag === "tag:yaml.org,2002:binary")) || (tag === "tag:yaml.org,2002:str")) {
                 let _3_tagName;
                 _3_tagName = Native.__default.slice(tag, 18, tag.length);
                 let _4_kindName;
-                if (Native.__default.jsEqual(kind, "map")) {
+                if (kind === "map") {
                     _4_kindName = "mapping";
                 }
                 else {
@@ -5059,13 +5026,13 @@ let DafnyCore = (function () {
             let _this = this;
             let value = undefined;
             let _0_savedPending;
-            _0_savedPending = _this.pendingAnchorName;
+            _0_savedPending = _this._fo;
             let _1_hadSavedPending;
-            _1_hadSavedPending = _this.hasPendingAnchorName;
+            _1_hadSavedPending = _this._fd;
             let _2_tag = "";
             let _out0;
-            _out0 = (_this).m1b();
-            _2_tag = _out0;
+            _2_tag =
+                (_this).m1b();
             (_this).m1c(false);
             (_this).mf();
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (33))) {
@@ -5078,11 +5045,11 @@ let DafnyCore = (function () {
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (38))) {
                 (_this).pos = (_this.pos) + (1);
                 let _out1;
-                _out1 = (_this).m13();
-                _4_anchorName = _out1;
+                _4_anchorName =
+                    (_this).m13();
                 _3_hasAnchor = true;
-                (_this).pendingAnchorName = _4_anchorName;
-                (_this).hasPendingAnchorName = true;
+                (_this)._fo = _4_anchorName;
+                (_this)._fd = true;
                 (_this).mf();
                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (38))) {
                     (_this).mg("a node may carry at most one anchor");
@@ -5098,15 +5065,15 @@ let DafnyCore = (function () {
             _5_taggedDash = false;
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (45))) {
                 let _out2;
-                _out2 = (_this).m29((_this.pos) + (1));
-                _5_taggedDash = _out2;
+                _5_taggedDash =
+                    (_this).m29((_this.pos) + (1));
             }
             let _6_taggedQuestion;
             _6_taggedQuestion = false;
             if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (63))) {
                 let _out3;
-                _out3 = (_this).m29((_this.pos) + (1));
-                _6_taggedQuestion = _out3;
+                _6_taggedQuestion =
+                    (_this).m29((_this.pos) + (1));
             }
             if (((((_this.pos) >= (_this.len)) || ((_this.src.charCodeAt(_this.pos)) === (10))) || ((_this.src.charCodeAt(_this.pos)) === (13))) || ((_this.src.charCodeAt(_this.pos)) === (35))) {
                 (_this).m22();
@@ -5114,13 +5081,13 @@ let DafnyCore = (function () {
                 _7_compactSequence = false;
                 if (((((_this.pos) < (_this.len)) && (isMapValue)) && (((_this.pos) - (_this.lineStart)) === (parentCol))) && ((_this.src.charCodeAt(_this.pos)) === (45))) {
                     let _out4;
-                    _out4 = (_this).m29((_this.pos) + (1));
-                    _7_compactSequence = _out4;
+                    _7_compactSequence =
+                        (_this).m29((_this.pos) + (1));
                 }
                 if (((_this.pos) >= (_this.len)) || ((((_this.pos) - (_this.lineStart)) <= (parentCol)) && (!(_7_compactSequence)))) {
                     let _out5;
-                    _out5 = (_this).m1d(_2_tag, "");
-                    value = _out5;
+                    value =
+                        (_this).m1d(_2_tag, "");
                 }
                 else {
                     let _8_effectiveParentCol;
@@ -5132,24 +5099,24 @@ let DafnyCore = (function () {
                     }
                     let _9_child;
                     let _out6;
-                    _out6 = (_this).m2k(_8_effectiveParentCol, isMapValue);
-                    _9_child = _out6;
-                    if (Native.__default.isArray(_9_child)) {
+                    _9_child =
+                        (_this).m2k(_8_effectiveParentCol, isMapValue);
+                    if (Array.isArray(_9_child)) {
                         let _out7;
-                        _out7 = (_this).m2l(_2_tag, _9_child, "seq");
-                        value = _out7;
+                        value =
+                            (_this).m2l(_2_tag, _9_child, "seq");
                     }
-                    else if (Native.__default.isObject(_9_child)) {
+                    else if (typeof _9_child === "object" && _9_child !== null) {
                         let _out8;
-                        _out8 = (_this).m2l(_2_tag, _9_child, "map");
-                        value = _out8;
+                        value =
+                            (_this).m2l(_2_tag, _9_child, "map");
                     }
-                    else if (Native.__default.isString(_9_child)) {
+                    else if (typeof _9_child === "string") {
                         let _out9;
-                        _out9 = (_this).m1d(_2_tag, _9_child);
-                        value = _out9;
+                        value =
+                            (_this).m1d(_2_tag, _9_child);
                     }
-                    else if ((((Native.__default.jsEqual(_2_tag, "!")) || (Native.__default.jsEqual(_2_tag, "tag:yaml.org,2002:"))) || (Native.__default.jsEqual(_2_tag, "tag:yaml.org,2002:map"))) || (Native.__default.jsEqual(_2_tag, "tag:yaml.org,2002:seq"))) {
+                    else if ((((_2_tag === "!") || (_2_tag === "tag:yaml.org,2002:")) || (_2_tag === "tag:yaml.org,2002:map")) || (_2_tag === "tag:yaml.org,2002:seq")) {
                         value = _9_child;
                     }
                     else {
@@ -5172,40 +5139,40 @@ let DafnyCore = (function () {
             else if (((_this.src.charCodeAt(_this.pos)) === (124)) || ((_this.src.charCodeAt(_this.pos)) === (62))) {
                 let _10_scalar;
                 let _out10;
-                _out10 = (_this).m1z(parentCol);
-                _10_scalar = _out10;
+                _10_scalar =
+                    (_this).m1z(parentCol);
                 let _out11;
-                _out11 = (_this).m1d(_2_tag, _10_scalar);
-                value = _out11;
+                value =
+                    (_this).m1d(_2_tag, _10_scalar);
             }
             else if ((_this.src.charCodeAt(_this.pos)) === (45)) {
                 let _11_dashSeparator = false;
                 let _out12;
-                _out12 = (_this).m29((_this.pos) + (1));
-                _11_dashSeparator = _out12;
+                _11_dashSeparator =
+                    (_this).m29((_this.pos) + (1));
                 if (!(_11_dashSeparator)) {
                     let _12_start;
                     _12_start = _this.pos;
                     let _13_end = 0;
                     let _out13;
-                    _out13 = (_this).m2a();
-                    _13_end = _out13;
+                    _13_end =
+                        (_this).m2a();
                     let _14_raw;
                     let _out14;
-                    _out14 = (_this).m2d(_12_start, _13_end, parentCol);
-                    _14_raw = _out14;
+                    _14_raw =
+                        (_this).m2d(_12_start, _13_end, parentCol);
                     let _out15;
-                    _out15 = (_this).m1d(_2_tag, _14_raw);
-                    value = _out15;
+                    value =
+                        (_this).m1d(_2_tag, _14_raw);
                     return value;
                 }
                 let _15_sequenceValue;
                 let _out16;
-                _out16 = (_this).m2n(col);
-                _15_sequenceValue = _out16;
+                _15_sequenceValue =
+                    (_this).m2n(col);
                 let _out17;
-                _out17 = (_this).m2l(_2_tag, _15_sequenceValue, "seq");
-                value = _out17;
+                value =
+                    (_this).m2l(_2_tag, _15_sequenceValue, "seq");
             }
             else if (((((_this.src.charCodeAt(_this.pos)) === (91)) || ((_this.src.charCodeAt(_this.pos)) === (123))) || ((_this.src.charCodeAt(_this.pos)) === (34))) || ((_this.src.charCodeAt(_this.pos)) === (39))) {
                 let _16_c;
@@ -5223,26 +5190,26 @@ let DafnyCore = (function () {
                 let _18_raw = undefined;
                 if ((_16_c) === (91)) {
                     let _out18;
-                    _out18 = (_this).m1j();
-                    _18_raw = _out18;
+                    _18_raw =
+                        (_this).m1j();
                 }
                 else if ((_16_c) === (123)) {
                     let _out19;
-                    _out19 = (_this).m1k();
-                    _18_raw = _out19;
+                    _18_raw =
+                        (_this).m1k();
                 }
                 else if ((_16_c) === (34)) {
                     let _19_quoted;
                     let _out20;
-                    _out20 = (_this).m1r();
-                    _19_quoted = _out20;
+                    _19_quoted =
+                        (_this).m1r();
                     _18_raw = _19_quoted;
                 }
                 else {
                     let _20_quoted;
                     let _out21;
-                    _out21 = (_this).m1v();
-                    _20_quoted = _out21;
+                    _20_quoted =
+                        (_this).m1v();
                     _18_raw = _20_quoted;
                 }
                 (_this).mf();
@@ -5250,44 +5217,44 @@ let DafnyCore = (function () {
                 _21_keySeparator = false;
                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
                     let _out22;
-                    _out22 = (_this).m29((_this.pos) + (1));
-                    _21_keySeparator = _out22;
+                    _21_keySeparator =
+                        (_this).m29((_this.pos) + (1));
                 }
                 if (_21_keySeparator) {
                     if ((parentCol) === (-2)) {
                         (_this).mg("a block mapping cannot start on the same line as a '---' document start");
                     }
                     let _22_keyNode = undefined;
-                    if (Native.__default.jsEqual(_17_kind, "scalar")) {
+                    if (_17_kind === "scalar") {
                         let _out23;
-                        _out23 = (_this).m1d(_2_tag, _18_raw);
-                        _22_keyNode = _out23;
+                        _22_keyNode =
+                            (_this).m1d(_2_tag, _18_raw);
                     }
                     else {
                         let _out24;
-                        _out24 = (_this).m2l(_2_tag, _18_raw, _17_kind);
-                        _22_keyNode = _out24;
+                        _22_keyNode =
+                            (_this).m2l(_2_tag, _18_raw, _17_kind);
                     }
                     (_this).m14(_22_keyNode);
                     let _23_key = "";
                     let _out25;
-                    _out25 = (_this).ms(_22_keyNode);
-                    _23_key = _out25;
+                    _23_key =
+                        (_this).ms(_22_keyNode);
                     let _out26;
-                    _out26 = (_this).m2w(col, _23_key, true, false);
-                    value = _out26;
+                    value =
+                        (_this).m2w(col, _23_key, true, false);
                 }
                 else {
                     (_this).m22();
-                    if (Native.__default.jsEqual(_17_kind, "scalar")) {
+                    if (_17_kind === "scalar") {
                         let _out27;
-                        _out27 = (_this).m1d(_2_tag, _18_raw);
-                        value = _out27;
+                        value =
+                            (_this).m1d(_2_tag, _18_raw);
                     }
                     else {
                         let _out28;
-                        _out28 = (_this).m2l(_2_tag, _18_raw, _17_kind);
-                        value = _out28;
+                        value =
+                            (_this).m2l(_2_tag, _18_raw, _17_kind);
                     }
                 }
             }
@@ -5296,61 +5263,61 @@ let DafnyCore = (function () {
                 _24_start = _this.pos;
                 let _25_end = 0;
                 let _out29;
-                _out29 = (_this).m2a();
-                _25_end = _out29;
-                if (_this.plainStoppedAtColon) {
+                _25_end =
+                    (_this).m2a();
+                if (_this._fp) {
                     if ((parentCol) === (-2)) {
                         (_this).mg("a block mapping cannot start on the same line as a '---' document start");
                     }
                     let _26_keyNode;
                     let _out30;
-                    _out30 = (_this).m1d(_2_tag, Native.__default.slice(_this.src, _24_start, _25_end));
-                    _26_keyNode = _out30;
+                    _26_keyNode =
+                        (_this).m1d(_2_tag, Native.__default.slice(_this.src, _24_start, _25_end));
                     (_this).m14(_26_keyNode);
                     let _27_keyText;
                     let _out31;
-                    _out31 = (_this).ms(_26_keyNode);
-                    _27_keyText = _out31;
+                    _27_keyText =
+                        (_this).ms(_26_keyNode);
                     let _out32;
-                    _out32 = (_this).m2w(col, _27_keyText, true, false);
-                    value = _out32;
+                    value =
+                        (_this).m2w(col, _27_keyText, true, false);
                 }
                 else {
                     let _28_raw;
                     let _out33;
-                    _out33 = (_this).m2d(_24_start, _25_end, parentCol);
-                    _28_raw = _out33;
+                    _28_raw =
+                        (_this).m2d(_24_start, _25_end, parentCol);
                     let _out34;
-                    _out34 = (_this).m1d(_2_tag, _28_raw);
-                    value = _out34;
+                    value =
+                        (_this).m1d(_2_tag, _28_raw);
                 }
             }
-            if (((_3_hasAnchor) && (_this.hasPendingAnchorName)) && (Native.__default.jsEqual(_this.pendingAnchorName, _4_anchorName))) {
+            if (((_3_hasAnchor) && (_this._fd)) && (Native.__default.jsEqual(_this._fo, _4_anchorName))) {
                 (_this).m14(value);
             }
-            (_this).pendingAnchorName = _0_savedPending;
-            (_this).hasPendingAnchorName = _1_hadSavedPending;
+            (_this)._fo = _0_savedPending;
+            (_this)._fd = _1_hadSavedPending;
             return value;
         }
         m2n(col) {
             let _this = this;
             let result = undefined;
-            (_this).depth = (_this.depth) + (1);
-            if ((_this.depth) > (1000)) {
+            (_this)._f4 = (_this._f4) + (1);
+            if ((_this._f4) > (1000)) {
                 (_this).mg("maximum nesting depth exceeded");
             }
             let _out0;
-            _out0 = (_this).m2o(col);
-            result = _out0;
-            (_this).depth = (_this.depth) - (1);
+            result =
+                (_this).m2o(col);
+            (_this)._f4 = (_this._f4) - (1);
             return result;
         }
         m2o(col) {
             let _this = this;
             let result = undefined;
             let _out0;
-            _out0 = Native.__default.createArray();
-            result = _out0;
+            result =
+                Native.__default.createArray();
             (_this).m14(result);
             while (true) {
                 if (((_this.pos) >= (_this.len)) || ((_this.src.charCodeAt(_this.pos)) !== (45))) {
@@ -5358,8 +5325,8 @@ let DafnyCore = (function () {
                 }
                 let _0_separator = false;
                 let _out1;
-                _out1 = (_this).m29((_this.pos) + (1));
-                _0_separator = _out1;
+                _0_separator =
+                    (_this).m29((_this.pos) + (1));
                 if (!(_0_separator)) {
                     return result;
                 }
@@ -5382,24 +5349,24 @@ let DafnyCore = (function () {
                     else {
                         let _3_nested = undefined;
                         let _out2;
-                        _out2 = (_this).m2e(col, false);
-                        _3_nested = _out2;
-                        Native.__default.arrayPush(result, _3_nested);
+                        _3_nested =
+                            (_this).m2e(col, false);
+                        result.push(_3_nested);
                     }
                 }
                 else {
                     let _4_child = undefined;
                     let _out3;
-                    _out3 = (_this).m2k(col, false);
-                    _4_child = _out3;
+                    _4_child =
+                        (_this).m2k(col, false);
                     let _5_restricted = false;
                     let _out4;
-                    _out4 = (_this).m2f(_4_child);
-                    _5_restricted = _out4;
+                    _5_restricted =
+                        (_this).m2f(_4_child);
                     if ((_2_inlineTab) && (_5_restricted)) {
                         (_this).mg("a tab cannot indent a block sequence entry that opens a new collection");
                     }
-                    Native.__default.arrayPush(result, _4_child);
+                    result.push(_4_child);
                 }
                 if (((_this.pos) >= (_this.len)) || (((_this.pos) - (_this.lineStart)) !== (col))) {
                     return result;
@@ -5408,12 +5375,12 @@ let DafnyCore = (function () {
                     return result;
                 }
                 let _out5;
-                _out5 = (_this).m29((_this.pos) + (1));
-                _0_separator = _out5;
+                _0_separator =
+                    (_this).m29((_this.pos) + (1));
                 if (!(_0_separator)) {
                     return result;
                 }
-                if (_this.strict) {
+                if (_this._fs) {
                     (_this).m2h((col) - (1));
                 }
             }
@@ -5435,13 +5402,13 @@ let DafnyCore = (function () {
             let _2_inlineContent;
             _2_inlineContent = ((((_0_p) < (_this.len)) && ((_this.src.charCodeAt(_0_p)) !== (10))) && ((_this.src.charCodeAt(_0_p)) !== (13))) && ((_this.src.charCodeAt(_0_p)) !== (35));
             let _out0;
-            _out0 = (_this).m2q(col);
-            keyNode = _out0;
+            keyNode =
+                (_this).m2q(col);
             if ((_1_sawTab) && (_2_inlineContent)) {
                 let _3_restricted = false;
                 let _out1;
-                _out1 = (_this).m2f(keyNode);
-                _3_restricted = _out1;
+                _3_restricted =
+                    (_this).m2f(keyNode);
                 if (_3_restricted) {
                     (_this).mg("a tab cannot separate '?' from a key that opens a new collection");
                 }
@@ -5455,13 +5422,13 @@ let DafnyCore = (function () {
             if (((((_this.pos) >= (_this.len)) || ((_this.src.charCodeAt(_this.pos)) === (10))) || ((_this.src.charCodeAt(_this.pos)) === (13))) || ((_this.src.charCodeAt(_this.pos)) === (35))) {
                 (_this).m22();
                 let _out0;
-                _out0 = (_this).m2e(col, true);
-                keyNode = _out0;
+                keyNode =
+                    (_this).m2e(col, true);
                 return keyNode;
             }
             let _out1;
-            _out1 = (_this).m2k(col, false);
-            keyNode = _out1;
+            keyNode =
+                (_this).m2k(col, false);
             return keyNode;
         }
         m2r(col) {
@@ -5480,13 +5447,13 @@ let DafnyCore = (function () {
             let _2_inlineContent;
             _2_inlineContent = ((((_0_p) < (_this.len)) && ((_this.src.charCodeAt(_0_p)) !== (10))) && ((_this.src.charCodeAt(_0_p)) !== (13))) && ((_this.src.charCodeAt(_0_p)) !== (35));
             let _out0;
-            _out0 = (_this).m2s(col);
-            value = _out0;
+            value =
+                (_this).m2s(col);
             if ((_1_sawTab) && (_2_inlineContent)) {
                 let _3_restricted = false;
                 let _out1;
-                _out1 = (_this).m2f(value);
-                _3_restricted = _out1;
+                _3_restricted =
+                    (_this).m2f(value);
                 if (_3_restricted) {
                     (_this).mg("a tab cannot separate ':' from a value that opens a new collection");
                 }
@@ -5500,13 +5467,13 @@ let DafnyCore = (function () {
             if (((((_this.pos) >= (_this.len)) || ((_this.src.charCodeAt(_this.pos)) === (10))) || ((_this.src.charCodeAt(_this.pos)) === (13))) || ((_this.src.charCodeAt(_this.pos)) === (35))) {
                 (_this).m22();
                 let _out0;
-                _out0 = (_this).m2e(col, true);
-                value = _out0;
+                value =
+                    (_this).m2e(col, true);
                 return value;
             }
             let _out1;
-            _out1 = (_this).m2k(col, false);
-            value = _out1;
+            value =
+                (_this).m2k(col, false);
             return value;
         }
         m2t(col) {
@@ -5522,8 +5489,8 @@ let DafnyCore = (function () {
             let _this = this;
             let result = undefined;
             let _out0;
-            _out0 = (_this).m2v(col);
-            result = _out0;
+            result =
+                (_this).m2v(col);
             return result;
         }
         m2v(col) {
@@ -5532,36 +5499,36 @@ let DafnyCore = (function () {
             (_this).pos = (_this.pos) + (1);
             let _0_keyNode;
             let _out0;
-            _out0 = (_this).m2p(col);
-            _0_keyNode = _out0;
+            _0_keyNode =
+                (_this).m2p(col);
             let _1_keyText = "";
             let _out1;
-            _out1 = (_this).ms(_0_keyNode);
-            _1_keyText = _out1;
+            _1_keyText =
+                (_this).ms(_0_keyNode);
             let _2_key;
             let _out2;
-            _out2 = (_this).mu(_1_keyText);
-            _2_key = _out2;
+            _2_key =
+                (_this).mu(_1_keyText);
             let _3_hasValue;
             let _out3;
-            _out3 = (_this).m2t(col);
-            _3_hasValue = _out3;
+            _3_hasValue =
+                (_this).m2t(col);
             let _out4;
-            _out4 = (_this).m2w(col, _2_key, _3_hasValue, true);
-            result = _out4;
+            result =
+                (_this).m2w(col, _2_key, _3_hasValue, true);
             return result;
         }
         m2w(col, firstKey, firstHasValue, firstIsExplicit) {
             let _this = this;
             let result = undefined;
-            (_this).depth = (_this.depth) + (1);
-            if ((_this.depth) > (1000)) {
+            (_this)._f4 = (_this._f4) + (1);
+            if ((_this._f4) > (1000)) {
                 (_this).mg("maximum nesting depth exceeded");
             }
             let _out0;
-            _out0 = (_this).m31(col, firstKey, firstHasValue, firstIsExplicit);
-            result = _out0;
-            (_this).depth = (_this.depth) - (1);
+            result =
+                (_this).m31(col, firstKey, firstHasValue, firstIsExplicit);
+            (_this)._f4 = (_this._f4) - (1);
             return result;
         }
         m2x() {
@@ -5571,57 +5538,57 @@ let DafnyCore = (function () {
             _0_c = _this.src.charCodeAt(_this.pos);
             if ((_0_c) === (38)) {
                 let _out0;
-                _out0 = (_this).m2y();
-                key = _out0;
+                key =
+                    (_this).m2y();
                 return key;
             }
             if ((_0_c) === (33)) {
                 let _out1;
-                _out1 = (_this).m2z();
-                key = _out1;
+                key =
+                    (_this).m2z();
                 return key;
             }
             if ((_0_c) === (42)) {
                 let _1_node;
                 let _out2;
-                _out2 = (_this).m15();
-                _1_node = _out2;
+                _1_node =
+                    (_this).m15();
                 let _2_sep;
                 _2_sep = false;
                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
                     let _out3;
-                    _out3 = (_this).m29((_this.pos) + (1));
-                    _2_sep = _out3;
+                    _2_sep =
+                        (_this).m29((_this.pos) + (1));
                 }
                 if (!(_2_sep)) {
                     (_this).mg("expected ':' after mapping key");
                 }
                 let _out4;
-                _out4 = (_this).mt(_1_node);
-                key = _out4;
+                key =
+                    (_this).mt(_1_node);
                 return key;
             }
             if (((((_0_c) === (34)) || ((_0_c) === (39))) || ((_0_c) === (91))) || ((_0_c) === (123))) {
                 let _3_node = undefined;
                 if ((_0_c) === (34)) {
-                    (_this).quotedMultiline = false;
+                    (_this)._fr = false;
                     let _out5;
-                    _out5 = (_this).m1r();
-                    _3_node = _out5;
+                    _3_node =
+                        (_this).m1r();
                 }
                 else if ((_0_c) === (39)) {
-                    (_this).quotedMultiline = false;
+                    (_this)._fr = false;
                     let _out6;
-                    _out6 = (_this).m1v();
-                    _3_node = _out6;
+                    _3_node =
+                        (_this).m1v();
                 }
                 else {
                     let _out7;
-                    _out7 = (_this).my();
-                    _3_node = _out7;
+                    _3_node =
+                        (_this).my();
                 }
                 (_this).m14(_3_node);
-                if ((((_0_c) === (34)) || ((_0_c) === (39))) && (_this.quotedMultiline)) {
+                if ((((_0_c) === (34)) || ((_0_c) === (39))) && (_this._fr)) {
                     (_this).mg("a multi-line quoted scalar cannot be a block mapping key");
                 }
                 (_this).mf();
@@ -5629,34 +5596,34 @@ let DafnyCore = (function () {
                 _4_sep = false;
                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
                     let _out8;
-                    _out8 = (_this).m29((_this.pos) + (1));
-                    _4_sep = _out8;
+                    _4_sep =
+                        (_this).m29((_this.pos) + (1));
                 }
                 if (!(_4_sep)) {
                     (_this).mg("expected ':' after mapping key");
                 }
                 let _out9;
-                _out9 = (_this).mt(_3_node);
-                key = _out9;
+                key =
+                    (_this).mt(_3_node);
                 return key;
             }
             let _5_start;
             _5_start = _this.pos;
             let _6_end = 0;
             let _out10;
-            _out10 = (_this).m2a();
-            _6_end = _out10;
-            if (!(_this.plainStoppedAtColon)) {
+            _6_end =
+                (_this).m2a();
+            if (!(_this._fp)) {
                 (_this).mg("expected ':' after mapping key");
             }
             let _7_node;
             let _out11;
-            _out11 = (_this).md(_5_start, _6_end);
-            _7_node = _out11;
+            _7_node =
+                (_this).md(_5_start, _6_end);
             (_this).m14(_7_node);
             let _out12;
-            _out12 = (_this).mt(_7_node);
-            key = _out12;
+            key =
+                (_this).mt(_7_node);
             return key;
         }
         m2y() {
@@ -5665,8 +5632,8 @@ let DafnyCore = (function () {
             (_this).pos = (_this.pos) + (1);
             let _0_name = "";
             let _out0;
-            _out0 = (_this).m13();
-            _0_name = _out0;
+            _0_name =
+                (_this).m13();
             (_this).mf();
             let _1_c;
             _1_c = -1;
@@ -5682,8 +5649,8 @@ let DafnyCore = (function () {
             _3_hasTag = false;
             if ((_1_c) === (33)) {
                 let _out1;
-                _out1 = (_this).m1b();
-                _2_tag = _out1;
+                _2_tag =
+                    (_this).m1b();
                 (_this).m1c(false);
                 (_this).mf();
                 _1_c = -1;
@@ -5702,28 +5669,28 @@ let DafnyCore = (function () {
                 (_this).mg("an alias node cannot carry an anchor property");
             }
             let _4_savedPending;
-            _4_savedPending = _this.pendingAnchorName;
+            _4_savedPending = _this._fo;
             let _5_hadSavedPending;
-            _5_hadSavedPending = _this.hasPendingAnchorName;
-            (_this).pendingAnchorName = _0_name;
-            (_this).hasPendingAnchorName = true;
+            _5_hadSavedPending = _this._fd;
+            (_this)._fo = _0_name;
+            (_this)._fd = true;
             if (_3_hasTag) {
                 let _6_node;
                 let _out2;
-                _out2 = (_this).m30(_2_tag, _1_c);
-                _6_node = _out2;
+                _6_node =
+                    (_this).m30(_2_tag, _1_c);
                 (_this).m14(_6_node);
                 let _out3;
-                _out3 = (_this).mt(_6_node);
-                key = _out3;
+                key =
+                    (_this).mt(_6_node);
             }
             else {
                 let _out4;
-                _out4 = (_this).m2x();
-                key = _out4;
+                key =
+                    (_this).m2x();
             }
-            (_this).pendingAnchorName = _4_savedPending;
-            (_this).hasPendingAnchorName = _5_hadSavedPending;
+            (_this)._fo = _4_savedPending;
+            (_this)._fd = _5_hadSavedPending;
             return key;
         }
         m2z() {
@@ -5731,8 +5698,8 @@ let DafnyCore = (function () {
             let key = "";
             let _0_tag = "";
             let _out0;
-            _out0 = (_this).m1b();
-            _0_tag = _out0;
+            _0_tag =
+                (_this).m1b();
             (_this).m1c(false);
             (_this).mf();
             let _1_c;
@@ -5750,8 +5717,8 @@ let DafnyCore = (function () {
             if ((_1_c) === (38)) {
                 (_this).pos = (_this.pos) + (1);
                 let _out1;
-                _out1 = (_this).m13();
-                _2_anchorName = _out1;
+                _2_anchorName =
+                    (_this).m13();
                 (_this).mf();
                 _1_c = -1;
                 if ((_this.pos) < (_this.len)) {
@@ -5769,25 +5736,25 @@ let DafnyCore = (function () {
                 (_this).mg("an alias node cannot carry a tag/anchor property");
             }
             let _4_savedPending;
-            _4_savedPending = _this.pendingAnchorName;
+            _4_savedPending = _this._fo;
             let _5_hadSavedPending;
-            _5_hadSavedPending = _this.hasPendingAnchorName;
+            _5_hadSavedPending = _this._fd;
             if (_3_hasAnchor) {
-                (_this).pendingAnchorName = _2_anchorName;
-                (_this).hasPendingAnchorName = true;
+                (_this)._fo = _2_anchorName;
+                (_this)._fd = true;
             }
             let _6_node;
             let _out2;
-            _out2 = (_this).m30(_0_tag, _1_c);
-            _6_node = _out2;
+            _6_node =
+                (_this).m30(_0_tag, _1_c);
             if (_3_hasAnchor) {
                 (_this).m14(_6_node);
             }
-            (_this).pendingAnchorName = _4_savedPending;
-            (_this).hasPendingAnchorName = _5_hadSavedPending;
+            (_this)._fo = _4_savedPending;
+            (_this)._fd = _5_hadSavedPending;
             let _out3;
-            _out3 = (_this).mt(_6_node);
-            key = _out3;
+            key =
+                (_this).mt(_6_node);
             return key;
         }
         m30(tag, c) {
@@ -5797,46 +5764,46 @@ let DafnyCore = (function () {
                 if ((c) === (34)) {
                     let _0_quoted;
                     let _out0;
-                    _out0 = (_this).m1r();
-                    _0_quoted = _out0;
+                    _0_quoted =
+                        (_this).m1r();
                     let _out1;
-                    _out1 = (_this).m1d(tag, _0_quoted);
-                    node = _out1;
+                    node =
+                        (_this).m1d(tag, _0_quoted);
                 }
                 else if ((c) === (39)) {
                     let _1_quoted;
                     let _out2;
-                    _out2 = (_this).m1v();
-                    _1_quoted = _out2;
+                    _1_quoted =
+                        (_this).m1v();
                     let _out3;
-                    _out3 = (_this).m1d(tag, _1_quoted);
-                    node = _out3;
+                    node =
+                        (_this).m1d(tag, _1_quoted);
                 }
                 else if ((c) === (91)) {
                     let _2_sequence;
                     let _out4;
-                    _out4 = (_this).m1j();
-                    _2_sequence = _out4;
+                    _2_sequence =
+                        (_this).m1j();
                     let _out5;
-                    _out5 = (_this).m2l(tag, _2_sequence, "seq");
-                    node = _out5;
+                    node =
+                        (_this).m2l(tag, _2_sequence, "seq");
                 }
                 else {
                     let _3_mapping;
                     let _out6;
-                    _out6 = (_this).m1k();
-                    _3_mapping = _out6;
+                    _3_mapping =
+                        (_this).m1k();
                     let _out7;
-                    _out7 = (_this).m2l(tag, _3_mapping, "map");
-                    node = _out7;
+                    node =
+                        (_this).m2l(tag, _3_mapping, "map");
                 }
                 (_this).mf();
                 let _4_sep;
                 _4_sep = false;
                 if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
                     let _out8;
-                    _out8 = (_this).m29((_this.pos) + (1));
-                    _4_sep = _out8;
+                    _4_sep =
+                        (_this).m29((_this.pos) + (1));
                 }
                 if (!(_4_sep)) {
                     (_this).mg("expected ':' after mapping key");
@@ -5847,44 +5814,43 @@ let DafnyCore = (function () {
             _5_start = _this.pos;
             let _6_end = 0;
             let _out9;
-            _out9 = (_this).m2a();
-            _6_end = _out9;
-            if (!(_this.plainStoppedAtColon)) {
+            _6_end =
+                (_this).m2a();
+            if (!(_this._fp)) {
                 (_this).mg("expected ':' after mapping key");
             }
             let _out10;
-            _out10 = (_this).m1d(tag, Native.__default.slice(_this.src, _5_start, _6_end));
-            node = _out10;
+            node =
+                (_this).m1d(tag, Native.__default.slice(_this.src, _5_start, _6_end));
             return node;
         }
         m31(col, firstKey, firstHasValue, firstIsExplicit) {
             let _this = this;
             let result = undefined;
             let _out0;
-            _out0 = Native.__default.createObject();
-            result = _out0;
+            result =
+                Native.__default.createObject();
             (_this).m14(result);
             let _0_key;
             _0_key = firstKey;
             if (!(firstIsExplicit)) {
                 let _out1;
-                _out1 = (_this).mu(_0_key);
-                _0_key = _out1;
+                _0_key =
+                    (_this).mu(_0_key);
             }
             let _1_hasValue;
             _1_hasValue = firstHasValue;
             let _2_isExplicit;
             _2_isExplicit = firstIsExplicit;
             let _3_expected;
-            _3_expected = _this.lastRecordKeys;
+            _3_expected = _this._fl;
             let _4_hasExpected;
-            _4_hasExpected = _this.hasLastRecordKeys;
+            _4_hasExpected = _this._fc;
             let _5_expectedLength;
             _5_expectedLength = 0;
             if (_4_hasExpected) {
                 let _out2;
-                _out2 = Native.__default.arrayLength(_3_expected);
-                _5_expectedLength = _out2;
+                _5_expectedLength = _3_expected.length;
             }
             let _6_produced;
             _6_produced = _3_expected;
@@ -5896,47 +5862,44 @@ let DafnyCore = (function () {
                 if (((_7_matched) && (_4_hasExpected)) && ((_8_keyCount) < (_5_expectedLength))) {
                     let _9_expectedValue = undefined;
                     let _out3;
-                    _out3 = Native.__default.arrayGet(_3_expected, _8_keyCount);
-                    _9_expectedValue = _out3;
-                    if (!Native.__default.jsEqual(_9_expectedValue, _0_key)) {
+                    _9_expectedValue = _3_expected[_8_keyCount];
+                    if (!(_9_expectedValue === _0_key)) {
                         let _out4;
-                        _out4 = Native.__default.createArray();
-                        _6_produced = _out4;
+                        _6_produced =
+                            Native.__default.createArray();
                         let _10_copyIndex;
                         _10_copyIndex = 0;
                         while ((_10_copyIndex) < (_8_keyCount)) {
                             let _11_previous = undefined;
                             let _out5;
-                            _out5 = Native.__default.arrayGet(_3_expected, _10_copyIndex);
-                            _11_previous = _out5;
-                            Native.__default.arrayPush(_6_produced, _11_previous);
+                            _11_previous = _3_expected[_10_copyIndex];
+                            _6_produced.push(_11_previous);
                             _10_copyIndex = (_10_copyIndex) + (1);
                         }
-                        Native.__default.arrayPush(_6_produced, _0_key);
+                        _6_produced.push(_0_key);
                         _7_matched = false;
                     }
                 }
                 else if (_7_matched) {
                     let _out6;
-                    _out6 = Native.__default.createArray();
-                    _6_produced = _out6;
+                    _6_produced =
+                        Native.__default.createArray();
                     if (_4_hasExpected) {
                         let _12_copyIndex;
                         _12_copyIndex = 0;
                         while ((_12_copyIndex) < (_8_keyCount)) {
                             let _13_previous = undefined;
                             let _out7;
-                            _out7 = Native.__default.arrayGet(_3_expected, _12_copyIndex);
-                            _13_previous = _out7;
-                            Native.__default.arrayPush(_6_produced, _13_previous);
+                            _13_previous = _3_expected[_12_copyIndex];
+                            _6_produced.push(_13_previous);
                             _12_copyIndex = (_12_copyIndex) + (1);
                         }
                     }
-                    Native.__default.arrayPush(_6_produced, _0_key);
+                    _6_produced.push(_0_key);
                     _7_matched = false;
                 }
                 else {
-                    Native.__default.arrayPush(_6_produced, _0_key);
+                    _6_produced.push(_0_key);
                 }
                 _8_keyCount = (_8_keyCount) + (1);
                 let _14_value;
@@ -5948,23 +5911,23 @@ let DafnyCore = (function () {
                     (_this).pos = (_this.pos) + (1);
                     if (_2_isExplicit) {
                         let _out8;
-                        _out8 = (_this).m2r(col);
-                        _14_value = _out8;
+                        _14_value =
+                            (_this).m2r(col);
                     }
                     else {
                         (_this).mf();
                         if (((((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) !== (10))) && ((_this.src.charCodeAt(_this.pos)) !== (13))) && ((_this.src.charCodeAt(_this.pos)) !== (35))) {
-                            (_this).inlineMapValue = true;
+                            (_this)._fg = true;
                             let _out9;
-                            _out9 = (_this).m2k(col, true);
-                            _14_value = _out9;
+                            _14_value =
+                                (_this).m2k(col, true);
                         }
                         else {
                             (_this).m22();
                             if (((_this.pos) < (_this.len)) && ((((_this.pos) - (_this.lineStart)) > (col)) || ((((_this.pos) - (_this.lineStart)) === (col)) && ((_this.src.charCodeAt(_this.pos)) === (45))))) {
                                 let _out10;
-                                _out10 = (_this).m2e(col, true);
-                                _14_value = _out10;
+                                _14_value =
+                                    (_this).m2e(col, true);
                             }
                         }
                     }
@@ -5976,8 +5939,8 @@ let DafnyCore = (function () {
                 _15_atDocumentMarker = false;
                 if (((_this.pos) < (_this.len)) && (((_this.pos) - (_this.lineStart)) === (0))) {
                     let _out11;
-                    _out11 = (_this).IsDocMarkerAt(_this.pos);
-                    _15_atDocumentMarker = _out11;
+                    _15_atDocumentMarker =
+                        (_this).IsDocMarkerAt(_this.pos);
                 }
                 if (_15_atDocumentMarker) {
                     (_this).m1m(_3_expected, _4_hasExpected, _6_produced, _7_matched, _8_keyCount, _5_expectedLength);
@@ -5990,28 +5953,27 @@ let DafnyCore = (function () {
                 if ((_this.src.charCodeAt(_this.pos)) === (45)) {
                     let _16_dashSeparator = false;
                     let _out12;
-                    _out12 = (_this).m29((_this.pos) + (1));
-                    _16_dashSeparator = _out12;
+                    _16_dashSeparator =
+                        (_this).m29((_this.pos) + (1));
                     if (_16_dashSeparator) {
                         (_this).m1m(_3_expected, _4_hasExpected, _6_produced, _7_matched, _8_keyCount, _5_expectedLength);
                         return result;
                     }
                 }
-                if (_this.strict) {
+                if (_this._fs) {
                     (_this).m2h((col) - (1));
                 }
                 let _17_fast;
                 _17_fast = false;
-                if ((((_7_matched) && (_4_hasExpected)) && ((_8_keyCount) < (_5_expectedLength))) && (!(_this.hasPendingAnchorName))) {
+                if ((((_7_matched) && (_4_hasExpected)) && ((_8_keyCount) < (_5_expectedLength))) && (!(_this._fd))) {
                     let _18_expectedValue = undefined;
                     let _out13;
-                    _out13 = Native.__default.arrayGet(_3_expected, _8_keyCount);
-                    _18_expectedValue = _out13;
+                    _18_expectedValue = _3_expected[_8_keyCount];
                     let _19_expectedKey;
                     _19_expectedKey = _18_expectedValue;
                     let _out14;
-                    _out14 = (_this).mr(_19_expectedKey);
-                    _17_fast = _out14;
+                    _17_fast =
+                        (_this).mr(_19_expectedKey);
                     if (_17_fast) {
                         _0_key = _19_expectedKey;
                     }
@@ -6023,43 +5985,43 @@ let DafnyCore = (function () {
                     _21_emptyIndicator = false;
                     if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (63))) {
                         let _out15;
-                        _out15 = (_this).m29((_this.pos) + (1));
-                        _20_explicitIndicator = _out15;
+                        _20_explicitIndicator =
+                            (_this).m29((_this.pos) + (1));
                     }
                     if (((_this.pos) < (_this.len)) && ((_this.src.charCodeAt(_this.pos)) === (58))) {
                         let _out16;
-                        _out16 = (_this).m29((_this.pos) + (1));
-                        _21_emptyIndicator = _out16;
+                        _21_emptyIndicator =
+                            (_this).m29((_this.pos) + (1));
                     }
                     if (_20_explicitIndicator) {
                         (_this).pos = (_this.pos) + (1);
                         let _22_explicitKey;
                         let _out17;
-                        _out17 = (_this).m2p(col);
-                        _22_explicitKey = _out17;
+                        _22_explicitKey =
+                            (_this).m2p(col);
                         let _23_explicitKeyText = "";
                         let _out18;
-                        _out18 = (_this).ms(_22_explicitKey);
-                        _23_explicitKeyText = _out18;
+                        _23_explicitKeyText =
+                            (_this).ms(_22_explicitKey);
                         let _out19;
-                        _out19 = (_this).mu(_23_explicitKeyText);
-                        _0_key = _out19;
+                        _0_key =
+                            (_this).mu(_23_explicitKeyText);
                         let _out20;
-                        _out20 = (_this).m2t(col);
-                        _1_hasValue = _out20;
+                        _1_hasValue =
+                            (_this).m2t(col);
                         _2_isExplicit = true;
                     }
                     else if (_21_emptyIndicator) {
                         let _out21;
-                        _out21 = (_this).mu("");
-                        _0_key = _out21;
+                        _0_key =
+                            (_this).mu("");
                         _1_hasValue = true;
                         _2_isExplicit = false;
                     }
                     else {
                         let _out22;
-                        _out22 = (_this).m2x();
-                        _0_key = _out22;
+                        _0_key =
+                            (_this).m2x();
                         _1_hasValue = true;
                         _2_isExplicit = false;
                     }
@@ -6100,8 +6062,8 @@ let DafnyCore = (function () {
             let _this = this;
             let documents = undefined;
             let _out0;
-            _out0 = Native.__default.createArray();
-            documents = _out0;
+            documents =
+                Native.__default.createArray();
             let _0_present = false;
             let _1_value = undefined;
             let _out1;
@@ -6112,7 +6074,7 @@ let DafnyCore = (function () {
             _0_present = _out1;
             _1_value = _out2;
             while (_0_present) {
-                Native.__default.arrayPush(documents, _1_value);
+                documents.push(_1_value);
                 let _out3;
                 let _out4;
                 let _outcollector1 = (_this).ParseNextDocument();
@@ -6125,11 +6087,11 @@ let DafnyCore = (function () {
         }
         EndStream() {
             let _this = this;
-            (_this).valueCache = Native.__default.undefinedValue;
-            (_this).hasValueCache = false;
-            (_this).valueCacheEnabled = false;
-            (_this).strict = false;
-            (_this).keyCacheMaxBytes = 4194304;
+            (_this)._fv = Native.__default.undefinedValue;
+            (_this)._ff = false;
+            (_this)._fw = false;
+            (_this)._fs = false;
+            (_this)._fj = 4194304;
             return;
         }
         IsDocMarkerAt(i) {
@@ -6149,8 +6111,8 @@ let DafnyCore = (function () {
             }
             let _1_sep = false;
             let _out0;
-            _out0 = (_this).m29((i) + (3));
-            _1_sep = _out0;
+            _1_sep =
+                (_this).m29((i) + (3));
             yes = _1_sep;
             return yes;
         }
@@ -6185,9 +6147,9 @@ let DafnyCore = (function () {
             }
             let _0_sawDirectives = false;
             let _out0;
-            _out0 = (_this).m28();
-            _0_sawDirectives = _out0;
-            if ((_0_sawDirectives) && (!(_this.bareDocAllowed))) {
+            _0_sawDirectives =
+                (_this).m28();
+            if ((_0_sawDirectives) && (!(_this._f2))) {
                 (_this).mg("a directives block must be preceded by an explicit '...' document end marker");
             }
             (_this).m20();
@@ -6201,8 +6163,8 @@ let DafnyCore = (function () {
             }
             let _1_marker = false;
             let _out1;
-            _out1 = (_this).IsDocMarkerAt(_this.pos);
-            _1_marker = _out1;
+            _1_marker =
+                (_this).IsDocMarkerAt(_this.pos);
             let _2_isDash;
             _2_isDash = (_1_marker) && ((_this.src.charCodeAt(_this.pos)) === (45));
             if ((_0_sawDirectives) && (!(_2_isDash))) {
@@ -6212,54 +6174,54 @@ let DafnyCore = (function () {
                 if ((_this.src.charCodeAt(_this.pos)) === (46)) {
                     value = Native.__default.nullValue;
                     (_this).ConsumeDocEndMarker();
-                    (_this).bareDocAllowed = true;
+                    (_this)._f2 = true;
                     present = true;
                     return [present, value];
                 }
                 let _3_inline = false;
                 let _out2;
-                _out2 = (_this).ConsumeDocStartMarker();
-                _3_inline = _out2;
+                _3_inline =
+                    (_this).ConsumeDocStartMarker();
                 if ((_this.pos) >= (_this.len)) {
                     value = Native.__default.nullValue;
                 }
                 else {
                     let _4_nextMarker = false;
                     let _out3;
-                    _out3 = (_this).IsDocMarkerAt(_this.pos);
-                    _4_nextMarker = _out3;
+                    _4_nextMarker =
+                        (_this).IsDocMarkerAt(_this.pos);
                     if (_4_nextMarker) {
                         value = Native.__default.nullValue;
                     }
                     else if (_3_inline) {
                         let _out4;
-                        _out4 = (_this).m2j(-2);
-                        value = _out4;
+                        value =
+                            (_this).m2j(-2);
                     }
                     else {
                         let _out5;
-                        _out5 = (_this).m2j(-1);
-                        value = _out5;
+                        value =
+                            (_this).m2j(-1);
                     }
                 }
             }
             else {
-                if (!(_this.bareDocAllowed)) {
+                if (!(_this._f2)) {
                     (_this).mg("expected a '---' before the next document (a bare document may only follow an explicit '...')");
                 }
                 let _out6;
-                _out6 = (_this).m2j(-1);
-                value = _out6;
+                value =
+                    (_this).m2j(-1);
             }
             let _out7;
-            _out7 = (_this).IsDocMarkerAt(_this.pos);
-            _1_marker = _out7;
+            _1_marker =
+                (_this).IsDocMarkerAt(_this.pos);
             if ((_1_marker) && ((_this.src.charCodeAt(_this.pos)) === (46))) {
                 (_this).ConsumeDocEndMarker();
-                (_this).bareDocAllowed = true;
+                (_this)._f2 = true;
             }
             else {
-                (_this).bareDocAllowed = false;
+                (_this)._f2 = false;
             }
             present = true;
             return [present, value];
@@ -6279,8 +6241,8 @@ let Serializer = (function () {
             _nw0.__ctor();
             _0_writer = _nw0;
             let _out0;
-            _out0 = (_0_writer).Stringify(value);
-            text = _out0;
+            text =
+                (_0_writer).Stringify(value);
             return text;
         }
         static get MAX__DEPTH() {
@@ -6422,30 +6384,30 @@ let Serializer = (function () {
     };
     $module.Writer = class Writer {
         constructor() {
-            this.indentCache = undefined;
-            this.dumpRefCounts = undefined;
-            this.dumpAnchors = undefined;
-            this.dumpAnchorSeq = 0;
-            this.dumpDepth = 0;
-            this.dumpKeyCache = undefined;
-            this.dumpHasShared = false;
-            this.out = "";
-            this.dumpFlattenSink = 0;
+            this._f7 = undefined;
+            this._f6 = undefined;
+            this._f1 = undefined;
+            this._f0 = 0;
+            this._f2 = 0;
+            this._f5 = undefined;
+            this._f4 = false;
+            this._f8 = "";
+            this._f3 = 0;
         }
         __ctor() {
             let _this = this;
             let _out0;
-            _out0 = Native.__default.createArray();
-            (_this).indentCache = _out0;
-            (_this).dumpRefCounts = Native.__default.emptyMap;
-            (_this).dumpAnchors = Native.__default.emptyMap;
-            (_this).dumpKeyCache = Native.__default.emptyMap;
-            (_this).dumpAnchorSeq = 0;
-            (_this).dumpDepth = 0;
-            (_this).dumpHasShared = false;
-            (_this).out = "";
-            (_this).dumpFlattenSink = 0;
-            Native.__default.arrayPush(_this.indentCache, "");
+            (_this)._f7 =
+                Native.__default.createArray();
+            (_this)._f6 = Native.__default.emptyMap;
+            (_this)._f1 = Native.__default.emptyMap;
+            (_this)._f5 = Native.__default.emptyMap;
+            (_this)._f0 = 0;
+            (_this)._f2 = 0;
+            (_this)._f4 = false;
+            (_this)._f8 = "";
+            (_this)._f3 = 0;
+            Native.__default.arrayPush(_this._f7, "");
             return;
         }
         m0(n) {
@@ -6453,99 +6415,93 @@ let Serializer = (function () {
             let spaces = "";
             let _0_length;
             let _out0;
-            _out0 = Native.__default.arrayLength(_this.indentCache);
-            _0_length = _out0;
+            _0_length =
+                Native.__default.arrayLength(_this._f7);
             while ((_0_length) <= (n)) {
                 let _1_last;
                 _1_last = (_0_length) - (1);
                 let _2_previousValue;
                 let _out1;
-                _out1 = Native.__default.arrayGet(_this.indentCache, _1_last);
-                _2_previousValue = _out1;
+                _2_previousValue =
+                    Native.__default.arrayGet(_this._f7, _1_last);
                 let _3_previous;
                 _3_previous = _2_previousValue;
                 let _4_next;
                 _4_next = _3_previous + " ";
-                Native.__default.arrayPush(_this.indentCache, _4_next);
+                Native.__default.arrayPush(_this._f7, _4_next);
                 _0_length = (_0_length) + (1);
             }
             let _5_result;
             let _out2;
-            _out2 = Native.__default.arrayGet(_this.indentCache, n);
-            _5_result = _out2;
+            _5_result =
+                Native.__default.arrayGet(_this._f7, n);
             spaces = _5_result;
             return spaces;
         }
         m1(value) {
             let _this = this;
-            if ((!(Native.__default.isObject(value))) || (Native.__default.isNull(value))) {
+            if ((!(typeof value === "object" && value !== null)) || (value === null)) {
                 return;
             }
             let _0_oldValue;
             let _out0;
-            _out0 = Native.__default.mapGet(_this.dumpRefCounts, value);
-            _0_oldValue = _out0;
-            if (!(Native.__default.isUndefined(_0_oldValue))) {
+            _0_oldValue =
+                Native.__default.mapGet(_this._f6, value);
+            if (!(_0_oldValue === undefined)) {
                 let _1_oldCount;
                 _1_oldCount = _0_oldValue;
-                Native.__default.mapSet(_this.dumpRefCounts, value, (_1_oldCount) + (1));
-                (_this).dumpHasShared = true;
+                Native.__default.mapSet(_this._f6, value, (_1_oldCount) + (1));
+                (_this)._f4 = true;
                 return;
             }
-            Native.__default.mapSet(_this.dumpRefCounts, value, 1);
+            Native.__default.mapSet(_this._f6, value, 1);
             if (Native.__default.isUint8Array(value)) {
                 return;
             }
-            (_this).dumpDepth = (_this.dumpDepth) + (1);
-            if ((_this.dumpDepth) > (1000)) {
+            (_this)._f2 = (_this._f2) + (1);
+            if ((_this._f2) > (1000)) {
                 Native.__default.fail("stringify: maximum nesting depth exceeded");
             }
-            if (Native.__default.isArray(value)) {
+            if (Array.isArray(value)) {
                 let _2_i;
                 _2_i = 0;
                 let _3_n;
                 let _out1;
-                _out1 = Native.__default.arrayLength(value);
-                _3_n = _out1;
+                _3_n = value.length;
                 while ((_2_i) < (_3_n)) {
                     let _4_child;
                     let _out2;
-                    _out2 = Native.__default.arrayGet(value, _2_i);
-                    _4_child = _out2;
+                    _4_child = value[_2_i];
                     (_this).m1(_4_child);
                     _2_i = (_2_i) + (1);
                     let _out3;
-                    _out3 = Native.__default.arrayLength(value);
-                    _3_n = _out3;
+                    _3_n = value.length;
                 }
             }
             else {
                 let _5_keys;
                 let _out4;
-                _out4 = Native.__default.objectKeys(value);
-                _5_keys = _out4;
+                _5_keys =
+                    Native.__default.objectKeys(value);
                 let _6_i;
                 _6_i = 0;
                 let _7_n;
                 let _out5;
-                _out5 = Native.__default.arrayLength(_5_keys);
-                _7_n = _out5;
+                _7_n = _5_keys.length;
                 while ((_6_i) < (_7_n)) {
                     let _8_keyValue;
                     let _out6;
-                    _out6 = Native.__default.arrayGet(_5_keys, _6_i);
-                    _8_keyValue = _out6;
+                    _8_keyValue = _5_keys[_6_i];
                     let _9_key;
                     _9_key = _8_keyValue;
                     let _10_child;
                     let _out7;
-                    _out7 = Native.__default.objectGet(value, _9_key);
-                    _10_child = _out7;
+                    _10_child = value[_9_key];
                     (_this).m1(_10_child);
                     _6_i = (_6_i) + (1);
                 }
             }
-            (_this).dumpDepth = (_this.dumpDepth) - (1);
+            (_this)._f2 = (_this._f2) - (1);
             return;
         }
         m2(obj) {
@@ -6553,9 +6509,9 @@ let Serializer = (function () {
             let needs = false;
             let _0_refCount;
             let _out0;
-            _out0 = Native.__default.mapGet(_this.dumpRefCounts, obj);
-            _0_refCount = _out0;
-            if (Native.__default.isUndefined(_0_refCount)) {
+            _0_refCount =
+                Native.__default.mapGet(_this._f6, obj);
+            if (_0_refCount === undefined) {
                 needs = false;
             }
             else {
@@ -6566,13 +6522,13 @@ let Serializer = (function () {
         m3(obj) {
             let _this = this;
             let name = "";
-            (_this).dumpAnchorSeq = (_this.dumpAnchorSeq) + (1);
+            (_this)._f0 = (_this._f0) + (1);
             let _0_sequence;
             let _out0;
-            _out0 = (_this).mi(_this.dumpAnchorSeq);
-            _0_sequence = _out0;
+            _0_sequence =
+                (_this).mi(_this._f0);
             name = "a" + _0_sequence;
-            Native.__default.mapSet(_this.dumpAnchors, obj, name);
+            Native.__default.mapSet(_this._f1, obj, name);
             return name;
         }
         m4(c) {
@@ -6583,13 +6539,13 @@ let Serializer = (function () {
         m5(s) {
             let _this = this;
             let typed = false;
-            typed = (((((((((Native.__default.jsEqual(s, "~")) || (Native.__default.jsEqual(s, "null"))) || (Native.__default.jsEqual(s, "Null"))) || (Native.__default.jsEqual(s, "NULL"))) || (Native.__default.jsEqual(s, "true"))) || (Native.__default.jsEqual(s, "True"))) || (Native.__default.jsEqual(s, "TRUE"))) || (Native.__default.jsEqual(s, "false"))) || (Native.__default.jsEqual(s, "False"))) || (Native.__default.jsEqual(s, "FALSE"));
+            typed = (((((((((s === "~") || (s === "null")) || (s === "Null")) || (s === "NULL")) || (s === "true")) || (s === "True")) || (s === "TRUE")) || (s === "false")) || (s === "False")) || (s === "FALSE");
             if (typed) {
                 return typed;
             }
             let _out0;
-            _out0 = (_this).m6(s);
-            typed = _out0;
+            typed =
+                (_this).m6(s);
             return typed;
         }
         m6(s) {
@@ -6621,14 +6577,14 @@ let Serializer = (function () {
                 _5_n2 = Native.__default.codeUnitAt(s, (_1_p) + (1));
                 if ((_5_n2) === (120)) {
                     let _out0;
-                    _out0 = (_this).m7(s, (_1_p) + (2), _0_end);
-                    valid = _out0;
+                    valid =
+                        (_this).m7(s, (_1_p) + (2), _0_end);
                     return valid;
                 }
                 if ((_5_n2) === (111)) {
                     let _out1;
-                    _out1 = (_this).m8(s, (_1_p) + (2), _0_end);
-                    valid = _out1;
+                    valid =
+                        (_this).m8(s, (_1_p) + (2), _0_end);
                     return valid;
                 }
             }
@@ -6804,8 +6760,8 @@ let Serializer = (function () {
             }
             let _5_typed;
             let _out0;
-            _out0 = (_this).m5(s);
-            _5_typed = _out0;
+            _5_typed =
+                (_this).m5(s);
             safe = !(_5_typed);
             return safe;
         }
@@ -6833,9 +6789,9 @@ let Serializer = (function () {
             let encoded = "";
             let _0_parts;
             let _out0;
-            _out0 = Native.__default.createArray();
-            _0_parts = _out0;
-            Native.__default.arrayPush(_0_parts, "'");
+            _0_parts =
+                Native.__default.createArray();
+            _0_parts.push("'");
             let _1_seg;
             _1_seg = 0;
             let _2_i;
@@ -6845,13 +6801,13 @@ let Serializer = (function () {
             while ((_2_i) < (_3_n)) {
                 if ((Native.__default.codeUnitAt(s, _2_i)) === (39)) {
                     Native.__default.arrayPush(_0_parts, s.slice(_1_seg, _2_i));
-                    Native.__default.arrayPush(_0_parts, "''");
+                    _0_parts.push("''");
                     _1_seg = (_2_i) + (1);
                 }
                 _2_i = (_2_i) + (1);
             }
             Native.__default.arrayPush(_0_parts, s.slice(_1_seg, _3_n));
-            Native.__default.arrayPush(_0_parts, "'");
+            _0_parts.push("'");
             encoded = Native.__default.join(_0_parts, "");
             return encoded;
         }
@@ -6879,9 +6835,9 @@ let Serializer = (function () {
             let encoded = "";
             let _0_parts;
             let _out0;
-            _out0 = Native.__default.createArray();
-            _0_parts = _out0;
-            Native.__default.arrayPush(_0_parts, "\"");
+            _0_parts =
+                Native.__default.createArray();
+            _0_parts.push("\"");
             let _1_seg;
             _1_seg = 0;
             let _2_i;
@@ -6930,8 +6886,8 @@ let Serializer = (function () {
                 }
                 else if (((_4_c) < (32)) || ((_4_c) === (127))) {
                     let _out1;
-                    _out1 = (_this).me(_4_c);
-                    _5_esc = _out1;
+                    _5_esc =
+                        (_this).me(_4_c);
                 }
                 else {
                     _6_found = false;
@@ -6940,13 +6896,13 @@ let Serializer = (function () {
                     if ((_2_i) > (_1_seg)) {
                         Native.__default.arrayPush(_0_parts, s.slice(_1_seg, _2_i));
                     }
-                    Native.__default.arrayPush(_0_parts, _5_esc);
+                    _0_parts.push(_5_esc);
                     _1_seg = (_2_i) + (1);
                 }
                 _2_i = (_2_i) + (1);
             }
             Native.__default.arrayPush(_0_parts, s.slice(_1_seg, _3_n));
-            Native.__default.arrayPush(_0_parts, "\"");
+            _0_parts.push("\"");
             encoded = Native.__default.join(_0_parts, "");
             return encoded;
         }
@@ -6955,51 +6911,51 @@ let Serializer = (function () {
             let rendered = "";
             let _0_safe;
             let _out0;
-            _out0 = (_this).mb(s);
-            _0_safe = _out0;
+            _0_safe =
+                (_this).mb(s);
             if (_0_safe) {
                 rendered = s;
                 return rendered;
             }
             let _1_needsDouble;
             let _out1;
-            _out1 = (_this).mc(s);
-            _1_needsDouble = _out1;
+            _1_needsDouble =
+                (_this).mc(s);
             if (_1_needsDouble) {
                 let _out2;
-                _out2 = (_this).mf(s);
-                rendered = _out2;
+                rendered =
+                    (_this).mf(s);
             }
             else {
                 let _out3;
-                _out3 = (_this).md(s);
-                rendered = _out3;
+                rendered =
+                    (_this).md(s);
             }
             return rendered;
         }
         mh(s) {
             let _this = this;
             let rendered = "";
-            if ((Native.__default.jsEqual(s, "...")) || (((s.length) >= (4)) && (Native.__default.jsEqual(s.slice(0, 4), "... ")))) {
+            if ((s === "...") || (((s.length) >= (4)) && (Native.__default.jsEqual(s.slice(0, 4), "... ")))) {
                 let _0_needsDouble;
                 let _out0;
-                _out0 = (_this).mc(s);
-                _0_needsDouble = _out0;
+                _0_needsDouble =
+                    (_this).mc(s);
                 if (_0_needsDouble) {
                     let _out1;
-                    _out1 = (_this).mf(s);
-                    rendered = _out1;
+                    rendered =
+                        (_this).mf(s);
                 }
                 else {
                     let _out2;
-                    _out2 = (_this).md(s);
-                    rendered = _out2;
+                    rendered =
+                        (_this).md(s);
                 }
                 return rendered;
             }
             let _out3;
-            _out3 = (_this).mg(s);
-            rendered = _out3;
+            rendered =
+                (_this).mg(s);
             return rendered;
         }
         mi(n) {
@@ -7033,11 +6989,11 @@ let Serializer = (function () {
         mk(value) {
             let _this = this;
             let text = "";
-            if ((Native.__default.isNull(value)) || (Native.__default.isUndefined(value))) {
+            if ((value === null) || (value === undefined)) {
                 text = "null";
                 return text;
             }
-            if (Native.__default.isBoolean(value)) {
+            if (typeof value === "boolean") {
                 if (value) {
                     text = "true";
                 }
@@ -7046,23 +7002,23 @@ let Serializer = (function () {
                 }
                 return text;
             }
-            if (Native.__default.isNumber(value)) {
+            if (typeof value === "number") {
                 let _out0;
-                _out0 = (_this).mj(value);
-                text = _out0;
+                text =
+                    (_this).mj(value);
                 return text;
             }
-            if (Native.__default.isString(value)) {
+            if (typeof value === "string") {
                 let _out1;
-                _out1 = (_this).mg(value);
-                text = _out1;
+                text =
+                    (_this).mg(value);
                 return text;
             }
             let _0_fallback;
             _0_fallback = Native.__default.stringFallback(value);
             let _out2;
-            _out2 = (_this).mg(_0_fallback);
-            text = _out2;
+            text =
+                (_this).mg(_0_fallback);
             return text;
         }
         ml(bytes) {
@@ -7076,8 +7032,8 @@ let Serializer = (function () {
             }
             let _1_parts;
             let _out0;
-            _out0 = Native.__default.createArray();
-            _1_parts = _out0;
+            _1_parts =
+                Native.__default.createArray();
             let _2_i;
             _2_i = 0;
             while (((_2_i) + (3)) <= (_0_n)) {
@@ -7114,8 +7070,8 @@ let Serializer = (function () {
                 _14_b = Native.__default.euclideanModuloNumber(Native.__default.euclideanDivisionNumber(_12_triple, 4096), 64);
                 Native.__default.arrayPush(_1_parts, Native.__default.slice("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", _13_a, (_13_a) + (1)));
                 Native.__default.arrayPush(_1_parts, Native.__default.slice("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", _14_b, (_14_b) + (1)));
-                Native.__default.arrayPush(_1_parts, "=");
-                Native.__default.arrayPush(_1_parts, "=");
+                _1_parts.push("=");
+                _1_parts.push("=");
             }
             else if ((_11_rem) === (2)) {
                 let _15_triple;
@@ -7129,7 +7085,7 @@ let Serializer = (function () {
                 Native.__default.arrayPush(_1_parts, Native.__default.slice("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", _16_a, (_16_a) + (1)));
                 Native.__default.arrayPush(_1_parts, Native.__default.slice("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", _17_b, (_17_b) + (1)));
                 Native.__default.arrayPush(_1_parts, Native.__default.slice("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", _18_c, (_18_c) + (1)));
-                Native.__default.arrayPush(_1_parts, "=");
+                _1_parts.push("=");
             }
             encoded = Native.__default.join(_1_parts, "");
             return encoded;
@@ -7139,9 +7095,9 @@ let Serializer = (function () {
             let text = "";
             let _0_b64;
             let _out0;
-            _out0 = (_this).ml(bytes);
-            _0_b64 = _out0;
-            if (Native.__default.jsEqual(_0_b64, "")) {
+            _0_b64 =
+                (_this).ml(bytes);
+            if (_0_b64 === "") {
                 text = "!!binary \"\"";
             }
             else {
@@ -7155,69 +7111,62 @@ let Serializer = (function () {
             if (isArr) {
                 let _0_count;
                 let _out0;
-                _out0 = Native.__default.arrayLength(obj);
-                _0_count = _out0;
+                _0_count = obj.length;
                 empty = (_0_count) === (0);
             }
             else {
                 let _1_keys;
                 let _out1;
-                _out1 = Native.__default.objectKeys(obj);
-                _1_keys = _out1;
+                _1_keys =
+                    Native.__default.objectKeys(obj);
                 let _2_count;
                 let _out2;
-                _out2 = Native.__default.arrayLength(_1_keys);
-                _2_count = _out2;
+                _2_count = _1_keys.length;
                 empty = (_2_count) === (0);
             }
             return empty;
         }
         mo(obj, isArr, indent) {
             let _this = this;
-            (_this).dumpDepth = (_this.dumpDepth) + (1);
-            if ((_this.dumpDepth) > (1000)) {
+            (_this)._f2 = (_this._f2) + (1);
+            if ((_this._f2) > (1000)) {
                 Native.__default.fail("stringify: maximum nesting depth exceeded");
             }
             let _0_ind;
             let _out0;
-            _out0 = (_this).m0(indent);
-            _0_ind = _out0;
+            _0_ind =
+                (_this).m0(indent);
             if (isArr) {
                 let _1_i;
                 _1_i = 0;
                 let _2_n;
                 let _out1;
-                _out1 = Native.__default.arrayLength(obj);
-                _2_n = _out1;
+                _2_n = obj.length;
                 while ((_1_i) < (_2_n)) {
-                    (_this).out = Native.__default.concat(_this.out, _0_ind + "-");
+                    (_this)._f8 = Native.__default.concat(_this._f8, _0_ind + "-");
                     let _3_value;
                     let _out2;
-                    _out2 = Native.__default.arrayGet(obj, _1_i);
-                    _3_value = _out2;
+                    _3_value = obj[_1_i];
                     (_this).mp(_3_value, indent);
                     _1_i = (_1_i) + (1);
                     let _out3;
-                    _out3 = Native.__default.arrayLength(obj);
-                    _2_n = _out3;
+                    _2_n = obj.length;
                 }
             }
             else {
                 let _4_keys;
                 let _out4;
-                _out4 = Native.__default.objectKeys(obj);
-                _4_keys = _out4;
+                _4_keys =
+                    Native.__default.objectKeys(obj);
                 let _5_i;
                 _5_i = 0;
                 let _6_n;
                 let _out5;
-                _out5 = Native.__default.arrayLength(_4_keys);
-                _6_n = _out5;
+                _6_n = _4_keys.length;
                 while ((_5_i) < (_6_n)) {
                     let _7_keyValue;
                     let _out6;
-                    _out6 = Native.__default.arrayGet(_4_keys, _5_i);
-                    _7_keyValue = _out6;
+                    _7_keyValue = _4_keys[_5_i];
                     let _8_k;
                     _8_k = _7_keyValue;
                     _7_keyValue = _8_k;
@@ -7225,108 +7174,107 @@ let Serializer = (function () {
                     _9_keyColon = "";
                     let _10_cacheValue;
                     let _out7;
-                    _out7 = Native.__default.mapGet(_this.dumpKeyCache, _7_keyValue);
-                    _10_cacheValue = _out7;
-                    if (!(Native.__default.isUndefined(_10_cacheValue))) {
+                    _10_cacheValue =
+                        Native.__default.mapGet(_this._f5, _7_keyValue);
+                    if (!(_10_cacheValue === undefined)) {
                         _9_keyColon = _10_cacheValue;
                     }
                     else {
                         let _11_rendered;
                         let _out8;
-                        _out8 = (_this).mg(_8_k);
-                        _11_rendered = _out8;
+                        _11_rendered =
+                            (_this).mg(_8_k);
                         _9_keyColon = _11_rendered + ":";
                         let _12_cacheSize;
                         let _out9;
-                        _out9 = Native.__default.mapSize(_this.dumpKeyCache);
-                        _12_cacheSize = _out9;
+                        _12_cacheSize =
+                            Native.__default.mapSize(_this._f5);
                         if ((_12_cacheSize) < (10000)) {
-                            Native.__default.mapSet(_this.dumpKeyCache, _7_keyValue, _9_keyColon);
+                            Native.__default.mapSet(_this._f5, _7_keyValue, _9_keyColon);
                         }
                     }
-                    (_this).out = Native.__default.concat(_this.out, _0_ind + _9_keyColon);
+                    (_this)._f8 = Native.__default.concat(_this._f8, _0_ind + _9_keyColon);
                     let _13_value;
                     let _out10;
-                    _out10 = Native.__default.objectGet(obj, _8_k);
-                    _13_value = _out10;
+                    _13_value = obj[_8_k];
                     (_this).mp(_13_value, indent);
                     _5_i = (_5_i) + (1);
                 }
             }
-            (_this).dumpDepth = (_this.dumpDepth) - (1);
+            (_this)._f2 = (_this._f2) - (1);
             return;
         }
         mp(value, indent) {
             let _this = this;
-            if ((!(Native.__default.isObject(value))) || (Native.__default.isNull(value))) {
+            if ((!(typeof value === "object" && value !== null)) || (value === null)) {
                 let _0_scalar;
                 let _out0;
-                _out0 = (_this).mk(value);
-                _0_scalar = _out0;
-                (_this).out = Native.__default.concat(_this.out, Native.__default.concat(" ", _0_scalar + "\n"));
+                _0_scalar =
+                    (_this).mk(value);
+                (_this)._f8 = Native.__default.concat(_this._f8, Native.__default.concat(" ", _0_scalar + "\n"));
                 return;
             }
             let _1_hasExistingAnchor;
             _1_hasExistingAnchor = false;
             let _2_anchorValue;
             _2_anchorValue = Native.__default.undefinedValue;
-            if (_this.dumpHasShared) {
+            if (_this._f4) {
                 let _out1;
-                _out1 = Native.__default.mapGet(_this.dumpAnchors, value);
-                _2_anchorValue = _out1;
-                _1_hasExistingAnchor = !(Native.__default.isUndefined(_2_anchorValue));
+                _2_anchorValue =
+                    Native.__default.mapGet(_this._f1, value);
+                _1_hasExistingAnchor = !(_2_anchorValue === undefined);
             }
             if (_1_hasExistingAnchor) {
                 let _3_already;
                 _3_already = _2_anchorValue;
-                (_this).out = Native.__default.concat(_this.out, Native.__default.concat(" *", _3_already + "\n"));
+                (_this)._f8 = Native.__default.concat(_this._f8, Native.__default.concat(" *", _3_already + "\n"));
                 return;
             }
             if (Native.__default.isUint8Array(value)) {
                 let _4_hasName;
                 _4_hasName = false;
-                if (_this.dumpHasShared) {
+                if (_this._f4) {
                     let _out2;
-                    _out2 = (_this).m2(value);
-                    _4_hasName = _out2;
+                    _4_hasName =
+                        (_this).m2(value);
                 }
                 let _5_name;
                 _5_name = "";
                 if (_4_hasName) {
                     let _out3;
-                    _out3 = (_this).m3(value);
-                    _5_name = _out3;
+                    _5_name =
+                        (_this).m3(value);
                 }
                 let _6_binary;
                 let _out4;
-                _out4 = (_this).mm(value);
-                _6_binary = _out4;
+                _6_binary =
+                    (_this).mm(value);
                 if (_4_hasName) {
                     _6_binary = Native.__default.concat("&", Native.__default.concat(_5_name, " " + _6_binary));
                 }
-                (_this).out = Native.__default.concat(_this.out, Native.__default.concat(" ", _6_binary + "\n"));
+                (_this)._f8 = Native.__default.concat(_this._f8, Native.__default.concat(" ", _6_binary + "\n"));
                 return;
             }
             let _7_isArr;
-            _7_isArr = Native.__default.isArray(value);
+            _7_isArr = Array.isArray(value);
             let _8_hasName;
             _8_hasName = false;
-            if (_this.dumpHasShared) {
+            if (_this._f4) {
                 let _out5;
-                _out5 = (_this).m2(value);
-                _8_hasName = _out5;
+                _8_hasName =
+                    (_this).m2(value);
             }
             let _9_name;
             _9_name = "";
             if (_8_hasName) {
                 let _out6;
-                _out6 = (_this).m3(value);
-                _9_name = _out6;
+                _9_name =
+                    (_this).m3(value);
             }
             let _10_empty;
             let _out7;
-            _out7 = (_this).mn(value, _7_isArr);
-            _10_empty = _out7;
+            _10_empty =
+                (_this).mn(value, _7_isArr);
             if (_10_empty) {
                 let _11_literal;
                 if (_7_isArr) {
@@ -7338,83 +7286,83 @@ let Serializer = (function () {
                 if (_8_hasName) {
                     _11_literal = Native.__default.concat("&", Native.__default.concat(_9_name, " " + _11_literal));
                 }
-                (_this).out = Native.__default.concat(_this.out, Native.__default.concat(" ", _11_literal + "\n"));
+                (_this)._f8 = Native.__default.concat(_this._f8, Native.__default.concat(" ", _11_literal + "\n"));
                 return;
             }
             if (_8_hasName) {
-                (_this).out = Native.__default.concat(_this.out, Native.__default.concat(" &", _9_name + "\n"));
+                (_this)._f8 = Native.__default.concat(_this._f8, Native.__default.concat(" &", _9_name + "\n"));
             }
             else {
-                (_this).out = Native.__default.concat(_this.out, "\n");
+                (_this)._f8 = Native.__default.concat(_this._f8, "\n");
             }
             (_this).mo(value, _7_isArr, (indent) + (2));
             return;
         }
         mq(value) {
             let _this = this;
-            if ((!(Native.__default.isObject(value))) || (Native.__default.isNull(value))) {
+            if ((!(typeof value === "object" && value !== null)) || (value === null)) {
                 let _0_scalar;
                 _0_scalar = "";
-                if (Native.__default.isString(value)) {
+                if (typeof value === "string") {
                     let _1_stringValue;
                     _1_stringValue = value;
                     let _out0;
-                    _out0 = (_this).mh(_1_stringValue);
-                    _0_scalar = _out0;
+                    _0_scalar =
+                        (_this).mh(_1_stringValue);
                 }
                 else {
                     let _out1;
-                    _out1 = (_this).mk(value);
-                    _0_scalar = _out1;
+                    _0_scalar =
+                        (_this).mk(value);
                 }
-                (_this).out = Native.__default.concat(_this.out, _0_scalar + "\n");
+                (_this)._f8 = Native.__default.concat(_this._f8, _0_scalar + "\n");
                 return;
             }
             if (Native.__default.isUint8Array(value)) {
                 let _2_hasName;
                 _2_hasName = false;
-                if (_this.dumpHasShared) {
+                if (_this._f4) {
                     let _out2;
-                    _out2 = (_this).m2(value);
-                    _2_hasName = _out2;
+                    _2_hasName =
+                        (_this).m2(value);
                 }
                 let _3_name;
                 _3_name = "";
                 if (_2_hasName) {
                     let _out3;
-                    _out3 = (_this).m3(value);
-                    _3_name = _out3;
+                    _3_name =
+                        (_this).m3(value);
                 }
                 let _4_binary;
                 let _out4;
-                _out4 = (_this).mm(value);
-                _4_binary = _out4;
+                _4_binary =
+                    (_this).mm(value);
                 if (_2_hasName) {
                     _4_binary = Native.__default.concat("&", Native.__default.concat(_3_name, " " + _4_binary));
                 }
-                (_this).out = Native.__default.concat(_this.out, _4_binary + "\n");
+                (_this)._f8 = Native.__default.concat(_this._f8, _4_binary + "\n");
                 return;
             }
             let _5_isArr;
-            _5_isArr = Native.__default.isArray(value);
+            _5_isArr = Array.isArray(value);
             let _6_hasName;
             _6_hasName = false;
-            if (_this.dumpHasShared) {
+            if (_this._f4) {
                 let _out5;
-                _out5 = (_this).m2(value);
-                _6_hasName = _out5;
+                _6_hasName =
+                    (_this).m2(value);
             }
             let _7_name;
             _7_name = "";
             if (_6_hasName) {
                 let _out6;
-                _out6 = (_this).m3(value);
-                _7_name = _out6;
+                _7_name =
+                    (_this).m3(value);
             }
             let _8_empty;
             let _out7;
-            _out7 = (_this).mn(value, _5_isArr);
-            _8_empty = _out7;
+            _8_empty =
+                (_this).mn(value, _5_isArr);
             if (_8_empty) {
                 let _9_literal;
                 if (_5_isArr) {
@@ -7426,11 +7374,11 @@ let Serializer = (function () {
                 if (_6_hasName) {
                     _9_literal = Native.__default.concat("&", Native.__default.concat(_7_name, " " + _9_literal));
                 }
-                (_this).out = Native.__default.concat(_this.out, _9_literal + "\n");
+                (_this)._f8 = Native.__default.concat(_this._f8, _9_literal + "\n");
                 return;
             }
             if (_6_hasName) {
-                (_this).out = Native.__default.concat(_this.out, Native.__default.concat("&", _7_name + "\n"));
+                (_this)._f8 = Native.__default.concat(_this._f8, Native.__default.concat("&", _7_name + "\n"));
             }
             (_this).mo(value, _5_isArr, 0);
             return;
@@ -7438,41 +7386,41 @@ let Serializer = (function () {
         mr() {
             let _this = this;
             let result = "";
-            result = _this.out;
-            (_this).out = "";
+            result = _this._f8;
+            (_this)._f8 = "";
             if ((result.length) !== (0)) {
-                (_this).dumpFlattenSink = (_this.dumpFlattenSink) + (Native.__default.codeUnitAt(result, 0));
+                (_this)._f3 = (_this._f3) + (Native.__default.codeUnitAt(result, 0));
             }
-            (_this).dumpRefCounts = Native.__default.emptyMap;
-            (_this).dumpAnchors = Native.__default.emptyMap;
-            (_this).dumpKeyCache = Native.__default.emptyMap;
+            (_this)._f6 = Native.__default.emptyMap;
+            (_this)._f1 = Native.__default.emptyMap;
+            (_this)._f5 = Native.__default.emptyMap;
             return result;
         }
         Stringify(value) {
             let _this = this;
             let text = "";
             let _out0;
-            _out0 = Native.__default.mapCreate();
-            (_this).dumpKeyCache = _out0;
+            (_this)._f5 =
+                Native.__default.mapCreate();
             let _out1;
-            _out1 = Native.__default.mapCreate();
-            (_this).dumpRefCounts = _out1;
-            (_this).dumpDepth = 0;
-            (_this).dumpHasShared = false;
+            (_this)._f6 =
+                Native.__default.mapCreate();
+            (_this)._f2 = 0;
+            (_this)._f4 = false;
             (_this).m1(value);
-            if (!(_this.dumpHasShared)) {
-                (_this).dumpRefCounts = Native.__default.emptyMap;
+            if (!(_this._f4)) {
+                (_this)._f6 = Native.__default.emptyMap;
             }
             let _out2;
-            _out2 = Native.__default.mapCreate();
-            (_this).dumpAnchors = _out2;
-            (_this).dumpAnchorSeq = 0;
-            (_this).out = "";
-            (_this).dumpDepth = 0;
+            (_this)._f1 =
+                Native.__default.mapCreate();
+            (_this)._f0 = 0;
+            (_this)._f8 = "";
+            (_this)._f2 = 0;
             (_this).mq(value);
             let _out3;
-            _out3 = (_this).mr();
-            text = _out3;
+            text =
+                (_this).mr();
             return text;
         }
     };

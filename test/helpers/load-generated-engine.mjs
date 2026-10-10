@@ -5,7 +5,9 @@ const sourceUrl = new URL('../../src/dafny/generated/engine.js', import.meta.url
 const source = readFileSync(sourceUrl, 'utf8');
 const shape = JSON.parse(readFileSync(new URL('../../scripts/dafny-shape-manifest.json', import.meta.url), 'utf8'));
 const engineMethods = shape.methodRenames['DafnyCore.Engine'];
+const engineFields = shape.fieldRenames.Engine;
 if (!engineMethods) throw new Error('shape manifest does not contain the generated Engine method map');
+if (!engineFields) throw new Error('shape manifest does not contain the generated Engine field map');
 
 export function loadGeneratedEngine(overrides = {}) {
   const importLine = "import { Native } from '../native.ts';";
@@ -29,6 +31,10 @@ export function loadGeneratedEngine(overrides = {}) {
         throw new Error(`generated Engine method map is missing ${name}`);
       }
       return instance[generatedName].bind(instance);
+    },
+    setEngineField(instance, name, value) {
+      const generatedName = engineFields[name] ?? name;
+      instance[generatedName] = value;
     },
   };
 }
