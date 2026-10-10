@@ -79,7 +79,7 @@
     "gen:fixtures": "node --import tsx bench/fixtures/generate.ts",
     "gen:suite": "bash bench/yaml-test-suite/fetch.sh",
     "dafny:generate": "bash scripts/dafny-build.sh",
-    "dafny:verify:scanner": "node scripts/verify-dafny-scanner.cjs",
+    "dafny:verify:scanner": "node --test scripts/dafny-version.test.cjs && node scripts/verify-dafny-scanner.cjs",
     "dafny:check": "bash scripts/dafny-build.sh --check && node scripts/check-dafny-output.cjs --manifest scripts/dafny-output-guard.json && node --test scripts/dafny-output-guard.test.cjs scripts/dafny-shape-transform.test.cjs && node --import tsx --test test/generated-runtime.test.mjs test/dafny-quotes.generated.mjs test/dafny-block-scalars.generated.mjs test/dafny-documents.generated.mjs test/generated-boundary-mutations.test.mjs",
     "bench:speed": "node --expose-gc --import tsx bench/speed/parse.bench.ts && node --expose-gc --import tsx bench/speed/stringify.bench.ts",
     "bench:memory": "node --expose-gc --import tsx bench/memory/run.ts",

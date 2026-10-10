@@ -4,6 +4,7 @@ const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { mkdirSync, readFileSync, realpathSync, writeFileSync } = require('node:fs');
 const { dirname, join, resolve } = require('node:path');
+const { isPinnedDafnyVersion } = require('./dafny-version.cjs');
 
 const root = resolve(dirname(__filename), '..');
 const dafny = process.env.DAFNY || 'dafny';
@@ -286,7 +287,7 @@ function checkMutationLog(logPath, consoleLog, expectedSymbol) {
 try {
   mkdirSync(output, { recursive: true });
   const version = run(['--version']).trim();
-  if (!/(^|\s)4\.11\.0(?:\s|$)/.test(version)) throw new Error(`Dafny 4.11.0 required; got ${version}`);
+  if (!isPinnedDafnyVersion(version)) throw new Error(`Dafny 4.11.0 required; got ${version}`);
   const z3Version = run(['--version'], {}, z3).trim();
   if (!/^Z3 version 4\.16\.0\b/.test(z3Version)) throw new Error(`Z3 4.16.0 required; got ${z3Version}`);
   const z3Path = realpathSync(z3.includes('/') ? z3 : spawnSync('which', [z3], { encoding: 'utf8' }).stdout.trim());
