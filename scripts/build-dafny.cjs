@@ -34,6 +34,7 @@ const SOURCES = [
   'src/dafny/core/NativeParseComposition.dfy',
   'src/dafny/core/NativeParseTransport.dfy',
   'src/dafny/core/NativeErrorTextContracts.dfy',
+  'src/dafny/core/RawMarkContracts.dfy',
   'src/dafny/surfaces/NativeSurface.dfy',
 ];
 const OUTPUT = 'src/dafny/generated/engine.js';
@@ -49,6 +50,7 @@ const OMITTED = new Set([
   'NativeParseComposition',
   'NativeParseTransport',
   'NativeErrorTextContracts',
+  'RawMarkContracts',
 ]);
 const OMITTED_MODEL_MODULES = new Set([...OMITTED].filter(name =>
   !['_dafny', '_System', '_module', 'SurfaceHost'].includes(name)));

@@ -35,4 +35,12 @@ The three `define*Tag` helpers allocate plain `{ tagName, nodeKind }` records wi
 
 The checked source ledger is [`public-surface-contract-manifest.json`](../../scripts/public-surface-contract-manifest.json), including individual default aliases, helper fields, options, overloads, constructors, and properties. Its behavior summaries are not complete executable method postconditions or event traces; the ledger lists the remaining gaps. Existing tests cover ESM source export shapes and aliases (`test/compat.unit.ts:47-79`) plus representative option and stream cases. [`test/built-package.test.mjs`](../../test/built-package.test.mjs) exercises built ESM entries, the root CommonJS entry, and CDN IIFE. These tests do not establish complete compatibility or formal proof; end-to-end error translation, callback, and host-object obligations remain pending.
 
+The Dafny core also contains a closed `markFrom` event relation covering its
+ordered regex, global lookup, call, subtraction, and literal-definition events,
+including raw throw outcomes and partial literal effects. Its declarations and
+well-formedness are verified, but no executed `js-yaml` surface helper is
+attached. This model therefore does not establish runtime behavior or the
+complete error-conversion path; host authenticity, coercion, and heap-frame
+obligations remain open.
+
 `SurfaceOptions` is integrated with five routed selector/decision methods, six verified obligations, and ten rejected body mutations. The manifest records all 26 option-tranche constructs. The proofs are conditional on supplied JavaScript observations; they do not establish iterator effects, validation order, error identity, or parsing. `OwnRuleCode` is source-pinned, while the broad verifier selection emitted no verification condition for it. No complete public operation is proved.

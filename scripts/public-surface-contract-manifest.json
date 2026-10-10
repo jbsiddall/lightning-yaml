@@ -3192,8 +3192,8 @@
   },
   "verifiedSurfaceClaims": [],
   "localProofScope": {
-    "claim": "Eight scanner methods have local proof evidence only. Native normalization/parse flow contracts are attached, but the repository's exact-source Native proof gate is pending; neither constitutes a complete public-operation proof.",
-    "coverage": "See scripts/verify-dafny-scanner.cjs and scripts/verify-dafny-native.cjs. Scanner caller preconditions, host-profile authenticity, raw host binding, and transitive Engine/Writer semantics remain open. The conditional budget model covers default, Number, and Boolean outcomes; host numeric representation, string/reference conversion, concatenation allocation failures, and exact BigInt/Symbol throws remain open."
+    "claim": "Eight scanner methods have local proof evidence only. The js-yaml markFrom event model has nine declaration well-formedness results but no correctness rows or executed helper. Native normalization/parse flow contracts are attached, but the repository's exact-source Native proof gate is pending; none of these constitutes a complete public-operation proof.",
+    "coverage": "See scripts/verify-dafny-scanner.cjs, scripts/verify-dafny-native.cjs, and src/dafny/Helpers-Errors.audit.md. Scanner caller preconditions, mark helper routing and host authenticity, raw host binding, and transitive Engine/Writer semantics remain open. The conditional budget model covers default, Number, and Boolean outcomes; host numeric representation, string/reference conversion, concatenation allocation failures, and exact BigInt/Symbol throws remain open."
   },
   "conditionalNativeAdapterFlow": {
     "status": "attached-proof-gate-pending",

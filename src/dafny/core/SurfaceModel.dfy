@@ -18,6 +18,9 @@ module SurfaceModel {
   type Heap = map<nat, ObjectState>
   datatype Rule = OwnRule(code: nat) | MissingRule | InheritedRule
   datatype Operation =
+    ReadGlobal(bindingName: string) |
+    SubtractOne(rawOperand: Handle) |
+    DefineLiteralData(literal: Handle, literalKey: string, literalValue: Handle) |
     ReadProperty(target: Handle, key: string) |
     OwnKeys(target: Handle, keys: seq<string>) |
     LookupRule(surface: Surface, key: string, rule: Rule) |

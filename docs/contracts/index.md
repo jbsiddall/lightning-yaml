@@ -16,6 +16,7 @@ No complete public operation is formally proved.
 |---|---|---|
 | Option decisions | Five routed policy bodies, conditional on supplied host observations | Raw argument/classifier and physical policy-call correspondence |
 | Source scanners | Eight selected local boundary methods | Full grammar, caller preconditions, failures, graph and state effects |
+| js-yaml mark model | Closed ordered `markFrom` event definition; nine declarations pass well-formedness checks | No method-correctness proof, executed helper, host correspondence, or complete error-conversion proof |
 | Native adapter flow | Conditional ordered-trace contracts cover parse/cleanup, stringify, error text, and default/Number/Boolean budget outcomes; current exact-source body/dependency replay is pending | Authentic public-entry witnesses, profile refinement, raw host binding/heap correspondence, String/reference conversion, exact BigInt/Symbol TypeErrors, and parser/writer semantics |
 | Compatibility facades | Shared small policy and identity helpers | Whole validation, reviver, document, error and iterator body proofs |
 | Complete YAML parsing and writing | None; definitions only | Full accepted grammar, output, error and effect relations for the actual parser and writer |
