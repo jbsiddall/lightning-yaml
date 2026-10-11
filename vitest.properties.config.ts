@@ -21,6 +21,7 @@ export default mergeConfig(
       coverage: {
         provider: "v8",
         include: ["src/**/*.ts"],
+        exclude: ["**/.scratch/**", "**/*.d.ts"],
         reporter: ["text", "html", "json-summary", "lcov"],
         reportsDirectory: "results/js-yaml-properties/coverage",
         reportOnFailure: true,

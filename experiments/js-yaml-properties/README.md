@@ -12,6 +12,7 @@ From the repository root:
 pnpm install --frozen-lockfile --strict-peer-dependencies
 pnpm --dir experiments/js-yaml-properties install --frozen-lockfile --strict-peer-dependencies
 pnpm gen:suite
+pnpm gen:yaml-cst-candidate
 pnpm test:properties
 pnpm test:coverage
 pnpm audit:js-yaml:full

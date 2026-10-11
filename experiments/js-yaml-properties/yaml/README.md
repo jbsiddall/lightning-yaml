@@ -34,7 +34,7 @@ Missing APIs on `main` are reported separately from the draft's behavior.
 
 The fast-check tests exercise a bounded mapping grammar and source-aware regression
 fixtures. The audit adds the pinned corpus and a larger generated schedule.
-Worker deadlines turn nontermination into a recorded failure. Reports live in
+Worker deadlines record time-budget failures; they do not prove nontermination. Reports live in
 `results/yaml-cst-properties/` and are included in the CI artifact.
 No result proves compatibility for every input or integration with the language server.
 
@@ -70,6 +70,7 @@ From the repository root, install the root and isolated dependencies, then run:
 ```sh
 pnpm --dir experiments/js-yaml-properties install --frozen-lockfile --strict-peer-dependencies
 pnpm gen:suite
+pnpm gen:yaml-cst-candidate
 pnpm test:properties
 pnpm test:coverage
 pnpm audit:yaml:full

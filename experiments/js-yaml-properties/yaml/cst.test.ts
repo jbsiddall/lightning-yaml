@@ -4,6 +4,7 @@ import { describe, expect } from "vitest";
 import {
   evaluateCST,
   firstDifference,
+  identityTopology,
   MAIN_SHIM_MISSING_CAPABILITIES,
 } from "./cst.js";
 
@@ -82,6 +83,20 @@ describe("yaml CST pipeline comparison", () => {
         { offset: 1, source: "x", comment: "# d" },
       ),
     ).toContain("comment");
+  });
+
+  test("detects shared versus duplicated references in both CST and AST snapshots", () => {
+    const shared = { x: 1 };
+    const withSharing = { a: shared, b: shared };
+    const duplicated = { a: { x: 1 }, b: { x: 1 } };
+    expect(firstDifference(duplicated, withSharing)).toBeDefined();
+    expect(firstDifference(withSharing, duplicated)).toBeDefined();
+    expect(identityTopology(duplicated)).not.toEqual(
+      identityTopology(withSharing),
+    );
+    expect(
+      firstDifference(withSharing, { a: shared, b: shared }),
+    ).toBeUndefined();
   });
 
   test("records node range and diagnostics gaps as their own CST layers", async () => {

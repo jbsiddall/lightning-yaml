@@ -74,7 +74,6 @@ const toStringKeys = [
   "trueStr",
   "verifyAliasOrder",
 ] as const satisfies readonly (keyof ToStringOptions)[];
-// Compile-time checks guard the census against changes in the pinned declaration.
 const _parseExact: Same<keyof ParseOptions, (typeof parseKeys)[number]> = true;
 const _docExact: Same<keyof DocumentOptions, (typeof documentKeys)[number]> =
   true;

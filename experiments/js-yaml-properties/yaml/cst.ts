@@ -65,11 +65,13 @@ export interface CSTOutcome {
     positions: Array<{ offset: number; line: number; col: number }>;
   };
   tokens?: unknown[];
+  tokenIdentity?: unknown[];
   tokenTypes?: string[];
   reconstructed?: string;
   reconstructionEqual?: boolean;
   documents?: unknown[];
   nodes?: unknown[];
+  nodeIdentity?: unknown[];
   diagnostics?: unknown;
   values?: unknown[];
   mainShimMissingCapabilities: string[];
@@ -211,6 +213,7 @@ function nodesSnapshot(doc: any, api: any): unknown {
       "source",
       "type",
       "style",
+      "flow",
       "tag",
       "anchor",
       "commentBefore",
@@ -238,6 +241,61 @@ function nodesSnapshot(doc: any, api: any): unknown {
     return out;
   }
   return visit(doc);
+}
+
+export function identityTopology(root: unknown): unknown[] {
+  const known = new WeakMap<object, { id: number; firstPath: string }>();
+  const occurrences: Array<{ path: string; id: number; backref?: string }> = [];
+  let nextId = 0;
+  function visit(value: any, path: string): void {
+    if (value === null || typeof value !== "object") return;
+    const prior = known.get(value);
+    if (prior) {
+      occurrences.push({ path, id: prior.id, backref: prior.firstPath });
+      return;
+    }
+    const record = { id: nextId++, firstPath: path };
+    known.set(value, record);
+    occurrences.push({ path, id: record.id });
+    if (Array.isArray(value))
+      value.forEach((item, index) => visit(item, `${path}[${index}]`));
+    else
+      for (const key of Object.keys(value).sort()) {
+        if (key !== "_source") visit(value[key], `${path}.${key}`);
+      }
+  }
+  visit(root, "$root");
+  return occurrences;
+}
+
+function nodeIdentityTopology(documents: any[], api: any): unknown[] {
+  return documents.map((doc) => {
+    const known = new WeakMap<object, { id: number; firstPath: string }>();
+    const occurrences: Array<{ path: string; id: number; backref?: string }> =
+      [];
+    let nextId = 0;
+    function visit(value: any, path: string): void {
+      if (value === null || typeof value !== "object") return;
+      const prior = known.get(value);
+      if (prior) {
+        occurrences.push({ path, id: prior.id, backref: prior.firstPath });
+        return;
+      }
+      const record = { id: nextId++, firstPath: path };
+      known.set(value, record);
+      occurrences.push({ path, id: record.id });
+      if (api.isMap(value) || api.isSeq(value))
+        value.items.forEach((item: unknown, index: number) =>
+          visit(item, `${path}.items[${index}]`),
+        );
+      else if (api.isPair(value)) {
+        visit(value.key, `${path}.key`);
+        visit(value.value, `${path}.value`);
+      }
+    }
+    visit(doc.contents, "$root");
+    return occurrences;
+  });
 }
 
 export async function evaluateCST(source: string): Promise<CSTOutcome> {
@@ -272,6 +330,13 @@ export async function evaluateCST(source: string): Promise<CSTOutcome> {
     ] as const) {
       const left = candidate[category],
         right = reference[category];
+      const diff = firstDifference(left, right, `$.${category}`);
+      if (diff) differences.push({ category, path: diff });
+    }
+    for (const [category, left, right] of [
+      ["token-identity", candidate.tokenIdentity, reference.tokenIdentity],
+      ["node-identity", candidate.nodeIdentity, reference.nodeIdentity],
+    ] as const) {
       const diff = firstDifference(left, right, `$.${category}`);
       if (diff) differences.push({ category, path: diff });
     }
@@ -395,6 +460,8 @@ async function runPipeline(
     phase: undefined,
     tokens: tokens.map((t) => normalize(t)),
     tokenTypes: tokens.map((t) => t.type),
+    tokenIdentity: identityTopology(tokens),
+    nodeIdentity: nodeIdentityTopology(documents, api),
     reconstructed,
     reconstructionEqual: reconstructed === source,
     documents: docs,
@@ -425,6 +492,7 @@ export function firstDifference(
   right: unknown,
   path = "$",
   seen = new WeakMap<object, object>(),
+  reverseSeen = new WeakMap<object, object>(),
 ): string | undefined {
   if (Object.is(left, right)) return undefined;
   if (
@@ -437,13 +505,22 @@ export function firstDifference(
     return path;
   const prior = seen.get(left);
   if (prior) return prior === right ? undefined : path;
+  const reversePrior = reverseSeen.get(right);
+  if (reversePrior) return reversePrior === left ? undefined : path;
   seen.set(left, right);
+  reverseSeen.set(right, left);
   const a = left as Record<string, any>,
     b = right as Record<string, any>;
   const keys = [...new Set([...Object.keys(a), ...Object.keys(b)])].sort();
   for (const key of keys) {
     if (!(key in a) || !(key in b)) return `${path}.${key}`;
-    const diff = firstDifference(a[key], b[key], `${path}.${key}`, seen);
+    const diff = firstDifference(
+      a[key],
+      b[key],
+      `${path}.${key}`,
+      seen,
+      reverseSeen,
+    );
     if (diff) return diff;
   }
   return undefined;

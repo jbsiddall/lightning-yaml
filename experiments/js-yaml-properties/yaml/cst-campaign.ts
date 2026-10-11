@@ -142,8 +142,10 @@ function summarize(
   const categories = [
     "acceptance",
     "tokens",
+    "token-identity",
     "documents",
     "nodes",
+    "node-identity",
     "diagnostics",
     "values",
     "pipeline-phase",
@@ -161,7 +163,13 @@ function summarize(
     if (category === "pipeline-phase" || category === "pipeline-error")
       return candidate.status === "error" || reference.status === "error";
     const field =
-      category === "reconstruction-equality" ? "reconstructionEqual" : category;
+      (
+        {
+          "token-identity": "tokenIdentity",
+          "node-identity": "nodeIdentity",
+          "reconstruction-equality": "reconstructionEqual",
+        } as Record<string, string>
+      )[category] ?? category;
     return (
       candidate[field as keyof CSTOutcome] !== undefined &&
       reference[field as keyof typeof reference] !== undefined
@@ -332,6 +340,16 @@ async function main() {
               .update(JSON.stringify(outcome.reference.tokens))
               .digest("hex")
           : undefined,
+        candidateTokenIdentitySha256: outcome.tokenIdentity
+          ? createHash("sha256")
+              .update(JSON.stringify(outcome.tokenIdentity))
+              .digest("hex")
+          : undefined,
+        referenceTokenIdentitySha256: outcome.reference?.tokenIdentity
+          ? createHash("sha256")
+              .update(JSON.stringify(outcome.reference.tokenIdentity))
+              .digest("hex")
+          : undefined,
         candidateDocumentsSha256: outcome.documents
           ? createHash("sha256")
               .update(JSON.stringify(outcome.documents))
@@ -350,6 +368,16 @@ async function main() {
         referenceNodesSha256: outcome.reference?.nodes
           ? createHash("sha256")
               .update(JSON.stringify(outcome.reference.nodes))
+              .digest("hex")
+          : undefined,
+        candidateNodeIdentitySha256: outcome.nodeIdentity
+          ? createHash("sha256")
+              .update(JSON.stringify(outcome.nodeIdentity))
+              .digest("hex")
+          : undefined,
+        referenceNodeIdentitySha256: outcome.reference?.nodeIdentity
+          ? createHash("sha256")
+              .update(JSON.stringify(outcome.reference.nodeIdentity))
               .digest("hex")
           : undefined,
         candidateDiagnosticsSha256: outcome.diagnostics

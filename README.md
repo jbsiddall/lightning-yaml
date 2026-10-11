@@ -204,7 +204,8 @@ bump; CI checks for it.
 
 Install the isolated property-test dependencies with
 `pnpm --dir experiments/js-yaml-properties install --frozen-lockfile`.
-Run `pnpm test:properties` for the harness tests and `pnpm test:coverage` for
+Run `pnpm gen:yaml-cst-candidate` to prepare the pinned draft CST source,
+then `pnpm test:properties` for the harness tests and `pnpm test:coverage` for
 existing Vitest tests plus property tests, an HTML Vitest report, and V8 coverage
 of every production `src/**/*.ts` file. Reports are written to
 `results/js-yaml-properties/`; CI also uploads them as an artifact.
