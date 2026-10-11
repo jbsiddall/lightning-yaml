@@ -149,5 +149,16 @@ export function singleOptionWitnesses(): Array<{
     result.push({ operation: "dump", options: { values: {}, callback } });
   for (const callback of ["identity", "mutate", "throw"] as const)
     result.push({ operation: "dump", options: { values: {}, callback } });
+  add("dump", "scalarStyleRules", undefined, true);
+  for (const scalarStyleRules of [
+    "empty",
+    "default",
+    "double-quoted-values",
+    "throw",
+  ] as const)
+    result.push({
+      operation: "dump",
+      options: { values: {}, scalarStyleRules },
+    });
   return result;
 }

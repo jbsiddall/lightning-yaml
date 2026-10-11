@@ -75,6 +75,23 @@ export function behaviorWitnesses(): CaseDescriptor[] {
       categories: ["option-behavior", "format-and-reference"],
     }),
   );
+  for (const [fixture, value] of [
+    ["simple", { value: "hello" }],
+    ["multiline", { value: "line one\nline two\n" }],
+  ] as const)
+    for (const scalarStyleRules of [
+      "default",
+      "double-quoted-values",
+      "throw",
+    ] as const)
+      cases.push({
+        id: `behavior-scalar-style-${fixture}-${scalarStyleRules}`,
+        operation: "dump",
+        graph: encodeGraph(value),
+        options: { values: {}, scalarStyleRules },
+        source: "option-behavior/scalarStyleRules",
+        categories: ["option-behavior", "scalar-style-rules", fixture],
+      });
   for (const skipInvalid of [false, true])
     cases.push({
       id: `behavior-invalid-${skipInvalid}`,

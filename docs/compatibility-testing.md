@@ -1,8 +1,9 @@
 # js-yaml compatibility testing
 
 This branch adds tests around the implementation inherited from `origin/main`.
-The parser and compatibility shim are unchanged. The reference is pinned to
-js-yaml **5.2.1**, whose API differs from v4.
+The parser and compatibility shim are unchanged. The current reference is
+pinned to js-yaml **5.4.3**, whose API differs from v4. The recorded
+2026-10-11 report below is a historical run against js-yaml 5.2.1.
 
 ## Run
 
@@ -15,14 +16,14 @@ pnpm test:properties
 pnpm test:coverage
 ```
 
-<!-- js-yaml:5.2.1 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
+<!-- js-yaml:5.4.3 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
 
 The compatibility harness is a private workspace package with pinned Zod 3 and
 fast-check 3 dependencies for `zod-fast-check`; the application keeps root Zod 4.
 `@fast-check/vitest` runs generated properties, and `ZodFastCheck().inputOf()`
 supplies scalar arbitraries used in the campaign.
 
-<!-- js-yaml:5.2.1 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
+<!-- js-yaml:5.4.3 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
 
 The full audit uses seed `20261011`, generates 20,000 YAML-text trials and
 20,000 value-graph trials, adds the pinned corpus and effect-triggering fixtures,
@@ -92,6 +93,14 @@ This is **option-name coverage**, not proof that all behavior of an option is co
 | noRefs             | Undefined/false/true, shared DAG                               |
 | flowLevel          | Undefined/negative/zero/ordinary values and nested collections |
 | transform          | Identity, contents mutation and controlled exception           |
+| scalarStyleRules   | Omitted/undefined, empty/default rules, activated quoted output and controlled exception |
+
+`scalarStyleRules` recipes store names and fixed behaviors, not functions.
+Replay rebuilds a bounded ordered callback array and records its calls. The
+activated rule targets scalar values in simple and multiline fixtures; arbitrary
+or recursive callback behavior is not sampled. The runtime export inventory
+also reports candidate-only and reference-only names separately from option
+behavior and declaration checks.
 
 ## Interpret the reports
 
@@ -153,8 +162,9 @@ They are independent measurements.
 
 ## Recorded run
 
-[Measured results for 2026-10-11](compatibility/reports/2026-10-11/js-yaml.md) include the initial
-coverage percentages and the separate corpus, generated-input and option-matrix gaps.
+[Measured results for 2026-10-11](compatibility/reports/2026-10-11/js-yaml.md) are a
+historical js-yaml 5.2.1 run; they include the initial coverage percentages and
+the separate corpus, generated-input and option-matrix gaps.
 
 ## yaml compatibility campaign
 
