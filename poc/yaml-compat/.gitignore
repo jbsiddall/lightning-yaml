@@ -1,0 +1,3 @@
+# Large generated fixtures (>500 KB) — regenerate with bench/corpus.ts
+bench/corpus/large-block.yaml
+bench/corpus/json-records-large.yaml
