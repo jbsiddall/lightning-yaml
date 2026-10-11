@@ -486,3 +486,29 @@ test("js-yaml-compat.dump throws on skipInvalid at either value (we neither drop
   throws(() => dump(DUMP_VALUE, { skipInvalid: false }), (err: unknown) => err instanceof YAMLException);
   throws(() => dump(DUMP_VALUE, { skipInvalid: true }), (err: unknown) => err instanceof YAMLException);
 });
+
+// --------------------------------------------------------------------------
+// Custom collections (Set/Map) revival support in yaml-compat parse reviver.
+// --------------------------------------------------------------------------
+
+test("yaml-compat.parse supports JSON-style revival on !!set collections (traversal, deletion, and mutation)", () => {
+  const setInput = "--- !!set\n? Mark McGwire\n? Sammy Sosa\n";
+  const res = parse(setInput, (key, value) => {
+    if (key === "Sammy Sosa") return undefined; // delete Sammy
+    if (key === "Mark McGwire") return "McGwire"; // mutate Mark
+    return value;
+  });
+  ok(res instanceof Set, "returns a Set");
+  deepStrictEqual(Array.from(res as Set<any>), ["McGwire"]);
+});
+
+test("yaml-compat.parse supports JSON-style revival on !!omap collections (traversal, deletion, and mutation)", () => {
+  const omapInput = "--- !!omap\n- Mark McGwire: 65\n- Sammy Sosa: 63\n";
+  const res = parse(omapInput, (key, value) => {
+    if (key === "Sammy Sosa") return undefined; // delete Sammy
+    if (key === "Mark McGwire") return 100; // mutate Mark
+    return value;
+  });
+  ok(res instanceof Map, "returns a Map");
+  deepStrictEqual(Array.from((res as Map<any, any>).entries()), [["Mark McGwire", 100]]);
+});
