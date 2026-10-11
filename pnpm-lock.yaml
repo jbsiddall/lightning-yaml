@@ -27,7 +27,7 @@ importers:
         specifier: ^0.28.1
         version: 0.28.1
       js-yaml:
-        specifier: ^5.2.1
+        specifier: 5.2.1
         version: 5.2.1
       mitata:
         specifier: ^1.0.34
@@ -48,11 +48,26 @@ importers:
         specifier: ^4.1.10
         version: 4.1.11(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(vite@8.1.4(@types/node@22.20.1)(esbuild@0.28.1)(tsx@4.23.0)(yaml@2.9.0))
       yaml:
-        specifier: ^2.9.0
+        specifier: 2.9.0
         version: 2.9.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
+
+  test/compatibility:
+    dependencies:
+      '@fast-check/vitest':
+        specifier: 0.5.0
+        version: 0.5.0(vitest@4.1.11)
+      fast-check:
+        specifier: 3.23.2
+        version: 3.23.2
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+      zod-fast-check:
+        specifier: 0.10.1
+        version: 0.10.1(fast-check@3.23.2)(zod@3.25.76)
 
 packages:
 
@@ -462,6 +477,11 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fast-check/vitest@0.5.0':
+    resolution: {integrity: sha512-Kgbj2smuq1P4OhGKuPATs5i2fAxNmGbJ/zSmTrzWhQSLUrHREbKWgv9WGbNUOXcx77q6joLVMmTygyXuwP2Bog==}
+    peerDependencies:
+      vitest: ^4.1.0 || ^5.0.0
 
   '@inquirer/external-editor@1.0.3':
     resolution: {integrity: sha512-RWbSrDiYmO4LbejWY7ttpxczuwQyZLBUyygsA9Nsv95hpzUWwnNTVQmAq3xuh7vNwCp07UTmE5i11XAEExx4RA==}
@@ -955,6 +975,10 @@ packages:
   extendable-error@0.1.7:
     resolution: {integrity: sha512-UOiS2in6/Q0FK0R0q6UY9vYpQ21mr/Qn1KOnte7vsACuNJf514WvCCUHSRCPcgjPT2bAhNIJdlE6bVap1GKmeg==}
 
+  fast-check@3.23.2:
+    resolution: {integrity: sha512-h5+1OzzfCC3Ef7VbtKdcv7zsstUQwUDlYpUTvjeUsJAssPgLn7QzbboPtL5ro04Mq0rPOsMzl7q5hIbRs2wD1A==}
+    engines: {node: '>=8.0.0'}
+
   fast-glob@3.3.3:
     resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
     engines: {node: '>=8.6.0'}
@@ -1335,6 +1359,9 @@ packages:
     engines: {node: '>=10.13.0'}
     hasBin: true
 
+  pure-rand@6.1.0:
+    resolution: {integrity: sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==}
+
   quansync@0.2.11:
     resolution: {integrity: sha512-AifT7QEbW9Nri4tAwR5M/uzpBuqfZf+zwaEM/QkzEjj7NBuFD2rBuy0K3dE+8wltbezDV7JMA0WfnCPYRSYbXA==}
 
@@ -1631,6 +1658,15 @@ packages:
     resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
     engines: {node: '>= 14.6'}
     hasBin: true
+
+  zod-fast-check@0.10.1:
+    resolution: {integrity: sha512-P+rqsg//CQZSFaG61QNRdnrDn8ARTxoMi4P0/GqRvyBjIiVXQCHB6R8yqkAwQNNSFxMD9cdDoPtOZRBe0rfwNg==}
+    peerDependencies:
+      fast-check: '>2.23.0 <4.0.0'
+      zod: ^3.18.0
+
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
@@ -1983,6 +2019,11 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.1':
     optional: true
+
+  '@fast-check/vitest@0.5.0(vitest@4.1.11)':
+    dependencies:
+      fast-check: 3.23.2
+      vitest: 4.1.11(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(vite@8.1.4(@types/node@22.20.1)(esbuild@0.28.1)(tsx@4.23.0)(yaml@2.9.0))
 
   '@inquirer/external-editor@1.0.3(@types/node@22.20.1)':
     dependencies:
@@ -2410,6 +2451,10 @@ snapshots:
 
   extendable-error@0.1.7: {}
 
+  fast-check@3.23.2:
+    dependencies:
+      pure-rand: 6.1.0
+
   fast-glob@3.3.3:
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -2714,6 +2759,8 @@ snapshots:
 
   prettier@2.8.8: {}
 
+  pure-rand@6.1.0: {}
+
   quansync@0.2.11: {}
 
   queue-microtask@1.2.3: {}
@@ -2984,5 +3031,12 @@ snapshots:
       stackback: 0.0.2
 
   yaml@2.9.0: {}
+
+  zod-fast-check@0.10.1(fast-check@3.23.2)(zod@3.25.76):
+    dependencies:
+      fast-check: 3.23.2
+      zod: 3.25.76
+
+  zod@3.25.76: {}
 
   zod@4.4.3: {}
