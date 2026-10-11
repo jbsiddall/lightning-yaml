@@ -16,7 +16,7 @@ implementing YAML 1.2, passing ~97.6% (364/373) of the official
 compatibility shims for common `yaml` and `js-yaml` calls, ESM + CJS,
 TypeScript types, and **zero runtime dependencies**. See the module references
 for the supported calls and current gaps.
-<!-- js-yaml:5.2.1 yaml:2.9.0 ly:6598b78 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:6598b78 -->
 
 **Two goals, in priority order:** (1) full YAML 1.2 spec compliance, then
 (2) speed and memory within reach of native `JSON.parse`/`JSON.stringify`.
@@ -145,7 +145,7 @@ import { parse, stringify } from 'lightning-yaml/yaml';
 > ([js-yaml](https://lightning-yaml.dev/api/js-yaml-compat/readme/#option-support-matrix),
 > [yaml](https://lightning-yaml.dev/api/yaml-compat/readme/#option-support-matrix))
 > lists which options are easy or hard to support next.
-<!-- js-yaml:5.2.1 yaml:2.9.0 ly:6598b78 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:6598b78 -->
 
 ## Project priorities
 
@@ -210,11 +210,12 @@ Vitest report, and V8 coverage of every production `src/**/*.ts` file. Reports
 are written to `results/compatibility/`; CI uploads them as an artifact.
 
 Run `pnpm gen:suite` and `pnpm audit:js-yaml:full` for the deterministic
-js-yaml 5.2.1 comparison campaign. It compares parsed JavaScript values, types
+js-yaml 5.4.3 comparison campaign. It compares parsed JavaScript values, types
 and reference sharing, and reports stringify byte equality separately from
 semantic round-trip equality. The finite boolean/quote-style matrix is enumerated;
 other options, callbacks and YAML inputs are sampled. The audit records existing
 compatibility gaps; `pnpm audit:js-yaml:strict` makes gaps fail the command.
+<!-- js-yaml:5.4.3 ly:5caa2c8 -->
 Run `pnpm audit:yaml:full` for the separate yaml 2.9.0 campaign, including
 `parse`, `stringify`, document conversions, callbacks and option witnesses.
 Document AST and API differences are reported separately from converted values.
@@ -264,9 +265,9 @@ here, treat it as a bug and
   to `{a: 2}`.
 - **Merge keys (`<<`) are read as an ordinary key, not merged.** `<<: *anchor`
   gives you a literal `"<<"` string key rather than merging the aliased map in.
-  The installed js-yaml 5.2.1 and `yaml` 2.9.0 defaults also leave it literal.
+  The installed js-yaml 5.4.3 and `yaml` 2.9.0 defaults also leave it literal.
   It's neither expanded nor rejected today.
-  <!-- js-yaml:5.2.1 yaml:2.9.0 ly:67d2e0b -->
+  <!-- js-yaml:5.4.3 yaml:2.9.0 ly:67d2e0b -->
 - **Compat options that aren't implemented yet throw.** The
   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
   (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we

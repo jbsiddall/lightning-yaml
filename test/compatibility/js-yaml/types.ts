@@ -18,6 +18,7 @@ export interface OptionRecipe {
   undefinedKeys?: string[];
   schema?: SchemaRecipe;
   callback?: "identity" | "mutate" | "throw" | "sort-asc" | "sort-desc";
+  scalarStyleRules?: "empty" | "default" | "double-quoted-values" | "throw";
   legacy?: boolean;
 }
 export interface CaseDescriptor {

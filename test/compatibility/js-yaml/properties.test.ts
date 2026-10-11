@@ -69,6 +69,59 @@ describe("differential property harness", () => {
     expect(row.candidate.status).toBe("error");
     expect(row.differences.map((x) => x.category)).toContain("acceptance");
   });
+  test("scalar style callbacks are replayable and expose the reference formatting effect", () => {
+    const descriptor: CaseDescriptor = {
+      id: "scalar-style-replay",
+      operation: "dump",
+      graph: encodeGraph({ value: "hello" }),
+      options: { values: {}, scalarStyleRules: "double-quoted-values" },
+      source: "sentinel",
+      categories: ["sentinel"],
+    };
+    const replayed = JSON.parse(JSON.stringify(descriptor)) as CaseDescriptor;
+    const row = evaluate(replayed);
+    const again = evaluate(replayed);
+    expect(row.reference.status).toBe("success");
+    expect(row.reference.text).toBe('value: "hello"\n');
+    expect(row.reference.trace).toEqual(again.reference.trace);
+    expect(row.reference.trace).toContainEqual([
+      "scalar-style-rule",
+      0,
+      false,
+      "scalar",
+      "hello",
+      1,
+    ]);
+    expect(row.reference.trace).toContainEqual([
+      "scalar-style-rule",
+      1,
+      false,
+      "scalar",
+      "hello",
+      3,
+    ]);
+    expect(row.candidate.status).toBe("error");
+    expect(row.differences.map((difference) => difference.category)).toContain(
+      "acceptance",
+    );
+  });
+  test("empty scalar style rules and explicit undefined remain distinct", () => {
+    const base = {
+      id: "scalar-style-distinction",
+      operation: "dump" as const,
+      graph: encodeGraph({ value: "hello" }),
+      source: "sentinel",
+      categories: ["sentinel"],
+    };
+    const empty = evaluate({ ...base, options: { values: {}, scalarStyleRules: "empty" } });
+    const omitted = evaluate({ ...base, options: { values: {} } });
+    const explicit = evaluate({ ...base, options: { values: {}, undefinedKeys: ["scalarStyleRules"] } });
+    expect(empty.reference.status).toBe("success");
+    expect(omitted.reference.text).toBe("value: hello\n");
+    expect(explicit.reference.text).toBe(omitted.reference.text);
+    expect(empty.reference.trace).toEqual([]);
+    expect(explicit.reference.trace).toEqual(omitted.reference.trace);
+  });
   test("mutated sharing topology is detected", () => {
     const shared = { v: 1 };
     expect(

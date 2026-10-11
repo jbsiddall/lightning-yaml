@@ -3,6 +3,10 @@ import * as candidate from "../../../src/js-yaml-compat.ts";
 import type { DumpOptions, LoadOptions } from "js-yaml";
 import type { OptionRecipe, SchemaRecipe } from "./types.js";
 
+type ScalarStyleRule =
+  (typeof real.DEFAULT_SCALAR_STYLE_RULES)[keyof typeof real.DEFAULT_SCALAR_STYLE_RULES];
+type ScalarLayout = Parameters<ScalarStyleRule>[0];
+
 export const loadKeys = [
   "filename",
   "schema",
@@ -29,6 +33,7 @@ export const dumpKeys = [
   "noRefs",
   "flowLevel",
   "transform",
+  "scalarStyleRules",
 ] as const;
 export const legacyKeys = [
   "listener",
@@ -120,6 +125,55 @@ export function materializeOptions(
         if (recipe.callback === "mutate" && docs[0]) docs[0].contents = null;
       };
   }
+  if (recipe.scalarStyleRules !== undefined) {
+    const record = (layout: ScalarLayout, index: number) => {
+      trace.push([
+        "scalar-style-rule",
+        index,
+        layout.isKey,
+        layout.node.kind,
+        layout.node.value,
+        layout.style,
+      ]);
+    };
+    switch (recipe.scalarStyleRules) {
+      case "empty":
+        out.scalarStyleRules = [];
+        break;
+      case "default":
+        out.scalarStyleRules = Object.values(real.DEFAULT_SCALAR_STYLE_RULES).map(
+          (rule, index) => (layout: Parameters<typeof rule>[0]) => {
+            rule(layout);
+            record(layout, index);
+          },
+        );
+        break;
+      case "double-quoted-values":
+        out.scalarStyleRules = [
+          (layout: ScalarLayout) => {
+            record(layout, 0);
+            if (!layout.isKey && layout.node.kind === "scalar")
+              layout.style = real.SCALAR_STYLE.DOUBLE_QUOTED;
+          },
+          (layout: ScalarLayout) => {
+            record(layout, 1);
+          },
+        ];
+        break;
+      case "throw":
+        out.scalarStyleRules = [
+          (layout: ScalarLayout) => {
+            record(layout, 0);
+            throw new Error("scalar style rule sentinel");
+          },
+        ];
+        break;
+      default:
+        throw new Error(
+          `Unknown scalarStyleRules recipe: ${String(recipe.scalarStyleRules)}`,
+        );
+    }
+  }
   if (recipe.legacy) {
     out.listener = () => trace.push(["listener"]);
     out.onWarning = () => trace.push(["onWarning"]);
@@ -132,6 +186,10 @@ export function materializeOptions(
   return out;
 }
 export function inventory() {
+  const referenceExports = Object.keys(real).sort();
+  const candidateExports = Object.keys(candidate).sort();
+  const candidateExportSet = new Set(candidateExports);
+  const referenceExportSet = new Set(referenceExports);
   const runtimeVerified =
     typeof real.load === "function" &&
     typeof real.loadAll === "function" &&
@@ -153,6 +211,12 @@ export function inventory() {
     runtimeVerified: probePassed,
     runtimeDefaultOptionObjects:
       "js-yaml v5 exposes no DEFAULT_OPTIONS object; the runtime default load/dump behavior is probed",
+    runtimeExports: {
+      reference: referenceExports,
+      candidate: candidateExports,
+      candidateMissing: referenceExports.filter((name) => !candidateExportSet.has(name)),
+      candidateExtra: candidateExports.filter((name) => !referenceExportSet.has(name)),
+    },
   };
 }
 
@@ -165,6 +229,7 @@ export function optionKeys(recipe: OptionRecipe): string[] {
       ...(recipe.callback
         ? [recipe.callback.startsWith("sort-") ? "sortKeys" : "transform"]
         : []),
+      ...(recipe.scalarStyleRules !== undefined ? ["scalarStyleRules"] : []),
       ...(recipe.legacy ? [...legacyKeys] : []),
     ]),
   ].sort();

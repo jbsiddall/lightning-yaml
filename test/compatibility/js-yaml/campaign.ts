@@ -90,7 +90,7 @@ async function corpus(): Promise<CaseDescriptor[]> {
 function percent(n: number, d: number): number | null {
   return d ? (100 * n) / d : null;
 }
-function summarize(rows: CaseResult[]) {
+export function summarize(rows: CaseResult[]) {
   const count = (f: (r: CaseResult) => boolean) => rows.filter(f).length;
   const refOk = rows.filter((r) => r.reference.status === "success");
   const refErrors = rows.filter((r) => r.reference.status === "error");
@@ -106,6 +106,8 @@ function summarize(rows: CaseResult[]) {
   const callback = rows.filter(
     (r) =>
       r.descriptor.options.callback ||
+      (r.descriptor.options.scalarStyleRules !== undefined &&
+        r.descriptor.options.scalarStyleRules !== "empty") ||
       r.descriptor.options.legacy ||
       r.descriptor.operation.includes("iterator"),
   );
@@ -174,7 +176,9 @@ function summarize(rows: CaseResult[]) {
       bothErrors.length,
     ],
     callbackDifferences: [
-      count((r) => r.differences.some((d) => d.category === "callback")),
+      callback.filter((r) =>
+        r.differences.some((d) => d.category === "callback"),
+      ).length,
       callback.length,
     ],
   };
