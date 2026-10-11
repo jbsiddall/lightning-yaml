@@ -4,7 +4,8 @@ These are bounded observations, rather than a percentage of all package behavior
 Reference: yaml 2.9.0; runtime: v25.9.0. Production source comes from
 `f9e62ca9b3a4df753c76537843255b77d343eb5e`. The source-aware candidate is the unmerged
 [PR #184](https://github.com/jbsiddall/lightning-yaml/pull/184), pinned at
-`6a25ef63d6d9d5114515660ecc25a06542af6647`. Raw reports and replay inputs are generated CI artifacts.
+`6a25ef63d6d9d5114515660ecc25a06542af6647`. The workflow uploads raw reports and replay inputs for its own audit run.
+Use the full audit commands in the guide to reproduce this larger local schedule.
 
 ## Main's partial wrapper
 
@@ -22,7 +23,7 @@ Descriptor counts include repeated YAML text; options and operations distinguish
 
 <!-- bench:05e39fdddfe53126e89685ebaafb12f73c857feb89fb044f9aed95ded355bed9 yaml:2.9.0 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
 
-Full option/source/family denominators: [measured-main.json](measured-main.json).
+Full option/operation/family denominators: [measured-main.json](measured-main.json).
 The wrapper does not expose the Parser/Composer/CST API required by the source-aware goal.
 
 ## Draft CST/document/node pipeline
