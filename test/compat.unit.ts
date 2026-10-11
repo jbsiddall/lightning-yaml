@@ -39,6 +39,7 @@ import jsYamlCompatDefault, {
   type DumpOptions,
 } from "../src/js-yaml-compat.ts";
 import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify } from "../src/yaml-compat.ts";
+import { YAMLParseError } from "../src/index.ts";
 
 // --------------------------------------------------------------------------
 // API surface — named + default exports resolve to the right shapes.
@@ -480,9 +481,26 @@ test("js-yaml-compat.dump accepts a boolean option's no-op default, rejects the 
   throws(() => dump(DUMP_VALUE, { sortKeys: true }), (err: unknown) => err instanceof YAMLException);
 });
 
-test("js-yaml-compat.dump throws on skipInvalid at either value (we neither drop nor throw on unrepresentable values)", () => {
-  // Real js-yaml's `skipInvalid: false` THROWS on a function/Symbol; our stringify would
-  // silently serialize it — so `false` is NOT a genuine no-op. Both values fail loud.
-  throws(() => dump(DUMP_VALUE, { skipInvalid: false }), (err: unknown) => err instanceof YAMLException);
+test("js-yaml-compat.dump accepts skipInvalid: false (js-yaml's default, now a genuine no-op), rejects skipInvalid: true (dropping is unbuilt)", () => {
+  // `false` is a real no-op now that our stringify throws on a function/Symbol/exotic
+  // object too, matching real js-yaml's own default behaviour; only `true` — dropping
+  // them instead of throwing — still isn't implemented.
+  strictEqual(typeof dump(DUMP_VALUE, { skipInvalid: false }), "string");
   throws(() => dump(DUMP_VALUE, { skipInvalid: true }), (err: unknown) => err instanceof YAMLException);
+});
+
+test("js-yaml-compat.dump wraps a stringify failure in YAMLException, like real js-yaml", () => {
+  throws(() => dump(new Map([["a", 1]])), (err: unknown) => err instanceof YAMLException);
+});
+
+test("js-yaml-compat.dump throws on bigint, matching real js-yaml", () => {
+  // Real js-yaml refuses a bigint under every schema it ships (failsafe/json/core/
+  // yaml11) and by default, so throwing here is exact parity rather than a divergence.
+  throws(() => dump({ a: 10n }), (err: unknown) => err instanceof YAMLException);
+});
+
+test("yaml-compat.stringify throws our own YAMLParseError, unwrapped, on an unrepresentable value", () => {
+  // Documented shim behaviour (src/yaml-compat.ts's header): unlike js-yaml-compat,
+  // this shim does not wrap errors in the real `yaml` library's own error classes.
+  throws(() => stringify(new Map([["a", 1]])), (err: unknown) => err instanceof YAMLParseError);
 });
