@@ -158,3 +158,8 @@ pnpm exec vite preview --outDir results/js-yaml-properties/vitest
 The workflow uploads all report directories in the existing
 `js-yaml-properties-and-coverage` artifact. Code coverage measures executed
 production code; compatibility metrics measure the bounded schedule of observations.
+
+## Latest measured run
+
+See [the measured results](MEASURED.md) for main-wrapper and draft CST
+observations, independent denominators, time-budget failures and production coverage.
