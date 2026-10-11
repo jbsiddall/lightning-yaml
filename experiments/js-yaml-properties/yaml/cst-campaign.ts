@@ -146,6 +146,7 @@ function summarize(
     "documents",
     "nodes",
     "node-identity",
+    "source-token-identity",
     "diagnostics",
     "values",
     "pipeline-phase",
@@ -167,6 +168,7 @@ function summarize(
         {
           "token-identity": "tokenIdentity",
           "node-identity": "nodeIdentity",
+          "source-token-identity": "sourceTokenIdentity",
           "reconstruction-equality": "reconstructionEqual",
         } as Record<string, string>
       )[category] ?? category;
@@ -378,6 +380,17 @@ async function main() {
         referenceNodeIdentitySha256: outcome.reference?.nodeIdentity
           ? createHash("sha256")
               .update(JSON.stringify(outcome.reference.nodeIdentity))
+              .digest("hex")
+          : undefined,
+        candidateSourceTokenIdentitySha256: outcome.sourceTokenIdentity
+          ? createHash("sha256")
+              .update(JSON.stringify(outcome.sourceTokenIdentity))
+              .digest("hex")
+          : undefined,
+        referenceSourceTokenIdentitySha256: outcome.reference
+          ?.sourceTokenIdentity
+          ? createHash("sha256")
+              .update(JSON.stringify(outcome.reference.sourceTokenIdentity))
               .digest("hex")
           : undefined,
         candidateDiagnosticsSha256: outcome.diagnostics

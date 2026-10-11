@@ -2,6 +2,7 @@ import { test } from "@fast-check/vitest";
 import fc from "fast-check";
 import { describe, expect } from "vitest";
 import {
+  combinedTokenIdentity,
   evaluateCST,
   firstDifference,
   identityTopology,
@@ -30,9 +31,17 @@ describe("yaml CST pipeline comparison", () => {
       expect(row.reconstructionEqual).toBe(true);
       expect(row.tokens?.length).toBeGreaterThan(0);
       expect(row.documents?.length).toBe(1);
-      // PR 184's known simple-map gaps: scalar-token indentation and omitted null anchor.
       for (const diff of row.differences ?? []) {
-        expect(["tokens", "documents", "nodes"]).toContain(diff.category);
+        expect([
+          "tokens",
+          "documents",
+          "nodes",
+          "source-token-identity",
+        ]).toContain(diff.category);
+        if (diff.category === "source-token-identity") {
+          expect(diff.path).toContain(".backref");
+          continue;
+        }
         expect([
           "$.tokens.0.value.items.0.value.indent",
           "$.documents.0.directives.docStart",
@@ -97,6 +106,13 @@ describe("yaml CST pipeline comparison", () => {
     expect(
       firstDifference(withSharing, { a: shared, b: shared }),
     ).toBeUndefined();
+  });
+
+  test("detects when a node source token is cloned instead of attached to its parser token", () => {
+    const parserToken = { type: "scalar", offset: 0, source: "value" };
+    const attached = combinedTokenIdentity([parserToken], [parserToken]);
+    const cloned = combinedTokenIdentity([parserToken], [{ ...parserToken }]);
+    expect(attached).not.toEqual(cloned);
   });
 
   test("records node range and diagnostics gaps as their own CST layers", async () => {

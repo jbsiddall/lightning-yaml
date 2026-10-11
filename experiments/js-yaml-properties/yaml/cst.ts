@@ -66,6 +66,7 @@ export interface CSTOutcome {
   };
   tokens?: unknown[];
   tokenIdentity?: unknown[];
+  sourceTokenIdentity?: unknown[];
   tokenTypes?: string[];
   reconstructed?: string;
   reconstructionEqual?: boolean;
@@ -298,6 +299,35 @@ function nodeIdentityTopology(documents: any[], api: any): unknown[] {
   });
 }
 
+function collectSourceTokens(documents: any[], api: any): unknown[] {
+  const attachments: unknown[] = [];
+  for (const doc of documents) {
+    const active = new WeakSet<object>();
+    function visit(node: any): void {
+      if (node === null || typeof node !== "object" || active.has(node)) return;
+      active.add(node);
+      if (node.srcToken !== undefined && node.srcToken !== null)
+        attachments.push(node.srcToken);
+      if ((api.isMap(node) || api.isSeq(node)) && Array.isArray(node.items)) {
+        for (const item of node.items) visit(item);
+      } else if (api.isPair(node)) {
+        visit(node.key);
+        visit(node.value);
+      }
+      active.delete(node);
+    }
+    visit(doc.contents);
+  }
+  return attachments;
+}
+
+export function combinedTokenIdentity(
+  tokens: unknown[],
+  sourceTokens: unknown[],
+): unknown[] {
+  return identityTopology({ tokens, sourceTokens });
+}
+
 export async function evaluateCST(source: string): Promise<CSTOutcome> {
   const base: CSTOutcome = {
     source,
@@ -336,6 +366,11 @@ export async function evaluateCST(source: string): Promise<CSTOutcome> {
     for (const [category, left, right] of [
       ["token-identity", candidate.tokenIdentity, reference.tokenIdentity],
       ["node-identity", candidate.nodeIdentity, reference.nodeIdentity],
+      [
+        "source-token-identity",
+        candidate.sourceTokenIdentity,
+        reference.sourceTokenIdentity,
+      ],
     ] as const) {
       const diff = firstDifference(left, right, `$.${category}`);
       if (diff) differences.push({ category, path: diff });
@@ -462,6 +497,10 @@ async function runPipeline(
     tokenTypes: tokens.map((t) => t.type),
     tokenIdentity: identityTopology(tokens),
     nodeIdentity: nodeIdentityTopology(documents, api),
+    sourceTokenIdentity: combinedTokenIdentity(
+      tokens,
+      collectSourceTokens(documents, api),
+    ),
     reconstructed,
     reconstructionEqual: reconstructed === source,
     documents: docs,
