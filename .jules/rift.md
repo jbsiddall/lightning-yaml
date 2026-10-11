@@ -1,0 +1,3 @@
+## 2026-07-20 - Root-level block scalars with explicit indentation indicators
+**Learning:** For block scalars at document root level, `effParentCol` is `-1`. Adding an explicit indentation indicator directly to `effParentCol` resulted in `contentIndent = -1 + indicator`, under-calculating indentation by 1 space and leaving a leading space on content lines. Treating root level as column 0 via `Math.max(0, effParentCol) + indentIndicator` fixes the calculation.
+**Action:** When working with indentation calculations where parent column can be `-1` at document root, always use `Math.max(0, effParentCol)` before adding explicit indent indicators.
