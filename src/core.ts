@@ -4644,7 +4644,10 @@ function dumpScanRefs(value: unknown): void {
     for (let i = 0; i < obj.length; i++) dumpScanRefs(obj[i]);
   } else {
     const keys = Object.keys(obj as Record<string, unknown>);
-    for (let i = 0; i < keys.length; i++) dumpScanRefs((obj as Record<string, unknown>)[keys[i]]);
+    for (let i = 0; i < keys.length; i++) {
+      const value = (obj as Record<string, unknown>)[keys[i]];
+      if (value !== undefined) dumpScanRefs(value);
+    }
   }
   dumpDepth--;
 }
@@ -4969,9 +4972,10 @@ function isEmptyContainer(obj: object, isArr: boolean): boolean {
  * Assumes the caller has already handled `obj`'s OWN anchor placement (this
  * only ever writes the CONTENTS).
  */
-function writeCollectionBody(obj: object, isArr: boolean, indent: number): void {
+function writeCollectionBody(obj: object, isArr: boolean, indent: number): boolean {
   if (++dumpDepth > MAX_DEPTH) throw new YAMLParseError("stringify: maximum nesting depth exceeded");
   const ind = indentSpaces(indent);
+  let hasEntries = isArr;
   if (isArr) {
     const arr = obj as unknown[];
     for (let i = 0; i < arr.length; i++) {
@@ -4983,16 +4987,20 @@ function writeCollectionBody(obj: object, isArr: boolean, indent: number): void 
     const keys = Object.keys(rec);
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
+      const value = rec[k];
+      if (value === undefined) continue;
+      hasEntries = true;
       let keyColon = dumpKeyCache!.get(k);
       if (keyColon === undefined) {
         keyColon = writeStringScalar(k) + ":";
         if (dumpKeyCache!.size < MAX_DUMP_KEY_CACHE) dumpKeyCache!.set(k, keyColon);
       }
       out += ind + keyColon;
-      writeEntryValue(rec[k], indent);
+      writeEntryValue(value, indent);
     }
   }
   dumpDepth--;
+  return hasEntries;
 }
 
 /**
@@ -5036,9 +5044,13 @@ function writeEntryValue(value: unknown, indent: number): void {
     out += " " + (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
     return;
   }
+  const previousOut = out;
   if (name !== null) out += " &" + name + "\n";
   else out += "\n";
-  writeCollectionBody(obj, isArr, indent + INDENT_STEP);
+  if (!writeCollectionBody(obj, isArr, indent + INDENT_STEP)) {
+    out = previousOut;
+    out += " " + (name !== null ? "&" + name + " " : "") + "{}\n";
+  }
 }
 
 /**
@@ -5067,8 +5079,12 @@ function writeDocumentValue(value: unknown): void {
     out += (name !== null ? "&" + name + " " : "") + (isArr ? "[]" : "{}") + "\n";
     return;
   }
+  const previousOut = out;
   if (name !== null) out += "&" + name + "\n";
-  writeCollectionBody(obj, isArr, 0);
+  if (!writeCollectionBody(obj, isArr, 0)) {
+    out = previousOut;
+    out += (name !== null ? "&" + name + " " : "") + "{}\n";
+  }
 }
 
 /**
