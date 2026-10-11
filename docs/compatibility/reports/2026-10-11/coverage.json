@@ -1,0 +1,39 @@
+{
+  "sourceBase": "f9e62ca9b3a4df753c76537843255b77d343eb5e",
+  "harness": "52f132bb10be8de9e9e906a19aa62c7de583e45f",
+  "tests": 859,
+  "testFiles": 16,
+  "productionFiles": 5,
+  "total": {
+    "lines": {
+      "total": 2279,
+      "covered": 2118,
+      "skipped": 0,
+      "pct": 92.93
+    },
+    "statements": {
+      "total": 2690,
+      "covered": 2406,
+      "skipped": 0,
+      "pct": 89.44
+    },
+    "functions": {
+      "total": 189,
+      "covered": 180,
+      "skipped": 0,
+      "pct": 95.23
+    },
+    "branches": {
+      "total": 2371,
+      "covered": 1994,
+      "skipped": 0,
+      "pct": 84.09
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": "Unknown"
+    }
+  }
+}

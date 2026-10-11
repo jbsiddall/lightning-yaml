@@ -96,21 +96,38 @@
     "validate:benchmarks": "node --import tsx bench/validate.ts site/src/data/benchmarks/speed.yaml site/src/data/benchmarks/memory.yaml site/src/data/benchmarks/memory-ratios.yaml site/src/data/benchmarks/conformance.yaml site/src/data/benchmarks/bundle-size.yaml",
     "typecheck": "tsc --noEmit && tsc --noEmit -p bench/browser/tsconfig.json",
     "changeset": "changeset",
-    "version-packages": "changeset version"
+    "version-packages": "changeset version",
+    "test:properties": "pnpm typecheck && vitest run --config vitest.compatibility.config.ts",
+    "test:coverage": "vitest run --config vitest.coverage.config.ts --coverage && node scripts/compatibility/check-production-coverage.mjs",
+    "audit:js-yaml": "node --import tsx scripts/compatibility/audit-js-yaml.ts",
+    "audit:js-yaml:full": "pnpm audit:js-yaml --extended --samples 20000",
+    "audit:js-yaml:strict": "pnpm audit:js-yaml --strict",
+    "audit:js-yaml:replay": "pnpm audit:js-yaml --replay",
+    "audit:yaml": "node --import tsx scripts/compatibility/audit-yaml.ts",
+    "audit:yaml:full": "pnpm audit:yaml --extended --samples 20000",
+    "audit:yaml:strict": "pnpm audit:yaml --strict",
+    "audit:yaml:replay": "pnpm audit:yaml --replay",
+    "gen:yaml-cst-candidate": "node scripts/compatibility/fetch-yaml-cst-candidate.mjs",
+    "audit:yaml-cst": "node --import tsx scripts/compatibility/audit-cst.ts",
+    "audit:yaml-cst:full": "pnpm audit:yaml-cst --extended --samples 20000",
+    "audit:yaml-cst:strict": "pnpm audit:yaml-cst --extended --samples 20000 --strict",
+    "test:yaml-cst": "vitest run --config vitest.cst.config.ts"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.1",
     "@types/node": "^22.10.0",
     "esbuild": "^0.28.1",
-    "js-yaml": "^5.2.1",
+    "js-yaml": "5.2.1",
     "mitata": "^1.0.34",
     "playwright-core": "1.56.1",
     "tsup": "^8.5.1",
     "tsx": "^4.23.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.10",
-    "yaml": "^2.9.0",
-    "zod": "^4.4.3"
+    "yaml": "2.9.0",
+    "zod": "^4.4.3",
+    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/ui": "4.1.11"
   }
 }

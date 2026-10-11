@@ -1,0 +1,6066 @@
+{
+  "manifest": {
+    "version": 1,
+    "runtime": {
+      "parse": [
+        "intAsBigInt",
+        "keepSourceTokens",
+        "lineCounter",
+        "prettyErrors",
+        "strict",
+        "stringKeys",
+        "uniqueKeys",
+        "_directives",
+        "logLevel",
+        "version",
+        "compat",
+        "customTags",
+        "merge",
+        "resolveKnownTags",
+        "schema",
+        "sortMapEntries",
+        "toStringDefaults",
+        "mapAsMap",
+        "maxAliasCount",
+        "onAnchor",
+        "reviver"
+      ],
+      "document": [
+        "intAsBigInt",
+        "keepSourceTokens",
+        "lineCounter",
+        "prettyErrors",
+        "strict",
+        "stringKeys",
+        "uniqueKeys",
+        "_directives",
+        "logLevel",
+        "version",
+        "compat",
+        "customTags",
+        "merge",
+        "resolveKnownTags",
+        "schema",
+        "sortMapEntries",
+        "toStringDefaults"
+      ],
+      "stringify": [
+        "intAsBigInt",
+        "keepSourceTokens",
+        "lineCounter",
+        "prettyErrors",
+        "strict",
+        "stringKeys",
+        "uniqueKeys",
+        "_directives",
+        "logLevel",
+        "version",
+        "compat",
+        "customTags",
+        "merge",
+        "resolveKnownTags",
+        "schema",
+        "sortMapEntries",
+        "toStringDefaults",
+        "aliasDuplicateObjects",
+        "anchorPrefix",
+        "flow",
+        "keepUndefined",
+        "onTagObj",
+        "tag",
+        "blockQuote",
+        "collectionStyle",
+        "commentString",
+        "defaultKeyType",
+        "defaultStringType",
+        "directives",
+        "doubleQuotedAsJSON",
+        "doubleQuotedMinMultiLineLength",
+        "falseStr",
+        "flowCollectionPadding",
+        "indent",
+        "indentSeq",
+        "lineWidth",
+        "minContentWidth",
+        "nullStr",
+        "simpleKeys",
+        "singleQuote",
+        "trailingComma",
+        "trueStr",
+        "verifyAliasOrder"
+      ],
+      "declarations": {
+        "ParseOptions": [
+          "intAsBigInt",
+          "keepSourceTokens",
+          "lineCounter",
+          "prettyErrors",
+          "strict",
+          "stringKeys",
+          "uniqueKeys"
+        ],
+        "DocumentOptions": [
+          "_directives",
+          "logLevel",
+          "version"
+        ],
+        "SchemaOptions": [
+          "compat",
+          "customTags",
+          "merge",
+          "resolveKnownTags",
+          "schema",
+          "sortMapEntries",
+          "toStringDefaults"
+        ],
+        "ToJSOptions": [
+          "mapAsMap",
+          "maxAliasCount",
+          "onAnchor",
+          "reviver"
+        ],
+        "CreateNodeOptions": [
+          "aliasDuplicateObjects",
+          "anchorPrefix",
+          "flow",
+          "keepUndefined",
+          "onTagObj",
+          "tag"
+        ],
+        "ToStringOptions": [
+          "blockQuote",
+          "collectionStyle",
+          "commentString",
+          "defaultKeyType",
+          "defaultStringType",
+          "directives",
+          "doubleQuotedAsJSON",
+          "doubleQuotedMinMultiLineLength",
+          "falseStr",
+          "flowCollectionPadding",
+          "indent",
+          "indentSeq",
+          "lineWidth",
+          "minContentWidth",
+          "nullStr",
+          "simpleKeys",
+          "singleQuote",
+          "trailingComma",
+          "trueStr",
+          "verifyAliasOrder"
+        ]
+      },
+      "shimRegistered": {
+        "parse": [
+          "schema",
+          "version",
+          "prettyErrors",
+          "mapAsMap",
+          "intAsBigInt",
+          "uniqueKeys",
+          "stringKeys",
+          "merge",
+          "maxAliasCount",
+          "customTags",
+          "resolveKnownTags",
+          "keepSourceTokens",
+          "lineCounter",
+          "onAnchor"
+        ],
+        "stringify": [
+          "schema",
+          "version",
+          "singleQuote",
+          "sortMapEntries",
+          "indent",
+          "nullStr",
+          "trueStr",
+          "falseStr",
+          "indentSeq",
+          "directives",
+          "lineWidth",
+          "minContentWidth",
+          "blockQuote",
+          "collectionStyle",
+          "flowCollectionPadding",
+          "aliasDuplicateObjects",
+          "anchorPrefix",
+          "customTags"
+        ]
+      },
+      "exports": [
+        "Alias",
+        "CST",
+        "Composer",
+        "Document",
+        "Lexer",
+        "LineCounter",
+        "Pair",
+        "Parser",
+        "Scalar",
+        "Schema",
+        "YAMLError",
+        "YAMLMap",
+        "YAMLParseError",
+        "YAMLSeq",
+        "YAMLWarning",
+        "isAlias",
+        "isCollection",
+        "isDocument",
+        "isMap",
+        "isNode",
+        "isPair",
+        "isScalar",
+        "isSeq",
+        "module.exports",
+        "parse",
+        "parseAllDocuments",
+        "parseDocument",
+        "stringify",
+        "visit",
+        "visitAsync"
+      ],
+      "candidateExports": [
+        "parse",
+        "parseAllDocuments",
+        "parseDocument",
+        "stringify"
+      ],
+      "missingExports": [
+        "Alias",
+        "CST",
+        "Composer",
+        "Document",
+        "Lexer",
+        "LineCounter",
+        "Pair",
+        "Parser",
+        "Scalar",
+        "Schema",
+        "YAMLError",
+        "YAMLMap",
+        "YAMLParseError",
+        "YAMLSeq",
+        "YAMLWarning",
+        "isAlias",
+        "isCollection",
+        "isDocument",
+        "isMap",
+        "isNode",
+        "isPair",
+        "isScalar",
+        "isSeq",
+        "module.exports",
+        "visit",
+        "visitAsync"
+      ],
+      "documentMethods": [
+        "add",
+        "addIn",
+        "clone",
+        "constructor",
+        "createAlias",
+        "createNode",
+        "createPair",
+        "delete",
+        "deleteIn",
+        "get",
+        "getIn",
+        "has",
+        "hasIn",
+        "set",
+        "setIn",
+        "setSchema",
+        "toJS",
+        "toJSON",
+        "toString"
+      ],
+      "candidateDocumentMethods": [
+        "toJS",
+        "toJSON"
+      ],
+      "runtimeVerified": true,
+      "declarationVerified": true,
+      "yamlVersion": "2.9.0",
+      "node": "v25.9.0",
+      "platform": "linux",
+      "arch": "x64",
+      "revision": "dee7bafe7be8f54147da53580546fbeb29f17234",
+      "sourceBase": "f9e62ca9b3a4df753c76537843255b77d343eb5e"
+    },
+    "seed": 20261011,
+    "requestedGeneratedYamlTexts": 20000,
+    "generatedYamlTextOperationCounts": {
+      "parse": 6667,
+      "parseDocument": 6667,
+      "parseAllDocuments": 6666
+    },
+    "requestedGeneratedGraphs": 20000,
+    "scheduled": 49156,
+    "uniqueDescriptors": 33312,
+    "duplicates": 15844,
+    "optionInventory": {
+      "parse": [
+        "intAsBigInt",
+        "keepSourceTokens",
+        "lineCounter",
+        "prettyErrors",
+        "strict",
+        "stringKeys",
+        "uniqueKeys",
+        "_directives",
+        "logLevel",
+        "version",
+        "compat",
+        "customTags",
+        "merge",
+        "resolveKnownTags",
+        "schema",
+        "sortMapEntries",
+        "toStringDefaults",
+        "mapAsMap",
+        "maxAliasCount",
+        "onAnchor",
+        "reviver"
+      ],
+      "document": [
+        "intAsBigInt",
+        "keepSourceTokens",
+        "lineCounter",
+        "prettyErrors",
+        "strict",
+        "stringKeys",
+        "uniqueKeys",
+        "_directives",
+        "logLevel",
+        "version",
+        "compat",
+        "customTags",
+        "merge",
+        "resolveKnownTags",
+        "schema",
+        "sortMapEntries",
+        "toStringDefaults"
+      ],
+      "stringify": [
+        "intAsBigInt",
+        "keepSourceTokens",
+        "lineCounter",
+        "prettyErrors",
+        "strict",
+        "stringKeys",
+        "uniqueKeys",
+        "_directives",
+        "logLevel",
+        "version",
+        "compat",
+        "customTags",
+        "merge",
+        "resolveKnownTags",
+        "schema",
+        "sortMapEntries",
+        "toStringDefaults",
+        "aliasDuplicateObjects",
+        "anchorPrefix",
+        "flow",
+        "keepUndefined",
+        "onTagObj",
+        "tag",
+        "blockQuote",
+        "collectionStyle",
+        "commentString",
+        "defaultKeyType",
+        "defaultStringType",
+        "directives",
+        "doubleQuotedAsJSON",
+        "doubleQuotedMinMultiLineLength",
+        "falseStr",
+        "flowCollectionPadding",
+        "indent",
+        "indentSeq",
+        "lineWidth",
+        "minContentWidth",
+        "nullStr",
+        "simpleKeys",
+        "singleQuote",
+        "trailingComma",
+        "trueStr",
+        "verifyAliasOrder"
+      ],
+      "declarations": {
+        "ParseOptions": [
+          "intAsBigInt",
+          "keepSourceTokens",
+          "lineCounter",
+          "prettyErrors",
+          "strict",
+          "stringKeys",
+          "uniqueKeys"
+        ],
+        "DocumentOptions": [
+          "_directives",
+          "logLevel",
+          "version"
+        ],
+        "SchemaOptions": [
+          "compat",
+          "customTags",
+          "merge",
+          "resolveKnownTags",
+          "schema",
+          "sortMapEntries",
+          "toStringDefaults"
+        ],
+        "ToJSOptions": [
+          "mapAsMap",
+          "maxAliasCount",
+          "onAnchor",
+          "reviver"
+        ],
+        "CreateNodeOptions": [
+          "aliasDuplicateObjects",
+          "anchorPrefix",
+          "flow",
+          "keepUndefined",
+          "onTagObj",
+          "tag"
+        ],
+        "ToStringOptions": [
+          "blockQuote",
+          "collectionStyle",
+          "commentString",
+          "defaultKeyType",
+          "defaultStringType",
+          "directives",
+          "doubleQuotedAsJSON",
+          "doubleQuotedMinMultiLineLength",
+          "falseStr",
+          "flowCollectionPadding",
+          "indent",
+          "indentSeq",
+          "lineWidth",
+          "minContentWidth",
+          "nullStr",
+          "simpleKeys",
+          "singleQuote",
+          "trailingComma",
+          "trueStr",
+          "verifyAliasOrder"
+        ]
+      },
+      "shimRegistered": {
+        "parse": [
+          "schema",
+          "version",
+          "prettyErrors",
+          "mapAsMap",
+          "intAsBigInt",
+          "uniqueKeys",
+          "stringKeys",
+          "merge",
+          "maxAliasCount",
+          "customTags",
+          "resolveKnownTags",
+          "keepSourceTokens",
+          "lineCounter",
+          "onAnchor"
+        ],
+        "stringify": [
+          "schema",
+          "version",
+          "singleQuote",
+          "sortMapEntries",
+          "indent",
+          "nullStr",
+          "trueStr",
+          "falseStr",
+          "indentSeq",
+          "directives",
+          "lineWidth",
+          "minContentWidth",
+          "blockQuote",
+          "collectionStyle",
+          "flowCollectionPadding",
+          "aliasDuplicateObjects",
+          "anchorPrefix",
+          "customTags"
+        ]
+      },
+      "exports": [
+        "Alias",
+        "CST",
+        "Composer",
+        "Document",
+        "Lexer",
+        "LineCounter",
+        "Pair",
+        "Parser",
+        "Scalar",
+        "Schema",
+        "YAMLError",
+        "YAMLMap",
+        "YAMLParseError",
+        "YAMLSeq",
+        "YAMLWarning",
+        "isAlias",
+        "isCollection",
+        "isDocument",
+        "isMap",
+        "isNode",
+        "isPair",
+        "isScalar",
+        "isSeq",
+        "module.exports",
+        "parse",
+        "parseAllDocuments",
+        "parseDocument",
+        "stringify",
+        "visit",
+        "visitAsync"
+      ],
+      "candidateExports": [
+        "parse",
+        "parseAllDocuments",
+        "parseDocument",
+        "stringify"
+      ],
+      "missingExports": [
+        "Alias",
+        "CST",
+        "Composer",
+        "Document",
+        "Lexer",
+        "LineCounter",
+        "Pair",
+        "Parser",
+        "Scalar",
+        "Schema",
+        "YAMLError",
+        "YAMLMap",
+        "YAMLParseError",
+        "YAMLSeq",
+        "YAMLWarning",
+        "isAlias",
+        "isCollection",
+        "isDocument",
+        "isMap",
+        "isNode",
+        "isPair",
+        "isScalar",
+        "isSeq",
+        "module.exports",
+        "visit",
+        "visitAsync"
+      ],
+      "documentMethods": [
+        "add",
+        "addIn",
+        "clone",
+        "constructor",
+        "createAlias",
+        "createNode",
+        "createPair",
+        "delete",
+        "deleteIn",
+        "get",
+        "getIn",
+        "has",
+        "hasIn",
+        "set",
+        "setIn",
+        "setSchema",
+        "toJS",
+        "toJSON",
+        "toString"
+      ],
+      "candidateDocumentMethods": [
+        "toJS",
+        "toJSON"
+      ]
+    },
+    "finiteBases": {
+      "parse": 512,
+      "stringify": 1024,
+      "enum": 108
+    },
+    "corpusProvenance": {
+      "suite": {
+        "repository": "https://github.com/yaml/yaml-test-suite",
+        "ref": "data-2022-01-17",
+        "license": "MIT",
+        "suiteInputFiles": 1954
+      },
+      "realWorld": {
+        "file": "test/corpus/currencycloud-reference.yaml",
+        "provenance": "Source URL is recorded in the vendored file header; snapshot inherited from origin/main"
+      }
+    },
+    "corpusCaps": {
+      "maxFileBytes": 2097152
+    },
+    "corpusStats": {
+      "files": 1955,
+      "referenceValuesStringified": 1416,
+      "referenceValuesCodecUnsupported": 0
+    },
+    "replay": false,
+    "strict": false,
+    "safetyLedger": [
+      "Cyclic reviver traversal is excluded because both implementations recurse without a cycle guard.",
+      "aliasDuplicateObjects:false is excluded for cyclic graphs because the reference recursion is unbounded.",
+      "Reference-accepted corpus values skipped stringify graph transport because the codec lacks their brand/features: 0."
+    ],
+    "shrink": {
+      "performed": false,
+      "reason": "Every case descriptor is directly replayable; this campaign does not shrink."
+    }
+  },
+  "summary": {
+    "scope": "campaign",
+    "metrics": {
+      "casesWithAnyGap": {
+        "numerator": 30227,
+        "denominator": 49156,
+        "percent": 61.49198470176581
+      },
+      "parseAcceptanceFailures": {
+        "numerator": 565,
+        "denominator": 24921,
+        "percent": 2.267164238995225
+      },
+      "parseSemanticGaps": {
+        "numerator": 566,
+        "denominator": 7617,
+        "percent": 7.430747013259814
+      },
+      "stringifyCallFailures": {
+        "numerator": 1219,
+        "denominator": 22687,
+        "percent": 5.373121170714506
+      },
+      "stringifyByteDifferences": {
+        "numerator": 9607,
+        "denominator": 21468,
+        "percent": 44.750326066703934
+      },
+      "stringifyByteEquality": {
+        "numerator": 11861,
+        "denominator": 21468,
+        "percent": 55.249673933296066
+      },
+      "stringifyReferenceUndefined": {
+        "numerator": 1,
+        "denominator": 22696,
+        "percent": 0.0044060627423334504
+      },
+      "stringifyUndefinedContractGaps": {
+        "numerator": 1,
+        "denominator": 1,
+        "percent": 100
+      },
+      "stringifySemanticGaps": {
+        "numerator": 1240,
+        "denominator": 22646,
+        "percent": 5.475580676499161
+      },
+      "callbackDifferences": {
+        "numerator": 8,
+        "denominator": 15,
+        "percent": 53.333333333333336
+      },
+      "documentSurfaceGaps": {
+        "numerator": 17248,
+        "denominator": 17305,
+        "percent": 99.67061542906674
+      },
+      "documentAstGaps": {
+        "numerator": 17248,
+        "denominator": 17305,
+        "percent": 99.67061542906674
+      },
+      "documentConversionGaps": {
+        "numerator": 14949,
+        "denominator": 17305,
+        "percent": 86.38543773475874
+      },
+      "diagnosticDifferences": {
+        "numerator": 2787,
+        "denominator": 17305,
+        "percent": 16.10517191563132
+      },
+      "warningDifferences": {
+        "numerator": 694,
+        "denominator": 17305,
+        "percent": 4.010401618029471
+      },
+      "rejectionDisagreements": {
+        "numerator": 17,
+        "denominator": 1547,
+        "percent": 1.098901098901099
+      },
+      "referenceDecodedStringifyRows": 22646,
+      "candidateStringifyRows": 21468,
+      "parseRows": 26460,
+      "stringifyRows": 22696
+    },
+    "gapCases": 30227,
+    "complete": true,
+    "limitations": [
+      "Results describe the recorded corpus, finite option bases, and bounded generated cases; they do not estimate every YAML input or option combination.",
+      "The AST and public API surface reports measure differences from yaml@2.9.0 and do not establish a normative YAML compatibility result.",
+      "Custom tag, callback, and schema recipes are finite witnesses; arbitrary user code and schemas are not sampled.",
+      "The onTagObj callback witness does not activate the reference callback; Document.toJSON(key,onAnchor) and cross-document AST identity are not covered."
+    ]
+  },
+  "coverage": {
+    "scheduled": 49156,
+    "uniqueDescriptors": 33312,
+    "duplicates": 15844,
+    "operationCounts": {
+      "parse": 9155,
+      "parseDocument": 8678,
+      "parseAllDocuments": 8627,
+      "stringify": 22696
+    },
+    "byOperation": {
+      "parse": {
+        "scheduled": 9155,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 2104,
+            "denominator": 9155,
+            "percent": 22.98197706171491
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 540,
+            "denominator": 7617,
+            "percent": 7.089405277668374
+          },
+          "parseSemanticGaps": {
+            "numerator": 566,
+            "denominator": 7617,
+            "percent": 7.430747013259814
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 5,
+            "denominator": 7,
+            "percent": 71.42857142857143
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 13,
+            "denominator": 1538,
+            "percent": 0.8452535760728218
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 9155,
+          "stringifyRows": 0
+        }
+      },
+      "parseAllDocuments": {
+        "scheduled": 8627,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 8627,
+            "denominator": 8627,
+            "percent": 100
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 8627,
+            "percent": 0
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 8612,
+            "denominator": 8627,
+            "percent": 99.82612727483482
+          },
+          "documentAstGaps": {
+            "numerator": 8612,
+            "denominator": 8627,
+            "percent": 99.82612727483482
+          },
+          "documentConversionGaps": {
+            "numerator": 7478,
+            "denominator": 8627,
+            "percent": 86.68134925234729
+          },
+          "diagnosticDifferences": {
+            "numerator": 1135,
+            "denominator": 8627,
+            "percent": 13.15636953749855
+          },
+          "warningDifferences": {
+            "numerator": 359,
+            "denominator": 8627,
+            "percent": 4.161353888953286
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 8627,
+          "stringifyRows": 0
+        }
+      },
+      "parseDocument": {
+        "scheduled": 8678,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 8662,
+            "denominator": 8678,
+            "percent": 99.81562572021203
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 25,
+            "denominator": 8677,
+            "percent": 0.2881180131381814
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "documentSurfaceGaps": {
+            "numerator": 8636,
+            "denominator": 8678,
+            "percent": 99.51601751555658
+          },
+          "documentAstGaps": {
+            "numerator": 8636,
+            "denominator": 8678,
+            "percent": 99.51601751555658
+          },
+          "documentConversionGaps": {
+            "numerator": 7471,
+            "denominator": 8678,
+            "percent": 86.09126526849505
+          },
+          "diagnosticDifferences": {
+            "numerator": 1652,
+            "denominator": 8678,
+            "percent": 19.03664438810786
+          },
+          "warningDifferences": {
+            "numerator": 335,
+            "denominator": 8678,
+            "percent": 3.860336483060613
+          },
+          "rejectionDisagreements": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 8678,
+          "stringifyRows": 0
+        }
+      },
+      "stringify": {
+        "scheduled": 22696,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 10834,
+            "denominator": 22696,
+            "percent": 47.73528375044061
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 1219,
+            "denominator": 22687,
+            "percent": 5.373121170714506
+          },
+          "stringifyByteDifferences": {
+            "numerator": 9607,
+            "denominator": 21468,
+            "percent": 44.750326066703934
+          },
+          "stringifyByteEquality": {
+            "numerator": 11861,
+            "denominator": 21468,
+            "percent": 55.249673933296066
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 1,
+            "denominator": 22696,
+            "percent": 0.0044060627423334504
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "stringifySemanticGaps": {
+            "numerator": 1240,
+            "denominator": 22646,
+            "percent": 5.475580676499161
+          },
+          "callbackDifferences": {
+            "numerator": 2,
+            "denominator": 7,
+            "percent": 28.571428571428573
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 3,
+            "denominator": 8,
+            "percent": 37.5
+          },
+          "referenceDecodedStringifyRows": 22646,
+          "candidateStringifyRows": 21468,
+          "parseRows": 0,
+          "stringifyRows": 22696
+        }
+      }
+    },
+    "byFamily": {
+      "array-hole": {
+        "scheduled": 1,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 0,
+            "denominator": 1,
+            "percent": 0
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 1,
+            "percent": 0
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 1,
+            "percent": 0
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 1,
+            "percent": 0
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 1,
+          "stringifyRows": 0
+        }
+      },
+      "ast-api": {
+        "scheduled": 2,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 1,
+            "denominator": 2,
+            "percent": 50
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 2,
+            "percent": 0
+          },
+          "stringifyByteDifferences": {
+            "numerator": 1,
+            "denominator": 2,
+            "percent": 50
+          },
+          "stringifyByteEquality": {
+            "numerator": 1,
+            "denominator": 2,
+            "percent": 50
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 2,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 1,
+            "denominator": 2,
+            "percent": 50
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 2,
+          "candidateStringifyRows": 2,
+          "parseRows": 0,
+          "stringifyRows": 2
+        }
+      },
+      "basis-enum": {
+        "scheduled": 108,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 108,
+            "denominator": 108,
+            "percent": 100
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 108,
+            "denominator": 108,
+            "percent": 100
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 108,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 108,
+            "denominator": 108,
+            "percent": 100
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 108,
+          "candidateStringifyRows": 0,
+          "parseRows": 0,
+          "stringifyRows": 108
+        }
+      },
+      "basis-parse": {
+        "scheduled": 512,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 512,
+            "denominator": 512,
+            "percent": 100
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 512,
+            "denominator": 512,
+            "percent": 100
+          },
+          "parseSemanticGaps": {
+            "numerator": 512,
+            "denominator": 512,
+            "percent": 100
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 512,
+          "stringifyRows": 0
+        }
+      },
+      "basis-stringify": {
+        "scheduled": 1024,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 1024,
+            "denominator": 1024,
+            "percent": 100
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 1024,
+            "denominator": 1024,
+            "percent": 100
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 1024,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 1024,
+            "denominator": 1024,
+            "percent": 100
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 1024,
+          "candidateStringifyRows": 0,
+          "parseRows": 0,
+          "stringifyRows": 1024
+        }
+      },
+      "corpus": {
+        "scheduled": 5865,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 4481,
+            "denominator": 5865,
+            "percent": 76.40238704177322
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 22,
+            "denominator": 5326,
+            "percent": 0.41306796845662785
+          },
+          "parseSemanticGaps": {
+            "numerator": 47,
+            "denominator": 1416,
+            "percent": 3.3192090395480225
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 3880,
+            "denominator": 3910,
+            "percent": 99.23273657289002
+          },
+          "documentAstGaps": {
+            "numerator": 3880,
+            "denominator": 3910,
+            "percent": 99.23273657289002
+          },
+          "documentConversionGaps": {
+            "numerator": 3000,
+            "denominator": 3910,
+            "percent": 76.72634271099744
+          },
+          "diagnosticDifferences": {
+            "numerator": 1028,
+            "denominator": 3910,
+            "percent": 26.29156010230179
+          },
+          "warningDifferences": {
+            "numerator": 329,
+            "denominator": 3910,
+            "percent": 8.414322250639387
+          },
+          "rejectionDisagreements": {
+            "numerator": 9,
+            "denominator": 539,
+            "percent": 1.6697588126159555
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 5865,
+          "stringifyRows": 0
+        }
+      },
+      "corpus-reference-value": {
+        "scheduled": 1416,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 844,
+            "denominator": 1416,
+            "percent": 59.6045197740113
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 1416,
+            "percent": 0
+          },
+          "stringifyByteDifferences": {
+            "numerator": 844,
+            "denominator": 1416,
+            "percent": 59.6045197740113
+          },
+          "stringifyByteEquality": {
+            "numerator": 572,
+            "denominator": 1416,
+            "percent": 40.3954802259887
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 1416,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 16,
+            "denominator": 1375,
+            "percent": 1.1636363636363636
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 1375,
+          "candidateStringifyRows": 1416,
+          "parseRows": 0,
+          "stringifyRows": 1416
+        }
+      },
+      "generated": {
+        "scheduled": 40000,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 23079,
+            "denominator": 40000,
+            "percent": 57.6975
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 19012,
+            "percent": 0
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 5679,
+            "percent": 0
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 20000,
+            "percent": 0
+          },
+          "stringifyByteDifferences": {
+            "numerator": 8758,
+            "denominator": 20000,
+            "percent": 43.79
+          },
+          "stringifyByteEquality": {
+            "numerator": 11242,
+            "denominator": 20000,
+            "percent": 56.21
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 20000,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 20000,
+            "percent": 0
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 13333,
+            "denominator": 13333,
+            "percent": 100
+          },
+          "documentAstGaps": {
+            "numerator": 13333,
+            "denominator": 13333,
+            "percent": 100
+          },
+          "documentConversionGaps": {
+            "numerator": 11914,
+            "denominator": 13333,
+            "percent": 89.35723393084827
+          },
+          "diagnosticDifferences": {
+            "numerator": 1730,
+            "denominator": 13333,
+            "percent": 12.975324383109578
+          },
+          "warningDifferences": {
+            "numerator": 364,
+            "denominator": 13333,
+            "percent": 2.730068251706293
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 988,
+            "percent": 0
+          },
+          "referenceDecodedStringifyRows": 20000,
+          "candidateStringifyRows": 20000,
+          "parseRows": 20000,
+          "stringifyRows": 20000
+        }
+      },
+      "graph": {
+        "scheduled": 20000,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 8758,
+            "denominator": 20000,
+            "percent": 43.79
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 20000,
+            "percent": 0
+          },
+          "stringifyByteDifferences": {
+            "numerator": 8758,
+            "denominator": 20000,
+            "percent": 43.79
+          },
+          "stringifyByteEquality": {
+            "numerator": 11242,
+            "denominator": 20000,
+            "percent": 56.21
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 20000,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 20000,
+            "percent": 0
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 20000,
+          "candidateStringifyRows": 20000,
+          "parseRows": 0,
+          "stringifyRows": 20000
+        }
+      },
+      "matrix": {
+        "scheduled": 1857,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 1812,
+            "denominator": 1857,
+            "percent": 97.5767366720517
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 541,
+            "denominator": 579,
+            "percent": 93.43696027633851
+          },
+          "parseSemanticGaps": {
+            "numerator": 517,
+            "denominator": 518,
+            "percent": 99.8069498069498
+          },
+          "stringifyCallFailures": {
+            "numerator": 1215,
+            "denominator": 1258,
+            "percent": 96.5818759936407
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 43,
+            "percent": 0
+          },
+          "stringifyByteEquality": {
+            "numerator": 43,
+            "denominator": 43,
+            "percent": 100
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 1266,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 1215,
+            "denominator": 1258,
+            "percent": 96.5818759936407
+          },
+          "callbackDifferences": {
+            "numerator": 5,
+            "denominator": 9,
+            "percent": 55.55555555555556
+          },
+          "documentSurfaceGaps": {
+            "numerator": 35,
+            "denominator": 62,
+            "percent": 56.45161290322581
+          },
+          "documentAstGaps": {
+            "numerator": 35,
+            "denominator": 62,
+            "percent": 56.45161290322581
+          },
+          "documentConversionGaps": {
+            "numerator": 35,
+            "denominator": 62,
+            "percent": 56.45161290322581
+          },
+          "diagnosticDifferences": {
+            "numerator": 29,
+            "denominator": 62,
+            "percent": 46.774193548387096
+          },
+          "warningDifferences": {
+            "numerator": 1,
+            "denominator": 62,
+            "percent": 1.6129032258064515
+          },
+          "rejectionDisagreements": {
+            "numerator": 8,
+            "denominator": 20,
+            "percent": 40
+          },
+          "referenceDecodedStringifyRows": 1258,
+          "candidateStringifyRows": 43,
+          "parseRows": 591,
+          "stringifyRows": 1266
+        }
+      },
+      "option-witness": {
+        "scheduled": 195,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 151,
+            "denominator": 195,
+            "percent": 77.43589743589743
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 29,
+            "denominator": 53,
+            "percent": 54.716981132075475
+          },
+          "parseSemanticGaps": {
+            "numerator": 4,
+            "denominator": 4,
+            "percent": 100
+          },
+          "stringifyCallFailures": {
+            "numerator": 83,
+            "denominator": 126,
+            "percent": 65.87301587301587
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 43,
+            "percent": 0
+          },
+          "stringifyByteEquality": {
+            "numerator": 43,
+            "denominator": 43,
+            "percent": 100
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 134,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 83,
+            "denominator": 126,
+            "percent": 65.87301587301587
+          },
+          "callbackDifferences": {
+            "numerator": 5,
+            "denominator": 9,
+            "percent": 55.55555555555556
+          },
+          "documentSurfaceGaps": {
+            "numerator": 23,
+            "denominator": 50,
+            "percent": 46
+          },
+          "documentAstGaps": {
+            "numerator": 23,
+            "denominator": 50,
+            "percent": 46
+          },
+          "documentConversionGaps": {
+            "numerator": 23,
+            "denominator": 50,
+            "percent": 46
+          },
+          "diagnosticDifferences": {
+            "numerator": 22,
+            "denominator": 50,
+            "percent": 44
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 50,
+            "percent": 0
+          },
+          "rejectionDisagreements": {
+            "numerator": 7,
+            "denominator": 16,
+            "percent": 43.75
+          },
+          "referenceDecodedStringifyRows": 126,
+          "candidateStringifyRows": 43,
+          "parseRows": 61,
+          "stringifyRows": 134
+        }
+      },
+      "options": {
+        "scheduled": 1857,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 1812,
+            "denominator": 1857,
+            "percent": 97.5767366720517
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 541,
+            "denominator": 579,
+            "percent": 93.43696027633851
+          },
+          "parseSemanticGaps": {
+            "numerator": 517,
+            "denominator": 518,
+            "percent": 99.8069498069498
+          },
+          "stringifyCallFailures": {
+            "numerator": 1215,
+            "denominator": 1258,
+            "percent": 96.5818759936407
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 43,
+            "percent": 0
+          },
+          "stringifyByteEquality": {
+            "numerator": 43,
+            "denominator": 43,
+            "percent": 100
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 1266,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 1215,
+            "denominator": 1258,
+            "percent": 96.5818759936407
+          },
+          "callbackDifferences": {
+            "numerator": 5,
+            "denominator": 9,
+            "percent": 55.55555555555556
+          },
+          "documentSurfaceGaps": {
+            "numerator": 35,
+            "denominator": 62,
+            "percent": 56.45161290322581
+          },
+          "documentAstGaps": {
+            "numerator": 35,
+            "denominator": 62,
+            "percent": 56.45161290322581
+          },
+          "documentConversionGaps": {
+            "numerator": 35,
+            "denominator": 62,
+            "percent": 56.45161290322581
+          },
+          "diagnosticDifferences": {
+            "numerator": 29,
+            "denominator": 62,
+            "percent": 46.774193548387096
+          },
+          "warningDifferences": {
+            "numerator": 1,
+            "denominator": 62,
+            "percent": 1.6129032258064515
+          },
+          "rejectionDisagreements": {
+            "numerator": 8,
+            "denominator": 20,
+            "percent": 40
+          },
+          "referenceDecodedStringifyRows": 1258,
+          "candidateStringifyRows": 43,
+          "parseRows": 591,
+          "stringifyRows": 1266
+        }
+      },
+      "overload": {
+        "scheduled": 5,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 4,
+            "denominator": 5,
+            "percent": 80
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 4,
+            "denominator": 5,
+            "percent": 80
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 1,
+            "percent": 0
+          },
+          "stringifyByteEquality": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 5,
+            "percent": 0
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 4,
+            "denominator": 5,
+            "percent": 80
+          },
+          "callbackDifferences": {
+            "numerator": 1,
+            "denominator": 2,
+            "percent": 50
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 5,
+          "candidateStringifyRows": 1,
+          "parseRows": 0,
+          "stringifyRows": 5
+        }
+      },
+      "overload-precedence": {
+        "scheduled": 1,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "parseSemanticGaps": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 1,
+          "stringifyRows": 0
+        }
+      },
+      "parse": {
+        "scheduled": 1955,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 586,
+            "denominator": 1955,
+            "percent": 29.974424552429667
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 22,
+            "denominator": 1416,
+            "percent": 1.5536723163841808
+          },
+          "parseSemanticGaps": {
+            "numerator": 47,
+            "denominator": 1416,
+            "percent": 3.3192090395480225
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 9,
+            "denominator": 539,
+            "percent": 1.6697588126159555
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 1955,
+          "stringifyRows": 0
+        }
+      },
+      "parseAllDocuments": {
+        "scheduled": 1955,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 1955,
+            "denominator": 1955,
+            "percent": 100
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 1955,
+            "percent": 0
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 1940,
+            "denominator": 1955,
+            "percent": 99.23273657289002
+          },
+          "documentAstGaps": {
+            "numerator": 1940,
+            "denominator": 1955,
+            "percent": 99.23273657289002
+          },
+          "documentConversionGaps": {
+            "numerator": 1507,
+            "denominator": 1955,
+            "percent": 77.0843989769821
+          },
+          "diagnosticDifferences": {
+            "numerator": 467,
+            "denominator": 1955,
+            "percent": 23.88746803069054
+          },
+          "warningDifferences": {
+            "numerator": 183,
+            "denominator": 1955,
+            "percent": 9.360613810741688
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 1955,
+          "stringifyRows": 0
+        }
+      },
+      "parseDocument": {
+        "scheduled": 1955,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 1940,
+            "denominator": 1955,
+            "percent": 99.23273657289002
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 1955,
+            "percent": 0
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 1940,
+            "denominator": 1955,
+            "percent": 99.23273657289002
+          },
+          "documentAstGaps": {
+            "numerator": 1940,
+            "denominator": 1955,
+            "percent": 99.23273657289002
+          },
+          "documentConversionGaps": {
+            "numerator": 1493,
+            "denominator": 1955,
+            "percent": 76.36828644501279
+          },
+          "diagnosticDifferences": {
+            "numerator": 561,
+            "denominator": 1955,
+            "percent": 28.695652173913043
+          },
+          "warningDifferences": {
+            "numerator": 146,
+            "denominator": 1955,
+            "percent": 7.468030690537084
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 1955,
+          "stringifyRows": 0
+        }
+      },
+      "reviver": {
+        "scheduled": 4,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 2,
+            "denominator": 4,
+            "percent": 50
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 2,
+            "denominator": 4,
+            "percent": 50
+          },
+          "parseSemanticGaps": {
+            "numerator": 2,
+            "denominator": 4,
+            "percent": 50
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 2,
+            "denominator": 4,
+            "percent": 50
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 4,
+          "stringifyRows": 0
+        }
+      },
+      "root": {
+        "scheduled": 1,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 0,
+            "denominator": 1,
+            "percent": 0
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 1,
+            "percent": 0
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 1,
+            "percent": 0
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 1,
+            "percent": 0
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 1,
+          "stringifyRows": 0
+        }
+      },
+      "special-value": {
+        "scheduled": 9,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 5,
+            "denominator": 9,
+            "percent": 55.55555555555556
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 8,
+            "percent": 0
+          },
+          "stringifyByteDifferences": {
+            "numerator": 5,
+            "denominator": 8,
+            "percent": 62.5
+          },
+          "stringifyByteEquality": {
+            "numerator": 3,
+            "denominator": 8,
+            "percent": 37.5
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 1,
+            "denominator": 9,
+            "percent": 11.11111111111111
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "stringifySemanticGaps": {
+            "numerator": 5,
+            "denominator": 8,
+            "percent": 62.5
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 8,
+          "candidateStringifyRows": 8,
+          "parseRows": 0,
+          "stringifyRows": 9
+        }
+      },
+      "stringify": {
+        "scheduled": 1425,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 849,
+            "denominator": 1425,
+            "percent": 59.578947368421055
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 1424,
+            "percent": 0
+          },
+          "stringifyByteDifferences": {
+            "numerator": 849,
+            "denominator": 1424,
+            "percent": 59.62078651685393
+          },
+          "stringifyByteEquality": {
+            "numerator": 575,
+            "denominator": 1424,
+            "percent": 40.37921348314607
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 1,
+            "denominator": 1425,
+            "percent": 0.07017543859649122
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 1,
+            "denominator": 1,
+            "percent": 100
+          },
+          "stringifySemanticGaps": {
+            "numerator": 21,
+            "denominator": 1383,
+            "percent": 1.5184381778741864
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentAstGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentConversionGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "diagnosticDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "warningDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "referenceDecodedStringifyRows": 1383,
+          "candidateStringifyRows": 1424,
+          "parseRows": 0,
+          "stringifyRows": 1425
+        }
+      },
+      "text": {
+        "scheduled": 20000,
+        "metrics": {
+          "casesWithAnyGap": {
+            "numerator": 14321,
+            "denominator": 20000,
+            "percent": 71.605
+          },
+          "parseAcceptanceFailures": {
+            "numerator": 0,
+            "denominator": 19012,
+            "percent": 0
+          },
+          "parseSemanticGaps": {
+            "numerator": 0,
+            "denominator": 5679,
+            "percent": 0
+          },
+          "stringifyCallFailures": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyByteEquality": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyReferenceUndefined": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifyUndefinedContractGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "stringifySemanticGaps": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "callbackDifferences": {
+            "numerator": 0,
+            "denominator": 0,
+            "percent": null
+          },
+          "documentSurfaceGaps": {
+            "numerator": 13333,
+            "denominator": 13333,
+            "percent": 100
+          },
+          "documentAstGaps": {
+            "numerator": 13333,
+            "denominator": 13333,
+            "percent": 100
+          },
+          "documentConversionGaps": {
+            "numerator": 11914,
+            "denominator": 13333,
+            "percent": 89.35723393084827
+          },
+          "diagnosticDifferences": {
+            "numerator": 1730,
+            "denominator": 13333,
+            "percent": 12.975324383109578
+          },
+          "warningDifferences": {
+            "numerator": 364,
+            "denominator": 13333,
+            "percent": 2.730068251706293
+          },
+          "rejectionDisagreements": {
+            "numerator": 0,
+            "denominator": 988,
+            "percent": 0
+          },
+          "referenceDecodedStringifyRows": 0,
+          "candidateStringifyRows": 0,
+          "parseRows": 20000,
+          "stringifyRows": 0
+        }
+      }
+    },
+    "finiteBases": {
+      "expected": {
+        "parse": 512,
+        "stringify": 1024,
+        "enum": 108
+      },
+      "observed": {
+        "parse": 512,
+        "stringify": 1024,
+        "enum": 108
+      }
+    },
+    "optionLedger": [
+      {
+        "id": "parseDocument-intAsBigInt-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "intAsBigInt"
+        ],
+        "explicitUndefinedKeys": [
+          "intAsBigInt"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-intAsBigInt-false",
+        "operation": "parseDocument",
+        "keys": [
+          "intAsBigInt"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-intAsBigInt-true",
+        "operation": "parseDocument",
+        "keys": [
+          "intAsBigInt"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-keepSourceTokens-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "keepSourceTokens"
+        ],
+        "explicitUndefinedKeys": [
+          "keepSourceTokens"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-keepSourceTokens-false",
+        "operation": "parseDocument",
+        "keys": [
+          "keepSourceTokens"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-keepSourceTokens-true",
+        "operation": "parseDocument",
+        "keys": [
+          "keepSourceTokens"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-lineCounter-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "lineCounter"
+        ],
+        "explicitUndefinedKeys": [
+          "lineCounter"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-lineCounter-lineCounter",
+        "operation": "parseDocument",
+        "keys": [
+          "lineCounter"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 1,
+        "candidateTraceEvents": 1,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "parseDocument-prettyErrors-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "prettyErrors"
+        ],
+        "explicitUndefinedKeys": [
+          "prettyErrors"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-prettyErrors-false",
+        "operation": "parseDocument",
+        "keys": [
+          "prettyErrors"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-prettyErrors-true",
+        "operation": "parseDocument",
+        "keys": [
+          "prettyErrors"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-strict-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "strict"
+        ],
+        "explicitUndefinedKeys": [
+          "strict"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-strict-false",
+        "operation": "parseDocument",
+        "keys": [
+          "strict"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-strict-true",
+        "operation": "parseDocument",
+        "keys": [
+          "strict"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-stringKeys-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "stringKeys"
+        ],
+        "explicitUndefinedKeys": [
+          "stringKeys"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-stringKeys-false",
+        "operation": "parseDocument",
+        "keys": [
+          "stringKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-stringKeys-true",
+        "operation": "parseDocument",
+        "keys": [
+          "stringKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-uniqueKeys-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "uniqueKeys"
+        ],
+        "explicitUndefinedKeys": [
+          "uniqueKeys"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-uniqueKeys-false",
+        "operation": "parseDocument",
+        "keys": [
+          "uniqueKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 3
+      },
+      {
+        "id": "parseDocument-uniqueKeys-true",
+        "operation": "parseDocument",
+        "keys": [
+          "uniqueKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-logLevel-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "logLevel"
+        ],
+        "explicitUndefinedKeys": [
+          "logLevel"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-logLevel-silent",
+        "operation": "parseDocument",
+        "keys": [
+          "logLevel"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-logLevel-error",
+        "operation": "parseDocument",
+        "keys": [
+          "logLevel"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-logLevel-warn",
+        "operation": "parseDocument",
+        "keys": [
+          "logLevel"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-logLevel-debug",
+        "operation": "parseDocument",
+        "keys": [
+          "logLevel"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-version-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "version"
+        ],
+        "explicitUndefinedKeys": [
+          "version"
+        ],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-version-1.1",
+        "operation": "parseDocument",
+        "keys": [
+          "version"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-version-1.2",
+        "operation": "parseDocument",
+        "keys": [
+          "version"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-version-next",
+        "operation": "parseDocument",
+        "keys": [
+          "version"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-compat-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "compat"
+        ],
+        "explicitUndefinedKeys": [
+          "compat"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-compat-null",
+        "operation": "parseDocument",
+        "keys": [
+          "compat"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-customTags-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "customTags"
+        ],
+        "explicitUndefinedKeys": [
+          "customTags"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-customTags-null",
+        "operation": "parseDocument",
+        "keys": [
+          "customTags"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-merge-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "merge"
+        ],
+        "explicitUndefinedKeys": [
+          "merge"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-merge-false",
+        "operation": "parseDocument",
+        "keys": [
+          "merge"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-merge-true",
+        "operation": "parseDocument",
+        "keys": [
+          "merge"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-resolveKnownTags-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "resolveKnownTags"
+        ],
+        "explicitUndefinedKeys": [
+          "resolveKnownTags"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-resolveKnownTags-false",
+        "operation": "parseDocument",
+        "keys": [
+          "resolveKnownTags"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-resolveKnownTags-true",
+        "operation": "parseDocument",
+        "keys": [
+          "resolveKnownTags"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-schema-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "schema"
+        ],
+        "explicitUndefinedKeys": [
+          "schema"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-schema-failsafe",
+        "operation": "parseDocument",
+        "keys": [
+          "schema"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-schema-core",
+        "operation": "parseDocument",
+        "keys": [
+          "schema"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-schema-json",
+        "operation": "parseDocument",
+        "keys": [
+          "schema"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-schema-yaml-1.1",
+        "operation": "parseDocument",
+        "keys": [
+          "schema"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-sortMapEntries-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "sortMapEntries"
+        ],
+        "explicitUndefinedKeys": [
+          "sortMapEntries"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-sortMapEntries-false",
+        "operation": "parseDocument",
+        "keys": [
+          "sortMapEntries"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-sortMapEntries-true",
+        "operation": "parseDocument",
+        "keys": [
+          "sortMapEntries"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parseDocument-toStringDefaults-undefined",
+        "operation": "parseDocument",
+        "keys": [
+          "toStringDefaults"
+        ],
+        "explicitUndefinedKeys": [
+          "toStringDefaults"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 4
+      },
+      {
+        "id": "parseDocument-toStringDefaults-[object Object]",
+        "operation": "parseDocument",
+        "keys": [
+          "toStringDefaults"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parse-mapAsMap-undefined",
+        "operation": "parse",
+        "keys": [
+          "mapAsMap"
+        ],
+        "explicitUndefinedKeys": [
+          "mapAsMap"
+        ],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 1
+      },
+      {
+        "id": "parse-mapAsMap-false",
+        "operation": "parse",
+        "keys": [
+          "mapAsMap"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 1
+      },
+      {
+        "id": "parse-mapAsMap-true",
+        "operation": "parse",
+        "keys": [
+          "mapAsMap"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parse-maxAliasCount-undefined",
+        "operation": "parse",
+        "keys": [
+          "maxAliasCount"
+        ],
+        "explicitUndefinedKeys": [
+          "maxAliasCount"
+        ],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 1
+      },
+      {
+        "id": "parse-maxAliasCount--1",
+        "operation": "parse",
+        "keys": [
+          "maxAliasCount"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parse-maxAliasCount-0",
+        "operation": "parse",
+        "keys": [
+          "maxAliasCount"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parse-maxAliasCount-1",
+        "operation": "parse",
+        "keys": [
+          "maxAliasCount"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "parse-maxAliasCount-100",
+        "operation": "parse",
+        "keys": [
+          "maxAliasCount"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "stringify-aliasDuplicateObjects-undefined",
+        "operation": "stringify",
+        "keys": [
+          "aliasDuplicateObjects"
+        ],
+        "explicitUndefinedKeys": [
+          "aliasDuplicateObjects"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-aliasDuplicateObjects-false",
+        "operation": "stringify",
+        "keys": [
+          "aliasDuplicateObjects"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-aliasDuplicateObjects-true",
+        "operation": "stringify",
+        "keys": [
+          "aliasDuplicateObjects"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-anchorPrefix-undefined",
+        "operation": "stringify",
+        "keys": [
+          "anchorPrefix"
+        ],
+        "explicitUndefinedKeys": [
+          "anchorPrefix"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-anchorPrefix-a",
+        "operation": "stringify",
+        "keys": [
+          "anchorPrefix"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-flow-undefined",
+        "operation": "stringify",
+        "keys": [
+          "flow"
+        ],
+        "explicitUndefinedKeys": [
+          "flow"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-flow-false",
+        "operation": "stringify",
+        "keys": [
+          "flow"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-flow-true",
+        "operation": "stringify",
+        "keys": [
+          "flow"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-keepUndefined-undefined",
+        "operation": "stringify",
+        "keys": [
+          "keepUndefined"
+        ],
+        "explicitUndefinedKeys": [
+          "keepUndefined"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-keepUndefined-false",
+        "operation": "stringify",
+        "keys": [
+          "keepUndefined"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-keepUndefined-true",
+        "operation": "stringify",
+        "keys": [
+          "keepUndefined"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-onTagObj-undefined",
+        "operation": "stringify",
+        "keys": [
+          "onTagObj"
+        ],
+        "explicitUndefinedKeys": [
+          "onTagObj"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-onTagObj-onTagObj",
+        "operation": "stringify",
+        "keys": [
+          "onTagObj"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "stringify-tag-undefined",
+        "operation": "stringify",
+        "keys": [
+          "tag"
+        ],
+        "explicitUndefinedKeys": [
+          "tag"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-tag-tag:yaml.org,2002:str",
+        "operation": "stringify",
+        "keys": [
+          "tag"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-blockQuote-undefined",
+        "operation": "stringify",
+        "keys": [
+          "blockQuote"
+        ],
+        "explicitUndefinedKeys": [
+          "blockQuote"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-blockQuote-false",
+        "operation": "stringify",
+        "keys": [
+          "blockQuote"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-blockQuote-true",
+        "operation": "stringify",
+        "keys": [
+          "blockQuote"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-blockQuote-folded",
+        "operation": "stringify",
+        "keys": [
+          "blockQuote"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-blockQuote-literal",
+        "operation": "stringify",
+        "keys": [
+          "blockQuote"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-collectionStyle-undefined",
+        "operation": "stringify",
+        "keys": [
+          "collectionStyle"
+        ],
+        "explicitUndefinedKeys": [
+          "collectionStyle"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-collectionStyle-any",
+        "operation": "stringify",
+        "keys": [
+          "collectionStyle"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-collectionStyle-block",
+        "operation": "stringify",
+        "keys": [
+          "collectionStyle"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-collectionStyle-flow",
+        "operation": "stringify",
+        "keys": [
+          "collectionStyle"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-commentString-undefined",
+        "operation": "stringify",
+        "keys": [
+          "commentString"
+        ],
+        "explicitUndefinedKeys": [
+          "commentString"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-commentString-commentString",
+        "operation": "stringify",
+        "keys": [
+          "commentString"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-defaultKeyType-undefined",
+        "operation": "stringify",
+        "keys": [
+          "defaultKeyType"
+        ],
+        "explicitUndefinedKeys": [
+          "defaultKeyType"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-defaultKeyType-PLAIN",
+        "operation": "stringify",
+        "keys": [
+          "defaultKeyType"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-defaultKeyType-QUOTE_SINGLE",
+        "operation": "stringify",
+        "keys": [
+          "defaultKeyType"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-defaultStringType-undefined",
+        "operation": "stringify",
+        "keys": [
+          "defaultStringType"
+        ],
+        "explicitUndefinedKeys": [
+          "defaultStringType"
+        ],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 1
+      },
+      {
+        "id": "stringify-defaultStringType-PLAIN",
+        "operation": "stringify",
+        "keys": [
+          "defaultStringType"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-defaultStringType-BLOCK_LITERAL",
+        "operation": "stringify",
+        "keys": [
+          "defaultStringType"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-directives-undefined",
+        "operation": "stringify",
+        "keys": [
+          "directives"
+        ],
+        "explicitUndefinedKeys": [
+          "directives"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-directives-false",
+        "operation": "stringify",
+        "keys": [
+          "directives"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-directives-true",
+        "operation": "stringify",
+        "keys": [
+          "directives"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-directives-null",
+        "operation": "stringify",
+        "keys": [
+          "directives"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-doubleQuotedAsJSON-undefined",
+        "operation": "stringify",
+        "keys": [
+          "doubleQuotedAsJSON"
+        ],
+        "explicitUndefinedKeys": [
+          "doubleQuotedAsJSON"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-doubleQuotedAsJSON-false",
+        "operation": "stringify",
+        "keys": [
+          "doubleQuotedAsJSON"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-doubleQuotedAsJSON-true",
+        "operation": "stringify",
+        "keys": [
+          "doubleQuotedAsJSON"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-doubleQuotedMinMultiLineLength-undefined",
+        "operation": "stringify",
+        "keys": [
+          "doubleQuotedMinMultiLineLength"
+        ],
+        "explicitUndefinedKeys": [
+          "doubleQuotedMinMultiLineLength"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-doubleQuotedMinMultiLineLength-0",
+        "operation": "stringify",
+        "keys": [
+          "doubleQuotedMinMultiLineLength"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-doubleQuotedMinMultiLineLength-1",
+        "operation": "stringify",
+        "keys": [
+          "doubleQuotedMinMultiLineLength"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-doubleQuotedMinMultiLineLength-80",
+        "operation": "stringify",
+        "keys": [
+          "doubleQuotedMinMultiLineLength"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-falseStr-undefined",
+        "operation": "stringify",
+        "keys": [
+          "falseStr"
+        ],
+        "explicitUndefinedKeys": [
+          "falseStr"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-falseStr-no",
+        "operation": "stringify",
+        "keys": [
+          "falseStr"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-flowCollectionPadding-undefined",
+        "operation": "stringify",
+        "keys": [
+          "flowCollectionPadding"
+        ],
+        "explicitUndefinedKeys": [
+          "flowCollectionPadding"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-flowCollectionPadding-false",
+        "operation": "stringify",
+        "keys": [
+          "flowCollectionPadding"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-flowCollectionPadding-true",
+        "operation": "stringify",
+        "keys": [
+          "flowCollectionPadding"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-indent-undefined",
+        "operation": "stringify",
+        "keys": [
+          "indent"
+        ],
+        "explicitUndefinedKeys": [
+          "indent"
+        ],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 1
+      },
+      {
+        "id": "stringify-indent--1",
+        "operation": "stringify",
+        "keys": [
+          "indent"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "stringify-indent-0",
+        "operation": "stringify",
+        "keys": [
+          "indent"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "stringify-indent-1",
+        "operation": "stringify",
+        "keys": [
+          "indent"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-indent-2",
+        "operation": "stringify",
+        "keys": [
+          "indent"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-indent-4",
+        "operation": "stringify",
+        "keys": [
+          "indent"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-indent-8",
+        "operation": "stringify",
+        "keys": [
+          "indent"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-indent-9",
+        "operation": "stringify",
+        "keys": [
+          "indent"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-indentSeq-undefined",
+        "operation": "stringify",
+        "keys": [
+          "indentSeq"
+        ],
+        "explicitUndefinedKeys": [
+          "indentSeq"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-indentSeq-false",
+        "operation": "stringify",
+        "keys": [
+          "indentSeq"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-indentSeq-true",
+        "operation": "stringify",
+        "keys": [
+          "indentSeq"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-lineWidth-undefined",
+        "operation": "stringify",
+        "keys": [
+          "lineWidth"
+        ],
+        "explicitUndefinedKeys": [
+          "lineWidth"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-lineWidth-0",
+        "operation": "stringify",
+        "keys": [
+          "lineWidth"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-lineWidth-1",
+        "operation": "stringify",
+        "keys": [
+          "lineWidth"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-lineWidth-80",
+        "operation": "stringify",
+        "keys": [
+          "lineWidth"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-minContentWidth-undefined",
+        "operation": "stringify",
+        "keys": [
+          "minContentWidth"
+        ],
+        "explicitUndefinedKeys": [
+          "minContentWidth"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-minContentWidth-0",
+        "operation": "stringify",
+        "keys": [
+          "minContentWidth"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-minContentWidth-1",
+        "operation": "stringify",
+        "keys": [
+          "minContentWidth"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-minContentWidth-20",
+        "operation": "stringify",
+        "keys": [
+          "minContentWidth"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-nullStr-undefined",
+        "operation": "stringify",
+        "keys": [
+          "nullStr"
+        ],
+        "explicitUndefinedKeys": [
+          "nullStr"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-nullStr-nil",
+        "operation": "stringify",
+        "keys": [
+          "nullStr"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-simpleKeys-undefined",
+        "operation": "stringify",
+        "keys": [
+          "simpleKeys"
+        ],
+        "explicitUndefinedKeys": [
+          "simpleKeys"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-simpleKeys-false",
+        "operation": "stringify",
+        "keys": [
+          "simpleKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-simpleKeys-true",
+        "operation": "stringify",
+        "keys": [
+          "simpleKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-singleQuote-undefined",
+        "operation": "stringify",
+        "keys": [
+          "singleQuote"
+        ],
+        "explicitUndefinedKeys": [
+          "singleQuote"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-singleQuote-false",
+        "operation": "stringify",
+        "keys": [
+          "singleQuote"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-singleQuote-true",
+        "operation": "stringify",
+        "keys": [
+          "singleQuote"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-singleQuote-null",
+        "operation": "stringify",
+        "keys": [
+          "singleQuote"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-trailingComma-undefined",
+        "operation": "stringify",
+        "keys": [
+          "trailingComma"
+        ],
+        "explicitUndefinedKeys": [
+          "trailingComma"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-trailingComma-false",
+        "operation": "stringify",
+        "keys": [
+          "trailingComma"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-trailingComma-true",
+        "operation": "stringify",
+        "keys": [
+          "trailingComma"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-trueStr-undefined",
+        "operation": "stringify",
+        "keys": [
+          "trueStr"
+        ],
+        "explicitUndefinedKeys": [
+          "trueStr"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-trueStr-yes",
+        "operation": "stringify",
+        "keys": [
+          "trueStr"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-verifyAliasOrder-undefined",
+        "operation": "stringify",
+        "keys": [
+          "verifyAliasOrder"
+        ],
+        "explicitUndefinedKeys": [
+          "verifyAliasOrder"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-verifyAliasOrder-false",
+        "operation": "stringify",
+        "keys": [
+          "verifyAliasOrder"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-verifyAliasOrder-true",
+        "operation": "stringify",
+        "keys": [
+          "verifyAliasOrder"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-schema-undefined",
+        "operation": "stringify",
+        "keys": [
+          "schema"
+        ],
+        "explicitUndefinedKeys": [
+          "schema"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-schema-core",
+        "operation": "stringify",
+        "keys": [
+          "schema"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-schema-yaml-1.1",
+        "operation": "stringify",
+        "keys": [
+          "schema"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-version-undefined",
+        "operation": "stringify",
+        "keys": [
+          "version"
+        ],
+        "explicitUndefinedKeys": [
+          "version"
+        ],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 1
+      },
+      {
+        "id": "stringify-version-1.1",
+        "operation": "stringify",
+        "keys": [
+          "version"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-version-1.2",
+        "operation": "stringify",
+        "keys": [
+          "version"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-version-next",
+        "operation": "stringify",
+        "keys": [
+          "version"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-customTags-undefined",
+        "operation": "stringify",
+        "keys": [
+          "customTags"
+        ],
+        "explicitUndefinedKeys": [
+          "customTags"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-customTags-null",
+        "operation": "stringify",
+        "keys": [
+          "customTags"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-sortMapEntries-undefined",
+        "operation": "stringify",
+        "keys": [
+          "sortMapEntries"
+        ],
+        "explicitUndefinedKeys": [
+          "sortMapEntries"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-sortMapEntries-false",
+        "operation": "stringify",
+        "keys": [
+          "sortMapEntries"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-sortMapEntries-true",
+        "operation": "stringify",
+        "keys": [
+          "sortMapEntries"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-resolveKnownTags-undefined",
+        "operation": "stringify",
+        "keys": [
+          "resolveKnownTags"
+        ],
+        "explicitUndefinedKeys": [
+          "resolveKnownTags"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-resolveKnownTags-false",
+        "operation": "stringify",
+        "keys": [
+          "resolveKnownTags"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-resolveKnownTags-true",
+        "operation": "stringify",
+        "keys": [
+          "resolveKnownTags"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-merge-undefined",
+        "operation": "stringify",
+        "keys": [
+          "merge"
+        ],
+        "explicitUndefinedKeys": [
+          "merge"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-merge-false",
+        "operation": "stringify",
+        "keys": [
+          "merge"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-merge-true",
+        "operation": "stringify",
+        "keys": [
+          "merge"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-uniqueKeys-undefined",
+        "operation": "stringify",
+        "keys": [
+          "uniqueKeys"
+        ],
+        "explicitUndefinedKeys": [
+          "uniqueKeys"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-uniqueKeys-false",
+        "operation": "stringify",
+        "keys": [
+          "uniqueKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-uniqueKeys-true",
+        "operation": "stringify",
+        "keys": [
+          "uniqueKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-strict-undefined",
+        "operation": "stringify",
+        "keys": [
+          "strict"
+        ],
+        "explicitUndefinedKeys": [
+          "strict"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-strict-false",
+        "operation": "stringify",
+        "keys": [
+          "strict"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-strict-true",
+        "operation": "stringify",
+        "keys": [
+          "strict"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-prettyErrors-undefined",
+        "operation": "stringify",
+        "keys": [
+          "prettyErrors"
+        ],
+        "explicitUndefinedKeys": [
+          "prettyErrors"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-prettyErrors-false",
+        "operation": "stringify",
+        "keys": [
+          "prettyErrors"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-prettyErrors-true",
+        "operation": "stringify",
+        "keys": [
+          "prettyErrors"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-keepSourceTokens-undefined",
+        "operation": "stringify",
+        "keys": [
+          "keepSourceTokens"
+        ],
+        "explicitUndefinedKeys": [
+          "keepSourceTokens"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-keepSourceTokens-false",
+        "operation": "stringify",
+        "keys": [
+          "keepSourceTokens"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-keepSourceTokens-true",
+        "operation": "stringify",
+        "keys": [
+          "keepSourceTokens"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-intAsBigInt-undefined",
+        "operation": "stringify",
+        "keys": [
+          "intAsBigInt"
+        ],
+        "explicitUndefinedKeys": [
+          "intAsBigInt"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-intAsBigInt-false",
+        "operation": "stringify",
+        "keys": [
+          "intAsBigInt"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-intAsBigInt-true",
+        "operation": "stringify",
+        "keys": [
+          "intAsBigInt"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-stringKeys-undefined",
+        "operation": "stringify",
+        "keys": [
+          "stringKeys"
+        ],
+        "explicitUndefinedKeys": [
+          "stringKeys"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-stringKeys-false",
+        "operation": "stringify",
+        "keys": [
+          "stringKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-stringKeys-true",
+        "operation": "stringify",
+        "keys": [
+          "stringKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-compat-undefined",
+        "operation": "stringify",
+        "keys": [
+          "compat"
+        ],
+        "explicitUndefinedKeys": [
+          "compat"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-compat-null",
+        "operation": "stringify",
+        "keys": [
+          "compat"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-logLevel-undefined",
+        "operation": "stringify",
+        "keys": [
+          "logLevel"
+        ],
+        "explicitUndefinedKeys": [
+          "logLevel"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-logLevel-silent",
+        "operation": "stringify",
+        "keys": [
+          "logLevel"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-logLevel-warn",
+        "operation": "stringify",
+        "keys": [
+          "logLevel"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "stringify-_directives-undefined",
+        "operation": "stringify",
+        "keys": [
+          "_directives"
+        ],
+        "explicitUndefinedKeys": [
+          "_directives"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-_directives-directives",
+        "operation": "stringify",
+        "keys": [
+          "_directives"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-toStringDefaults-undefined",
+        "operation": "stringify",
+        "keys": [
+          "toStringDefaults"
+        ],
+        "explicitUndefinedKeys": [
+          "toStringDefaults"
+        ],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "stringify-toStringDefaults-[object Object]",
+        "operation": "stringify",
+        "keys": [
+          "toStringDefaults"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "callback-parse-onAnchor-onAnchor",
+        "operation": "parse",
+        "keys": [
+          "onAnchor"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 1,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "callback-parse-uniqueKeys-uniqueKeys",
+        "operation": "parse",
+        "keys": [
+          "uniqueKeys"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 1,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "callback-parse-reviver-reviver-delete",
+        "operation": "parse",
+        "keys": [
+          "reviver"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 3,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "callback-parseDocument-_directives-directives",
+        "operation": "parseDocument",
+        "keys": [
+          "_directives"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "success",
+        "gapCount": 0
+      },
+      {
+        "id": "callback-stringify-sortMapEntries-sortMapEntries",
+        "operation": "stringify",
+        "keys": [
+          "sortMapEntries"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      },
+      {
+        "id": "callback-stringify-onTagObj-onTagObj",
+        "operation": "stringify",
+        "keys": [
+          "onTagObj"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "callback-stringify-commentString-commentString",
+        "operation": "stringify",
+        "keys": [
+          "commentString"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 1,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 3
+      },
+      {
+        "id": "callback-stringify-customTags-customTags",
+        "operation": "stringify",
+        "keys": [
+          "customTags"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "error",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 1
+      },
+      {
+        "id": "callback-stringify-customTags-customTags-array",
+        "operation": "stringify",
+        "keys": [
+          "customTags"
+        ],
+        "explicitUndefinedKeys": [],
+        "referenceStatus": "success",
+        "referenceTraceEvents": 0,
+        "candidateTraceEvents": 0,
+        "candidateStatus": "error",
+        "gapCount": 2
+      }
+    ],
+    "apiSurface": {
+      "missingExports": [
+        "Alias",
+        "CST",
+        "Composer",
+        "Document",
+        "Lexer",
+        "LineCounter",
+        "Pair",
+        "Parser",
+        "Scalar",
+        "Schema",
+        "YAMLError",
+        "YAMLMap",
+        "YAMLParseError",
+        "YAMLSeq",
+        "YAMLWarning",
+        "isAlias",
+        "isCollection",
+        "isDocument",
+        "isMap",
+        "isNode",
+        "isPair",
+        "isScalar",
+        "isSeq",
+        "module.exports",
+        "visit",
+        "visitAsync"
+      ],
+      "documentMethods": [
+        "add",
+        "addIn",
+        "clone",
+        "constructor",
+        "createAlias",
+        "createNode",
+        "createPair",
+        "delete",
+        "deleteIn",
+        "get",
+        "getIn",
+        "has",
+        "hasIn",
+        "set",
+        "setIn",
+        "setSchema",
+        "toJS",
+        "toJSON",
+        "toString"
+      ],
+      "candidateDocumentMethods": [
+        "toJS",
+        "toJSON"
+      ],
+      "missingDocumentMethods": [
+        "add",
+        "addIn",
+        "clone",
+        "constructor",
+        "createAlias",
+        "createNode",
+        "createPair",
+        "delete",
+        "deleteIn",
+        "get",
+        "getIn",
+        "has",
+        "hasIn",
+        "set",
+        "setIn",
+        "setSchema",
+        "toString"
+      ]
+    },
+    "inventories": {
+      "parse": [
+        "intAsBigInt",
+        "keepSourceTokens",
+        "lineCounter",
+        "prettyErrors",
+        "strict",
+        "stringKeys",
+        "uniqueKeys",
+        "_directives",
+        "logLevel",
+        "version",
+        "compat",
+        "customTags",
+        "merge",
+        "resolveKnownTags",
+        "schema",
+        "sortMapEntries",
+        "toStringDefaults",
+        "mapAsMap",
+        "maxAliasCount",
+        "onAnchor",
+        "reviver"
+      ],
+      "document": [
+        "intAsBigInt",
+        "keepSourceTokens",
+        "lineCounter",
+        "prettyErrors",
+        "strict",
+        "stringKeys",
+        "uniqueKeys",
+        "_directives",
+        "logLevel",
+        "version",
+        "compat",
+        "customTags",
+        "merge",
+        "resolveKnownTags",
+        "schema",
+        "sortMapEntries",
+        "toStringDefaults"
+      ],
+      "stringify": [
+        "intAsBigInt",
+        "keepSourceTokens",
+        "lineCounter",
+        "prettyErrors",
+        "strict",
+        "stringKeys",
+        "uniqueKeys",
+        "_directives",
+        "logLevel",
+        "version",
+        "compat",
+        "customTags",
+        "merge",
+        "resolveKnownTags",
+        "schema",
+        "sortMapEntries",
+        "toStringDefaults",
+        "aliasDuplicateObjects",
+        "anchorPrefix",
+        "flow",
+        "keepUndefined",
+        "onTagObj",
+        "tag",
+        "blockQuote",
+        "collectionStyle",
+        "commentString",
+        "defaultKeyType",
+        "defaultStringType",
+        "directives",
+        "doubleQuotedAsJSON",
+        "doubleQuotedMinMultiLineLength",
+        "falseStr",
+        "flowCollectionPadding",
+        "indent",
+        "indentSeq",
+        "lineWidth",
+        "minContentWidth",
+        "nullStr",
+        "simpleKeys",
+        "singleQuote",
+        "trailingComma",
+        "trueStr",
+        "verifyAliasOrder"
+      ],
+      "declarations": {
+        "ParseOptions": [
+          "intAsBigInt",
+          "keepSourceTokens",
+          "lineCounter",
+          "prettyErrors",
+          "strict",
+          "stringKeys",
+          "uniqueKeys"
+        ],
+        "DocumentOptions": [
+          "_directives",
+          "logLevel",
+          "version"
+        ],
+        "SchemaOptions": [
+          "compat",
+          "customTags",
+          "merge",
+          "resolveKnownTags",
+          "schema",
+          "sortMapEntries",
+          "toStringDefaults"
+        ],
+        "ToJSOptions": [
+          "mapAsMap",
+          "maxAliasCount",
+          "onAnchor",
+          "reviver"
+        ],
+        "CreateNodeOptions": [
+          "aliasDuplicateObjects",
+          "anchorPrefix",
+          "flow",
+          "keepUndefined",
+          "onTagObj",
+          "tag"
+        ],
+        "ToStringOptions": [
+          "blockQuote",
+          "collectionStyle",
+          "commentString",
+          "defaultKeyType",
+          "defaultStringType",
+          "directives",
+          "doubleQuotedAsJSON",
+          "doubleQuotedMinMultiLineLength",
+          "falseStr",
+          "flowCollectionPadding",
+          "indent",
+          "indentSeq",
+          "lineWidth",
+          "minContentWidth",
+          "nullStr",
+          "simpleKeys",
+          "singleQuote",
+          "trailingComma",
+          "trueStr",
+          "verifyAliasOrder"
+        ]
+      },
+      "shimRegistered": {
+        "parse": [
+          "schema",
+          "version",
+          "prettyErrors",
+          "mapAsMap",
+          "intAsBigInt",
+          "uniqueKeys",
+          "stringKeys",
+          "merge",
+          "maxAliasCount",
+          "customTags",
+          "resolveKnownTags",
+          "keepSourceTokens",
+          "lineCounter",
+          "onAnchor"
+        ],
+        "stringify": [
+          "schema",
+          "version",
+          "singleQuote",
+          "sortMapEntries",
+          "indent",
+          "nullStr",
+          "trueStr",
+          "falseStr",
+          "indentSeq",
+          "directives",
+          "lineWidth",
+          "minContentWidth",
+          "blockQuote",
+          "collectionStyle",
+          "flowCollectionPadding",
+          "aliasDuplicateObjects",
+          "anchorPrefix",
+          "customTags"
+        ]
+      },
+      "exports": [
+        "Alias",
+        "CST",
+        "Composer",
+        "Document",
+        "Lexer",
+        "LineCounter",
+        "Pair",
+        "Parser",
+        "Scalar",
+        "Schema",
+        "YAMLError",
+        "YAMLMap",
+        "YAMLParseError",
+        "YAMLSeq",
+        "YAMLWarning",
+        "isAlias",
+        "isCollection",
+        "isDocument",
+        "isMap",
+        "isNode",
+        "isPair",
+        "isScalar",
+        "isSeq",
+        "module.exports",
+        "parse",
+        "parseAllDocuments",
+        "parseDocument",
+        "stringify",
+        "visit",
+        "visitAsync"
+      ],
+      "candidateExports": [
+        "parse",
+        "parseAllDocuments",
+        "parseDocument",
+        "stringify"
+      ],
+      "missingExports": [
+        "Alias",
+        "CST",
+        "Composer",
+        "Document",
+        "Lexer",
+        "LineCounter",
+        "Pair",
+        "Parser",
+        "Scalar",
+        "Schema",
+        "YAMLError",
+        "YAMLMap",
+        "YAMLParseError",
+        "YAMLSeq",
+        "YAMLWarning",
+        "isAlias",
+        "isCollection",
+        "isDocument",
+        "isMap",
+        "isNode",
+        "isPair",
+        "isScalar",
+        "isSeq",
+        "module.exports",
+        "visit",
+        "visitAsync"
+      ],
+      "documentMethods": [
+        "add",
+        "addIn",
+        "clone",
+        "constructor",
+        "createAlias",
+        "createNode",
+        "createPair",
+        "delete",
+        "deleteIn",
+        "get",
+        "getIn",
+        "has",
+        "hasIn",
+        "set",
+        "setIn",
+        "setSchema",
+        "toJS",
+        "toJSON",
+        "toString"
+      ],
+      "candidateDocumentMethods": [
+        "toJS",
+        "toJSON"
+      ]
+    }
+  }
+}

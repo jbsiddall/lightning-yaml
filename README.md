@@ -200,6 +200,33 @@ quickly on whatever you find.
 if you change anything under `src/`, run `pnpm changeset` to declare the version
 bump; CI checks for it.
 
+### Compatibility testing
+
+Install once with `pnpm install --frozen-lockfile --strict-peer-dependencies`.
+`pnpm test` runs the deterministic compatibility and project tests without
+network access or candidate preparation. `pnpm test:properties` runs the focused
+compatibility checks; `pnpm test:coverage` adds the node assertions, an HTML
+Vitest report, and V8 coverage of every production `src/**/*.ts` file. Reports
+are written to `results/compatibility/`; CI uploads them as an artifact.
+
+Run `pnpm gen:suite` and `pnpm audit:js-yaml:full` for the deterministic
+js-yaml 5.2.1 comparison campaign. It compares parsed JavaScript values, types
+and reference sharing, and reports stringify byte equality separately from
+semantic round-trip equality. The finite boolean/quote-style matrix is enumerated;
+other options, callbacks and YAML inputs are sampled. The audit records existing
+compatibility gaps; `pnpm audit:js-yaml:strict` makes gaps fail the command.
+Run `pnpm audit:yaml:full` for the separate yaml 2.9.0 campaign, including
+`parse`, `stringify`, document conversions, callbacks and option witnesses.
+Document AST and API differences are reported separately from converted values.
+For the source-aware CST/document/node goal, explicitly run `pnpm gen:yaml-cst-candidate`,
+then `pnpm test:yaml-cst` or `pnpm audit:yaml-cst:full`. That comparison targets the pinned, unmerged
+[PR #184](https://github.com/jbsiddall/lightning-yaml/pull/184) implementation
+against `yaml`, including tokens, source ranges, comments and line positions.
+The CST implementation is not included in the package on `main`.
+See [the compatibility guide](docs/compatibility-testing.md) for scope,
+replay and report interpretation. Neither sampled compatibility percentages nor
+line coverage establish equivalence for every possible input.
+
 ## Status & scope
 
 YAML 1.2 core, feature-complete but for one deliberate gap — **merge keys

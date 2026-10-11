@@ -1,0 +1,7 @@
+{
+  "suiteRef": "data-2022-01-17",
+  "suiteInputFiles": 1954,
+  "totalInputFiles": 1955,
+  "aggregateSha256": "8be330b165c45e18e0f85fd6bb46f5a976d359a04d7cdfcdf9345cebbb33fbd0",
+  "hashFormat": "SHA256 of JSON.stringify ordered [relative POSIX path, SHA256 content] pairs; CurrencyCloud first, suite inputs in recursive lexical order."
+}
