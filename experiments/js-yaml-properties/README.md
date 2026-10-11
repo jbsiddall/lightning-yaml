@@ -152,3 +152,15 @@ They are independent measurements.
 
 [Measured results for 2026-10-11](reports/2026-10-11/README.md) include the initial
 coverage percentages and the separate corpus, generated-input and option-matrix gaps.
+
+## yaml compatibility campaign
+
+The same isolated package also runs the [yaml campaign](yaml/README.md), with a
+separate reference and report directory. `pnpm test:properties` and
+`pnpm test:coverage` include both sets of harness tests. The CI artifact includes
+all audit directories, including the pinned draft CST pipeline. See the yaml guide
+for the distinction between the implementation on `main` and the unmerged CST work.
+
+Node Buffers are compared and transported by their visible bytes, exact Buffer
+brand and object identity. Their ambient pooled backing storage and offsets are
+excluded; other built-in typed arrays retain backing-buffer identity checks.

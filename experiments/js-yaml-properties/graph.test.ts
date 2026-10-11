@@ -186,3 +186,16 @@ describe("property graph model", () => {
     ).toThrow(/Invalid graph encoding/);
   });
 });
+
+it("preserves Buffer bytes, brand and object sharing without exporting pooled storage", () => {
+  const bytes = Buffer.from([1, 2, 3]);
+  const graph = { first: bytes, second: bytes };
+  const encoded = encodeGraph(graph);
+  const restored = decodeGraph(encoded) as typeof graph;
+  expect(Buffer.isBuffer(restored.first)).toBe(true);
+  expect(restored.first).toBe(restored.second);
+  expect(compareGraph(graph, restored).equal).toBe(true);
+  expect(compareGraph(bytes, Buffer.from([1, 2, 4])).equal).toBe(false);
+  expect(compareGraph(bytes, new Uint8Array([1, 2, 3])).equal).toBe(false);
+  expect(encoded.length).toBeLessThan(1000);
+});

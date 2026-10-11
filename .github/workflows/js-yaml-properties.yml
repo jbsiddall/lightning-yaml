@@ -1,4 +1,4 @@
-name: js-yaml properties and coverage
+name: YAML compatibility properties and coverage
 
 on:
   pull_request:
@@ -39,6 +39,8 @@ jobs:
         run: pnpm --dir experiments/js-yaml-properties install --frozen-lockfile --strict-peer-dependencies
       - name: Typecheck
         run: pnpm typecheck
+      - name: Fetch pinned CST candidate
+        run: pnpm gen:yaml-cst-candidate
       - name: Property harness tests
         run: pnpm test:properties
       - name: Vitest HTML report and production coverage
@@ -49,11 +51,22 @@ jobs:
         env:
           AUDIT_SAMPLES: ${{ inputs.samples || '200' }}
         run: pnpm audit:js-yaml --extended --samples "$AUDIT_SAMPLES" --seed 20261011
+      - name: yaml compatibility audit
+        env:
+          AUDIT_SAMPLES: ${{ inputs.samples || '200' }}
+        run: pnpm audit:yaml --extended --samples "$AUDIT_SAMPLES" --seed 20261011
+      - name: Source-aware CST compatibility audit
+        env:
+          AUDIT_SAMPLES: ${{ inputs.samples || '200' }}
+        run: pnpm audit:yaml-cst --extended --samples "$AUDIT_SAMPLES" --seed 20261011
       - name: Upload test, coverage and compatibility reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: js-yaml-properties-and-coverage
-          path: results/js-yaml-properties/
+          path: |
+            results/js-yaml-properties/
+            results/yaml-properties/
+            results/yaml-cst-properties/
           if-no-files-found: error
           retention-days: 30

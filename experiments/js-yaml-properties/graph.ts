@@ -67,6 +67,10 @@ function objectKind(value: object): string {
     return Object.getPrototypeOf(value) === ArrayBuffer.prototype
       ? "arraybuffer"
       : "unsupported";
+  if (Buffer.isBuffer(value))
+    return Object.getPrototypeOf(value) === Buffer.prototype
+      ? "node-buffer"
+      : "unsupported";
   if (ArrayBuffer.isView(value)) {
     const prototypes = new Map<object, string>([
       [Int8Array.prototype, "Int8Array"],
@@ -98,7 +102,7 @@ function objectKind(value: object): string {
 }
 
 function visibleProps(value: object, kind: string): [string, unknown][] {
-  return ownData(value, kind.startsWith("typed:"));
+  return ownData(value, kind.startsWith("typed:") || kind === "node-buffer");
 }
 
 export function compareGraph(
@@ -160,6 +164,11 @@ export function compareGraph(
         const result = visit(x[i], y[i], `${path}.<set:${i}>`);
         if (!result.equal) return result;
       }
+    } else if (ka === "node-buffer") {
+      const x = ao as Buffer,
+        y = bo as Buffer;
+      if (x.length !== y.length || x.some((byte, index) => byte !== y[index]))
+        return mismatch(path, "Buffer bytes differ");
     } else if (ka === "arraybuffer") {
       const x = new Uint8Array(ao as ArrayBuffer),
         y = new Uint8Array(bo as ArrayBuffer);
@@ -245,6 +254,8 @@ export function encodeGraph(value: unknown): string {
         ref(item),
       ]);
     else if (kind === "set") data = [...(object as Set<unknown>)].map(ref);
+    // Buffer pools contain unrelated allocations; only the visible bytes belong to this value.
+    else if (kind === "node-buffer") data = [...(object as Buffer)];
     else if (kind === "arraybuffer")
       data = [...new Uint8Array(object as ArrayBuffer)];
     else if (kind === "dataview" || kind.startsWith("typed:")) {
@@ -339,7 +350,7 @@ export function decodeGraph(encoded: string): unknown {
     if (raw.props?.some((pair) => pair[0] === "length" && raw.kind === "array"))
       return invalid();
     if (
-      raw.kind.startsWith("typed:") &&
+      (raw.kind.startsWith("typed:") || raw.kind === "node-buffer") &&
       raw.props?.some((pair) => /^(0|[1-9]\d*)$/.test(pair[0]))
     )
       return invalid();
@@ -395,6 +406,7 @@ export function decodeGraph(encoded: string): unknown {
           return invalid();
         }
         break;
+      case "node-buffer":
       case "arraybuffer":
         if (!validBytes(raw.data)) return invalid();
         break;
@@ -471,6 +483,8 @@ export function decodeGraph(encoded: string): unknown {
         return new Map();
       case "set":
         return new Set();
+      case "node-buffer":
+        return Buffer.from(node.data as number[]);
       case "arraybuffer":
         return new Uint8Array(node.data as number[]).buffer;
       default:

@@ -102,7 +102,15 @@
     "audit:js-yaml": "pnpm --dir experiments/js-yaml-properties run audit",
     "audit:js-yaml:full": "pnpm --dir experiments/js-yaml-properties run audit --extended --samples 20000",
     "audit:js-yaml:strict": "pnpm --dir experiments/js-yaml-properties run audit --strict",
-    "audit:js-yaml:replay": "pnpm --dir experiments/js-yaml-properties run audit --replay"
+    "audit:js-yaml:replay": "pnpm --dir experiments/js-yaml-properties run audit --replay",
+    "audit:yaml": "pnpm --dir experiments/js-yaml-properties run audit:yaml",
+    "audit:yaml:full": "pnpm --dir experiments/js-yaml-properties run audit:yaml --extended --samples 20000",
+    "audit:yaml:strict": "pnpm --dir experiments/js-yaml-properties run audit:yaml --strict",
+    "audit:yaml:replay": "pnpm --dir experiments/js-yaml-properties run audit:yaml --replay",
+    "gen:yaml-cst-candidate": "node scripts/fetch-yaml-cst-candidate.mjs",
+    "audit:yaml-cst": "pnpm --dir experiments/js-yaml-properties run audit:yaml-cst",
+    "audit:yaml-cst:full": "pnpm audit:yaml-cst --extended --samples 20000",
+    "audit:yaml-cst:strict": "pnpm audit:yaml-cst --extended --samples 20000 --strict"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",
