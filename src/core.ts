@@ -4429,14 +4429,19 @@ function parseDirectives(): boolean {
 /**
  * Parse one document from the current stream position: an optional
  * directives block (which then requires an explicit `---`), an optional
- * `---`/`...` marker, the document's root node (or `null` for an empty
- * document), and a trailing `...` if present. Leaves `pos` positioned for the
+ * `---` marker, the root node (or `null` for an explicit empty document), and
+ * trailing `...` markers if present. Leaves `pos` positioned for the
  * next call: at a following marker, at genuine trailing content (the caller
  * decides how to report that), or at EOF. Shared by `parse` and `parseAll` so
  * every rule above is enforced identically for single- and multi-document use.
  */
 function parseNextDocument(): unknown {
   skipBlankLines();
+  while (pos < len && isDocMarkerAt(pos) && src.charCodeAt(pos) === DOT) {
+    consumeDocEndMarker();
+    bareDocAllowed = true;
+    skipBlankLines();
+  }
   if (pos >= len) return NO_DOCUMENT;
 
   const sawDirectives = parseDirectives();
@@ -4468,10 +4473,6 @@ function parseNextDocument(): unknown {
     // (same line if there was inline content — collections forbidden there —
     // else the following content line, where they're perfectly ordinary).
     value = pos >= len || isDocMarkerAt(pos) ? null : inline ? parseBlockNode(ROOT_AFTER_INLINE_MARKER) : parseRootBlockNode();
-  } else if (marker) {
-    // A bare '...' at a document's start position (no preceding content): an
-    // empty document. The shared end-marker handling below consumes it.
-    value = null;
   } else {
     // No marker at all: a bare document. Only legal at stream start or right
     // after a preceding explicit '...' (`bareDocAllowed`) — otherwise a prior
@@ -4486,8 +4487,12 @@ function parseNextDocument(): unknown {
   // other ending (EOF, or landing right on a '---') keeps `bareDocAllowed`
   // false: only '...' unlocks a following bare document (grammar: bare
   // documents are the stream's first, or immediately after a doc-suffix).
-  if (pos < len && isDocMarkerAt(pos) && src.charCodeAt(pos) === DOT) {
+  let consumedFooter = false;
+  while (pos < len && isDocMarkerAt(pos) && src.charCodeAt(pos) === DOT) {
     consumeDocEndMarker();
+    consumedFooter = true;
+  }
+  if (consumedFooter) {
     bareDocAllowed = true;
   } else {
     bareDocAllowed = false;

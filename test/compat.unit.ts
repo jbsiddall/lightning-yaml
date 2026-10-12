@@ -119,6 +119,83 @@ test("js-yaml-compat.loadAll with an iterator callback works (returns undefined,
   deepStrictEqual(seen, [{ a: 1 }, { b: 2 }, { c: 3 }]);
 });
 
+test("js-yaml-compat.load rejects streams without a document like js-yaml 5.4.3", () => {
+  const emptyStreams = [
+    "", " ", "\n", "\r\n", "\t\r\n", "# comment", "# comment\r\n",
+    "\ufeff", "\ufeff# comment\r\n", "...", "...\n...",
+    "... # c\r\n# tail\r\n...\r\n",
+  ];
+  for (const input of emptyStreams) {
+    throws(() => jsyamlReal.load(input), (err: unknown) => {
+      ok(err instanceof jsyamlReal.YAMLException);
+      strictEqual((err as YAMLException).reason, "expected a document, but the input is empty");
+      return true;
+    });
+    throws(() => load(input), (err: unknown) => {
+      ok(err instanceof YAMLException);
+      strictEqual((err as YAMLException).reason, "expected a document, but the input is empty");
+      return true;
+    });
+    deepStrictEqual(jsyamlReal.loadAll(input), []);
+    deepStrictEqual(loadAll(input), []);
+    const seen: unknown[] = [];
+    strictEqual(loadAll(input, (doc) => { seen.push(doc); }), undefined);
+    deepStrictEqual(seen, []);
+  }
+});
+
+test("js-yaml-compat.load preserves explicit null documents and loadAll overload effects", () => {
+  for (const input of ["---", "---\n# c\n", "---\n...\n...", "%YAML 1.2\n---", "null", "~"]) {
+    strictEqual(load(input), jsyamlReal.load(input));
+    strictEqual(load(input), null);
+    deepStrictEqual(loadAll(input), [null]);
+    for (const call of [
+      () => loadAll(input, { json: true }),
+      () => loadAll(input, null, { json: true }),
+      () => loadAll(input, undefined, { json: true }),
+    ]) deepStrictEqual(call(), [null]);
+    const seen: unknown[] = [];
+    strictEqual(loadAll(input, (doc) => { seen.push(doc); }, { json: true }), undefined);
+    deepStrictEqual(seen, [null]);
+  }
+  throws(() => load("", { maxDepth: 1 } as LoadOptions), /maxDepth/);
+});
+
+test("js-yaml-compat document counting preserves marker-like content and validates syntax", () => {
+  const contentCases = [
+    ["---x", "---x"],
+    ["...x", "...x"],
+    ["{a: 1}", { a: 1 }],
+    ['""', ""],
+    ["\ufeff\ufeff", "\ufeff"],
+  ] as const;
+  for (const [input, expected] of contentCases) {
+    deepStrictEqual(jsyamlReal.load(input), expected);
+    deepStrictEqual(load(input), expected);
+    deepStrictEqual(jsyamlReal.loadAll(input), [expected]);
+    deepStrictEqual(loadAll(input), [expected]);
+  }
+
+  for (const input of ["[", "%YAML 1.2\n", "%TAG !e! tag:example.com,2020:\n"]) {
+    throws(() => jsyamlReal.load(input), jsyamlReal.YAMLException);
+    throws(() => load(input), YAMLException);
+    throws(() => jsyamlReal.loadAll(input), jsyamlReal.YAMLException);
+    throws(() => loadAll(input), YAMLException);
+    const seen: unknown[] = [];
+    throws(() => loadAll(input, (doc) => { seen.push(doc); }), YAMLException);
+    deepStrictEqual(seen, []);
+  }
+
+  const multiple = "---\n---";
+  throws(() => jsyamlReal.load(multiple), jsyamlReal.YAMLException);
+  throws(() => load(multiple), YAMLException);
+  deepStrictEqual(jsyamlReal.loadAll(multiple), [null, null]);
+  deepStrictEqual(loadAll(multiple), [null, null]);
+  const seen: unknown[] = [];
+  strictEqual(loadAll(multiple, (doc) => { seen.push(doc); }), undefined);
+  deepStrictEqual(seen, [null, null]);
+});
+
 test("yaml-compat.parseAllDocuments(...).map(d => d.toJS()) matches the real yaml library", () => {
   const ours = parseAllDocuments(MULTI_DOC).map((d) => d.toJS());
   const real = yamlReal.parseAllDocuments(MULTI_DOC).map((d) => d.toJS());

@@ -5,6 +5,8 @@ import type { CaseDescriptor, Operation } from "./types.js";
 import { evaluate } from "./evaluate.js";
 import { compareGraph, decodeGraph, encodeGraph } from "../shared/graph.js";
 import { fullBooleanBasis, graphArb, textArb } from "./generators.js";
+import * as jsYamlReference from "js-yaml";
+import { load, loadAll, YAMLException } from "../../../src/js-yaml-compat.ts";
 
 describe("differential property harness", () => {
   test.prop([
@@ -128,5 +130,124 @@ describe("differential property harness", () => {
       compareGraph({ a: shared, b: shared }, { a: { v: 1 }, b: { v: 1 } })
         .equal,
     ).toBe(false);
+  });
+
+  const eolArb = fc.constantFrom("\n", "\r\n");
+  const triviaArb = fc.array(
+    fc.constantFrom("", " ", "  ", "# comment", "\t# c"),
+    { maxLength: 5 },
+  );
+  const suffixArb = fc.array(
+    fc.constantFrom("...", "... # suffix"),
+    { maxLength: 5 },
+  );
+  const noDocumentStreamArb = fc.record({
+    bom: fc.boolean(),
+    eol: eolArb,
+    trivia: triviaArb,
+    suffixes: suffixArb,
+  }).map(({ bom, eol, trivia, suffixes }) => {
+    const lines = [...trivia, ...suffixes];
+    return (bom ? "\ufeff" : "") + (lines.length ? lines.join(eol) + eol : "");
+  });
+
+  test("generated empty streams reject load and preserve loadAll callback behavior", () => {
+    fc.assert(
+      fc.property(noDocumentStreamArb, (text) => {
+        let referenceError: unknown;
+        try {
+          jsYamlReference.load(text);
+        } catch (error) {
+          referenceError = error;
+        }
+        expect(referenceError).toBeInstanceOf(jsYamlReference.YAMLException);
+        expect((referenceError as jsYamlReference.YAMLException).reason).toBe(
+          "expected a document, but the input is empty",
+        );
+
+        let candidateError: unknown;
+        try {
+          load(text);
+        } catch (error) {
+          candidateError = error;
+        }
+        expect(candidateError).toBeInstanceOf(YAMLException);
+        expect((candidateError as YAMLException).reason).toBe(
+          "expected a document, but the input is empty",
+        );
+        expect(jsYamlReference.loadAll(text)).toEqual([]);
+        expect(loadAll(text)).toEqual([]);
+        const referenceTrace: unknown[] = [];
+        const candidateTrace: unknown[] = [];
+        expect(jsYamlReference.loadAll(text, (value) => { referenceTrace.push(value); })).toBeUndefined();
+        expect(loadAll(text, (value) => { candidateTrace.push(value); })).toBeUndefined();
+        expect(referenceTrace).toEqual([]);
+        expect(candidateTrace).toEqual([]);
+      }),
+      { numRuns: 150, seed: 132 },
+    );
+  });
+
+  const nullSpellingArb = fc.constantFrom("", "null", "Null", "NULL", "~");
+  const suffixLines = (eol: string, suffixes: string[]) =>
+    suffixes.length ? eol + suffixes.join(eol) : "";
+  const explicitNullStreamArb = fc.record({
+    bom: fc.boolean(),
+    eol: eolArb,
+    trivia: triviaArb,
+    directive: fc.boolean(),
+    spelling: nullSpellingArb,
+    suffixes: suffixArb,
+  }).map(({ bom, eol, trivia, directive, spelling, suffixes }) => {
+    const lines = [...trivia, ...(directive ? ["%YAML 1.2"] : []), "---"];
+    if (spelling) lines.push(spelling);
+    const tail = suffixLines(eol, suffixes);
+    return (bom ? "\ufeff" : "") + lines.join(eol) + eol + tail + (tail ? eol : "");
+  });
+
+  test("generated explicit null documents remain distinct from empty streams", () => {
+    fc.assert(
+      fc.property(explicitNullStreamArb, (text) => {
+        expect(jsYamlReference.load(text)).toBeNull();
+        expect(load(text)).toBeNull();
+        expect(jsYamlReference.loadAll(text)).toEqual([null]);
+        expect(loadAll(text)).toEqual([null]);
+        const referenceTrace: unknown[] = [];
+        const candidateTrace: unknown[] = [];
+        jsYamlReference.loadAll(text, (value) => { referenceTrace.push(value); });
+        loadAll(text, (value) => { candidateTrace.push(value); });
+        expect(referenceTrace).toEqual([null]);
+        expect(candidateTrace).toEqual([null]);
+      }),
+      { numRuns: 150, seed: 2132 },
+    );
+  });
+
+  test("generated explicit null document pairs reject load and retain both documents", () => {
+    fc.assert(
+      fc.property(eolArb, suffixArb, suffixArb, (eol, between, trailing) => {
+        const first = "---" + eol + "null" + suffixLines(eol, between);
+        const second = "---" + eol + "null" + suffixLines(eol, trailing) + eol;
+        const text = first + eol + second;
+        expect(() => jsYamlReference.load(text)).toThrow(jsYamlReference.YAMLException);
+        expect(() => load(text)).toThrow(YAMLException);
+        expect(jsYamlReference.loadAll(text)).toEqual([null, null]);
+        expect(loadAll(text)).toEqual([null, null]);
+        const referenceTrace: unknown[] = [];
+        const candidateTrace: unknown[] = [];
+        jsYamlReference.loadAll(text, (value) => { referenceTrace.push(value); });
+        loadAll(text, (value) => { candidateTrace.push(value); });
+        expect(referenceTrace).toEqual([null, null]);
+        expect(candidateTrace).toEqual([null, null]);
+      }),
+      { numRuns: 120, seed: 1320 },
+    );
+  });
+
+  test("a long suffix-only stream does not create documents or recurse per suffix", () => {
+    const text = "...\n".repeat(1000) + "...";
+    expect(jsYamlReference.loadAll(text)).toEqual([]);
+    expect(loadAll(text)).toEqual([]);
+    expect(() => load(text)).toThrow(YAMLException);
   });
 });

@@ -736,6 +736,29 @@ test("empty document (via markers) is null", () => {
   strictEqual(parse("...\n"), null);
 });
 
+test("standalone document suffixes terminate a document without creating empty documents", () => {
+  deepStrictEqual(parseAll("..."), []);
+  strictEqual(parse("..."), null);
+  deepStrictEqual(parseAll("...\n..."), []);
+  deepStrictEqual(parseAll("---\n...\n..."), [null]);
+  strictEqual(parse("---\n...\n..."), null);
+  deepStrictEqual(parseAll("a\n...\n...\nb"), ["a", "b"]);
+  deepStrictEqual(parseAll("...\n%YAML 1.2\n---\nx\n"), ["x"]);
+  throws(() => parseAll("... garbage\n"), YAMLParseError);
+});
+
+test("suffix and parse errors leave core parser options reset for the next call", () => {
+  throws(() => parse("\tbad: value\n", { strict: true }), YAMLParseError);
+  deepStrictEqual(parse("\tbad: value\n"), { "bad": "value" });
+  throws(() => parseAll("... garbage\n", { strict: true }), YAMLParseError);
+  deepStrictEqual(parseAll("---\n...\n...", { optimizations: { internStrings: true } }), [null]);
+  deepStrictEqual(parseAll("..."), []);
+  strictEqual(parse("---\n...\n..."), null);
+  deepStrictEqual(parseAll("a: shared\nb: shared\n", { optimizations: { internStrings: true } }), [
+    { a: "shared", b: "shared" },
+  ]);
+});
+
 test("parseAll splits a '---'-separated multi-document stream", () => {
   deepStrictEqual(parseAll("--- a\n--- b\n"), ["a", "b"]);
   deepStrictEqual(parseAll("--- 1\n--- 2\n--- 3\n"), [1, 2, 3]);
