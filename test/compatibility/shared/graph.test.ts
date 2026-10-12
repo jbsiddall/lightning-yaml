@@ -47,6 +47,21 @@ describe("property graph model", () => {
     expect(compareGraph(boundary, []).equal).toBe(false);
   });
 
+  it("round trips special numbers at the graph root through JSON", () => {
+    for (const value of [NaN, Infinity, -Infinity, 0, -0]) {
+      const encoded = encodeGraph(value);
+      const replayed = JSON.stringify(JSON.parse(encoded));
+      expect(compareGraph(value, decodeGraph(replayed)).equal).toBe(true);
+    }
+  });
+
+  it("round trips nested special numbers through JSON", () => {
+    const value = { values: [NaN, Infinity, -Infinity, 0, -0] };
+    const encoded = encodeGraph(value);
+    const replayed = JSON.stringify(JSON.parse(encoded));
+    expect(compareGraph(value, decodeGraph(replayed)).equal).toBe(true);
+  });
+
   it("round trips built in brands, bytes, dates, and ordered collections", () => {
     const input = {
       date: new Date(NaN),
