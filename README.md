@@ -11,12 +11,12 @@
 
 lightning-yaml is a pure-JS YAML 1.2 parser and stringifier that parses and
 writes at speeds approaching native `JSON.parse`/`JSON.stringify` — while faithfully
-implementing YAML 1.2, passing ~97.6% (364/373) of the official
+implementing YAML 1.2, passing ~98.4% (367/373) of the official
 [yaml-test-suite](https://github.com/yaml/yaml-test-suite). It includes partial
 compatibility shims for common `yaml` and `js-yaml` calls, ESM + CJS,
 TypeScript types, and **zero runtime dependencies**. See the module references
 for the supported calls and current gaps.
-<!-- js-yaml:5.4.3 yaml:2.9.0 ly:6598b78 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:fc982a72 -->
 
 **Two goals, in priority order:** (1) full YAML 1.2 spec compliance, then
 (2) speed and memory within reach of native `JSON.parse`/`JSON.stringify`.
@@ -26,8 +26,9 @@ Everything else is secondary to those two.
   `JSON.parse`/`JSON.stringify` — **~4× faster than js-yaml** on parse across our
   benchmark workloads.
   <!-- bench:4ca6140 js-yaml:5.2.1 -->
-- **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~97.6% (364/373) of
+- **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~98.4% (367/373) of
   the official yaml-test-suite.
+  <!-- ly:fc982a72 -->
 - **Compatibility shims.** Common calls are available through `lightning-yaml/yaml`
   and `lightning-yaml/js-yaml`. The shims support selected calls and options;
   unsupported options throw instead of being silently ignored. See
@@ -235,9 +236,11 @@ YAML 1.2 core, feature-complete but for one deliberate gap — **merge keys
 merged (it's neither expanded nor rejected); everything else in the 1.2 core is
 implemented.
 
-lightning-yaml passes **~97.6% of the official yaml-test-suite** (364/373) — a
-faithful implementation of YAML 1.2 core. The handful of remaining failures
-are unrelated spec edge cases, not merge keys (the suite doesn't exercise `<<`).
+On the pinned official yaml-test-suite snapshot (`data-2022-01-17`), source
+`fc982a72` scored **367/373 (98.4%)**, with comparison runs against js-yaml
+5.4.3 and yaml 2.9.0. The handful of remaining failures are unrelated spec
+edge cases, not merge keys (the suite doesn't exercise `<<`).
+<!-- ly:fc982a72 -->
 
 ## Decisions and deviations
 

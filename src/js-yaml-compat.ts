@@ -113,7 +113,7 @@
  * that.
  */
 
-import { parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
+import { parse as ourParse, parseAll as ourParseAll, requiredDocumentOptions, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 
 // ---------------------------------------------------------------------------
@@ -344,10 +344,7 @@ const DUMP_OPTION_RULES: Record<string, OptionRule> = {
 export function load(input: string, opts?: LoadOptions): unknown {
   validateOptions(opts, LOAD_OPTION_RULES, failOption);
   try {
-    const docs = ourParseAll(input);
-    if (docs.length === 0) throw new YAMLException("expected a document, but the input is empty");
-    if (docs.length > 1) throw new YAMLException("expected a single document in the stream, but found more");
-    return docs[0];
+    return ourParse(input, requiredDocumentOptions);
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
     throw toYAMLException(err, opts?.filename);

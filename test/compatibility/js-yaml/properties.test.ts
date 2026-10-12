@@ -7,6 +7,7 @@ import { compareGraph, decodeGraph, encodeGraph } from "../shared/graph.js";
 import { fullBooleanBasis, graphArb, textArb } from "./generators.js";
 import * as jsYamlReference from "js-yaml";
 import { load, loadAll, YAMLException } from "../../../src/js-yaml-compat.ts";
+import { parse as coreParse } from "../../../src/core.ts";
 
 describe("differential property harness", () => {
   test.prop([
@@ -242,6 +243,49 @@ describe("differential property harness", () => {
       }),
       { numRuns: 120, seed: 1320 },
     );
+  });
+
+  test("generated empty and null loads leave the next parser call usable", () => {
+    fc.assert(
+      fc.property(noDocumentStreamArb, explicitNullStreamArb, (emptyText, nullText) => {
+        expect(() => jsYamlReference.load(emptyText)).toThrow(jsYamlReference.YAMLException);
+        expect(() => load(emptyText)).toThrow(YAMLException);
+        expect(jsYamlReference.load(nullText)).toBeNull();
+        expect(load(nullText)).toBeNull();
+
+        const referenceTrace: unknown[] = [];
+        const candidateTrace: unknown[] = [];
+        jsYamlReference.loadAll(nullText, (value) => {
+          referenceTrace.push(value);
+          expect(() => jsYamlReference.load(emptyText)).toThrow(jsYamlReference.YAMLException);
+        });
+        loadAll(nullText, (value) => {
+          candidateTrace.push(value);
+          expect(() => load(emptyText)).toThrow(YAMLException);
+          expect(coreParse("inside: callback\n", { optimizations: { internStrings: true } })).toEqual({
+            inside: "callback",
+          });
+        });
+        expect(referenceTrace).toEqual([null]);
+        expect(candidateTrace).toEqual([null]);
+        expect(jsYamlReference.load("after: failure\n")).toEqual({ after: "failure" });
+        expect(load("after: failure\n")).toEqual({ after: "failure" });
+        expect(coreParse("ordinary: value\n")).toEqual({ ordinary: "value" });
+      }),
+      { numRuns: 100, seed: 13200 },
+    );
+  });
+
+  test("loadAll rejects a malformed later document before invoking callbacks", () => {
+    const text = "--- first\n...\n--- [\n";
+    for (const [loadAllFn, ErrorClass] of [
+      [jsYamlReference.loadAll, jsYamlReference.YAMLException],
+      [loadAll, YAMLException],
+    ] as const) {
+      const trace: unknown[] = [];
+      expect(() => loadAllFn(text, (value) => { trace.push(value); })).toThrow(ErrorClass);
+      expect(trace).toEqual([]);
+    }
   });
 
   test("a long suffix-only stream does not create documents or recurse per suffix", () => {

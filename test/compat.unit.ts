@@ -39,6 +39,7 @@ import jsYamlCompatDefault, {
   type DumpOptions,
 } from "../src/js-yaml-compat.ts";
 import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify } from "../src/yaml-compat.ts";
+import { parse as coreParse } from "../src/core.ts";
 
 // --------------------------------------------------------------------------
 // API surface — named + default exports resolve to the right shapes.
@@ -159,6 +160,46 @@ test("js-yaml-compat.load preserves explicit null documents and loadAll overload
     deepStrictEqual(seen, [null]);
   }
   throws(() => load("", { maxDepth: 1 } as LoadOptions), /maxDepth/);
+});
+
+test("js-yaml-compat.load rejection preserves parser state and filename marks", () => {
+  throws(() => load("", { filename: "empty.yml" }), (err: unknown) => {
+    ok(err instanceof YAMLException);
+    strictEqual((err as YAMLException).reason, "expected a document, but the input is empty");
+    strictEqual((err as YAMLException).mark.name, "empty.yml");
+    return true;
+  });
+  deepStrictEqual(coreParse("\tbad: value\n"), { "bad": "value" });
+  throws(() => coreParse("\tbad: value\n", { strict: true }), /tab/);
+  deepStrictEqual(load("a: 1\n"), { a: 1 });
+
+  for (const input of ["--- first\n--- second\n", "[\n"]) {
+    throws(() => load(input, { filename: "bad.yml" }), (err: unknown) => {
+      ok(err instanceof YAMLException);
+      strictEqual((err as YAMLException).mark.name, "bad.yml");
+      return true;
+    });
+    deepStrictEqual(load("after: failure\n"), { after: "failure" });
+  }
+
+  const seen: unknown[] = [];
+  loadAll("first\n...\nsecond", (doc) => {
+    seen.push(doc);
+    throws(() => load(""), YAMLException);
+    deepStrictEqual(coreParse("a: 1\n", { optimizations: { internStrings: true } }), { a: 1 });
+  });
+  deepStrictEqual(seen, ["first", "second"]);
+  deepStrictEqual(coreParse("ordinary: value\n"), { ordinary: "value" });
+});
+
+test("js-yaml-compat.loadAll validates every document before callbacks", () => {
+  const input = "--- first\n...\n--- [\n";
+  for (const parseAll of [jsyamlReal.loadAll, loadAll]) {
+    const seen: unknown[] = [];
+    throws(() => parseAll(input, (doc) => { seen.push(doc); }),
+      parseAll === jsyamlReal.loadAll ? jsyamlReal.YAMLException : YAMLException);
+    deepStrictEqual(seen, []);
+  }
 });
 
 test("js-yaml-compat document counting preserves marker-like content and validates syntax", () => {

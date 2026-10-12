@@ -609,6 +609,11 @@ export interface ParseOptions {
   optimizations?: ParseOptimizations;
 }
 
+/** @internal
+ * The js-yaml shim uses this identity to require a document without adding a public parse option.
+ */
+export const requiredDocumentOptions: ParseOptions = Object.freeze({});
+
 /**
  * Parse a single YAML document into a JavaScript value.
  *
@@ -640,7 +645,12 @@ export function parse(text: string, options?: ParseOptions): unknown {
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const value = parseNextDocument();
-    if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
+    if (value === NO_DOCUMENT) {
+      if (options === requiredDocumentOptions) {
+        throw new YAMLParseError("expected a document, but the input is empty");
+      }
+      return null; // empty stream → null (YAML), unlike JSON
+    }
 
     // Single-document contract (like js-yaml's `load`): a second document —
     // another marker, more directives, or any other trailing content — is an
@@ -4437,7 +4447,7 @@ function parseDirectives(): boolean {
  */
 function parseNextDocument(): unknown {
   skipBlankLines();
-  while (pos < len && isDocMarkerAt(pos) && src.charCodeAt(pos) === DOT) {
+  while (pos < len && src.charCodeAt(pos) === DOT && isDocMarkerAt(pos)) {
     consumeDocEndMarker();
     bareDocAllowed = true;
     skipBlankLines();
@@ -4488,7 +4498,7 @@ function parseNextDocument(): unknown {
   // false: only '...' unlocks a following bare document (grammar: bare
   // documents are the stream's first, or immediately after a doc-suffix).
   let consumedFooter = false;
-  while (pos < len && isDocMarkerAt(pos) && src.charCodeAt(pos) === DOT) {
+  while (pos < len && src.charCodeAt(pos) === DOT && isDocMarkerAt(pos)) {
     consumeDocEndMarker();
     consumedFooter = true;
   }
