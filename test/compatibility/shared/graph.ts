@@ -212,7 +212,7 @@ function primitive(value: unknown): EncodedValue | undefined {
   if (typeof value === "number")
     return Number.isFinite(value) && !Object.is(value, -0)
       ? value
-      : { p: "number", v: String(value) };
+      : { p: "number", v: Object.is(value, -0) ? "-0" : String(value) };
   if (typeof value === "undefined") return { p: "undefined" };
   if (typeof value === "bigint") return { p: "bigint", v: String(value) };
   if (typeof value === "symbol" || typeof value === "function")
