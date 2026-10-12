@@ -266,6 +266,18 @@ test("empty flow value is null (not a JSON error)", () => {
   deepStrictEqual(parse("{a}"), { a: null });
 });
 
+test("flow mapping implicit empty key starting with colon ({: v}, { : v}, {:})", () => {
+  deepStrictEqual(parse("{: v}"), { "": "v" });
+  deepStrictEqual(parse("{ : v}"), { "": "v" });
+  deepStrictEqual(parse("{ : }"), { "": null });
+  deepStrictEqual(parse("{:}"), { "": null });
+  deepStrictEqual(parse("{\n key: value, : empty key\n}"), { key: "value", "": "empty key" });
+  deepStrictEqual(parse("{: v}"), oracleParse("{: v}"));
+  deepStrictEqual(parse("{ : v}"), oracleParse("{ : v}"));
+  deepStrictEqual(parse("{ : }"), oracleParse("{ : }"));
+  deepStrictEqual(parse("{:}"), oracleParse("{:}"));
+});
+
 // --------------------------------------------------------------------------
 // M3 — block structure. Fixture parity + hand-crafted cases + a seeded
 // round-trip corpus, all checked against the oracle / js-yaml.
