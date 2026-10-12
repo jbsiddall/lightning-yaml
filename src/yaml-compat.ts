@@ -104,7 +104,7 @@
  *     chased further for this milestone.
  */
 
-import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify } from "./core.ts";
+import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, yamlDocumentOptions } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 
 // ---------------------------------------------------------------------------
@@ -211,12 +211,9 @@ function applyReviver(holder: Record<string, unknown>, key: string, reviver: Rev
 }
 
 /**
- * Multi-document calibration (checked against real `yaml@2.9`, not assumed):
- * `YAML.parse()` on a source with more than one document THROWS —
- * `"Source contains multiple documents; please use YAML.parseAllDocuments()"`
- * — it does not silently return the first document. Our own `parse()` (see
- * ./core.ts) also throws on a second document, so this divergence-prone case
- * is naturally aligned with no special-casing needed here.
+ * Multi-document behavior is checked against `yaml@2.9`: these entrypoints
+ * preserve its suffix-as-empty-document counting through an internal parser
+ * option. Native parsing and the js-yaml shim keep core stream semantics.
  */
 export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unknown> | null, opts?: Record<string, unknown>): unknown {
   const reviver = typeof reviverOrOpts === "function" ? (reviverOrOpts as Reviver) : undefined;
@@ -228,7 +225,7 @@ export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unkn
   // as stringify below.)
   const optionBag = opts === undefined && typeof reviverOrOpts !== "function" && reviverOrOpts ? reviverOrOpts : opts;
   validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
-  const value = ourParse(src);
+  const value = ourParse(src, yamlDocumentOptions);
   if (!reviver) return value;
   const holder: Record<string, unknown> = { "": value };
   return applyReviver(holder, "", reviver);
@@ -273,7 +270,7 @@ function makeDocument(contents: unknown, errors: Error[] = []): CompatDocument {
 export function parseAllDocuments(src: string, opts?: Record<string, unknown>): CompatDocument[] {
   validateOptions(opts, PARSE_OPTION_RULES, failOption);
   try {
-    return ourParseAll(src).map((v) => makeDocument(v));
+    return ourParseAll(src, yamlDocumentOptions).map((v) => makeDocument(v));
   } catch (err) {
     return [makeDocument(undefined, [toError(err)])];
   }
@@ -292,11 +289,11 @@ export function parseAllDocuments(src: string, opts?: Record<string, unknown>): 
 export function parseDocument(src: string, opts?: Record<string, unknown>): CompatDocument {
   validateOptions(opts, PARSE_OPTION_RULES, failOption);
   try {
-    return makeDocument(ourParse(src));
+    return makeDocument(ourParse(src, yamlDocumentOptions));
   } catch (err) {
     let contents: unknown;
     try {
-      contents = ourParseAll(src)[0];
+      contents = ourParseAll(src, yamlDocumentOptions)[0];
     } catch {
       contents = undefined;
     }

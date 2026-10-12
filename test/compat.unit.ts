@@ -39,7 +39,12 @@ import jsYamlCompatDefault, {
   type DumpOptions,
 } from "../src/js-yaml-compat.ts";
 import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify } from "../src/yaml-compat.ts";
-import { parse as coreParse } from "../src/core.ts";
+import {
+  parse as coreParse,
+  parseAll as coreParseAll,
+  requiredDocumentOptions,
+  yamlDocumentOptions,
+} from "../src/core.ts";
 
 // --------------------------------------------------------------------------
 // API surface — named + default exports resolve to the right shapes.
@@ -250,6 +255,87 @@ test("yaml-compat.parseDocument wraps a single document like parseAllDocuments' 
   deepStrictEqual(doc.contents, { a: 1, b: 2 });
   deepStrictEqual(doc.errors, []);
   deepStrictEqual(doc.warnings, []);
+});
+
+test("yaml compatibility preserves yaml 2.9 suffix document counting", () => {
+  const cases: Array<[string, unknown[]]> = [
+    ["...", [null]],
+    ["...\n...\n", [null, null]],
+    ["...\na: 1\n", [null, { a: 1 }]],
+    ["---\n...\n...\n", [null, null]],
+    ["x\n...\n...\n", ["x", null]],
+    ["...\n---\n", [null, null]],
+    ["...\n%YAML 1.2\n---\na: 1\n", [null, { a: 1 }]],
+    ["\ufeff... # end\r\n# between\r\n...\r\n", [null, null]],
+    ["...x", ["...x"]],
+  ];
+  for (const [input, expected] of cases) {
+    const referenceDocs = yamlReal.parseAllDocuments(input);
+    deepStrictEqual(referenceDocs.map((doc) => doc.toJS()), expected, input);
+    const candidateDocs = parseAllDocuments(input);
+    deepStrictEqual(candidateDocs.map((doc) => doc.toJS()), expected, input);
+    deepStrictEqual(candidateDocs.map((doc) => doc.errors.length), referenceDocs.map((doc) => doc.errors.length), input);
+
+    const referenceDocument = yamlReal.parseDocument(input);
+    const candidateDocument = parseDocument(input);
+    deepStrictEqual(candidateDocument.toJS(), referenceDocument.toJS(), input);
+    strictEqual(candidateDocument.errors.length > 0, referenceDocument.errors.length > 0, input);
+
+    if (expected.length > 1) {
+      throws(() => yamlReal.parse(input));
+      throws(() => parse(input));
+    } else {
+      deepStrictEqual(parse(input), yamlReal.parse(input));
+    }
+  }
+
+  let revived = 0;
+  throws(() => parse("...\n...", (_key, value) => { revived++; return value; }));
+  strictEqual(revived, 0);
+});
+
+test("yaml compatibility retains invalid marker and late-document recovery behavior", () => {
+  for (const input of ["%YAML 1.2\n...\n", "... garbage\n"]) {
+    const referenceDocs = yamlReal.parseAllDocuments(input);
+    const candidateDocs = parseAllDocuments(input);
+    strictEqual(candidateDocs.some((doc) => doc.errors.length > 0), referenceDocs.some((doc) => doc.errors.length > 0));
+    strictEqual(parseDocument(input).errors.length > 0, yamlReal.parseDocument(input).errors.length > 0);
+  }
+
+  for (const input of ["...\n[", "---\nnull\n...\n...\n["]) {
+    const docs = parseAllDocuments(input);
+    strictEqual(docs.length, 1);
+    strictEqual(docs[0].contents, undefined);
+    strictEqual(docs[0].errors.length, 1);
+    const document = parseDocument(input);
+    strictEqual(document.contents, undefined);
+    strictEqual(document.errors.length, 1);
+  }
+});
+
+test("core, js-yaml, and yaml keep suffix policies isolated by option identity", () => {
+  ok(requiredDocumentOptions !== yamlDocumentOptions);
+  strictEqual(Object.isFrozen(requiredDocumentOptions), true);
+  strictEqual(Object.isFrozen(yamlDocumentOptions), true);
+
+  deepStrictEqual(parse("..."), null);
+  deepStrictEqual(parseAllDocuments("...").map((doc) => doc.toJS()), [null]);
+  deepStrictEqual(coreParseAll("..."), []);
+  strictEqual(coreParse("...", {}), null);
+  deepStrictEqual(coreParseAll("...\n...", {}), []);
+  throws(() => load("..."), (err: unknown) => err instanceof YAMLException);
+
+  deepStrictEqual(parseAllDocuments("...\n..." ).map((doc) => doc.toJS()), [null, null]);
+  throws(() => parse("...\n..."));
+  throws(() => parse("...\n...", (_key, value) => value));
+  deepStrictEqual(coreParseAll("...\n..."), []);
+  throws(() => load("...\n..."), (err: unknown) => err instanceof YAMLException);
+
+  deepStrictEqual(parseAllDocuments("...\na: 1\n").map((doc) => doc.toJS()), [null, { a: 1 }]);
+  throws(() => parse("...\na: 1\n"));
+  deepStrictEqual(coreParse("...\na: 1\n"), { a: 1 });
+  deepStrictEqual(load("...\na: 1\n"), { a: 1 });
+  deepStrictEqual(parseAllDocuments("..." ).map((doc) => doc.toJS()), [null]);
 });
 
 // --------------------------------------------------------------------------
