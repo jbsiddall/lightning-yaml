@@ -35,8 +35,9 @@ Everything else is secondary to those two.
   [Compatibility](#compatibility-with-js-yaml-or-yaml) for details.
 - **Lean.** Zero runtime dependencies, small bundle; ships ESM + CJS + TypeScript
   types.
-- **Complete.** Full YAML 1.2 core — flow & block syntax, anchors/aliases, tags
-  incl. `!!binary`, multi-document streams, and more.
+- **Broad YAML 1.2 support.** Handles flow and block syntax, anchors/aliases,
+  tags including `!!binary`, and multi-document streams. The official suite
+  tracks remaining spec edge cases.
 
 ## Benchmarks at a glance
 
@@ -233,9 +234,9 @@ line coverage establish equivalence for every possible input.
 
 The parser supports YAML 1.2 core features including block scalars,
 anchors/aliases, and tags such as `!!binary`. Merge keys (`<<`) are currently
-read as ordinary string keys: they are neither expanded nor rejected, unlike
-js-yaml's merge behavior. Remaining YAML 1.2 spec edge cases are tracked through
-the official suite and follow-up issues.
+read as ordinary string keys: they are neither expanded nor rejected.
+Remaining YAML 1.2 spec edge cases are tracked through the official suite and
+follow-up issues.
 
 On the pinned official yaml-test-suite snapshot (`data-2022-01-17`), source
 `fc982a72` scored **367/373 (98.4%)**, with comparison runs against js-yaml

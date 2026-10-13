@@ -83,7 +83,7 @@
  *     YAML 1.2 spec edge cases are tracked through the official suite and
  *     follow-up issues. Merge keys (`<<`) are currently neither merged nor
  *     rejected: they come back as ordinary keys (e.g. `{ "<<": {...}, y: 2 }`),
- *     unlike js-yaml's merge behavior. (See the matrix above.)
+ *     and remain literal in the returned mapping. (See the matrix above.)
  *   - Errors: a genuine syntax error surfaces as a `YAMLException` (see below),
  *     so a caller's `catch (e) { if (e instanceof YAMLException) ... }` gets the
  *     same "this document is broken" signal js-yaml gives. `load`/`loadAll` also
