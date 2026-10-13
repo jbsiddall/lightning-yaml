@@ -35,8 +35,9 @@ Everything else is secondary to those two.
   [Compatibility](#compatibility-with-js-yaml-or-yaml) for details.
 - **Lean.** Zero runtime dependencies, small bundle; ships ESM + CJS + TypeScript
   types.
-- **Complete.** Full YAML 1.2 core — flow & block syntax, anchors/aliases, tags
-  incl. `!!binary`, multi-document streams, and more.
+- **Broad YAML 1.2 support.** Handles flow and block syntax, anchors/aliases,
+  tags including `!!binary`, and multi-document streams. The official suite
+  tracks remaining spec edge cases.
 
 ## Benchmarks at a glance
 
@@ -231,15 +232,16 @@ line coverage establish equivalence for every possible input.
 
 ## Status & scope
 
-YAML 1.2 core, feature-complete but for one deliberate gap — **merge keys
-(`<<`)**. Today a `<<` key is read as an ordinary string key rather than being
-merged (it's neither expanded nor rejected); everything else in the 1.2 core is
-implemented.
+The parser supports YAML 1.2 core features including block scalars,
+anchors/aliases, and tags such as `!!binary`. Merge keys (`<<`) are currently
+read as ordinary string keys: they are neither expanded nor rejected.
+Remaining YAML 1.2 spec edge cases are tracked through the official suite and
+follow-up issues.
 
 On the pinned official yaml-test-suite snapshot (`data-2022-01-17`), source
 `fc982a72` scored **367/373 (98.4%)**, with comparison runs against js-yaml
-5.4.3 and yaml 2.9.0. The handful of remaining failures are unrelated spec
-edge cases, not merge keys (the suite doesn't exercise `<<`).
+5.4.3 and yaml 2.9.0. The remaining suite failures are YAML 1.2 spec edge
+cases; the suite does not exercise merge keys (`<<`).
 <!-- ly:fc982a72 -->
 
 ## Decisions and deviations

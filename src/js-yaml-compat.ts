@@ -75,21 +75,20 @@
  * [3] `noRefs` can't just skip anchoring: the shared-reference pre-scan is also
  *     the cycle guard, so it must first tell a shared DAG node from a cycle.
  *
- * The construct-level gaps below are the current intentional simplifications
- * (a `NotImplementedError` here means "can't read this yet", not "malformed"):
+ * Parser behavior notes (a `NotImplementedError` means "can't read this yet",
+ * not "malformed"):
  *
- *   - Parser coverage: the core is feature-complete for YAML 1.2 core — block
- *     scalars, anchors/aliases, and tags (incl. `!!binary`) all parse, so
- *     `load`/`loadAll` return values for them rather than rejecting. The one
- *     known gap is merge keys (`<<`): they are neither merged nor rejected —
- *     `<<` comes back as an ordinary key (e.g. `{ "<<": {...}, y: 2 }`), which
- *     diverges from js-yaml's merge semantics. (See the matrix above.)
+ *   - Supported constructs include block scalars, anchors/aliases, and tags
+ *     (including `!!binary`); `load`/`loadAll` return values for them. Other
+ *     YAML 1.2 spec edge cases are tracked through the official suite and
+ *     follow-up issues. Merge keys (`<<`) are currently neither merged nor
+ *     rejected: they come back as ordinary keys (e.g. `{ "<<": {...}, y: 2 }`),
+ *     and remain literal in the returned mapping. (See the matrix above.)
  *   - Errors: a genuine syntax error surfaces as a `YAMLException` (see below),
  *     so a caller's `catch (e) { if (e instanceof YAMLException) ... }` gets the
  *     same "this document is broken" signal js-yaml gives. `load`/`loadAll` also
  *     re-throw our `NotImplementedError` unwrapped rather than mislabeling it a
- *     `YAMLException` — but that path is defensive: the current parser is
- *     complete and never throws it.
+ *     `YAMLException`.
  *   - `dump` delegates to our `stringify` (implemented); dump options are not
  *     honoured yet and throw (see the matrix).
  *   - Custom schemas/tags (`defineScalarTag`/`defineSequenceTag`/
