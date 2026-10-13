@@ -24774,3 +24774,403 @@ operations:
         lightning-yaml:
           peak_rss: 261.46
           heap_delta: 597.98
+---
+suite: memory
+scope: competition
+units:
+  peak_rss: MB
+  heap_delta: KB
+lower_is_better: true
+iterations: 25
+schema_version: 1
+generated: 2026-10-13
+generated_at: 2026-10-13T13:33:55.918Z
+source: 75e5db0af0fd2763790af210cb40c1743295e693
+env:
+  clk: unknown
+  cpu: AMD EPYC 7763 64-Core Processor
+  runtime: node 24.21.0 (x64-linux)
+libraries:
+  - id: JSON
+    label: JSON
+    baseline: true
+  - id: js-yaml
+    label: js-yaml
+    version: 5.4.3
+  - id: js-yaml-tuned
+    label: js-yaml (tuned)
+    version: 5.4.3
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    version: 0.1.1
+operations:
+  parse:
+    - workload: small-records
+      values:
+        JSON:
+          peak_rss: 96.79
+          heap_delta: 1.8
+        js-yaml:
+          peak_rss: 79.51
+          heap_delta: 241.87
+        yaml:
+          peak_rss: 83.16
+          heap_delta: 884.96
+        lightning-yaml:
+          peak_rss: 79.18
+          heap_delta: 105.33
+    - workload: medium-records
+      values:
+        JSON:
+          peak_rss: 79.61
+          heap_delta: 149.82
+        js-yaml:
+          peak_rss: 98.92
+          heap_delta: 621.36
+        yaml:
+          peak_rss: 292.64
+          heap_delta: 1248.54
+        lightning-yaml:
+          peak_rss: 82.21
+          heap_delta: 480.79
+    - workload: large-records
+      values:
+        JSON:
+          peak_rss: 100.39
+          heap_delta: 1959.69
+        js-yaml:
+          peak_rss: 372.06
+          heap_delta: 3443.23
+        yaml:
+          peak_rss: 597.91
+          heap_delta: 4226.91
+        lightning-yaml:
+          peak_rss: 143.76
+          heap_delta: 3348.84
+    - workload: xlarge-records
+      values:
+        JSON:
+          peak_rss: 391.02
+          heap_delta: 17808.41
+        js-yaml:
+          peak_rss: 1124.06
+          heap_delta: 27353.43
+        yaml:
+          peak_rss: 2711.24
+          heap_delta: 40669.24
+        lightning-yaml:
+          peak_rss: 566.81
+          heap_delta: 28466.96
+    - workload: medium-nested
+      values:
+        JSON:
+          peak_rss: 79.48
+          heap_delta: 204.66
+        js-yaml:
+          peak_rss: 121.9
+          heap_delta: 574.56
+        yaml:
+          peak_rss: 325.99
+          heap_delta: 1152.12
+        lightning-yaml:
+          peak_rss: 83.33
+          heap_delta: 453.84
+    - workload: large-nested
+      values:
+        JSON:
+          peak_rss: 101.64
+          heap_delta: 1629.16
+        js-yaml:
+          peak_rss: 359.6
+          heap_delta: 2160.02
+        yaml:
+          peak_rss: 637.72
+          heap_delta: 1958.44
+        lightning-yaml:
+          peak_rss: 115.86
+          heap_delta: 2096.59
+    - workload: yaml-plain-small-records
+      values:
+        js-yaml:
+          peak_rss: 80.54
+          heap_delta: 276.55
+        yaml:
+          peak_rss: 81.95
+          heap_delta: 946.6
+        lightning-yaml:
+          peak_rss: 78.94
+          heap_delta: 174.24
+    - workload: yaml-plain-medium-records
+      values:
+        js-yaml:
+          peak_rss: 92.93
+          heap_delta: 657.63
+        yaml:
+          peak_rss: 284.38
+          heap_delta: 1285.77
+        lightning-yaml:
+          peak_rss: 83.79
+          heap_delta: 582.39
+    - workload: yaml-plain-large-records
+      values:
+        js-yaml:
+          peak_rss: 335.65
+          heap_delta: 2939.86
+        yaml:
+          peak_rss: 578.51
+          heap_delta: 2385.38
+        lightning-yaml:
+          peak_rss: 125.36
+          heap_delta: 2884.72
+    - workload: yaml-plain-medium-nested
+      values:
+        js-yaml:
+          peak_rss: 89.62
+          heap_delta: 410.18
+        yaml:
+          peak_rss: 159.45
+          heap_delta: 894.74
+        lightning-yaml:
+          peak_rss: 81.88
+          heap_delta: 332.66
+    - workload: yaml-rich-small
+      values:
+        js-yaml:
+          peak_rss: 80.05
+          heap_delta: 336.91
+        yaml:
+          peak_rss: 83.82
+          heap_delta: 1032.17
+        lightning-yaml:
+          peak_rss: 79.43
+          heap_delta: 194.83
+    - workload: yaml-rich-medium
+      values:
+        js-yaml:
+          peak_rss: 98.45
+          heap_delta: 735.16
+        yaml:
+          peak_rss: 225.17
+          heap_delta: 1327.84
+        lightning-yaml:
+          peak_rss: 83.45
+          heap_delta: 677.77
+    - workload: yaml-rich-large
+      values:
+        js-yaml:
+          peak_rss: 297.22
+          heap_delta: 2541.99
+        yaml:
+          peak_rss: 492.59
+          heap_delta: 1364.7
+        lightning-yaml:
+          peak_rss: 111.94
+          heap_delta: 2539.45
+  stringify:
+    - workload: small-records
+      values:
+        JSON:
+          peak_rss: 78.89
+          heap_delta: -2.42
+        js-yaml:
+          peak_rss: 79.07
+          heap_delta: 284.5
+        js-yaml-tuned:
+          peak_rss: 79.51
+          heap_delta: 235.57
+        yaml:
+          peak_rss: 79
+          heap_delta: 327.88
+        lightning-yaml:
+          peak_rss: 79.44
+          heap_delta: 25.26
+    - workload: medium-records
+      values:
+        JSON:
+          peak_rss: 79.65
+          heap_delta: 58.47
+        js-yaml:
+          peak_rss: 109.61
+          heap_delta: 508.75
+        js-yaml-tuned:
+          peak_rss: 110.26
+          heap_delta: 445.55
+        yaml:
+          peak_rss: 150.09
+          heap_delta: 495.01
+        lightning-yaml:
+          peak_rss: 90.29
+          heap_delta: 182.4
+    - workload: large-records
+      values:
+        JSON:
+          peak_rss: 92.56
+          heap_delta: 1123.25
+        js-yaml:
+          peak_rss: 379.03
+          heap_delta: 2383.02
+        js-yaml-tuned:
+          peak_rss: 358.23
+          heap_delta: 2290.26
+        yaml:
+          peak_rss: 379.94
+          heap_delta: 1628.33
+        lightning-yaml:
+          peak_rss: 228.99
+          heap_delta: 1322.91
+    - workload: xlarge-records
+      values:
+        JSON:
+          peak_rss: 254.03
+          heap_delta: 10450.76
+        js-yaml:
+          peak_rss: 995.23
+          heap_delta: 16332.81
+        js-yaml-tuned:
+          peak_rss: 941.41
+          heap_delta: 16278.2
+        yaml:
+          peak_rss: 897.78
+          heap_delta: 10344.38
+        lightning-yaml:
+          peak_rss: 769.79
+          heap_delta: 11322.77
+    - workload: medium-nested
+      values:
+        JSON:
+          peak_rss: 82.76
+          heap_delta: 121.6
+        js-yaml:
+          peak_rss: 149.21
+          heap_delta: 533.71
+        js-yaml-tuned:
+          peak_rss: 146.94
+          heap_delta: 503.04
+        yaml:
+          peak_rss: 215.57
+          heap_delta: 629.3
+        lightning-yaml:
+          peak_rss: 92.21
+          heap_delta: 318.21
+    - workload: large-nested
+      values:
+        JSON:
+          peak_rss: 93.57
+          heap_delta: 1176.16
+        js-yaml:
+          peak_rss: 353.72
+          heap_delta: 2149.93
+        js-yaml-tuned:
+          peak_rss: 380.75
+          heap_delta: 2118.94
+        yaml:
+          peak_rss: 382.76
+          heap_delta: 2226.06
+        lightning-yaml:
+          peak_rss: 216.93
+          heap_delta: 1921.13
+    - workload: yaml-plain-small-records
+      values:
+        JSON:
+          peak_rss: 80.98
+          heap_delta: -16.06
+        js-yaml:
+          peak_rss: 81.29
+          heap_delta: 297.41
+        js-yaml-tuned:
+          peak_rss: 80.71
+          heap_delta: 247.98
+        yaml:
+          peak_rss: 80.31
+          heap_delta: 302.43
+        lightning-yaml:
+          peak_rss: 80.01
+          heap_delta: 36.51
+    - workload: yaml-plain-medium-records
+      values:
+        JSON:
+          peak_rss: 101.13
+          heap_delta: -86.32
+        js-yaml:
+          peak_rss: 112.22
+          heap_delta: 356.25
+        js-yaml-tuned:
+          peak_rss: 112.11
+          heap_delta: 285.02
+        yaml:
+          peak_rss: 144.78
+          heap_delta: 294.99
+        lightning-yaml:
+          peak_rss: 112.59
+          heap_delta: 31.02
+    - workload: yaml-plain-large-records
+      values:
+        JSON:
+          peak_rss: 290.82
+          heap_delta: 648.16
+        js-yaml:
+          peak_rss: 354.41
+          heap_delta: 1678.16
+        js-yaml-tuned:
+          peak_rss: 367.43
+          heap_delta: 1599.88
+        yaml:
+          peak_rss: 406.2
+          heap_delta: 1096.35
+        lightning-yaml:
+          peak_rss: 282.16
+          heap_delta: 833.59
+    - workload: yaml-plain-medium-nested
+      values:
+        JSON:
+          peak_rss: 92.08
+          heap_delta: -194.5
+        js-yaml:
+          peak_rss: 108.27
+          heap_delta: 148.91
+        js-yaml-tuned:
+          peak_rss: 107.8
+          heap_delta: 121.16
+        yaml:
+          peak_rss: 107.65
+          heap_delta: 184.02
+        lightning-yaml:
+          peak_rss: 91.51
+          heap_delta: -42.79
+    - workload: yaml-rich-small
+      values:
+        js-yaml:
+          peak_rss: 80.52
+          heap_delta: 301.43
+        yaml:
+          peak_rss: 81.36
+          heap_delta: 322.08
+        lightning-yaml:
+          peak_rss: 80.85
+          heap_delta: 48.42
+    - workload: yaml-rich-medium
+      values:
+        js-yaml:
+          peak_rss: 112.24
+          heap_delta: 294.38
+        yaml:
+          peak_rss: 255.58
+          heap_delta: 368.8
+        lightning-yaml:
+          peak_rss: 112.41
+          heap_delta: -8.26
+    - workload: yaml-rich-large
+      values:
+        js-yaml:
+          peak_rss: 346.79
+          heap_delta: 1444.54
+        yaml:
+          peak_rss: 422.28
+          heap_delta: 1858.83
+        lightning-yaml:
+          peak_rss: 260.15
+          heap_delta: 603.67
