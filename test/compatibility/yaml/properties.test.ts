@@ -1,4 +1,9 @@
 import { describe, expect, test } from "vitest";
+import fc from "fast-check";
+import * as yamlReference from "yaml";
+import { parse, parseAllDocuments, parseDocument } from "../../../src/yaml-compat.ts";
+import { parseAll as coreParseAll } from "../../../src/core.ts";
+import { load as jsYamlLoad } from "../../../src/js-yaml-compat.ts";
 import { evaluate } from "./evaluate.js";
 import {
   finiteBases,
@@ -8,6 +13,61 @@ import {
 import { encodeGraph } from "../shared/graph.js";
 
 describe("yaml compatibility differential properties", () => {
+  test("generated suffix streams preserve yaml document counts across entrypoints", () => {
+    const eolArb = fc.constantFrom("\n", "\r\n");
+    const streamArb = fc.record({
+      eol: eolArb,
+      bom: fc.boolean(),
+      trivia: fc.array(fc.constantFrom("", "# leading", "  # leading"), { maxLength: 3 }),
+      suffixes: fc.array(fc.boolean(), { minLength: 1, maxLength: 5 }),
+      value: fc.option(fc.integer({ min: 0, max: 999 }), { nil: undefined }),
+    }).map(({ eol, bom, trivia, suffixes, value }) => {
+      const lines = [
+        ...trivia,
+        ...suffixes.map((comment) => comment ? "... # suffix" : "..."),
+        ...(value === undefined ? [] : [`value: ${value}`]),
+      ];
+      return {
+        text: (bom ? "\ufeff" : "") + lines.join(eol) + eol,
+        expected: [...suffixes.map(() => null), ...(value === undefined ? [] : [{ value }])],
+        value,
+      };
+    });
+
+    fc.assert(fc.property(streamArb, ({ text, expected, value }) => {
+      const referenceDocs = yamlReference.parseAllDocuments(text);
+      const candidateDocs = parseAllDocuments(text);
+      expect(referenceDocs.map((doc) => doc.toJS())).toEqual(expected);
+      expect(candidateDocs.map((doc) => doc.toJS())).toEqual(expected);
+      expect(candidateDocs.map((doc) => doc.errors.length)).toEqual(
+        referenceDocs.map((doc) => doc.errors.length),
+      );
+
+      const referenceDocument = yamlReference.parseDocument(text);
+      const candidateDocument = parseDocument(text);
+      expect(candidateDocument.toJS()).toEqual(referenceDocument.toJS());
+      expect(candidateDocument.errors.length > 0).toBe(referenceDocument.errors.length > 0);
+
+      const capture = (fn: () => unknown) => {
+        try { return { ok: true as const, value: fn() }; }
+        catch { return { ok: false as const }; }
+      };
+      const referenceParse = capture(() => yamlReference.parse(text));
+      const candidateParse = capture(() => parse(text));
+      expect(candidateParse.ok).toBe(referenceParse.ok);
+      if (referenceParse.ok && candidateParse.ok) expect(candidateParse.value).toEqual(referenceParse.value);
+
+      const nativeExpected = expected.filter((value) => value !== null);
+      expect(coreParseAll(text)).toEqual(nativeExpected);
+      expect(coreParseAll(text, {})).toEqual(nativeExpected);
+      if (value === undefined) {
+        expect(() => jsYamlLoad(text)).toThrow();
+      } else {
+        expect(jsYamlLoad(text)).toEqual({ value });
+      }
+    }), { numRuns: 100, seed: 13290 });
+  });
+
   test("simple generated JSON-compatible graphs stringify and parse equally when the oracle accepts them", () => {
     const values = [
       null,

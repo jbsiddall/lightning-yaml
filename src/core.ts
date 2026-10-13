@@ -609,6 +609,16 @@ export interface ParseOptions {
   optimizations?: ParseOptimizations;
 }
 
+/** @internal
+ * The js-yaml shim uses this identity to require a document without adding a public parse option.
+ */
+export const requiredDocumentOptions: ParseOptions = Object.freeze({});
+
+/** @internal
+ * yaml wrappers retain yaml@2.9 document counting without changing native parse options.
+ */
+export const yamlDocumentOptions: ParseOptions = Object.freeze({});
+
 /**
  * Parse a single YAML document into a JavaScript value.
  *
@@ -635,12 +645,18 @@ export interface ParseOptions {
  */
 export function parse(text: string, options?: ParseOptions): unknown {
   resetForStream(text);
+  const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
-    const value = parseNextDocument();
-    if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
+    const value = parseNextDocument(preserveSuffixDocuments);
+    if (value === NO_DOCUMENT) {
+      if (options === requiredDocumentOptions) {
+        throw new YAMLParseError("expected a document, but the input is empty");
+      }
+      return null; // empty stream → null (YAML), unlike JSON
+    }
 
     // Single-document contract (like js-yaml's `load`): a second document —
     // another marker, more directives, or any other trailing content — is an
@@ -679,13 +695,14 @@ export function parse(text: string, options?: ParseOptions): unknown {
  */
 export function parseAll(text: string, options?: ParseOptions): unknown[] {
   resetForStream(text);
+  const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const docs: unknown[] = [];
     for (;;) {
-      const value = parseNextDocument();
+      const value = parseNextDocument(preserveSuffixDocuments);
       if (value === NO_DOCUMENT) break;
       docs.push(value);
     }
@@ -4429,14 +4446,24 @@ function parseDirectives(): boolean {
 /**
  * Parse one document from the current stream position: an optional
  * directives block (which then requires an explicit `---`), an optional
- * `---`/`...` marker, the document's root node (or `null` for an empty
- * document), and a trailing `...` if present. Leaves `pos` positioned for the
+ * `---` marker, the root node (or `null` for an explicit empty document), and
+ * trailing `...` markers if present. Leaves `pos` positioned for the
  * next call: at a following marker, at genuine trailing content (the caller
- * decides how to report that), or at EOF. Shared by `parse` and `parseAll` so
- * every rule above is enforced identically for single- and multi-document use.
+ * decides how to report that), or at EOF. The yaml shim can preserve suffixes
+ * as empty documents; native parsing follows the default stream rules.
  */
-function parseNextDocument(): unknown {
+function parseNextDocument(preserveSuffixDocuments: boolean): unknown {
   skipBlankLines();
+  while (
+    pos < len &&
+    src.charCodeAt(pos) === DOT &&
+    isDocMarkerAt(pos) &&
+    !preserveSuffixDocuments
+  ) {
+    consumeDocEndMarker();
+    bareDocAllowed = true;
+    skipBlankLines();
+  }
   if (pos >= len) return NO_DOCUMENT;
 
   const sawDirectives = parseDirectives();
@@ -4469,8 +4496,7 @@ function parseNextDocument(): unknown {
     // else the following content line, where they're perfectly ordinary).
     value = pos >= len || isDocMarkerAt(pos) ? null : inline ? parseBlockNode(ROOT_AFTER_INLINE_MARKER) : parseRootBlockNode();
   } else if (marker) {
-    // A bare '...' at a document's start position (no preceding content): an
-    // empty document. The shared end-marker handling below consumes it.
+    // The yaml shim counts a standalone suffix at document start as empty.
     value = null;
   } else {
     // No marker at all: a bare document. Only legal at stream start or right
@@ -4486,8 +4512,13 @@ function parseNextDocument(): unknown {
   // other ending (EOF, or landing right on a '---') keeps `bareDocAllowed`
   // false: only '...' unlocks a following bare document (grammar: bare
   // documents are the stream's first, or immediately after a doc-suffix).
-  if (pos < len && isDocMarkerAt(pos) && src.charCodeAt(pos) === DOT) {
+  let consumedFooter = false;
+  while (pos < len && src.charCodeAt(pos) === DOT && isDocMarkerAt(pos)) {
     consumeDocEndMarker();
+    consumedFooter = true;
+    if (preserveSuffixDocuments) break;
+  }
+  if (consumedFooter) {
     bareDocAllowed = true;
   } else {
     bareDocAllowed = false;

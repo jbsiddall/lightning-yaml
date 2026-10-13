@@ -99,10 +99,8 @@
  *     parser is hardwired to YAML 1.2 core (see ./core.ts) and never
  *     branches on them.
  *
- * One thing that IS aligned rather than merely stubbed: js-yaml's `load`
- * throws on a second document in the stream (use `loadAll` instead), and our
- * `parse` throws on a second document too (see ./core.ts) — so that
- * particular divergence risk doesn't exist here.
+ * `load` rejects empty streams and streams with multiple documents, while
+ * `loadAll` returns every document in order (see ./core.ts).
  *
  * v5 REWRITE NOTE: js-yaml v5 is a from-scratch rewrite (event-based AST,
  * dual ESM/CJS build with NO default export "by design" per its migration
@@ -115,7 +113,7 @@
  * that.
  */
 
-import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
+import { parse as ourParse, parseAll as ourParseAll, requiredDocumentOptions, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 
 // ---------------------------------------------------------------------------
@@ -342,22 +340,11 @@ const DUMP_OPTION_RULES: Record<string, OptionRule> = {
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * NOTE: js-yaml v4's `load("")` (and a few other near-empty inputs) returned
- * `undefined`, quirkily — e.g. `load(" ")` and `load("\n")` were `undefined`
- * too, but `load("  \n  \n")` and `load("# comment\n")` were `null`. js-yaml
- * v5 changed this again: `load("")` now THROWS a `YAMLException` ("an empty
- * stream has no document, and `load` has no output value to signal its
- * absence" — per the v5 migration guide), rather than returning anything. We
- * always return `null` for an empty document, matching our own `parse()`'s
- * documented contract, in BOTH cases — reproducing either v4's quirk or v5's
- * new throw isn't worth it for a compat shim. Tracked as a known, low-impact
- * divergence (see bench/conformance/compat.ts).
- */
+/** Parse exactly one document; an empty stream or multiple documents throws. */
 export function load(input: string, opts?: LoadOptions): unknown {
   validateOptions(opts, LOAD_OPTION_RULES, failOption);
   try {
-    return ourParse(input);
+    return ourParse(input, requiredDocumentOptions);
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
     throw toYAMLException(err, opts?.filename);
