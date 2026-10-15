@@ -33,7 +33,7 @@ pathological fuzz sweep:
   directive/tag soup, mixed CR/LF/NEL), the parser either returns a value or
   throws `YAMLParseError`. Deep nesting hits the `MAX_DEPTH` cap as a controlled
   throw — not a stack overflow.
-- **Conformance unchanged at 367/373 (98.4%)** of the yaml-test-suite — ahead of
+- **Conformance unchanged at 364/373 (97.6%)** of the yaml-test-suite — ahead of
   js-yaml (94.9%) and `yaml` (97.1%) in this snapshot. All 9 of our failures
   also fail in `yaml`; that overlap does not establish whether any are spec
   exceptions. There are **0** cases where we fail and both js-yaml and `yaml`

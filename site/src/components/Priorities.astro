@@ -1,6 +1,15 @@
 ---
 // Priorities.astro — "what we optimise for": four tight cards on the same
 // dark instrument aesthetic as Stats/Features. Static HTML only, no client JS.
+import type { ConformanceDoc } from '../lib/queries';
+import { formatPercent, sourceLine } from '../lib/charts';
+
+interface Props {
+  conformance: ConformanceDoc;
+}
+
+const { conformance } = Astro.props;
+const conformanceSelf = conformance.results.find((result) => result.self);
 ---
 
 <section class="priorities" aria-labelledby="priorities-title">
@@ -11,8 +20,11 @@
       <span class="pcard__dot pcard__dot--charge" aria-hidden="true"></span>
       <h3 class="pcard__title">Spec-correct</h3>
       <p class="pcard__body">
-        <b>98.4%</b> of the YAML Test Suite — more of the spec than <code>js-yaml</code>
-        (94.9%) or <code>yaml</code> (97.1%).
+        {conformanceSelf ? (
+          <><b>{formatPercent(conformanceSelf.score)} ({conformanceSelf.passed}/{conformanceSelf.total})</b> on the YAML Test Suite. <a href="/benchmarks/#conformance">See the measured comparison</a>. {sourceLine(conformance)}</>
+        ) : (
+          <>The YAML Test Suite result is unavailable. <a href="/benchmarks/#conformance">See the measured comparison</a>. {sourceLine(conformance)}</>
+        )}
       </p>
     </div>
 
@@ -106,6 +118,7 @@
     color: var(--ly-muted);
     font-size: 0.85rem;
     line-height: 1.55;
+    overflow-wrap: anywhere;
   }
   .pcard__body b {
     font-family: var(--sl-font-mono);
