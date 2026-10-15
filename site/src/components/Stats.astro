@@ -1,10 +1,18 @@
 ---
-// Stats.astro — honest headline numbers from the repo README.
-// Big mono figures on dark instrument cards.
+import type { ConformanceDoc } from '../lib/queries';
+import { formatPercent, sourceLine } from '../lib/charts';
+
+interface Props {
+  conformance: ConformanceDoc;
+}
+
+const { conformance } = Astro.props;
+const conformanceSelf = conformance.results.find((result) => result.self);
+
 const stats = [
   { n: '4.4×', accent: 'charge', label: 'faster than js-yaml', sub: 'block-YAML parse' },
   { n: '39×', accent: 'spark', label: 'faster than  yaml ', sub: 'block-YAML parse' },
-  { n: '97.6%', accent: 'charge', label: 'YAML Test Suite pass', sub: 'js-yaml 94.9% · yaml 97.1%' },
+  { n: conformanceSelf ? formatPercent(conformanceSelf.score) : '—', accent: 'charge', label: 'YAML Test Suite pass', sub: sourceLine(conformance) },
   { n: '≈1.3×', accent: 'spark', label: 'of JSON.parse memory', sub: 'peak RSS, 10 MB fixture' },
 ];
 ---
@@ -63,6 +71,7 @@ const stats = [
     font-family: var(--sl-font-mono);
     font-size: 0.72rem;
     letter-spacing: 0.01em;
+    overflow-wrap: anywhere;
   }
 
   @media (max-width: 860px) {
