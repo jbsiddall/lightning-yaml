@@ -35,7 +35,7 @@ That's the thesis this section documents: implemented carefully, a pure-JS
 YAML parser can approach `JSON.parse`/`JSON.stringify`'s speed and memory
 profile — see [Benchmarks](/benchmarks/) for exactly how close — while still
 covering the full YAML 1.2 core grammar rather than a restricted subset.
-lightning-yaml backs that up on correctness too: **364/373 (97.6%)** on the
+lightning-yaml backs that up on correctness too: **367/373 (98.4%)** on the
 [yaml-test-suite](https://github.com/yaml/yaml-test-suite), ahead of both
 the `yaml` library (362/373) and `js-yaml` (354/373), with 100% (91/91) on
 the negative/error cases — the speed isn't coming at the expense of

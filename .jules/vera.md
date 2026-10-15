@@ -1,0 +1,1 @@
+## 2026-10-15 - Conformance numbers\n**Learning:** The test suite score was 98.4%, but the docs claimed 97.6% (from an older run). I've updated the docs across the codebase to match the current suite results.\n**Action:** Run tests before filing to make sure numbers are still current, and check multiple places.

@@ -31,7 +31,7 @@ const speed = canonicalRun(speedRuns);
 const conformance = newestRun(conformanceRaw, ConformanceDocSchema);
 const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
-const confPct = (conformance.results.find((r) => r.self)?.score ?? 97.6).toFixed(1);
+const confPct = (conformance.results.find((r) => r.self)?.score ?? 98.4).toFixed(1);
 
 // Headline parse ratios: one real measurement in the canonical environment —
 // see queries.ts's "Ratio queries" section for why it's never blended across

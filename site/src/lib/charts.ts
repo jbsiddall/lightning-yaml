@@ -367,7 +367,7 @@ export function formatMB(mb: number): string {
   return `${fixedByMagnitude(mb)} MB`;
 }
 
-/** Percent -> data label, e.g. `97.6%`. */
+/** Percent -> data label, e.g. `98.4%`. */
 export function formatPercent(v: number): string {
   return `${v.toFixed(1)}%`;
 }

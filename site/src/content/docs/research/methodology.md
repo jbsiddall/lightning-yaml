@@ -174,7 +174,7 @@ pnpm gen:fixtures       # generate bench/fixtures/data/* — JSON + YAML (gitign
 
 pnpm test               # vitest consistency suite (ours vs. the yaml oracle)
 pnpm test:unit          # the parser's own node:test suite (fast, standalone)
-pnpm test:suite         # yaml-test-suite conformance runner (364/373, 97.6%)
+pnpm test:suite         # yaml-test-suite conformance runner (367/373, 98.4%)
 
 # low-level runners (all candidates by default; BENCH_SCOPE=competition|ours to filter)
 pnpm bench:speed        # mitata parse + stringify throughput
