@@ -1005,6 +1005,14 @@ test("self-referential (cyclic) anchors resolve to the SAME object, never a deep
   strictEqual(blockObj.self, blockObj);
 });
 
+test("self-referential (cyclic) anchors in complex mapping keys do not cause RangeError", () => {
+  const res1 = parse("&a [*a]: 1") as Record<string, unknown>;
+  deepStrictEqual(res1, { "[ [Circular] ]": 1 });
+
+  const res2 = parse("&a {self: *a}: 1") as Record<string, unknown>;
+  deepStrictEqual(res2, { "{ self: [Circular] }": 1 });
+});
+
 test("anchor redefinition is allowed — a later anchor shadows the earlier one for later aliases", () => {
   deepStrictEqual(parse("a: &x 1\nb: &x 2\nc: *x\n"), { a: 1, b: 2, c: 2 });
   deepStrictEqual(parse("a: &x 1\nb: &x 2\nc: *x\n"), oracleParse("a: &x 1\nb: &x 2\nc: *x\n"));
