@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluate } from "./evaluate.js";
@@ -16,6 +16,11 @@ import { behaviorWitnesses } from "./witnesses.js";
 import { execFileSync } from "node:child_process";
 import type { CaseDescriptor, CaseResult, Outcome } from "./types.js";
 import { installedPackageVersion } from "../shared/installedPackageVersion.js";
+import {
+  loadComposedCorpus,
+  loadComposedCorpusProvenance,
+  type ComposedCorpusInput,
+} from "../yaml/corpus.js";
 
 const repo = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -27,41 +32,25 @@ function hash(text: string): string {
 function stableId(source: string, text: string, index: number): string {
   return `${source}-${index}-${hash(text).slice(0, 12)}`;
 }
-async function corpus(): Promise<CaseDescriptor[]> {
-  const files = [path.join(repo, "test/corpus/currencycloud-reference.yaml")];
-  const suite = path.join(repo, "bench/yaml-test-suite/data");
-  async function walk(dir: string): Promise<void> {
-    let names: string[];
-    try {
-      names = await readdir(dir);
-    } catch (e) {
-      throw new Error(
-        `required pinned yaml-test-suite corpus missing at ${dir}: ${String(e)}`,
-      );
-    }
-    for (const name of names.sort()) {
-      const f = path.join(dir, name);
-      const s = await stat(f);
-      if (s.isDirectory()) await walk(f);
-      else if (name === "in.yaml") files.push(f);
-    }
-  }
-  await walk(suite);
+export function buildCorpusDescriptors(
+  inputs: ComposedCorpusInput[],
+): CaseDescriptor[] {
   const out: CaseDescriptor[] = [];
-  for (let i = 0; i < files.length; i++) {
-    const f = files[i]!,
-      s = await stat(f);
-    if (s.size > 2097152)
-      throw new Error(`corpus input exceeds 2 MiB cap: ${f} (${s.size})`);
-    const text = await readFile(f, "utf8"),
-      source = path.relative(repo, f).split(path.sep).join("/");
+  for (let i = 0; i < inputs.length; i++) {
+    const input = inputs[i]!;
+    const source = input.source;
+    const text = input.text;
+    const added = input.corpusKind === "real-world";
+    const categories = added
+      ? ["corpus", "real-world", input.category!]
+      : ["corpus"];
     out.push({
       id: stableId("corpus", text, i),
       operation: "load",
       text,
       options: { values: {} },
       source,
-      categories: ["corpus"],
+      categories,
     });
     out.push({
       id: `${stableId("corpus-all", text, i)}-all`,
@@ -69,23 +58,34 @@ async function corpus(): Promise<CaseDescriptor[]> {
       text,
       options: { values: {} },
       source,
-      categories: ["corpus", "loadAll"],
+      categories: added
+        ? ["corpus", "real-world", input.category!, "loadAll"]
+        : ["corpus", "loadAll"],
     });
   }
-  const snapshot = JSON.parse(
-    await readFile(new URL("../shared/fixtures/corpus-snapshot.json", import.meta.url), "utf8"),
-  ) as { totalInputFiles: number; aggregateSha256: string };
-  const fingerprints = out
-    .filter((descriptor) => descriptor.operation === "load")
-    .map((descriptor) => [descriptor.source, hash(descriptor.text!)]);
-  if (
-    fingerprints.length !== snapshot.totalInputFiles ||
-    hash(JSON.stringify(fingerprints)) !== snapshot.aggregateSha256
-  )
-    throw new Error(
-      "Pinned corpus is missing, modified or from a different snapshot; regenerate with FORCE=1 pnpm gen:suite",
-    );
   return out;
+}
+
+export function buildReferenceDumpDescriptor(
+  descriptor: CaseDescriptor,
+  value: unknown,
+): CaseDescriptor {
+  return {
+    id: `dump-${descriptor.id}`,
+    operation: "dump",
+    graph: encodeGraph(value),
+    options: { values: {} },
+    source: `corpus-dump/${descriptor.source}`,
+    categories: descriptor.categories.includes("real-world")
+      ? [
+          "corpus-dump",
+          "real-world",
+          ...descriptor.categories.filter((category) =>
+            ["kubernetes", "docker-compose", "github-actions"].includes(category),
+          ),
+        ]
+      : ["corpus-dump"],
+  };
 }
 function percent(n: number, d: number): number | null {
   return d ? (100 * n) / d : null;
@@ -225,6 +225,7 @@ export async function main(): Promise<void> {
     referenceAccepted: 0,
     referenceRejected: 0,
     dumpDescriptors: 0,
+    graphCodecUnsupported: 0,
   };
   if (replay) {
     const parsed: unknown = JSON.parse(
@@ -244,7 +245,7 @@ export async function main(): Promise<void> {
       throw new Error("replay file does not contain a case descriptor");
     descriptors = [possible as CaseDescriptor];
   } else {
-    descriptors = await corpus();
+    descriptors = buildCorpusDescriptors(await loadComposedCorpus());
     descriptors.push(...behaviorWitnesses());
     descriptors.push(
       ...generatedLoad(seed, samples),
@@ -273,16 +274,19 @@ export async function main(): Promise<void> {
         continue;
       }
       corpusDumpEligibility.referenceAccepted++;
-      const graph = encodeGraph(row.reference.value);
-      descriptors.push({
-        id: "dump-" + row.descriptor.id,
-        operation: "dump",
-        graph,
-        options: { values: {} },
-        source: "corpus-dump/" + row.descriptor.source,
-        categories: ["corpus-dump"],
-      });
-      corpusDumpEligibility.dumpDescriptors++;
+      try {
+        descriptors.push(
+          buildReferenceDumpDescriptor(row.descriptor, row.reference.value),
+        );
+        corpusDumpEligibility.dumpDescriptors++;
+      } catch (error) {
+        if (
+          !(error instanceof TypeError &&
+            error.message.startsWith("Cannot encode graph:"))
+        )
+          throw error;
+        corpusDumpEligibility.graphCodecUnsupported++;
+      }
     }
     const multi = "---\na: 1\n---\nb: [2]\n";
     for (const operation of [
@@ -463,10 +467,7 @@ export async function main(): Promise<void> {
       repository: "https://github.com/yaml/yaml-test-suite",
       ref: "data-2022-01-17",
       license: "MIT",
-      fileCount:
-        descriptors.filter(
-          (d) => d.categories.includes("corpus") && d.operation === "load",
-        ).length - 1,
+      fileCount: 1954,
     },
     realWorld: {
       file: "test/corpus/currencycloud-reference.yaml",
@@ -474,10 +475,30 @@ export async function main(): Promise<void> {
         "Source URL is recorded in the vendored file header; snapshot inherited from origin/main",
     },
   };
+  const composedProvenance = replay ? undefined : await loadComposedCorpusProvenance();
   const manifest = {
     version: 1,
     runtime,
     corpusProvenance,
+    corpusSnapshot: {
+      scheduled: !replay,
+      ...(composedProvenance ?? {}),
+      scheduledAdditionalOperationCounts: replay
+        ? {}
+        : {
+            load: descriptors.filter(
+              (d) => d.categories.includes("real-world") && d.operation === "load",
+            ).length,
+            loadAllArray: descriptors.filter(
+              (d) =>
+                d.categories.includes("real-world") &&
+                d.operation === "loadAll-array",
+            ).length,
+            dump: descriptors.filter(
+              (d) => d.categories.includes("real-world") && d.operation === "dump",
+            ).length,
+          },
+    },
     seed,
     requestedGeneratedPerKind: samples,
     scheduled: rows.length,
@@ -490,6 +511,26 @@ export async function main(): Promise<void> {
         path: r.descriptor.source,
         sha256: hash(r.descriptor.text ?? ""),
       })),
+    corpusInputFiles: Array.from(
+      new Map(
+        rows
+          .filter(
+            (r) =>
+              r.descriptor.categories.includes("corpus") &&
+              r.descriptor.operation === "load",
+          )
+          .map(
+            (r) =>
+              [
+                r.descriptor.source,
+                {
+                  path: r.descriptor.source,
+                  sha256: hash(r.descriptor.text ?? ""),
+                },
+              ] as const,
+          ),
+      ).values(),
+    ),
     corpusCaps: { maxFileBytes: 2097152 },
     corpusDumpEligibility,
     extended: extended,

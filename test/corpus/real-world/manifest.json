@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "aggregateConvention": "sha256(JSON.stringify([[source, sha256], ...]))",
+  "aggregateSha256": "c4b9b3b52da14a4fac5116e7e6a985baef2a4c424ea9bf6bb2a33cf70f2868dd",
+  "inputs": [
+    {
+      "id": "kubernetes-nginx-deployment",
+      "category": "kubernetes",
+      "repository": "kubernetes/website",
+      "commit": "109572ac97242c9b3d68b4b26afdd22b5f88ed73",
+      "sourcePath": "content/en/examples/controllers/nginx-deployment.yaml",
+      "sourceUrl": "https://github.com/kubernetes/website/blob/109572ac97242c9b3d68b4b26afdd22b5f88ed73/content/en/examples/controllers/nginx-deployment.yaml",
+      "localPath": "test/corpus/real-world/kubernetes.yaml",
+      "bytes": 341,
+      "sha256": "0c51429243635a7d62846099b45259b9dcd06553a46032d76ad605c6cc1f6c5d",
+      "license": "CC-BY-4.0",
+      "licensePath": "test/corpus/real-world/licenses/kubernetes-website-LICENSE.txt",
+      "licenseSourcePath": "LICENSE",
+      "licenseUrl": "https://github.com/kubernetes/website/blob/109572ac97242c9b3d68b4b26afdd22b5f88ed73/LICENSE",
+      "licenseBytes": 18657,
+      "licenseSha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411"
+    },
+    {
+      "id": "docker-compose-nginx-flask-mysql",
+      "category": "docker-compose",
+      "repository": "docker/awesome-compose",
+      "commit": "30f4b7f6a6c3b0c0ecf4d4efb0de203c48d11562",
+      "sourcePath": "nginx-flask-mysql/compose.yaml",
+      "sourceUrl": "https://github.com/docker/awesome-compose/blob/30f4b7f6a6c3b0c0ecf4d4efb0de203c48d11562/nginx-flask-mysql/compose.yaml",
+      "localPath": "test/corpus/real-world/compose.yaml",
+      "bytes": 1239,
+      "sha256": "9243a613ba323bbe1994cb5a1d33a519c94affc261ad0d5d00c8afa0b5559cbe",
+      "license": "CC0-1.0",
+      "licensePath": "test/corpus/real-world/licenses/awesome-compose-LICENSE.txt",
+      "licenseSourcePath": "LICENSE",
+      "licenseUrl": "https://github.com/docker/awesome-compose/blob/30f4b7f6a6c3b0c0ecf4d4efb0de203c48d11562/LICENSE",
+      "licenseBytes": 7048,
+      "licenseSha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+    },
+    {
+      "id": "github-actions-node-ci",
+      "category": "github-actions",
+      "repository": "actions/starter-workflows",
+      "commit": "e3c451d60f119b71caebf13c98ac45da6e15b4b7",
+      "sourcePath": "ci/node.js.yml",
+      "sourceUrl": "https://github.com/actions/starter-workflows/blob/e3c451d60f119b71caebf13c98ac45da6e15b4b7/ci/node.js.yml",
+      "localPath": "test/corpus/real-world/github-actions.yaml",
+      "bytes": 882,
+      "sha256": "edd2d73bb194d0925bc82c4c266e36ab205c68c82998bc6a398a441d7d6027da",
+      "license": "MIT",
+      "licensePath": "test/corpus/real-world/licenses/starter-workflows-LICENSE.txt",
+      "licenseSourcePath": "LICENSE",
+      "licenseUrl": "https://github.com/actions/starter-workflows/blob/e3c451d60f119b71caebf13c98ac45da6e15b4b7/LICENSE",
+      "licenseBytes": 1154,
+      "licenseSha256": "d78930d559f68ee1b8d5c69df99c42a223921b1953e9bb59d7ef1785acb81fb3"
+    }
+  ],
+  "inputCount": 3
+}

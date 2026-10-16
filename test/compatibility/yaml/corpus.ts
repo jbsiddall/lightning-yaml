@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadRealWorldCorpus, realWorldCorpusProvenance } from "../shared/realWorldCorpus.js";
 
 export interface CorpusInput {
   source: string;
@@ -87,3 +88,47 @@ export const corpusProvenance = {
 } as const;
 
 export const campaignRepoRoot = repo;
+
+export interface ComposedCorpusInput extends CorpusInput {
+  corpusKind: "legacy" | "real-world";
+  id?: string;
+  category?: string;
+}
+
+export async function loadComposedCorpus(): Promise<ComposedCorpusInput[]> {
+  const legacy = await loadPinnedCorpus();
+  const additions = await loadRealWorldCorpus();
+  return [
+    ...legacy.map((input) => ({ ...input, corpusKind: "legacy" as const })),
+    ...additions.map((input) => ({
+      source: input.source,
+      text: input.text,
+      sha256: input.sha256,
+      corpusKind: "real-world" as const,
+      id: input.id,
+      category: input.category,
+    })),
+  ];
+}
+
+export async function loadComposedCorpusProvenance() {
+  const legacy = await loadPinnedCorpus();
+  const suiteInputs = legacy.filter((input) => input.source.startsWith("bench/yaml-test-suite/data/"));
+  const inheritedInputs = legacy.filter((input) => input.source === "test/corpus/currencycloud-reference.yaml");
+  const additions = await loadRealWorldCorpus();
+  const combined = [...legacy, ...additions];
+  return {
+    legacyInputCount: legacy.length,
+    legacyAggregateSha256: digest(JSON.stringify(legacy.map(({ source, sha256 }) => [source, sha256]))),
+    suiteInputCount: suiteInputs.length,
+    inheritedInputCount: inheritedInputs.length,
+    additionalInputCount: additions.length,
+    additionalAggregateSha256: digest(JSON.stringify(additions.map(({ source, sha256 }) => [source, sha256]))),
+    combinedInputCount: combined.length,
+    combinedAggregateSha256: digest(JSON.stringify(combined.map(({ source, sha256 }) => [source, sha256]))),
+    additionalInputs: additions.map(({ id, category, repository, commit, sourcePath, source, sha256, license, licensePath, licenseSourcePath, licenseUrl, bytes, licenseBytes, licenseSha256 }) => ({
+      id, category, repository, commit, sourcePath, source, sha256, license, licensePath, licenseSourcePath, licenseUrl, bytes, licenseBytes, licenseSha256,
+    })),
+    realWorld: realWorldCorpusProvenance,
+  };
+}
