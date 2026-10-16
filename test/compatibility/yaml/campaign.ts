@@ -10,8 +10,10 @@ import { encodeGraph } from "../shared/graph.js";
 import {
   campaignRepoRoot,
   corpusProvenance,
-  loadPinnedCorpus,
-} from "./corpus.js";
+  loadComposedCorpusSnapshot,
+  type ComposedCorpusInput,
+  type ComposedCorpusSnapshot,
+} from "../shared/corpus.js";
 import { evaluate } from "./evaluate.js";
 import { inventories, optionKeys, runtimeInventory } from "./options.js";
 import {
@@ -343,32 +345,53 @@ function makeGenerated(seed: number, samples: number): CaseDescriptor[] {
   ];
 }
 
+export function buildCorpusParseDescriptors(inputs: ComposedCorpusInput[]): CaseDescriptor[] {
+  const descriptors: CaseDescriptor[] = [];
+  const operations = ["parse", "parseDocument", "parseAllDocuments"] as const;
+  for (let i = 0; i < inputs.length; i++) {
+    const input = inputs[i]!;
+    const categories = input.corpusKind === "real-world"
+      ? ["corpus", "real-world", input.category!]
+      : ["corpus"];
+    for (const operation of operations) descriptors.push({
+      id: `${stableId("corpus", input.text, i)}-${operation}`,
+      operation,
+      text: input.text,
+      options: { values: {} },
+      source: input.source,
+      categories: [...categories, operation],
+    });
+  }
+  return descriptors;
+}
+
+export function buildCorpusReferenceSerializationDescriptor(
+  descriptor: CaseDescriptor,
+  value: unknown,
+): CaseDescriptor {
+  return {
+    id: `corpus-stringify-${descriptor.id}`,
+    operation: "stringify",
+    graph: encodeGraph(value),
+    options: { values: {} },
+    source: `corpus-reference-value/${descriptor.source}`,
+    categories: descriptor.categories.includes("real-world")
+      ? ["corpus-reference-value", "stringify", "real-world", ...descriptor.categories.filter((category) => ["kubernetes", "docker-compose", "github-actions"].includes(category))]
+      : ["corpus-reference-value", "stringify"],
+  };
+}
+
 async function buildDescriptors(
   seed: number,
   samples: number,
 ): Promise<{
   descriptors: CaseDescriptor[];
   corpusStats: Record<string, number>;
+  corpusSnapshot: ComposedCorpusSnapshot;
 }> {
-  const inputs = await loadPinnedCorpus();
-  if (inputs.length !== 1955)
-    throw new Error(
-      `expected all 1955 pinned corpus inputs, got ${inputs.length}`,
-    );
-  const descriptors: CaseDescriptor[] = [];
-  const operations = ["parse", "parseDocument", "parseAllDocuments"] as const;
-  for (let i = 0; i < inputs.length; i++) {
-    const input = inputs[i]!;
-    for (const operation of operations)
-      descriptors.push({
-        id: `${stableId("corpus", input.text, i)}-${operation}`,
-        operation,
-        text: input.text,
-        options: { values: {} },
-        source: input.source,
-        categories: ["corpus", operation],
-      });
-  }
+  const corpusSnapshot = await loadComposedCorpusSnapshot();
+  const inputs = corpusSnapshot.inputs;
+  const descriptors = buildCorpusParseDescriptors(inputs);
   const parsed = descriptors.map((descriptor) => ({
     descriptor,
     result: evaluate(descriptor),
@@ -383,15 +406,7 @@ async function buildDescriptors(
     )
       continue;
     try {
-      const graph = encodeGraph(result.reference.value);
-      descriptors.push({
-        id: `corpus-stringify-${descriptor.id}`,
-        operation: "stringify",
-        graph,
-        options: { values: {} },
-        source: `corpus-reference-value/${descriptor.source}`,
-        categories: ["corpus-reference-value", "stringify"],
-      });
+      descriptors.push(buildCorpusReferenceSerializationDescriptor(descriptor, result.reference.value));
       corpusReferenceValues++;
     } catch (error) {
       if (!isUnsupportedGraphCodecError(error)) throw error;
@@ -424,8 +439,11 @@ async function buildDescriptors(
   }
   return {
     descriptors,
+    corpusSnapshot,
     corpusStats: {
       files: inputs.length,
+      legacyInputFiles: inputs.filter((input) => input.corpusKind === "legacy").length,
+      additionalInputFiles: inputs.filter((input) => input.corpusKind === "real-world").length,
       referenceValuesStringified: corpusReferenceValues,
       referenceValuesCodecUnsupported: corpusCodecUnsupported,
     },
@@ -483,6 +501,8 @@ export async function main(): Promise<void> {
     revision,
     sourceBase: "f9e62ca9b3a4df753c76537843255b77d343eb5e",
   };
+  const composedProvenance = built?.corpusSnapshot.provenance;
+  const additionalScheduled = rows.filter((row) => row.descriptor.categories.includes("real-world"));
   const manifest = {
     version: 1,
     runtime,
@@ -505,12 +525,25 @@ export async function main(): Promise<void> {
       ? { parse: 0, stringify: 0, enum: 0 }
       : { parse: 512, stringify: 1024, enum: 108 },
     corpusProvenance,
+    corpusSnapshot: {
+      scheduled: !replaying,
+      ...(composedProvenance ?? {}),
+      scheduledAdditionalOperationCounts: replaying ? {} : Object.fromEntries(
+        ["parse", "parseDocument", "parseAllDocuments", "stringify"].map((op) => [
+          op,
+          additionalScheduled.filter((row) => row.descriptor.operation === op).length,
+        ]),
+      ),
+    },
     corpusCaps: { maxFileBytes: 2097152 },
     corpus: built
-      ? (await loadPinnedCorpus()).map(({ source, sha256 }) => ({
+      ? built.corpusSnapshot.legacyInputs.map(({ source, sha256 }) => ({
           source,
           sha256,
         }))
+      : [],
+    corpusInputFiles: built
+      ? built.corpusSnapshot.inputs.map(({ source, sha256 }) => ({ source, sha256 }))
       : [],
     corpusStats: built?.corpusStats,
     replay: replaying,

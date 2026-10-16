@@ -65,6 +65,28 @@ Every declared v5 option below has a scheduled witness. Compile-time inventory
 checks fail on missing or extra fields in the pinned reference declarations.
 This is **option-name coverage**, not proof that all behavior of an option is covered.
 
+### Pinned real-world inputs
+
+Normal corpus campaigns append three byte-preserved examples from Kubernetes,
+Docker Awesome Compose, and GitHub Actions. Their immutable source commits, local
+paths, byte counts, SHA-256 hashes, SPDX identifiers, and separately pinned
+license files are recorded in `test/corpus/real-world/manifest.json`; attribution
+and license copies are beside it. The old YAML Test Suite snapshot remains an
+independently validated input set. The composed loader validates both sets and
+then appends the additions in manifest order.
+
+Each added file always receives `load` and `loadAll-array` descriptors. An
+additional reference-derived `dump` descriptor is scheduled when the reference
+accepts its value and the graph codec can transport it. The bounded properties
+also run the exact source bytes and LF/CRLF forms through reference and candidate
+single and stream parsers, then check serialization by parsing it with the
+corresponding reference. These examples add input files to metric denominators;
+descriptor counts remain separate because each input has multiple operation rows.
+The js-yaml manifest keeps its existing repeated `corpus` descriptor rows and
+adds `corpusInputFiles` for the unique input-file summary.
+Replay does not schedule a corpus and reports that explicitly. Historical reports
+continue to describe the corpus and schedule used when they were produced.
+
 | Parse option      | Witness family                                         |
 | ----------------- | ------------------------------------------------------ |
 | filename          | Empty/ordinary/Unicode names, syntax-error diagnostics |
@@ -281,6 +303,19 @@ shrink failures; recorded descriptors replay the original cases.
 - Option fields: declaration inventory checked against the pinned reference types,
   with omission and explicit undefined distinct from activated options.
 - Static API inventory: present/missing runtime export names, separate from behavior.
+
+Normal corpus runs include the unchanged pinned YAML Test Suite plus the three
+official Kubernetes, Docker Compose, and GitHub Actions examples described above.
+The explicit manifest and license copies live in `test/corpus/real-world/`.
+Both sets are validated independently before their inputs are composed. Each new
+input always receives `parse`, `parseDocument`, and `parseAllDocuments`; reference
+accepted values also receive `stringify` when graph transport supports them. The
+small fixed-seed properties use each exact upstream byte sequence, then bounded
+LF/CRLF variants, and compare semantic graphs after serialization. They do not
+require document AST or emitted-text equality. New files change input-based
+denominators; scheduled descriptor counts are reported separately. Replays report
+that no corpus was scheduled, and frozen historical reports retain their original
+corpus meaning.
 
 Graph comparison preserves exact brands and bidirectional object identity. Node
 Buffers are compared by visible bytes, Buffer brand and object identity; pooled
