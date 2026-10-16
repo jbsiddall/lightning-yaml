@@ -3,7 +3,7 @@ import { encodeGraph } from "../shared/graph.js";
 import { evaluate } from "./evaluate.js";
 import { summarize } from "./campaign.js";
 import { buildCorpusDescriptors, buildReferenceDumpDescriptor } from "./campaign.js";
-import { loadComposedCorpus } from "../yaml/corpus.js";
+import { loadComposedCorpus } from "../shared/corpus.js";
 import { compareGraph } from "../shared/graph.js";
 
 test("scalar style replay callback metric uses only active callback rows", () => {

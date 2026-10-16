@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { encodeGraph } from "../shared/graph.js";
 import { compareGraph } from "../shared/graph.js";
-import { loadComposedCorpus } from "./corpus.js";
+import { loadComposedCorpus } from "../shared/corpus.js";
 import { buildCorpusParseDescriptors, buildCorpusReferenceSerializationDescriptor } from "./campaign.js";
 import { evaluate } from "./evaluate.js";
 import * as yamlReference from "yaml";

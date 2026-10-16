@@ -17,10 +17,10 @@ import { execFileSync } from "node:child_process";
 import type { CaseDescriptor, CaseResult, Outcome } from "./types.js";
 import { installedPackageVersion } from "../shared/installedPackageVersion.js";
 import {
-  loadComposedCorpus,
-  loadComposedCorpusProvenance,
+  loadComposedCorpusSnapshot,
   type ComposedCorpusInput,
-} from "../yaml/corpus.js";
+  type ComposedCorpusSnapshot,
+} from "../shared/corpus.js";
 
 const repo = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -221,6 +221,7 @@ export async function main(): Promise<void> {
     process.argv.slice(2),
   );
   let descriptors: CaseDescriptor[];
+  let corpusSnapshot: ComposedCorpusSnapshot | undefined;
   let corpusDumpEligibility = {
     referenceAccepted: 0,
     referenceRejected: 0,
@@ -245,7 +246,8 @@ export async function main(): Promise<void> {
       throw new Error("replay file does not contain a case descriptor");
     descriptors = [possible as CaseDescriptor];
   } else {
-    descriptors = buildCorpusDescriptors(await loadComposedCorpus());
+    corpusSnapshot = await loadComposedCorpusSnapshot();
+    descriptors = buildCorpusDescriptors(corpusSnapshot.inputs);
     descriptors.push(...behaviorWitnesses());
     descriptors.push(
       ...generatedLoad(seed, samples),
@@ -475,7 +477,7 @@ export async function main(): Promise<void> {
         "Source URL is recorded in the vendored file header; snapshot inherited from origin/main",
     },
   };
-  const composedProvenance = replay ? undefined : await loadComposedCorpusProvenance();
+  const composedProvenance = corpusSnapshot?.provenance;
   const manifest = {
     version: 1,
     runtime,
@@ -513,22 +515,10 @@ export async function main(): Promise<void> {
       })),
     corpusInputFiles: Array.from(
       new Map(
-        rows
-          .filter(
-            (r) =>
-              r.descriptor.categories.includes("corpus") &&
-              r.descriptor.operation === "load",
-          )
-          .map(
-            (r) =>
-              [
-                r.descriptor.source,
-                {
-                  path: r.descriptor.source,
-                  sha256: hash(r.descriptor.text ?? ""),
-                },
-              ] as const,
-          ),
+        (corpusSnapshot?.inputs ?? []).map((input) => [
+          input.source,
+          { path: input.source, sha256: input.sha256 },
+        ] as const),
       ).values(),
     ),
     corpusCaps: { maxFileBytes: 2097152 },

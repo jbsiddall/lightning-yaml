@@ -10,11 +10,10 @@ import { encodeGraph } from "../shared/graph.js";
 import {
   campaignRepoRoot,
   corpusProvenance,
-  loadComposedCorpus,
-  loadComposedCorpusProvenance,
-  loadPinnedCorpus,
+  loadComposedCorpusSnapshot,
   type ComposedCorpusInput,
-} from "./corpus.js";
+  type ComposedCorpusSnapshot,
+} from "../shared/corpus.js";
 import { evaluate } from "./evaluate.js";
 import { inventories, optionKeys, runtimeInventory } from "./options.js";
 import {
@@ -388,8 +387,10 @@ async function buildDescriptors(
 ): Promise<{
   descriptors: CaseDescriptor[];
   corpusStats: Record<string, number>;
+  corpusSnapshot: ComposedCorpusSnapshot;
 }> {
-  const inputs = await loadComposedCorpus();
+  const corpusSnapshot = await loadComposedCorpusSnapshot();
+  const inputs = corpusSnapshot.inputs;
   const descriptors = buildCorpusParseDescriptors(inputs);
   const parsed = descriptors.map((descriptor) => ({
     descriptor,
@@ -438,6 +439,7 @@ async function buildDescriptors(
   }
   return {
     descriptors,
+    corpusSnapshot,
     corpusStats: {
       files: inputs.length,
       legacyInputFiles: inputs.filter((input) => input.corpusKind === "legacy").length,
@@ -499,7 +501,7 @@ export async function main(): Promise<void> {
     revision,
     sourceBase: "f9e62ca9b3a4df753c76537843255b77d343eb5e",
   };
-  const composedProvenance = built ? await loadComposedCorpusProvenance() : undefined;
+  const composedProvenance = built?.corpusSnapshot.provenance;
   const additionalScheduled = rows.filter((row) => row.descriptor.categories.includes("real-world"));
   const manifest = {
     version: 1,
@@ -535,13 +537,13 @@ export async function main(): Promise<void> {
     },
     corpusCaps: { maxFileBytes: 2097152 },
     corpus: built
-      ? (await loadPinnedCorpus()).map(({ source, sha256 }) => ({
+      ? built.corpusSnapshot.legacyInputs.map(({ source, sha256 }) => ({
           source,
           sha256,
         }))
       : [],
     corpusInputFiles: built
-      ? (await loadComposedCorpus()).map(({ source, sha256 }) => ({ source, sha256 }))
+      ? built.corpusSnapshot.inputs.map(({ source, sha256 }) => ({ source, sha256 }))
       : [],
     corpusStats: built?.corpusStats,
     replay: replaying,
