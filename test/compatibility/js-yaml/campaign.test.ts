@@ -1,10 +1,12 @@
 import { expect, test } from "vitest";
-import { encodeGraph } from "../shared/graph.js";
+import { compareGraph, encodeGraph } from "../shared/graph.js";
 import { evaluate } from "./evaluate.js";
-import { summarize } from "./campaign.js";
-import { buildCorpusDescriptors, buildReferenceDumpDescriptor } from "./campaign.js";
-import { loadComposedCorpus } from "../shared/corpus.js";
-import { compareGraph } from "../shared/graph.js";
+import {
+  buildCorpusDescriptors,
+  buildReferenceDumpDescriptor,
+  summarize,
+} from "./campaign.js";
+import { loadRealWorldCorpus } from "../shared/realWorldCorpus.js";
 
 test("scalar style replay callback metric uses only active callback rows", () => {
   const base = {
@@ -31,7 +33,10 @@ test("scalar style replay callback metric uses only active callback rows", () =>
 });
 
 test("every real-world input receives load, stream, and reference-derived dump descriptors", async () => {
-  const additions = (await loadComposedCorpus()).filter((input) => input.corpusKind === "real-world");
+  const additions = (await loadRealWorldCorpus()).map((input) => ({
+    ...input,
+    corpusKind: "real-world" as const,
+  }));
   expect(additions).toHaveLength(3);
   const descriptors = buildCorpusDescriptors(additions);
   expect(descriptors).toHaveLength(additions.length * 2);

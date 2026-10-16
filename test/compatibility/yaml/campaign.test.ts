@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { encodeGraph } from "../shared/graph.js";
-import { compareGraph } from "../shared/graph.js";
-import { loadComposedCorpus } from "../shared/corpus.js";
-import { buildCorpusParseDescriptors, buildCorpusReferenceSerializationDescriptor } from "./campaign.js";
-import { evaluate } from "./evaluate.js";
-import * as yamlReference from "yaml";
-import { parseDocument as candidateParseDocument, parseAllDocuments as candidateParseAllDocuments } from "../../../src/yaml-compat.ts";
+import { compareGraph, encodeGraph } from "../shared/graph.js";
+import { loadRealWorldCorpus } from "../shared/realWorldCorpus.js";
 import {
+  buildCorpusParseDescriptors,
+  buildCorpusReferenceSerializationDescriptor,
   isUnsupportedGraphCodecError,
   parseReplayDescriptor,
   summarize,
 } from "./campaign.js";
+import { evaluate } from "./evaluate.js";
+import * as yamlReference from "yaml";
+import { parseDocument as candidateParseDocument, parseAllDocuments as candidateParseAllDocuments } from "../../../src/yaml-compat.ts";
 import type { CaseResult } from "./types.js";
 
 function row(
@@ -122,7 +122,10 @@ describe("YAML campaign metric denominators", () => {
 
 describe("YAML campaign real-world corpus scheduling", () => {
   it("schedules all three files through every parse lane and accepted reference serialization", async () => {
-    const additions = (await loadComposedCorpus()).filter((input) => input.corpusKind === "real-world");
+    const additions = (await loadRealWorldCorpus()).map((input) => ({
+      ...input,
+      corpusKind: "real-world" as const,
+    }));
     expect(additions).toHaveLength(3);
     const descriptors = buildCorpusParseDescriptors(additions);
     expect(descriptors).toHaveLength(additions.length * 3);
