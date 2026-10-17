@@ -1,0 +1,3 @@
+## 2026-09-03 - Cyclic Complex Keys Stack Overflow
+**Learning:** Complex mapping key stringification (`stringifyKeyNode` in `src/core.ts`) coerces complex YAML key objects into JS property strings (`[ a, b ]`, `{ a: 1 }`). If a complex key contains a circular reference (`&a [*a]: 1` or `&a {a: *a}: 1`), un-guarded recursion causes `RangeError: Maximum call stack size exceeded`.
+**Action:** Always maintain a `visited: Set<object>` ancestor tracker in object-to-string coercion helpers like `stringifyKeyNode` so cyclic sub-graphs collapse gracefully (e.g. to `...`) without blowing V8's call stack.
