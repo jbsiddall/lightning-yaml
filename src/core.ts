@@ -1958,25 +1958,21 @@ function internValue(s: string): string {
 }
 
 /**
- * FastKeyMatch (M7) — flow context. Try to recognise the upcoming flow mapping
- * key as the previous sibling's canonical key `ek` WITHOUT slicing/hashing.
- * Only the hot shape is fast-pathed: a double-quoted JSON key `"…"`. `c` is the
- * already-read char at `pos`. On a full byte match + closing quote it advances
- * `pos` past the close quote and returns `true` (caller reuses `ek`); on ANY
- * mismatch it returns `false` and leaves `pos` untouched for the slow
- * `parseFlowKey`. The byte-for-byte compare against the *canonical* string
- * inherently excludes escapes and folds (a `\`/newline in the source can't
- * equal the decoded key), so the closing-quote check guarantees the slow path
- * would have produced exactly `ek` — and skipping `parseDoubleQuoted` is safe
- * for the `nextBackslash`/`nextNewline` memos precisely because the matched
- * span is provably escape- and break-free.
+ * FastKeyMatch (M7) — flow context.
+ * Canonical keys can contain a backslash, quote, or line break produced by
+ * decoding or folding. Decline these source characters so parseFlowKey stays
+ * responsible for validation; every mismatch leaves pos untouched.
  */
 function fastMatchFlowKey(c: number, ek: string): boolean {
   if (c !== DQUOTE) return false;
   const n = ek.length;
   const q = pos + 1;
   let i = 0;
-  while (i < n && src.charCodeAt(q + i) === ek.charCodeAt(i)) i++;
+  while (i < n) {
+    const raw = src.charCodeAt(q + i);
+    if (raw === BACKSLASH || raw === DQUOTE || raw === LF || raw === CR || raw !== ek.charCodeAt(i)) break;
+    i++;
+  }
   if (i !== n || src.charCodeAt(q + n) !== DQUOTE) return false;
   pos = q + n + 1;
   return true;
