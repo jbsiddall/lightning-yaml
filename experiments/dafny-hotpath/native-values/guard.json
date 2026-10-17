@@ -1,0 +1,43 @@
+{
+  "generated": [
+    {
+      "file": "generated.js",
+      "roots": [
+        "NativeValues.__default.Demo",
+        "NativeValues.__default.BuildNumbers",
+        "NativeValues.__default.ObjectKeyCount"
+      ]
+    }
+  ],
+  "wholeFiles": [
+    "runtime.ts",
+    "api.ts",
+    "dist/runtime.js",
+    "dist/api.js",
+    "dist/runtime.d.ts",
+    "dist/api.d.ts"
+  ],
+  "allowedCalls": [
+    "array.push", "keys.every", "kernel.Demo", "kernel.BuildNumbers",
+    "NativeValues.__default.createHeap",
+    "NativeValues.__default.numberFromIndex",
+    "NativeValues.__default.parseNumber",
+    "NativeValues.__default.stringifyNumber",
+    "NativeValues.__default.boolValue",
+    "NativeValues.__default.stringValue",
+    "NativeValues.__default.isNull",
+    "NativeValues.__default.isUndefined",
+    "NativeValues.__default.sameValue",
+    "NativeValues.__default.createArray",
+    "NativeValues.__default.arrayPush",
+    "NativeValues.__default.arrayGet",
+    "NativeValues.__default.arraySet",
+    "NativeValues.__default.arrayLength",
+    "NativeValues.__default.createObject",
+    "NativeValues.__default.objectGet",
+    "NativeValues.__default.objectHasOwn",
+    "NativeValues.__default.objectSet",
+    "NativeValues.__default.objectKeys"
+  ],
+  "allowedConstructors": []
+}
