@@ -1,0 +1,3 @@
+## 2026-07-12 - Flow mapping implicit empty keys starting with a colon
+**Learning:** Under YAML 1.2 specifications (§7.4.2), flow mapping entries starting directly with a colon followed by a flow separator (e.g. `{ : v}`, `{: v}`, `{ : }`) represent an implicit empty key (""). In lightning-yaml, this is handled in `parseFlowKey` (`src/core.ts`) by checking `c === COLON && flowSeparatorAt(pos + 1)` and returning `internKey("")`.
+**Action:** When probing flow mappings or implicit key edge cases in YAML parsers, verify that colon-prefixed flow entries correctly resolve as implicit empty keys rather than failing key parsing.
