@@ -1473,6 +1473,16 @@ test("flow plain fold: a col-0 plain continuation across a flow mapping key (yam
   deepStrictEqual(parseAll(s), oracleParseAll(s));
 });
 
+test("flow mapping implicit empty key starting directly with ':' (yaml-test-suite FRK4)", () => {
+  deepStrictEqual(parse("{ : v}"), { "": "v" });
+  deepStrictEqual(parse("{: v}"), { "": "v" });
+  deepStrictEqual(parse("{ : }"), { "": null });
+  deepStrictEqual(parse("{:}"), { "": null });
+  const frk4 = "{\n  ? foo :,\n  : bar,\n}\n";
+  deepStrictEqual(parse(frk4), { foo: null, "": "bar" });
+  deepStrictEqual(parse(frk4), oracleParse(frk4));
+});
+
 // --------------------------------------------------------------------------
 // Flow single-pair implicit keys must be on ONE line (yaml-test-suite DK4H,
 // ZXT5) — a flow SEQUENCE pair whose ':' lands on a later line than the key is
