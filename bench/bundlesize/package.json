@@ -10,7 +10,7 @@
   "devDependencies": {
     "esbuild-loader": "^4.5.0",
     "rolldown": "^1.1.5",
-    "terser": "^5.49.0",
+    "terser": "^5.51.2",
     "vite": "^8.1.4",
     "webpack": "^5.108.4"
   }
