@@ -64,8 +64,8 @@ unit: ratio
 lower_is_better: true
 schema_version: 1
 generated: 2026-07-25
-generated_at: 2026-07-25T01:43:16.822Z
-source: "7342701"
+generated_at: 2026-07-25T02:09:30.948Z
+source: 0ff85cb
 env:
   clk: unknown
   cpu: unknown
@@ -83,33 +83,23 @@ libraries:
     self: true
     version: 0.1.1
 workloads:
-  - workload: yaml-plain-small-records
-    values:
-      js-yaml: 2.277
-      yaml: 11.467
-      lightning-yaml: 1
-  - workload: yaml-rich-small
-    values:
-      js-yaml: 1.484
-      yaml: 6.415
-      lightning-yaml: 1
   - workload: yaml-plain-medium-records
     values:
-      js-yaml: 2.224
-      yaml: 3.141
+      js-yaml: 2.111
+      yaml: 3.065
       lightning-yaml: 1
   - workload: yaml-rich-medium
     values:
-      js-yaml: 1.555
-      yaml: 2.927
+      js-yaml: 1.566
+      yaml: 2.924
       lightning-yaml: 1
   - workload: yaml-plain-large-records
     values:
-      js-yaml: 2.631
-      yaml: 3.892
+      js-yaml: 2.663
+      yaml: 3.78
       lightning-yaml: 1
   - workload: yaml-rich-large
     values:
-      js-yaml: 1.883
-      yaml: 3.289
+      js-yaml: 1.903
+      yaml: 3.168
       lightning-yaml: 1

@@ -66,12 +66,13 @@ const FIXTURE_NAMES = [
 interface MemoryFixture {
   name: string;
   category: Category;
+  bytes: number;
   url: string;
 }
 
 const FIXTURES: MemoryFixture[] = FIXTURE_NAMES.map((name) => {
   const ds = datasetByName(name);
-  return { name: ds.name, category: ds.category, url: `/fixtures/${ds.name}${fixtureExt(ds.category)}` };
+  return { name: ds.name, category: ds.category, bytes: ds.bytes, url: `/fixtures/${ds.name}${fixtureExt(ds.category)}` };
 });
 
 // A new competitor in candidates.ts is picked up automatically, PROVIDED someone also writes
@@ -82,8 +83,12 @@ const LIBRARIES = candidates
 
 declare const window: MemoryPageHooks;
 
+// Under 100 KB a peak-RSS reading is dominated by the library's fixed footprint rather than the parse (measured: `yaml`'s peak on the ~1 KB fixture is ~26 MB whether it parses it 60 times or 900), so the webkit leg publishes the bigger fixtures only.
+const MEDIUM_AND_UP = FIXTURES.filter((f) => f.bytes >= 100_000);
+
 interface Leg {
   method: "heap-delta" | "peak-rss";
+  fixtures: MemoryFixture[];
   chromiumArgs?: string[];
   /** Opens one library's page(s) and returns how to read them: bytes for one batch, plus — where the leg has a meaningful one — the same protocol with nothing parsed. */
   open: (
@@ -148,25 +153,19 @@ const openChromiumPage: Leg["open"] = async (engine, serverUrl, probeFixture) =>
   };
 };
 
-// Playwright ships BOTH WebKit ports and launches the WPE one on Linux, so the page process is
-// WPEWebProcess there and WebKitWebProcess on a GTK build. Neither name matches the sibling
-// *NetworkProcess, which must not be measured.
+// Playwright ships both WebKit ports and launches WPE on Linux (WPEWebProcess) vs GTK elsewhere (WebKitWebProcess); neither name matches the sibling *NetworkProcess, which must not be measured.
 const WEBKIT_PAGE_PROCESSES = ["WPEWebProcess", "WebKitWebProcess"];
 
-// A fresh page per batch, so every fixture's peak is read off counters reset on a process that has
-// done nothing but the warm-up — which is also what lets the noise floor be a real zero-parse run.
-// The warm-up always uses the SMALLEST fixture, so the batch it leaves behind uncollected (webkit
-// has no gc() to force) stays negligible against what the measured batch allocates.
+// A fresh page per batch, so every fixture's peak is read off counters reset on a process that has done nothing but the warm-up — which is also what lets the noise floor be a real zero-parse run, and why the warm-up uses the SMALLEST fixture (webkit has no gc() to force, so its uncollected batch must stay negligible against the measured one).
 const openWebkitPages: Leg["open"] = (engine, serverUrl, probeFixture) => {
   const measure = async (fx: MemoryFixture, iters: number): Promise<number> => {
     const page = await engine.browser.newPage();
     try {
       await page.goto(serverUrl, { waitUntil: "load" });
       await warmUp(page, probeFixture); // before the reset, so init memory sits under the baseline rather than in the peak
-      return await peakRssGrowthDuring(engine.pid, WEBKIT_PAGE_PROCESSES, async () => {
-        await parseAndRetain(page, fx, iters);
-        await assertBatchSurvived(page, iters);
-      });
+      const growth = await peakRssGrowthDuring(engine.pid, WEBKIT_PAGE_PROCESSES, () => parseAndRetain(page, fx, iters));
+      await assertBatchSurvived(page, iters);
+      return growth;
     } finally {
       await page.close();
     }
@@ -177,10 +176,11 @@ const openWebkitPages: Leg["open"] = (engine, serverUrl, probeFixture) => {
 const LEGS: Record<EngineName, Leg> = {
   chromium: {
     method: "heap-delta",
+    fixtures: FIXTURES, // its gc'd retained-heap read stays clean at 1 KB, so it keeps the small fixtures
     chromiumArgs: ["--enable-precise-memory-info", "--js-flags=--expose-gc"],
     open: openChromiumPage,
   },
-  webkit: { method: "peak-rss", open: openWebkitPages },
+  webkit: { method: "peak-rss", fixtures: MEDIUM_AND_UP, open: openWebkitPages },
 };
 
 interface LibraryFixtureDeltas {
@@ -207,7 +207,7 @@ async function runLeg(engineName: EngineName, leg: Leg): Promise<{ runtime: stri
       const floorNote = noiseFloor ? `, noise floor ${(noise / 1024).toFixed(1)} KB` : "";
 
       deltas[lib.id] = {};
-      for (const fx of FIXTURES) {
+      for (const fx of leg.fixtures) {
         const raw = await measure(fx, ITERS);
         const net = raw - noise;
         deltas[lib.id][fx.name] = net;
@@ -222,12 +222,12 @@ async function runLeg(engineName: EngineName, leg: Leg): Promise<{ runtime: stri
   return { runtime, deltas };
 }
 
-function ratioWorkloads(deltas: LibraryFixtureDeltas): { workload: string; values: Record<string, number> }[] {
+function ratioWorkloads(deltas: LibraryFixtureDeltas, fixtures: MemoryFixture[]): { workload: string; values: Record<string, number> }[] {
   const rows: { workload: string; values: Record<string, number> }[] = [];
   const selfDeltas = deltas["lightning-yaml"];
   if (!selfDeltas) throw new Error("lightning-yaml did not produce a measurement — cannot compute ratios against it");
 
-  for (const fx of FIXTURES) {
+  for (const fx of fixtures) {
     const selfDelta = selfDeltas[fx.name];
     // A non-positive delta is noise — a ratio built on one would invent a number, not report one.
     if (!(selfDelta > 0)) {
@@ -277,13 +277,18 @@ async function main(): Promise<void> {
   await assertFixturesGenerated();
   mkdirSync(GENERATED_DIR, { recursive: true });
 
-  console.log(`Libraries: ${LIBRARIES.map((l) => l.id).join(", ")}`);
-  console.log(`Fixtures: ${FIXTURES.map((f) => f.name).join(", ")} (K=${ITERS} retained parses each)`);
-
   const leg = LEGS[engineName];
+  const skipped = FIXTURES.filter((f) => !leg.fixtures.includes(f));
+
+  console.log(`Libraries: ${LIBRARIES.map((l) => l.id).join(", ")}`);
+  console.log(`Fixtures: ${leg.fixtures.map((f) => f.name).join(", ")} (K=${ITERS} retained parses each)`);
+  if (skipped.length > 0) {
+    console.log(`Skipping ${skipped.map((f) => f.name).join(", ")}: too small for ${leg.method} — the reading would be the library's fixed footprint, not the parse`);
+  }
+
   const { runtime, deltas } = await runLeg(engineName, leg);
 
-  const workloads = ratioWorkloads(deltas);
+  const workloads = ratioWorkloads(deltas, leg.fixtures);
   if (workloads.length === 0) throw new Error("every workload was skipped — nothing to publish");
 
   const now = new Date();
