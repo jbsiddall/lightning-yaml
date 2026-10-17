@@ -114,20 +114,20 @@
     "test:yaml-cst": "vitest run --config vitest.cst.config.ts"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^0.7.0",
-    "@changesets/cli": "^2.31.1",
-    "@types/node": "^22.10.0",
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3",
+    "@types/node": "^26.6.5",
     "esbuild": "^0.28.1",
     "js-yaml": "5.4.3",
     "mitata": "^1.0.34",
-    "playwright-core": "1.56.1",
+    "playwright-core": "1.64.0",
     "tsup": "^8.5.1",
     "tsx": "^4.23.0",
-    "typescript": "^5.7.0",
-    "vitest": "^4.1.10",
-    "yaml": "2.9.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4",
+    "yaml": "2.9.1",
     "zod": "^4.4.3",
-    "@vitest/coverage-v8": "4.1.11",
-    "@vitest/ui": "4.1.11"
+    "@vitest/coverage-v8": "5.0.4",
+    "@vitest/ui": "5.0.4"
   }
 }
