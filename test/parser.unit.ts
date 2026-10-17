@@ -1005,6 +1005,12 @@ test("self-referential (cyclic) anchors resolve to the SAME object, never a deep
   strictEqual(blockObj.self, blockObj);
 });
 
+test("cyclic complex mapping keys terminate cleanly without stack overflow", () => {
+  deepStrictEqual(parse("&a [*a]: 1"), { "[ [...] ]": 1 });
+  deepStrictEqual(parse("&a {k: *a}: 1"), { "{ k: {...} }": 1 });
+  deepStrictEqual(parse("&a {self: *a}: 1"), { "{ self: {...} }": 1 });
+});
+
 test("anchor redefinition is allowed — a later anchor shadows the earlier one for later aliases", () => {
   deepStrictEqual(parse("a: &x 1\nb: &x 2\nc: *x\n"), { a: 1, b: 2, c: 2 });
   deepStrictEqual(parse("a: &x 1\nb: &x 2\nc: *x\n"), oracleParse("a: &x 1\nb: &x 2\nc: *x\n"));
