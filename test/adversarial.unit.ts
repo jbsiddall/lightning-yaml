@@ -274,6 +274,16 @@ test("cyclic anchors resolve to a self-referential structure without crashing", 
   strictEqual(map.a.self, map.a, "map contains itself");
 });
 
+test("cyclic complex mapping keys format safely without stack overflow", () => {
+  const cyclicSeqKey = parse("&a [*a]: 1") as Record<string, unknown>;
+  ok("[ [ ... ] ]" in cyclicSeqKey, "cyclic array key formatted safely");
+  strictEqual(cyclicSeqKey["[ [ ... ] ]"], 1);
+
+  const cyclicMapKey = parse("&a {k: *a}: 1") as Record<string, unknown>;
+  ok("{ k: { ... } }" in cyclicMapKey, "cyclic object key formatted safely");
+  strictEqual(cyclicMapKey["{ k: { ... } }"], 1);
+});
+
 // --------------------------------------------------------------------------
 // §4.18 Unicode line breaks NEL (U+0085) / LS (U+2028) / PS (U+2029), and the
 // exotic double-quote escapes `\N` / `\L` / `\P`. In YAML 1.2 only LF and CR are
