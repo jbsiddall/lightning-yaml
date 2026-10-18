@@ -1,6 +1,6 @@
 /**
- * lightning-yaml — a single-pass, allocation-minimal, pure-JS YAML 1.2.2 parser
- * engineered for V8 (see site/src/content/docs/research/notes/2026-07-12-design-a-pure-js-parser.md).
+ * lightning-yaml — an allocation-minimal, pure-JS YAML 1.2.2 parser engineered
+ * for V8 (see site/src/content/docs/research/notes/2026-07-12-design-a-pure-js-parser.md).
  *
  * The public surface mirrors `JSON.parse`:
  *   - `parse(text)`     text → JS value (a single document; throws if a second
@@ -80,6 +80,7 @@ const PIPE = 124; // | (literal block scalar indicator)
 const RBRACE = 125; // }
 const TILDE = 126; // ~
 const BOM = 0xfeff;
+const FORBIDDEN_RAW_C0 = /[\x00-\x08\x0b\x0c\x0e-\x1f]/;
 
 /**
  * Backing flag for the lenient-by-default parse behaviour — an umbrella opt-out
@@ -550,6 +551,13 @@ function resetForStream(text: string): void {
   colOverride = -1;
   bareDocAllowed = true;
   flowIndentFloor = -1;
+
+  // Validate before scanners and cached-key matches can skip raw source text.
+  const invalidControl = src.search(FORBIDDEN_RAW_C0);
+  if (invalidControl >= 0) {
+    pos = invalidControl;
+    fail("forbidden control character");
+  }
 
   // Skip a leading BOM without copying the input.
   if (len > 0 && src.charCodeAt(0) === BOM) {
