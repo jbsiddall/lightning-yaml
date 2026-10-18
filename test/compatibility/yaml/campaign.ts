@@ -15,7 +15,7 @@ import {
   type ComposedCorpusSnapshot,
 } from "../shared/corpus.js";
 import { evaluate } from "./evaluate.js";
-import { inventories, optionKeys, runtimeInventory } from "./options.js";
+import { inventories, isCallbackRecipe, optionKeys, runtimeInventory } from "./options.js";
 import {
   behaviorWitnesses,
   finiteBases,
@@ -284,7 +284,9 @@ export function parseReplayDescriptor(parsed: unknown): CaseDescriptor {
   const descriptor =
     isRecord(parsed) && "descriptor" in parsed ? parsed.descriptor : parsed;
   const validOptions = (value: unknown): value is CaseDescriptor["options"] =>
-    isRecord(value) && isRecord(value.values);
+    isRecord(value) &&
+    isRecord(value.values) &&
+    (!Object.hasOwn(value, "callback") || isCallbackRecipe(value.callback));
   const isOperation = (value: unknown): value is CaseDescriptor["operation"] =>
     ["parse", "parseDocument", "parseAllDocuments", "stringify"].includes(
       String(value),
@@ -294,6 +296,8 @@ export function parseReplayDescriptor(parsed: unknown): CaseDescriptor {
     typeof descriptor.id !== "string" ||
     !isOperation(descriptor.operation) ||
     !validOptions(descriptor.options) ||
+    (Object.hasOwn(descriptor, "conversionOptions") &&
+      !validOptions(descriptor.conversionOptions)) ||
     typeof descriptor.source !== "string" ||
     !Array.isArray(descriptor.categories) ||
     !descriptor.categories.every((category) => typeof category === "string") ||
@@ -629,7 +633,7 @@ export async function main(): Promise<void> {
       "Results describe the recorded corpus, finite option bases, and bounded generated cases; they do not estimate every YAML input or option combination.",
       "The AST and public API surface reports measure differences from yaml@2.9.0 and do not establish a normative YAML compatibility result.",
       "Custom tag, callback, and schema recipes are finite witnesses; arbitrary user code and schemas are not sampled.",
-      "The onTagObj callback witness does not activate the reference callback; Document.toJSON(key,onAnchor) and cross-document AST identity are not covered.",
+      "The scheduled onTagObj witness records only the actual tag and default fields, invocation count, and event order; tag methods and identity, Document.toJSON(key,onAnchor), and cross-document AST identity are not covered.",
     ],
   };
   await writeFile(

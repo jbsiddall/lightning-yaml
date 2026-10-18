@@ -210,7 +210,7 @@ export function optionWitnesses(): CaseDescriptor[] {
     ["parse", "reviver", "reviver-delete"],
     ["parseDocument", "_directives", "directives"],
     ["stringify", "sortMapEntries", "sortMapEntries"],
-    ["stringify", "onTagObj", "onTagObj"],
+    ["stringify", "onTagObj", "onTagObj-declarative-v1"],
     ["stringify", "commentString", "commentString"],
     ["stringify", "customTags", "customTags"],
     ["stringify", "customTags", "customTags-array"],
@@ -230,16 +230,15 @@ export function optionWitnesses(): CaseDescriptor[] {
           : undefined,
         operation === "stringify" &&
           callback !== "commentString" &&
-          callback !== "onTagObj"
+          callback !== "onTagObj-declarative-v1"
           ? encodeGraph({ a: 1 })
           : undefined,
       ),
     );
     if (operation === "stringify" && callback === "commentString")
       out[out.length - 1]!.valueRecipe = "commented-document-input";
-    if (operation === "stringify" && callback === "onTagObj") {
-      out[out.length - 1]!.graph = undefined;
-      out[out.length - 1]!.valueRecipe = "custom-value-input";
+    if (operation === "stringify" && callback === "onTagObj-declarative-v1") {
+      out[out.length - 1]!.graph = encodeGraph(null);
     }
   }
   return out;

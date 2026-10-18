@@ -3,10 +3,24 @@ export type Operation =
   | "parseDocument"
   | "parseAllDocuments"
   | "stringify";
+export type CallbackRecipe =
+  | "directives"
+  | "reviver-delete"
+  | "reviver-root"
+  | "onAnchor"
+  | "uniqueKeys"
+  | "sortMapEntries"
+  | "commentString"
+  | "onTagObj"
+  | "onTagObj-declarative-v1"
+  | "customTags"
+  | "customTags-array"
+  | "replacer"
+  | "replacer-throw";
 export interface OptionRecipe {
   values: Record<string, unknown>;
   undefinedKeys?: string[];
-  callback?: string;
+  callback?: CallbackRecipe;
   schema?: string;
 }
 export interface CaseDescriptor {
