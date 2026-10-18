@@ -20,7 +20,8 @@
  * structural sharing), tags (`!!binary` and friends), and `stringify` (M6) are
  * implemented.
  *
- * Design invariants enforced throughout (V8 rules, see doc 12):
+ * The input is first searched once with a narrow regex for forbidden raw C0.
+ * Parser scanners then follow these design invariants (V8 rules, see doc 12):
  *   - scan the flat JS string with `charCodeAt` (never `str[i]`) and hop long
  *     runs with `indexOf` (memchr/SIMD class); never decode to bytes;
  *   - materialize each scalar with exactly one `slice` from integer offsets;
