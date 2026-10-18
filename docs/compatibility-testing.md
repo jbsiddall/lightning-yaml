@@ -344,9 +344,14 @@ Generated containers are bounded. Corpus variants may repeat YAML text. Custom
 callbacks, schemas, tags, document mutations and the full AST/CST API remain
 unbounded or unexercised. Cyclic inputs with disabled alias handling or recursive
 revivers are excluded. No sampled percentage establishes universal equivalence
-or estimates the fraction of all `yaml` behavior supported. The `onTagObj` witness
-does not activate its reference callback and is not behavioral coverage.
-`Document.toJSON(key,onAnchor)` and cross-document AST identity are not tested.
+or estimates the fraction of all `yaml` behavior supported. The scheduled
+`onTagObj-declarative-v1` witness serializes `null` and records the actual tag and
+default fields, invocation count, and event order. It does not compare tag
+methods, callback argument identity, or full tag objects. Older saved
+`onTagObj` descriptors retain their historical custom-tag recipe and observation
+behavior; their results use a different observation contract and are not directly
+comparable with the versioned witness. `Document.toJSON(key,onAnchor)` and
+cross-document AST identity are not tested.
 Converted values are compared together across the document stream; AST identity
 is observed within each document.
 

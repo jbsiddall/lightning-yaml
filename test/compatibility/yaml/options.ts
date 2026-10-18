@@ -8,9 +8,31 @@ import type {
   CreateNodeOptions,
   ToStringOptions,
 } from "yaml";
-import type { OptionRecipe } from "./types.js";
+import type { CallbackRecipe, OptionRecipe } from "./types.js";
 import { encodeGraph } from "../shared/graph.js";
 import { LineCounter } from "yaml";
+
+export const callbackRecipeOptionKeys: Record<CallbackRecipe, string> = {
+  directives: "_directives",
+  "reviver-delete": "reviver",
+  "reviver-root": "reviver",
+  onAnchor: "onAnchor",
+  uniqueKeys: "uniqueKeys",
+  sortMapEntries: "sortMapEntries",
+  commentString: "commentString",
+  onTagObj: "onTagObj",
+  "onTagObj-declarative-v1": "onTagObj",
+  customTags: "customTags",
+  "customTags-array": "customTags",
+  replacer: "replacer",
+  "replacer-throw": "replacer-throw",
+};
+export function isCallbackRecipe(value: unknown): value is CallbackRecipe {
+  return (
+    typeof value === "string" &&
+    Object.hasOwn(callbackRecipeOptionKeys, value)
+  );
+}
 
 type Same<A, B> = [Exclude<A, B>, Exclude<B, A>] extends [never, never]
   ? true
@@ -251,6 +273,7 @@ export function materializeOptions(
         };
         break;
       case "onTagObj":
+        // Saved descriptors depend on this custom-tag setup and full-object trace.
         out.onTagObj = (tag: unknown) => record(tag);
         out.customTags = [
           {
@@ -261,6 +284,15 @@ export function materializeOptions(
             stringify: (value: { _custom: unknown }) => String(value._custom),
           },
         ];
+        break;
+      case "onTagObj-declarative-v1":
+        out.onTagObj = (tag: unknown) => {
+          const metadata = tag as { tag?: unknown; default?: unknown };
+          trace.push([
+            "onTagObj",
+            { tag: metadata.tag, default: metadata.default },
+          ]);
+        };
         break;
       case "customTags":
         out.customTags = (tags: unknown[]) => {
@@ -322,15 +354,7 @@ export function optionKeys(recipe: OptionRecipe): string[] {
       ...Object.keys(recipe.values),
       ...(recipe.undefinedKeys ?? []),
       ...(recipe.callback
-        ? [
-            recipe.callback.startsWith("reviver")
-              ? "reviver"
-              : recipe.callback === "customTags-array"
-                ? "customTags"
-                : recipe.callback === "directives"
-                  ? "_directives"
-                  : recipe.callback,
-          ]
+        ? [callbackRecipeOptionKeys[recipe.callback]]
         : []),
       ...(recipe.schema ? ["schema"] : []),
     ]),

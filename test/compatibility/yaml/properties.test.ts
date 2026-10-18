@@ -10,7 +10,7 @@ import {
   behaviorWitnesses,
   optionWitnesses,
 } from "./witnesses.js";
-import { encodeGraph } from "../shared/graph.js";
+import { compareGraph, decodeGraph, encodeGraph } from "../shared/graph.js";
 
 describe("yaml compatibility differential properties", () => {
   test("generated suffix streams preserve yaml document counts across entrypoints", () => {
@@ -194,6 +194,27 @@ describe("yaml compatibility differential properties", () => {
       ),
     ).toBe(true);
     expect(row.differences).toEqual([]);
+  });
+  test("scheduled onTagObj callback witness records the reference event", () => {
+    const descriptor = optionWitnesses().find(
+      (row) => row.options.callback === "onTagObj-declarative-v1" && row.id.startsWith("callback-stringify-onTagObj"),
+    )!;
+    const row = evaluate(descriptor);
+
+    expect(row.reference.status).toBe("success");
+    expect(row.reference.text).toBe("null\n");
+    expect(row.reference.trace).toEqual([
+      ["onTagObj", { tag: "tag:yaml.org,2002:null", default: true }],
+    ]);
+    expect(row.candidate.status).toBe("error");
+    expect(row.candidate.trace).toEqual([]);
+    expect(row.differences.map(({ category }) => category).sort()).toEqual([
+      "acceptance",
+      "callback",
+      "stringify-semantic",
+    ]);
+    const encodedTrace = encodeGraph(row.reference.trace);
+    expect(compareGraph(row.reference.trace, decodeGraph(encodedTrace)).equal).toBe(true);
   });
   test("every option and behavior witness produces a replayable outcome", () => {
     for (const descriptor of [...optionWitnesses(), ...behaviorWitnesses()]) {

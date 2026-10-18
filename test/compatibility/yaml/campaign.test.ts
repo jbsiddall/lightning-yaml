@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareGraph, encodeGraph } from "../shared/graph.js";
+import { compareGraph, decodeGraph, encodeGraph } from "../shared/graph.js";
 import { loadRealWorldCorpus } from "../shared/realWorldCorpus.js";
 import {
   buildCorpusParseDescriptors,
@@ -9,6 +9,7 @@ import {
   summarize,
 } from "./campaign.js";
 import { evaluate } from "./evaluate.js";
+import { optionWitnesses } from "./witnesses.js";
 import * as yamlReference from "yaml";
 import { parseDocument as candidateParseDocument, parseAllDocuments as candidateParseAllDocuments } from "../../../src/yaml-compat.ts";
 import type { CaseResult } from "./types.js";
@@ -34,6 +35,63 @@ function row(
 }
 
 describe("YAML campaign metric denominators", () => {
+  it("replays the versioned active onTagObj witness with measured callback gaps", () => {
+    const scheduled = optionWitnesses().find(
+      (descriptor) => descriptor.options.callback === "onTagObj-declarative-v1",
+    )!;
+    const replayed = parseReplayDescriptor(
+      JSON.parse(JSON.stringify(scheduled)),
+    );
+    const result = evaluate(replayed);
+    const again = evaluate(replayed);
+    expect(result.reference).toEqual(again.reference);
+    expect(result.candidate).toEqual(again.candidate);
+    expect(result.differences).toEqual(again.differences);
+    expect(result.reference.status).toBe("success");
+    expect(result.reference.text).toBe("null\n");
+    expect(result.reference.trace).toEqual([
+      ["onTagObj", { tag: "tag:yaml.org,2002:null", default: true }],
+    ]);
+    expect(compareGraph(
+      result.reference.trace,
+      decodeGraph(encodeGraph(result.reference.trace)),
+    ).equal).toBe(true);
+    expect(result.candidate.status).toBe("error");
+    expect(result.differences.map(({ category }) => category).sort()).toEqual([
+      "acceptance",
+      "callback",
+      "stringify-semantic",
+    ]);
+
+    const metrics = summarize([result]);
+    expect(metrics.callbackDifferences).toEqual({ numerator: 1, denominator: 1, percent: 100 });
+    expect(metrics.stringifyCallFailures).toEqual({ numerator: 1, denominator: 1, percent: 100 });
+    expect(metrics.stringifySemanticGaps).toEqual({ numerator: 1, denominator: 1, percent: 100 });
+    expect(metrics.stringifyByteDifferences).toEqual({ numerator: 0, denominator: 0, percent: null });
+    expect(metrics.stringifyByteEquality).toEqual({ numerator: 0, denominator: 0, percent: null });
+  });
+
+  it("preserves legacy onTagObj replay behavior and validates recipe names", () => {
+    const legacy = parseReplayDescriptor(JSON.parse(JSON.stringify({
+      id: "callback-stringify-onTagObj-onTagObj",
+      operation: "stringify",
+      valueRecipe: "custom-value-input",
+      options: { values: {}, callback: "onTagObj" },
+      source: "legacy-replay",
+      categories: ["options", "matrix"],
+    })));
+    const result = evaluate(legacy);
+    expect(result.reference.error).toEqual({
+      name: "TypeError",
+      message: "Cannot encode graph: function",
+    });
+    expect(result.reference.trace).toEqual([]);
+    expect(() => parseReplayDescriptor({
+      ...legacy,
+      options: { values: {}, callback: "unknown-recipe" },
+    })).toThrow("valid case descriptor");
+  });
+
   it("counts candidate stringify failures in byte-call denominators without inventing byte equality", () => {
     const result = summarize([
       row(
