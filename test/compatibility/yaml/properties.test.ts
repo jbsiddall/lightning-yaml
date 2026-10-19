@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import fc from "fast-check";
 import * as yamlReference from "yaml";
 import { parse, parseAllDocuments, parseDocument } from "../../../src/yaml-compat.ts";
@@ -215,6 +215,108 @@ describe("yaml compatibility differential properties", () => {
     ]);
     const encodedTrace = encodeGraph(row.reference.trace);
     expect(compareGraph(row.reference.trace, decodeGraph(encodedTrace)).equal).toBe(true);
+  });
+  test("versioned Document.toJSON anchor call retains callback identities", () => {
+    const descriptor = optionWitnesses().find(
+      (row) => row.id === "document-toJSON-onAnchor-v1",
+    )!;
+    const toJSON = vi.spyOn(yamlReference.Document.prototype, "toJSON");
+    let row: ReturnType<typeof evaluate>;
+    try {
+      row = evaluate(JSON.parse(JSON.stringify(descriptor)));
+      expect(toJSON).toHaveBeenCalledTimes(1);
+      expect(toJSON.mock.calls[0]?.[0]).toBe("anchor-probe-v1");
+      expect(typeof toJSON.mock.calls[0]?.[1]).toBe("function");
+    } finally {
+      toJSON.mockRestore();
+    }
+    type ObservedMap = { left: unknown; right: unknown };
+    type Observation = {
+      result: { first: ObservedMap; second: unknown };
+      calls: unknown[][];
+    };
+    const observation = (row.reference.docs?.[0] as Record<string, unknown>)
+      .toJSONAnchorObservation as Observation;
+    const result = observation.result;
+    const calls = observation.calls;
+
+    expect(row.reference.status).toBe("success");
+    expect(row.reference.docs?.[0]).toMatchObject({ errors: [], warnings: [] });
+    expect(Object.getPrototypeOf(result.first)).toBe(Object.prototype);
+    expect(result.first).toBe(result.second);
+    expect(result.first.left).toBe(result.first.right);
+    expect(calls).toHaveLength(2);
+    expect(calls.map((args) => args.length)).toEqual([2, 2]);
+    expect(calls.map((args) => args[1])).toEqual([2, 2]);
+    expect(calls[0][0]).toBe(result.first);
+    expect(calls[1][0]).toBe(result.first.left);
+    expect((calls[0]?.[0] as ObservedMap).left).toBe(calls[1]?.[0]);
+    expect(Array.isArray(result.first.left)).toBe(true);
+    expect(result.first.left).toEqual([1]);
+    expect((row.reference.trace as unknown[][]).map((event) => event[0])).toEqual([
+      "onAnchor",
+      "onAnchor",
+    ]);
+    expect((row.reference.trace as unknown[][]).map((event) => event[2])).toEqual([2, 2]);
+    const candidateObservation = (row.candidate.docs?.[0] as Record<string, unknown>)
+      .toJSONAnchorObservation as Observation;
+    expect(candidateObservation.calls).toEqual([]);
+    expect(compareGraph(result, candidateObservation.result).equal).toBe(true);
+    expect(row.differences.map(({ category }) => category)).toContain(
+      "document-semantic",
+    );
+    const persisted = decodeGraph(encodeGraph(observation)) as Observation;
+    expect(persisted.result.first).toBe(persisted.result.second);
+    expect(persisted.calls[0]?.[0]).toBe(persisted.result.first);
+    expect(persisted.calls[1]?.[0]).toBe(persisted.result.first.left);
+    const detachedCalls = calls.map((args) => [
+      JSON.parse(JSON.stringify(args[0])),
+      args[1],
+    ]);
+    expect(
+      compareGraph({ result, calls: detachedCalls }, { result, calls }),
+    ).toMatchObject({ equal: false });
+  });
+
+  test("versioned toJSON callback observation stays empty when callback is absent", () => {
+    const descriptor = {
+      ...optionWitnesses().find(
+        (row) => row.id === "document-toJSON-onAnchor-v1",
+      )!,
+      conversionOptions: { values: {} },
+    };
+    const row = evaluate(descriptor);
+    for (const outcome of [row.reference, row.candidate]) {
+      const observation = (outcome.docs?.[0] as Record<string, unknown>)
+        .toJSONAnchorObservation;
+      expect((observation as { calls: unknown[][] }).calls).toEqual([]);
+    }
+    expect(row.differences.map(({ category }) => category)).not.toContain(
+      "document-semantic",
+    );
+  });
+
+  test("saved conversionOptions onAnchor descriptors keep legacy repeated toJS tracing", () => {
+    const row = evaluate({
+      id: "saved-conversion-onAnchor",
+      operation: "parseDocument",
+      text: "first: &outer\n  left: &inner [1]\n  right: *inner\nsecond: *outer\n",
+      options: { values: {} },
+      conversionOptions: { values: {}, callback: "onAnchor" },
+      source: "legacy-replay",
+      categories: ["document-conversion", "callback"],
+    });
+    expect(row.reference.trace).toHaveLength(6);
+    expect((row.reference.trace as unknown[][]).map((event) => event[0])).toEqual(
+      Array(6).fill("onAnchor"),
+    );
+    expect((row.reference.trace as unknown[][]).map((event) => event[2])).toEqual(
+      [2, 2, 2, 2, 2, 2],
+    );
+    expect(row.candidate.trace).toEqual([]);
+    expect(row.reference.docs?.[0]).not.toHaveProperty(
+      "toJSONAnchorObservation",
+    );
   });
   test("every option and behavior witness produces a replayable outcome", () => {
     for (const descriptor of [...optionWitnesses(), ...behaviorWitnesses()]) {

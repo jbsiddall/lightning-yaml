@@ -165,6 +165,7 @@ function astSummary(node: unknown, seen = new Map<object, number>()): unknown {
 function documentRecord(
   document: DocumentLike,
   conversionOptions: Record<string, unknown>,
+  call?: string,
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {
     errors: (document.errors ?? []).map(errorRecord),
@@ -173,43 +174,62 @@ function documentRecord(
   };
   let firstConversion: unknown;
   let firstSucceeded = false;
-  try {
-    firstConversion = document.toJS(conversionOptions);
-    firstSucceeded = true;
-    result.toJS = firstConversion;
-  } catch (error) {
-    result.toJSError = errorRecord(error);
-  }
-  try {
-    const secondConversion = document.toJS(conversionOptions);
-    result.toJSRepeated = secondConversion;
-    if (firstSucceeded)
-      result.toJSReturnsFreshValue = firstConversion !== secondConversion;
-  } catch (error) {
-    result.toJSRepeatedError = errorRecord(error);
-  }
-  if (firstSucceeded)
-    try {
-      if (
-        firstConversion !== null &&
-        typeof firstConversion === "object" &&
-        Object.isExtensible(firstConversion) &&
-        (Array.isArray(firstConversion) ||
-          [Object.prototype, null].includes(
-            Object.getPrototypeOf(firstConversion),
-          ))
-      ) {
-        (firstConversion as Record<string, unknown>).__yaml_property_probe__ =
-          "mutated";
-        result.toJSAfterMutation = document.toJS(conversionOptions);
-      }
-    } catch (error) {
-      result.toJSAfterMutationError = errorRecord(error);
+  if (call === "document-toJSON-onAnchor-v1") {
+    const calls: unknown[][] = [];
+    const callback = conversionOptions.onAnchor;
+    if (typeof callback === "function") {
+      conversionOptions.onAnchor = (...args: unknown[]) => {
+        calls.push(args);
+        return (callback as (...args: unknown[]) => unknown)(...args);
+      };
     }
-  try {
-    result.toJSON = document.toJSON();
-  } catch (error) {
-    result.toJSONError = errorRecord(error);
+    try {
+      result.toJSONAnchorObservation = {
+        result: document.toJSON("anchor-probe-v1", conversionOptions.onAnchor),
+        calls,
+      };
+    } catch (error) {
+      result.toJSONAnchorObservationError = errorRecord(error);
+    }
+  } else {
+    try {
+      firstConversion = document.toJS(conversionOptions);
+      firstSucceeded = true;
+      result.toJS = firstConversion;
+    } catch (error) {
+      result.toJSError = errorRecord(error);
+    }
+    try {
+      const secondConversion = document.toJS(conversionOptions);
+      result.toJSRepeated = secondConversion;
+      if (firstSucceeded)
+        result.toJSReturnsFreshValue = firstConversion !== secondConversion;
+    } catch (error) {
+      result.toJSRepeatedError = errorRecord(error);
+    }
+    if (firstSucceeded)
+      try {
+        if (
+          firstConversion !== null &&
+          typeof firstConversion === "object" &&
+          Object.isExtensible(firstConversion) &&
+          (Array.isArray(firstConversion) ||
+            [Object.prototype, null].includes(
+              Object.getPrototypeOf(firstConversion),
+            ))
+        ) {
+          (firstConversion as Record<string, unknown>).__yaml_property_probe__ =
+            "mutated";
+          result.toJSAfterMutation = document.toJS(conversionOptions);
+        }
+      } catch (error) {
+        result.toJSAfterMutationError = errorRecord(error);
+      }
+    try {
+      result.toJSON = document.toJSON();
+    } catch (error) {
+      result.toJSONError = errorRecord(error);
+    }
   }
   try {
     result.contents = astSummary(document.contents);
@@ -352,7 +372,7 @@ function invoke(
               }
             : undefined;
         const documentRows = Array.from(documents, (document) =>
-          documentRecord(document, conversionOptions),
+          documentRecord(document, conversionOptions, descriptor.call),
         );
         outcome = {
           status: "success",
@@ -422,6 +442,14 @@ function documentDifferences(
   const jsonMatches =
     compareDocumentField("toJSON", "document-semantic") &&
     compareDocumentField("toJSONError", "document-semantic");
+  const toJSONAnchorObservationMatches = compareDocumentField(
+    "toJSONAnchorObservation",
+    "document-semantic",
+  );
+  const toJSONAnchorObservationErrorMatches = compareDocumentField(
+    "toJSONAnchorObservationError",
+    "document-semantic",
+  );
   const astMatches = compareDocumentField("contents", "document-ast");
   const streamMatches = samePlainValue(
     referenceOutcome.stream,
@@ -441,6 +469,8 @@ function documentDifferences(
       conversionMatches &&
       afterMutationErrorMatches &&
       jsonMatches &&
+      toJSONAnchorObservationMatches &&
+      toJSONAnchorObservationErrorMatches &&
       astMatches,
     streamMetadataEqual: streamMatches,
   };
