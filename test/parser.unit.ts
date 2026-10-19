@@ -15,7 +15,7 @@ import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
 import { parse, parseAll, stringify, YAMLParseError } from "../src/index.ts";
-import { requiredDocumentOptions } from "../src/core.ts";
+import { parse as coreParse, parseAll as coreParseAll, requiredDocumentOptions } from "../src/core.ts";
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
 import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
@@ -37,6 +37,72 @@ function dedent(strings: TemplateStringsArray): string {
   const body = raw.slice(raw.indexOf("\n") + 1, lastNl);
   return body.split("\n").map((l) => (l.startsWith(indent) ? l.slice(indent.length) : l)).join("\n") + "\n";
 }
+
+test("physical line breaks are rejected in implicit quoted keys", () => {
+  for (const br of ["\n", "\r\n"]) {
+    const invalid = [
+      `["a${br} b": 1]`,
+      `['a${br} b': 1]`,
+      `[&a "a${br} b": 1]`,
+      `[!!str 'a${br} b': 1]`,
+      `[&a !!str "a${br} b": 1]`,
+      `[!!str &a 'a${br} b': 1]`,
+      `["a\\${br} b": 1]`,
+      `["a b": 0, "a${br} b": 1]`,
+      `---\nvalid: 1\n---\n["bad${br} b": 2]`,
+      `"a\\${br} b": 1`,
+      `x: 0\n"a\\${br} b": 1`,
+      `&a "a\\${br} b": 1`,
+      `x: 0\n&a "a\\${br} b": 1`,
+      `!!str 'a\\${br} b': 1`,
+      `x: 0\n!!str 'a\\${br} b': 1`,
+      `&a !!str "a\\${br} b": 1`,
+      `!!str &a 'a\\${br} b': 1`,
+      `x: 0\n&a !!str "a\\${br} b": 1`,
+      `x: 0\n!!str &a 'a\\${br} b': 1`,
+      `"a${br} b": 1`,
+      `x: 0\n'a${br} b': 1`,
+      `&a 'a${br} b': 1`,
+      `x: 0\n&a 'a${br} b': 1`,
+      `!!str "a${br} b": 1`,
+      `x: 0\n!!str 'a${br} b': 1`,
+      `&a !!str "a${br} b": 1`,
+      `!!str &a 'a${br} b': 1`,
+      `x: 0\n&a !!str "a${br} b": 1`,
+      `x: 0\n!!str &a 'a${br} b': 1`,
+    ];
+    for (const input of invalid) {
+      throws(() => parse(input), YAMLParseError, `public parse should reject ${JSON.stringify(input)}`);
+      throws(() => parse(input, { strict: true }), YAMLParseError, `strict parse should reject ${JSON.stringify(input)}`);
+      throws(() => coreParse(input), YAMLParseError, `core parse should reject ${JSON.stringify(input)}`);
+      throws(() => parseAll(input), YAMLParseError, `parseAll should reject ${JSON.stringify(input)}`);
+      throws(() => coreParseAll(input), YAMLParseError, `core parseAll should reject ${JSON.stringify(input)}`);
+    }
+  }
+});
+
+test("quoted-key source checks preserve explicitly marked keys, values, and escape data", () => {
+  const multiline = `a\n b`;
+  deepStrictEqual(parse(`[? "${multiline}": 1]`), [{ ["a b"]: 1 }]);
+  deepStrictEqual(parse(`[? 'a\n b': 1]`), [{ ["a b"]: 1 }]);
+  deepStrictEqual(parse(`{\"${multiline}\": 1}`), { ["a b"]: 1 });
+  deepStrictEqual(parse(`{'${multiline}': 1}`), { ["a b"]: 1 });
+  deepStrictEqual(parse(`? "${multiline}"\n: 1`), { ["a b"]: 1 });
+  deepStrictEqual(parse(`? 'a\n b'\n: 1`), { ["a b"]: 1 });
+  deepStrictEqual(parse(`? "a\n    b"\n: 1`), { ["a b"]: 1 });
+  deepStrictEqual(parse(`- ? "a\n      b"\n  : 1`), [{ ["a b"]: 1 }]);
+  deepStrictEqual(parse(`"key": "${multiline}"`), { key: "a b" });
+  deepStrictEqual(parse(`["key": "${multiline}"]`), [{ key: "a b" }]);
+  deepStrictEqual(parse(`["${multiline}"]`), ["a b"]);
+  deepStrictEqual(parse(`[&a\n "key": 1]`), [{ key: 1 }]);
+  deepStrictEqual(parse(`[!!str\n "key": 1]`), [{ key: 1 }]);
+  deepStrictEqual(parse(`["a\\nb": 1, "a\\rb": 2, "a\\u000ab": 3, "a\\u000db": 4]`), [
+    { "a\nb": 1 }, { "a\rb": 2 }, { "a\nb": 3 }, { "a\rb": 4 },
+  ]);
+  deepStrictEqual(parse(`[&a "anchor", { nested: "${multiline}" }, *a, "key": "${multiline}"]`), [
+    "anchor", { nested: "a b" }, "anchor", { key: "a b" },
+  ]);
+});
 
 // --------------------------------------------------------------------------
 // M1 — exact JSON.parse parity on every JSON (flow) fixture.
