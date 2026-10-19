@@ -241,6 +241,16 @@ export function optionWitnesses(): CaseDescriptor[] {
       out[out.length - 1]!.graph = encodeGraph(null);
     }
   }
+  out.push({
+    id: "document-toJSON-onAnchor-v1",
+    operation: "parseDocument",
+    text: "first: &outer\n  left: &inner [1]\n  right: *inner\nsecond: *outer\n",
+    options: { values: {} },
+    call: "document-toJSON-onAnchor-v1",
+    conversionOptions: { values: {}, callback: "onAnchor" },
+    source: "option-witness",
+    categories: ["option-witness", "document-conversion", "callback"],
+  });
   return out;
 }
 export function behaviorWitnesses(): CaseDescriptor[] {

@@ -298,7 +298,10 @@ shrink failures; recorded descriptors replay the original cases.
   reference under the applicable schema. Decode failures and call failures have
   their own denominators.
 - Document factories: document count, converted values, error and warning records,
-  and the distinct AST surface. Matching conversions do not imply AST compatibility.
+  the distinct AST surface, and one versioned `Document.toJSON(key, onAnchor)`
+  invocation with a fixed key. That witness checks callback argument count/order,
+  value brands and sharing between callback values and the returned graph.
+  Matching conversions do not imply AST compatibility.
 - Callback recipes and overloads: bounded witnesses, not arbitrary JavaScript functions.
 - Option fields: declaration inventory checked against the pinned reference types,
   with omission and explicit undefined distinct from activated options.
@@ -347,11 +350,17 @@ revivers are excluded. No sampled percentage establishes universal equivalence
 or estimates the fraction of all `yaml` behavior supported. The scheduled
 `onTagObj-declarative-v1` witness serializes `null` and records the actual tag and
 default fields, invocation count, and event order. It does not compare tag
-methods, callback argument identity, or full tag objects. Older saved
+methods, callback argument identity, or full tag objects. The
+`document-toJSON-onAnchor-v1` witness calls `toJSON("anchor-probe-v1", callback)`
+once on a document with two anchors. It preserves identity across the returned
+value and both callback arguments within that invocation. The fixed key does not
+establish behavior for arbitrary keys; the observation does not establish
+identity across separate conversions, documents, or AST values. Conversion
+callback recipes are included in callback denominators and option-ledger keys.
+Older saved
 `onTagObj` descriptors retain their historical custom-tag recipe and observation
 behavior; their results use a different observation contract and are not directly
-comparable with the versioned witness. `Document.toJSON(key,onAnchor)` and
-cross-document AST identity are not tested.
+comparable with the versioned witness.
 Converted values are compared together across the document stream; AST identity
 is observed within each document.
 

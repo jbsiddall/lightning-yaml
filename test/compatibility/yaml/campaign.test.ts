@@ -4,6 +4,8 @@ import { loadRealWorldCorpus } from "../shared/realWorldCorpus.js";
 import {
   buildCorpusParseDescriptors,
   buildCorpusReferenceSerializationDescriptor,
+  descriptorExplicitUndefinedKeys,
+  descriptorOptionKeys,
   isUnsupportedGraphCodecError,
   parseReplayDescriptor,
   summarize,
@@ -90,6 +92,57 @@ describe("YAML campaign metric denominators", () => {
       ...legacy,
       options: { values: {}, callback: "unknown-recipe" },
     })).toThrow("valid case descriptor");
+  });
+
+  it("counts conversion-only callbacks and routes both option sets to the ledger", () => {
+    const descriptor = optionWitnesses().find(
+      (entry) => entry.id === "document-toJSON-onAnchor-v1",
+    )!;
+    const replayed = parseReplayDescriptor(JSON.parse(JSON.stringify(descriptor)));
+    const result = evaluate(replayed);
+    const metrics = summarize([result]);
+    expect(metrics.callbackDifferences).toEqual({
+      numerator: 1,
+      denominator: 1,
+      percent: 100,
+    });
+    expect(descriptorOptionKeys(replayed)).toEqual(["onAnchor"]);
+    expect(descriptorExplicitUndefinedKeys({
+      ...replayed,
+      options: { values: {}, undefinedKeys: ["strict"] },
+      conversionOptions: { values: {}, undefinedKeys: ["maxAliasCount"] },
+    })).toEqual(["maxAliasCount", "strict"]);
+    expect(descriptorExplicitUndefinedKeys({
+      ...replayed,
+      options: { values: {}, undefinedKeys: ["strict", "uniqueKeys"] },
+      conversionOptions: undefined,
+    })).toEqual(["strict", "uniqueKeys"]);
+  });
+
+  it("rejects incompatible settings for the versioned positional toJSON call", () => {
+    const descriptor = optionWitnesses().find(
+      (entry) => entry.id === "document-toJSON-onAnchor-v1",
+    )!;
+    expect(() => parseReplayDescriptor({
+      ...descriptor,
+      operation: "parseAllDocuments",
+    })).toThrow("valid case descriptor");
+    expect(() => parseReplayDescriptor({
+      ...descriptor,
+      conversionOptions: { values: { maxAliasCount: 1 }, callback: "onAnchor" },
+    })).toThrow("valid case descriptor");
+    expect(() => parseReplayDescriptor({
+      ...descriptor,
+      conversionOptions: { values: {}, callback: "onAnchor", schema: "core" },
+    })).toThrow("valid case descriptor");
+    expect(() => parseReplayDescriptor({
+      ...descriptor,
+      conversionOptions: { values: {}, callback: "onAnchor", undefinedKeys: ["strict"] },
+    })).toThrow("valid case descriptor");
+    expect(parseReplayDescriptor({
+      ...descriptor,
+      conversionOptions: { values: {} },
+    }).call).toBe("document-toJSON-onAnchor-v1");
   });
 
   it("counts candidate stringify failures in byte-call denominators without inventing byte equality", () => {
