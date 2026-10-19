@@ -1662,7 +1662,10 @@ function parseFlowMap(): Record<string, unknown> {
       break;
     }
     let key: string;
-    if (c === QUESTION && flowSeparatorAt(pos + 1)) {
+    if (c === COLON && flowSeparatorAt(pos + 1)) {
+      // Implicit empty key (`{ : v}`, `{ : }`): key is empty string ""
+      key = "";
+    } else if (c === QUESTION && flowSeparatorAt(pos + 1)) {
       // Explicit `? key` (cold): the key is a full node up to ':'/','/'}'.
       pos++;
       skipFlowWs();

@@ -1907,6 +1907,14 @@ test("mostly-distinct mapping keys all parse to the right key/value pairs", () =
   for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
 });
 
+test("flow mapping implicit empty keys parse correctly", () => {
+  deepStrictEqual(parse("{ : v}"), { "": "v" });
+  deepStrictEqual(parse("{ : }"), { "": null });
+  deepStrictEqual(parse("{: v}"), { "": "v" });
+  deepStrictEqual(parse("{a: 1, : 2}"), { a: 1, "": 2 });
+  deepStrictEqual(parse("{a: 1, :}"), { a: 1, "": null });
+});
+
 // A caller-supplied `keyCacheMaxKb` far below the default still yields every
 // correct key/value pair — the cap only stops the cache from growing, it never
 // drops or corrupts a key already being parsed (`internKey` returns `s` either
