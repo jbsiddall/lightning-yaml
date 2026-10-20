@@ -151,7 +151,6 @@ export type TokenType =
   | DocumentEnd['type']
   | FlowScalar['type']
 
-/** The byte order mark */
 export const BOM = '\u{FEFF}'
 
 /** Start of doc-mode */
@@ -163,13 +162,11 @@ export const FLOW_END = '\x18' // C0: Cancel
 /** Next token is a scalar value */
 export const SCALAR = '\x1f' // C0: Unit Separator
 
-/** @returns `true` if `token` is a flow or block collection */
 export const isCollection = (
   token: Token | null | undefined
 ): token is BlockMap | BlockSequence | FlowCollection =>
   !!token && 'items' in token
 
-/** @returns `true` if `token` is a flow or block scalar; not an alias */
 export const isScalar = (
   token: Token | null | undefined
 ): token is FlowScalar | BlockScalar =>
@@ -180,7 +177,6 @@ export const isScalar = (
     token.type === 'block-scalar')
 
 /* istanbul ignore next */
-/** Get a printable representation of a lexer token */
 export function prettyToken(token: string): string {
   switch (token) {
     case BOM:
@@ -196,7 +192,6 @@ export function prettyToken(token: string): string {
   }
 }
 
-/** Identify the type of a lexer token. May return `null` for unknown tokens. */
 export function tokenType(source: string): TokenType | null {
   switch (source) {
     case BOM:

@@ -150,7 +150,6 @@ export class Lexer {
    */
   private blockScalarKeep = false
 
-  /** Current input */
   private buffer = ''
 
   /**
@@ -168,16 +167,12 @@ export class Lexer {
    */
   private indentNext = 0
 
-  /** Indentation level of the current line. */
   private indentValue = 0
 
-  /** Position of the next \n character. */
   private lineEndPos: number | null = null
 
-  /** Stores the state of the lexer if reaching the end of incpomplete input */
   private next: State | null = null
 
-  /** A pointer to `buffer`; the current position of the lexer. */
   private pos = 0;
 
   /**

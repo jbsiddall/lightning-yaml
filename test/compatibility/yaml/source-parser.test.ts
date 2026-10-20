@@ -308,7 +308,6 @@ test("incremental Lexer plus custom Parser.next handles each split of CRLF, esca
 });
 
 test("chunking between indentation spaces preserves the upstream segmentation difference", () => {
-  // fast-check witness: seed 20261020, path 53:1:1:10:11:0:9:0:1:7, 9 shrinks.
   const source = `---\npayload:\n  - "a"\nquoted: "\\"aa"\n...\n`;
   const split = 14;
 

@@ -13,7 +13,10 @@
       "upstreamPath": "src/parse/lexer.ts",
       "sha256": "727797a033147b92e33f13983369d2c80757726399b3b87672d79714207bb409",
       "localPath": "src/source/lexer.ts",
-      "adaptations": ["Added retained ISC legal comment; updated relative CST import to local module path/style."]
+      "adaptations": [
+        "Added retained ISC legal comment; updated relative CST import to local module path/style.",
+        "Removed redundant comments that restated the buffer, indentation, line-end, saved-state, and position member names."
+      ]
     },
     {
       "upstreamPath": "src/parse/parser.ts",
@@ -22,7 +25,8 @@
       "adaptations": [
         "Added retained ISC legal comment.",
         "Replaced node:process env import with optional globalThis.process?.env access so browsers need no process shim; LOG_TOKENS remains dynamically checked and uses the same prettyToken console output when available.",
-        "Updated relative local module import paths/style."
+        "Updated relative local module import paths/style.",
+        "Removed redundant comments that restated parser state member names and types."
       ]
     },
     {
@@ -31,7 +35,8 @@
       "localPath": "src/source/cst.ts",
       "adaptations": [
         "Added retained ISC legal comment.",
-        "Removed the first eight lines of re-exports for scalar mutation/resolution, stringify, and visitors; retained the complete token types, constants, and helpers required by Lexer and Parser."
+        "Removed the first eight lines of re-exports for scalar mutation/resolution, stringify, and visitors; retained the complete token types, constants, and helpers required by Lexer and Parser.",
+        "Removed redundant comments that restated BOM, helper names, and helper predicates; retained control-character explanations."
       ]
     }
   ],

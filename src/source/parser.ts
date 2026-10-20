@@ -159,28 +159,20 @@ function fixFlowSeqItems(fc: FlowCollection) {
 export class Parser {
   private onNewLine?: (offset: number) => void
 
-  /** If true, space and sequence indicators count as indentation */
   private atNewLine = true
 
-  /** If true, next token is a scalar value */
   private atScalar = false
 
-  /** Current indentation level */
   private indent = 0
 
-  /** Current offset since the start of parsing */
   offset = 0
 
-  /** On the same line with a block map key */
   private onKeyLine = false
 
-  /** Top indicates the node that's currently being built */
   stack: Token[] = []
 
-  /** The source of the current token, set in parse() */
   private source = ''
 
-  /** The type of the current token, set in parse() */
   private type = '' as TokenType
 
   /**
