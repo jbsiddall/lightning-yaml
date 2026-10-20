@@ -1907,6 +1907,19 @@ test("mostly-distinct mapping keys all parse to the right key/value pairs", () =
   for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
 });
 
+// --------------------------------------------------------------------------
+// Root-level block scalars with explicit indentation indicators
+// --------------------------------------------------------------------------
+
+test("root-level block scalars with explicit indentation indicators strip correct number of spaces", () => {
+  strictEqual(parse("|1\n  a"), " a\n");
+  strictEqual(parse("|2\n  a"), "a\n");
+  strictEqual(parse("|+1\n  a"), " a\n");
+  strictEqual(parse("|-1\n  a"), " a");
+  strictEqual(parse(">1\n  a"), " a\n");
+  strictEqual(parse(">2\n  a"), "a\n");
+});
+
 // A caller-supplied `keyCacheMaxKb` far below the default still yields every
 // correct key/value pair — the cap only stops the cache from growing, it never
 // drops or corrupts a key already being parsed (`internKey` returns `s` either
