@@ -64,8 +64,8 @@
  *   customTags        plug in custom tag resolvers               core         (needs a tag registry)
  *   resolveKnownTags  !!omap/!!set/!!timestamp under core        core         (we resolve !!binary only)
  *   merge             enable `<<` merge keys                     feature      (merge keys unimplemented)
- *   keepSourceTokens · onAnchor   feature      (need CST / retained metadata)
- *   lineCounter option            feature      (standalone class exported; parse integration remains unsupported)
+ *   keepSourceTokens · onAnchor                                  feature      (need CST / retained metadata)
+ *   lineCounter option                                           feature      (standalone class exported; parse integration remains unsupported)
  *
  * stringify (ToStringOptions·CreateNodeOptions·SchemaOptions)
  *   replacer          JSON.stringify-style replacer              compat       (pre-process the value)
