@@ -236,9 +236,7 @@ test("reference Composer recovery distinguishes incomplete flow from an open quo
 
 test("malformed marker recovery terminates and retains tokens in a bounded worker", () => {
   const source = "---\na: 1\n---\nb: [1, 2\n---\nc: 3\n";
-  const moduleUrl = new URL("../../../src/yaml-compat.ts", import.meta.url).href;
-  const code = `const { parentPort } = require('node:worker_threads'); require('tsx/esm/api').register(); Promise.all([import(${JSON.stringify(moduleUrl)}), import('yaml')]).then(([compat, yaml]) => { const tokens = [...new compat.Parser().parse(${JSON.stringify(source)})]; const docs = tokens.filter(token => token.type === 'document'); parentPort.postMessage({ offsets: docs.map(token => token.offset), itemCount: docs[1]?.value?.items?.[0]?.value?.items?.length, reconstructed: tokens.map(token => yaml.CST.stringify(token)).join('') }); }).catch(error => { throw error; });`;
-  const worker = new Worker(code, { eval: true, execArgv: ["--import", "tsx"] });
+  const worker = new Worker(new URL("./source-parser-worker.mjs", import.meta.url), { workerData: source });
   return new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       void worker.terminate();
