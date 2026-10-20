@@ -65,7 +65,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "THIRD_PARTY_NOTICES"
   ],
   "sideEffects": false,
   "unpkg": "./dist/lightning-yaml.min.js",

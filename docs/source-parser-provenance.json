@@ -1,0 +1,39 @@
+{
+  "upstream": {
+    "repository": "https://github.com/eemeli/yaml",
+    "version": "2.9.0",
+    "commit": "ddb21b04cb889722cec8f89dc1b67f19d62d7f7d",
+    "license": {
+      "path": "LICENSE",
+      "sha256": "5bba27375d93e9119f76c1015f7672cf9ad5f70952296e0842fb2243d6376869"
+    }
+  },
+  "files": [
+    {
+      "upstreamPath": "src/parse/lexer.ts",
+      "sha256": "727797a033147b92e33f13983369d2c80757726399b3b87672d79714207bb409",
+      "localPath": "src/source/lexer.ts",
+      "adaptations": ["Added retained ISC legal comment; updated relative CST import to local module path/style."]
+    },
+    {
+      "upstreamPath": "src/parse/parser.ts",
+      "sha256": "7396b02a890335f8c482d7d7cea5587e9d8dff4908377b96ddffc1b9b8c85a34",
+      "localPath": "src/source/parser.ts",
+      "adaptations": [
+        "Added retained ISC legal comment.",
+        "Replaced node:process env import with optional globalThis.process?.env access so browsers need no process shim; LOG_TOKENS remains dynamically checked and uses the same prettyToken console output when available.",
+        "Updated relative local module import paths/style."
+      ]
+    },
+    {
+      "upstreamPath": "src/parse/cst.ts",
+      "sha256": "064b5e0505d2fe275b1d022efbdd71d6a6c288886599f70475eb57dfdcfe3b92",
+      "localPath": "src/source/cst.ts",
+      "adaptations": [
+        "Added retained ISC legal comment.",
+        "Removed the first eight lines of re-exports for scalar mutation/resolution, stringify, and visitors; retained the complete token types, constants, and helpers required by Lexer and Parser."
+      ]
+    }
+  ],
+  "distributionNotice": "THIRD_PARTY_NOTICES"
+}
