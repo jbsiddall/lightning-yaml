@@ -216,7 +216,7 @@ namespace remain future work. Earlier CST comparison branches and their reports
 are historical evidence for those drafts; they do not describe this exported
 Lexer/Parser implementation or establish language-server compatibility.
 
-<!-- ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
+<!-- ly:57d28ea62ca656e5bc63fad4c6e73faf69df9a99 -->
 
 ## Source lexer and parser
 
@@ -253,7 +253,7 @@ The compatibility shim exposes `parse`, `stringify`, `parseDocument`,
 APIs. This is partial compatibility with selected calls, rather than the full
 package API.
 
-<!-- yaml:2.9.0 ly:3cbdf93442916ee2f15b1590116e7165a1d9f6f7 -->
+<!-- yaml:2.9.0 ly:57d28ea62ca656e5bc63fad4c6e73faf69df9a99 -->
 
 | Surface            | Current implementation                                                                     |
 | ------------------ | ------------------------------------------------------------------------------------------ |
@@ -265,7 +265,7 @@ package API.
 | Options            | Default core schema/version and selected inactive flags; unsupported defined options throw. `lineCounter` remains an unsupported parse option |
 | Other package APIs | Composer, AST nodes, CST runtime helpers, visitors, and document editing APIs are absent |
 
-<!-- yaml:2.9.0 ly:3cbdf93442916ee2f15b1590116e7165a1d9f6f7 -->
+<!-- yaml:2.9.0 ly:57d28ea62ca656e5bc63fad4c6e73faf69df9a99 -->
 
 The campaign measures behavior without changing that implementation. A reference
 mismatch is a candidate for investigation; the YAML specification remains the
