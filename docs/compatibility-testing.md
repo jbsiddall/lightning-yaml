@@ -224,13 +224,27 @@ Lexer/Parser implementation or establish language-server compatibility.
 the ISC-licensed yaml 2.9.0 source port. The bounded tests under
 `test/compatibility/yaml/source-parser.test.ts` check token structure, source
 spelling, offsets, trivia, incremental input and recovery against fixed
-expectations and the pinned reference. Development tests also pass these
+expectations and the pinned reference. A fixed-seed fast-check property runs 300
+rendered JSON-compatible YAML cases and compares whole-input and chunked tokens
+with the reference under the same chunk schedule. Development tests also pass these
 tokens to yaml's Composer to check the token contract; Composer is not shipped
 by lightning-yaml. The shim still has no public CST helper namespace, Composer,
 AST nodes, document recovery, or `keepSourceTokens` parse-option integration.
 Parser output is source syntax and does not establish YAML validity or provide
 document diagnostics. This milestone makes no source-aware speed claim and does
 not establish language-server compatibility.
+
+Chunk boundaries can affect token segmentation in the upstream parser. A
+fast-check witness (seed `20261020`, path
+`53:1:1:10:11:0:9:0:1:7`, 9 shrinks) uses
+`---\npayload:\n  - "a"\nquoted: "\\"aa"\n...\n` and splits at offset 14,
+between the two indentation spaces. Whole input emits one two-space lexer/CST
+token; chunked input emits two one-space tokens. Both forms preserve the same
+offsets and line-callback sequence, reconstruct the exact source with
+`CST.stringify`, and compose to the same value without errors. This is upstream
+incremental API behavior; chunk-boundary invariance is not guaranteed. The
+literal regression keeps this case visible, and generated chunk checks compare
+each schedule with the pinned reference using that same schedule.
 
 ## The implemented subset
 

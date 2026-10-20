@@ -54,8 +54,12 @@ function renderSourceScenario(scenario: {
   return `${prefix}${payload}${eol}${suffix}`;
 }
 
-function parseChunks(source: string, cuts: number[]): CSTToken[] {
-  const parser = new compat.Parser();
+type ParserConstructor = new (onNewLine?: (offset: number) => void) => {
+  parse(source: string, incomplete?: boolean): Iterable<CSTToken>;
+};
+
+function parseChunks(source: string, cuts: number[], Parser: ParserConstructor = compat.Parser): CSTToken[] {
+  const parser = new Parser();
   const boundaries = [0, ...cuts, source.length];
   const tokens: CSTToken[] = [];
   for (let index = 0; index < boundaries.length - 1; index++) {
@@ -303,6 +307,86 @@ test("incremental Lexer plus custom Parser.next handles each split of CRLF, esca
   }
 });
 
+test("chunking between indentation spaces preserves the upstream segmentation difference", () => {
+  // fast-check witness: seed 20261020, path 53:1:1:10:11:0:9:0:1:7, 9 shrinks.
+  const source = `---\npayload:\n  - "a"\nquoted: "\\"aa"\n...\n`;
+  const split = 14;
+
+  function run(Parser: ParserConstructor) {
+    const wholeLines: number[] = [];
+    const whole = [...new Parser((offset) => wholeLines.push(offset)).parse(source)];
+    const chunkLines: number[] = [];
+    const parser = new Parser((offset) => chunkLines.push(offset));
+    const chunk = [
+      ...parser.parse(source.slice(0, split), true),
+      ...parser.parse(source.slice(split), false),
+    ];
+    const doc = (tokens: CSTToken[]) => tokens.find((token) => token.type === "document")!;
+    const indentationSpaces = (tokens: CSTToken[]) => (doc(tokens).value as { items: { sep?: { type: string; offset: number; source: string }[] }[] }).items[0]!.sep!
+      .filter((token) => token.type === "space")
+      .map(({ offset, source: text }) => ({ offset, source: text }));
+    const compose = (tokens: CSTToken[]) => [...new reference.Composer().compose(tokens)].map((document) => ({
+      value: document.toJSON(),
+      errors: document.errors.map(({ code, message }) => ({ code, message })),
+    }));
+
+    return {
+      whole,
+      chunk,
+      wholeLines,
+      chunkLines,
+      wholeSpaces: indentationSpaces(whole),
+      chunkSpaces: indentationSpaces(chunk),
+      wholeSource: whole.map((token) => reference.CST.stringify(token)).join(""),
+      chunkSource: chunk.map((token) => reference.CST.stringify(token)).join(""),
+      wholeDocuments: compose(whole),
+      chunkDocuments: compose(chunk),
+    };
+  }
+
+  function lex(Lexer: new () => { lex(source: string, incomplete?: boolean): Iterable<string> }) {
+    const whole = [...new Lexer().lex(source)];
+    const lexer = new Lexer();
+    const chunk = [
+      ...lexer.lex(source.slice(0, split), true),
+      ...lexer.lex(source.slice(split), false),
+    ];
+    return { whole, chunk };
+  }
+
+  const expected = run(reference.Parser);
+  const actual = run(compat.Parser);
+  const expectedLexemes = lex(reference.Lexer);
+  const actualLexemes = lex(compat.Lexer);
+  deepStrictEqual(actual.whole, expected.whole);
+  deepStrictEqual(actual.chunk, expected.chunk);
+  deepStrictEqual(actualLexemes, expectedLexemes);
+  deepStrictEqual(expectedLexemes.whole.slice(6, 9), ["\n", "  ", "-"]);
+  deepStrictEqual(expectedLexemes.chunk.slice(6, 11), ["\n", " ", " ", "-", " "]);
+  deepStrictEqual(expected.wholeSpaces, [{ offset: 13, source: "  " }]);
+  deepStrictEqual(expected.chunkSpaces, [
+    { offset: 13, source: " " },
+    { offset: 14, source: " " },
+  ]);
+  deepStrictEqual(expected.wholeLines, [0, 4, 13, 21, 36, 40]);
+  deepStrictEqual(expected.chunkLines, expected.wholeLines);
+  strictEqual(expected.wholeSource, source);
+  strictEqual(expected.chunkSource, source);
+  deepStrictEqual(expected.wholeDocuments, [{
+    value: { payload: ["a"], quoted: '"aa' },
+    errors: [],
+  }]);
+  deepStrictEqual(expected.chunkDocuments, expected.wholeDocuments);
+  deepStrictEqual(actual.wholeSpaces, expected.wholeSpaces);
+  deepStrictEqual(actual.chunkSpaces, expected.chunkSpaces);
+  deepStrictEqual(actual.wholeLines, expected.wholeLines);
+  deepStrictEqual(actual.chunkLines, expected.chunkLines);
+  strictEqual(actual.wholeSource, source);
+  strictEqual(actual.chunkSource, source);
+  deepStrictEqual(actual.wholeDocuments, expected.wholeDocuments);
+  deepStrictEqual(actual.chunkDocuments, expected.chunkDocuments);
+});
+
 test("fast-check renders bounded JSON-compatible YAML and compares tokens plus generated chunks", () => {
   fc.assert(
     fc.property(sourceScenarioArb, (scenario) => {
@@ -319,7 +403,9 @@ test("fast-check renders bounded JSON-compatible YAML and compares tokens plus g
       const cuts = [...new Set(scenario.cuts
         .map((percent) => Math.max(1, Math.min(source.length - 1, Math.floor(source.length * percent / 100)))))]
         .sort((left, right) => left - right);
-      deepStrictEqual(parseChunks(source, cuts), tokens);
+      const chunkTokens = parseChunks(source, cuts);
+      deepStrictEqual(chunkTokens, parseChunks(source, cuts, reference.Parser));
+      deepStrictEqual(chunkTokens, tokens);
     }),
     { numRuns: 300, seed: 20261020 },
   );
