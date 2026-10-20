@@ -248,18 +248,19 @@ and the subsequent [option validation PR](https://github.com/jbsiddall/lightning
 It exposes `parse`, `stringify`, `parseDocument`, and `parseAllDocuments`.
 This is partial compatibility with selected calls, rather than the full package API.
 
-<!-- yaml:2.9.0 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
+<!-- yaml:2.9.0 ly:3cbdf93442916ee2f15b1590116e7165a1d9f6f7 -->
 
 | Surface            | Current implementation                                                                     |
 | ------------------ | ------------------------------------------------------------------------------------------ |
 | `parse`            | Core parsing and a positional reviver                                                      |
 | `stringify`        | Core serialization; replacers and custom formatting mostly rejected                        |
 | Document factories | Minimal wrappers with `contents`, `errors`, `warnings`, `toJS()` and `toJSON()`            |
+| `LineCounter`       | Standalone source-offset lookup utility; it does not scan source text or populate parse calls |
 | `contents`         | Plain JavaScript value; the reference provides an AST node                                 |
-| Options            | Default core schema/version and selected inactive flags; unsupported defined options throw |
+| Options            | Default core schema/version and selected inactive flags; unsupported defined options throw. `lineCounter` remains an unsupported parse option |
 | Other package APIs | AST/CST classes, visitors, constructors and document editing APIs are absent               |
 
-<!-- yaml:2.9.0 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
+<!-- yaml:2.9.0 ly:3cbdf93442916ee2f15b1590116e7165a1d9f6f7 -->
 
 The campaign measures behavior without changing that implementation. A reference
 mismatch is a candidate for investigation; the YAML specification remains the
