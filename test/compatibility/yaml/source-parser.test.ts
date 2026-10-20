@@ -1,9 +1,70 @@
 import { test } from "vitest";
 import { deepStrictEqual, strictEqual, ok } from "node:assert";
 import { Worker } from "node:worker_threads";
+import fc from "fast-check";
 import * as reference from "yaml";
 import * as compat from "../../../src/yaml-compat.ts";
 import type { CSTSourceToken, CSTToken } from "../../../src/yaml-compat.ts";
+
+const textArb = fc.array(
+  fc.constantFrom("a", "Z", " ", "\"", "\\", "😀", "雪", "é", "λ", "\n", "\t"),
+  { maxLength: 12 },
+).map((chars) => chars.join(""));
+const scalarArb = fc.oneof(
+  fc.constant(null),
+  fc.boolean(),
+  fc.integer({ min: -1000, max: 1000 }),
+  textArb,
+);
+const shallowObjectArb = fc.dictionary(
+  fc.constantFrom("a", "items", "nested", "é"),
+  fc.oneof(scalarArb, fc.array(scalarArb, { maxLength: 3 })),
+  { maxKeys: 3 },
+);
+const jsonValueArb = fc.oneof(
+  scalarArb,
+  fc.array(scalarArb, { maxLength: 4 }),
+  shallowObjectArb,
+  fc.array(shallowObjectArb, { maxLength: 3 }),
+);
+const sourceScenarioArb = fc.record({
+  value: jsonValueArb,
+  quoted: textArb,
+  wrapper: fc.constantFrom("flow" as const, "block" as const),
+  eol: fc.constantFrom("\n", "\r\n"),
+  bom: fc.boolean(),
+  comments: fc.boolean(),
+  cuts: fc.uniqueArray(fc.integer({ min: 1, max: 99 }), { minLength: 1, maxLength: 3 }),
+});
+
+function renderSourceScenario(scenario: {
+  value: unknown;
+  quoted: string;
+  wrapper: "flow" | "block";
+  eol: string;
+  bom: boolean;
+  comments: boolean;
+}): string {
+  const { value, quoted, wrapper, eol } = scenario;
+  const prefix = `${scenario.bom ? "\ufeff" : ""}${scenario.comments ? `# leading 😀${eol}` : ""}---${eol}`;
+  const payload = wrapper === "flow"
+    ? `{payload: [${JSON.stringify(value)}], quoted: ${JSON.stringify(quoted)}}`
+    : `payload: ${JSON.stringify(value)}${eol}quoted: ${JSON.stringify(quoted)}`;
+  const suffix = `...${eol}${scenario.comments ? `# trailing${eol}` : ""}`;
+  return `${prefix}${payload}${eol}${suffix}`;
+}
+
+function parseChunks(source: string, cuts: number[]): CSTToken[] {
+  const parser = new compat.Parser();
+  const boundaries = [0, ...cuts, source.length];
+  const tokens: CSTToken[] = [];
+  for (let index = 0; index < boundaries.length - 1; index++) {
+    const start = boundaries[index]!;
+    const end = boundaries[index + 1]!;
+    tokens.push(...parser.parse(source.slice(start, end), index < boundaries.length - 2));
+  }
+  return tokens;
+}
 
 test("yaml shim exposes the complete source lexer and parser constructors", () => {
   strictEqual(typeof compat.Lexer, "function");
@@ -172,7 +233,7 @@ test("reference Composer recovery distinguishes incomplete flow from an open quo
 test("malformed marker recovery terminates and retains tokens in a bounded worker", () => {
   const source = "---\na: 1\n---\nb: [1, 2\n---\nc: 3\n";
   const moduleUrl = new URL("../../../src/yaml-compat.ts", import.meta.url).href;
-  const code = `const { parentPort } = require('node:worker_threads'); Promise.all([import(${JSON.stringify(moduleUrl)}), import('yaml')]).then(([compat, yaml]) => { const tokens = [...new compat.Parser().parse(${JSON.stringify(source)})]; const docs = tokens.filter(token => token.type === 'document'); parentPort.postMessage({ offsets: docs.map(token => token.offset), itemCount: docs[1]?.value?.items?.[0]?.value?.items?.length, reconstructed: tokens.map(token => yaml.CST.stringify(token)).join('') }); }).catch(error => { throw error; });`;
+  const code = `const { parentPort } = require('node:worker_threads'); require('tsx/esm/api').register(); Promise.all([import(${JSON.stringify(moduleUrl)}), import('yaml')]).then(([compat, yaml]) => { const tokens = [...new compat.Parser().parse(${JSON.stringify(source)})]; const docs = tokens.filter(token => token.type === 'document'); parentPort.postMessage({ offsets: docs.map(token => token.offset), itemCount: docs[1]?.value?.items?.[0]?.value?.items?.length, reconstructed: tokens.map(token => yaml.CST.stringify(token)).join('') }); }).catch(error => { throw error; });`;
   const worker = new Worker(code, { eval: true, execArgv: ["--import", "tsx"] });
   return new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -242,18 +303,26 @@ test("incremental Lexer plus custom Parser.next handles each split of CRLF, esca
   }
 });
 
-test("bounded fixed seed CST cases retain nested structure and offsets", () => {
-  for (let i = 0; i < 300; i++) {
-    const key = `key${(i * 73 + 19) % 307}`;
-    const source = `${key}: {items: [${i}, "v${(i * 97 + 11) % 311}"]}\n`;
-    const actual = [...new compat.Parser().parse(source)];
-    deepStrictEqual(actual, [...new reference.Parser().parse(source)], `case ${i}`);
-    const doc = actual.find((token) => token.type === "document");
-    if (!doc || doc.value?.type !== "block-map") throw new Error("Expected a block map token");
-    const sourceKey = doc.value.items[0]?.key;
-    strictEqual(sourceKey && "source" in sourceKey ? sourceKey.source : undefined, key);
-    strictEqual(doc.value.items[0]?.value?.type, "flow-collection");
-  }
+test("fast-check renders bounded JSON-compatible YAML and compares tokens plus generated chunks", () => {
+  fc.assert(
+    fc.property(sourceScenarioArb, (scenario) => {
+      const source = renderSourceScenario(scenario);
+      const referenceLexemes = [...new reference.Lexer().lex(source)];
+      const lexemes = [...new compat.Lexer().lex(source)];
+      deepStrictEqual(lexemes, referenceLexemes);
+
+      const expected = [...new reference.Parser().parse(source)];
+      const tokens = [...new compat.Parser().parse(source)];
+      deepStrictEqual(tokens, expected);
+      strictEqual(tokens.map((token) => reference.CST.stringify(token)).join(""), source);
+
+      const cuts = [...new Set(scenario.cuts
+        .map((percent) => Math.max(1, Math.min(source.length - 1, Math.floor(source.length * percent / 100)))))]
+        .sort((left, right) => left - right);
+      deepStrictEqual(parseChunks(source, cuts), tokens);
+    }),
+    { numRuns: 300, seed: 20261020 },
+  );
 });
 
 test("parse path reports initial and CRLF newline offsets", () => {
