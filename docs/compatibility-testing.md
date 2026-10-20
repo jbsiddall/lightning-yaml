@@ -248,7 +248,7 @@ and the subsequent [option validation PR](https://github.com/jbsiddall/lightning
 It exposes `parse`, `stringify`, `parseDocument`, and `parseAllDocuments`.
 This is partial compatibility with selected calls, rather than the full package API.
 
-<!-- yaml:2.9.0 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
+<!-- yaml:2.9.0 ly:3cbdf93442916ee2f15b1590116e7165a1d9f6f7 -->
 
 | Surface            | Current implementation                                                                     |
 | ------------------ | ------------------------------------------------------------------------------------------ |

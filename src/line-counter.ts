@@ -1,6 +1,9 @@
 /**
- * Maps caller-supplied UTF-16 source offsets to one-based line and column
- * positions. Add line starts in ascending order before looking up positions.
+ * Maps caller-supplied UTF-16 source offsets to line and column positions.
+ * Positions at or after a registered line start use one-based line and column
+ * numbers. Before the first registered start, including when there are no
+ * starts, `linePos()` returns `{ line: 0, col: offset }`. Callers must register
+ * line starts in ascending order; duplicate starts are valid.
  */
 export class LineCounter {
   /** Mutable source offsets at the start of each registered line. */
