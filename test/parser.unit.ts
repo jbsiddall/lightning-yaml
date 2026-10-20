@@ -468,6 +468,12 @@ test("block scalar: explicit indentation indicator in either order (|2- vs |-2)"
   ]);
 });
 
+test("block scalar: explicit indentation indicator at document root level", () => {
+  deepStrictEqual(parse("|1\n line1\n line2\n"), "line1\nline2\n");
+  deepStrictEqual(parse("|+2\n  line1\n\n"), "line1\n\n");
+  deepStrictEqual(parse("|-2\n  line1\n\n"), "line1");
+});
+
 test("block scalar: a more-indented folded line is kept literally and its surrounding breaks are not folded", () => {
   deepStrictEqual(parse("key: >\n  a\n   more\n  b\n"), { key: "a\n more\nb\n" });
 });
