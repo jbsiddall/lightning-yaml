@@ -13,14 +13,17 @@
  * ## Compatibility level TODAY
  *
  * **Partial API compatibility, not a drop-in replacement.** This module
- * exports `parse`, `parseAllDocuments`, `parseDocument`, and `stringify`, plus
- * the `CompatDocument` and `Reviver` types and a convenience default object.
+ * exports `parse`, `parseAllDocuments`, `parseDocument`, `stringify`, and the
+ * standalone `LineCounter`, plus the `CompatDocument` and `Reviver` types and a
+ * convenience default object.
  * It does not mirror the full `yaml` export surface or every call signature;
- * the package's AST/CST classes, error classes, and visitor helpers are not
- * provided. Options are honoured on a growing allowlist, and anything not yet
- * honoured **throws** rather than silently diverging. Today only the `parse`
- * reviver runs, plus `schema` / `version` accepted *as the 1.2-core defaults*
- * (`"core"` / `"1.2"`), and any
+ * the package's Parser/Composer, AST/CST, error, and visitor APIs are not
+ * provided. `LineCounter` maps caller-supplied UTF-16 offsets to line and
+ * column positions; it does not scan source text or populate the rejected
+ * `lineCounter` parse option. Options are honoured on a growing allowlist, and
+ * anything not yet honoured **throws** rather than silently diverging. Today
+ * only the `parse` reviver runs, plus `schema` / `version` accepted *as the
+ * 1.2-core defaults* (`"core"` / `"1.2"`), and any
  * boolean flag left at the value lightning-yaml already produces (usually
  * `false`, e.g. `mapAsMap: false`) — e.g. `parse(text, { mapAsMap: true })` or
  * `stringify(value, { indent: 4 })` throws until that option's sub-task lands. A
@@ -61,7 +64,8 @@
  *   customTags        plug in custom tag resolvers               core         (needs a tag registry)
  *   resolveKnownTags  !!omap/!!set/!!timestamp under core        core         (we resolve !!binary only)
  *   merge             enable `<<` merge keys                     feature      (merge keys unimplemented)
- *   keepSourceTokens · lineCounter · onAnchor                    feature      (need CST / retained metadata)
+ *   keepSourceTokens · onAnchor   feature      (need CST / retained metadata)
+ *   lineCounter option            feature      (standalone class exported; parse integration remains unsupported)
  *
  * stringify (ToStringOptions·CreateNodeOptions·SchemaOptions)
  *   replacer          JSON.stringify-style replacer              compat       (pre-process the value)
@@ -106,6 +110,8 @@
 
 import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, yamlDocumentOptions } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
+import { LineCounter } from "./line-counter.ts";
+export { LineCounter } from "./line-counter.ts";
 
 // ---------------------------------------------------------------------------
 // Options-dispatch rules. Unsupported options throw a `YAMLCompatError` rather
@@ -335,6 +341,6 @@ export function stringify(value: unknown, replacerOrOptions?: unknown, options?:
   return ourStringify(value);
 }
 
-const yamlCompat = { parse, parseAllDocuments, parseDocument, stringify };
+const yamlCompat = { parse, parseAllDocuments, parseDocument, stringify, LineCounter };
 
 export default yamlCompat;
