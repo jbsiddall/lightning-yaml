@@ -13,12 +13,14 @@
  * ## Compatibility level TODAY
  *
  * **Partial API compatibility, not a drop-in replacement.** This module
- * exports `parse`, `parseAllDocuments`, `parseDocument`, `stringify`, and the
- * standalone `LineCounter`, plus the `CompatDocument` and `Reviver` types and a
- * convenience default object.
+ * exports `parse`, `parseAllDocuments`, `parseDocument`, `stringify`, the
+ * standalone `LineCounter`, and the complete upstream `Lexer` and `Parser`
+ * token APIs, plus the `CompatDocument` and `Reviver` types and a convenience
+ * default object. The structural token types are available as `CSTToken` and
+ * `CSTSourceToken`; no CST runtime namespace or helper API is exported.
  * It does not mirror the full `yaml` export surface or every call signature;
- * the package's Parser/Composer, AST/CST, error, and visitor APIs are not
- * provided. `LineCounter` maps caller-supplied UTF-16 offsets to line and
+ * Composer, AST nodes, error, and visitor APIs are not provided. `LineCounter`
+ * maps caller-supplied UTF-16 offsets to line and
  * column positions; it does not scan source text or populate the rejected
  * `lineCounter` parse option. Options are honoured on a growing allowlist, and
  * anything not yet honoured **throws** rather than silently diverging. Today
@@ -64,7 +66,7 @@
  *   customTags        plug in custom tag resolvers               core         (needs a tag registry)
  *   resolveKnownTags  !!omap/!!set/!!timestamp under core        core         (we resolve !!binary only)
  *   merge             enable `<<` merge keys                     feature      (merge keys unimplemented)
- *   keepSourceTokens · onAnchor                                  feature      (need CST / retained metadata)
+ *   keepSourceTokens · onAnchor                                  feature      (no document Composer integration)
  *   lineCounter option                                           feature      (standalone class exported; parse integration remains unsupported)
  *
  * stringify (ToStringOptions·CreateNodeOptions·SchemaOptions)
@@ -90,7 +92,9 @@
  *
  * The remaining known simplifications, called out where they matter below:
  *
- *   - Document wrappers (`parseDocument`/`parseAllDocuments`) return a MINIMAL
+ *   - The public `Parser` produces source-preserving CST tokens; it does not
+ *     compose documents or validate YAML. Document wrappers
+ *     (`parseDocument`/`parseAllDocuments`) still return a MINIMAL
  *     stand-in: `{ toJS(), toJSON(), contents, errors, warnings }` where
  *     `contents` is already the plain JS value (real `yaml` gives you an AST
  *     `Node` there — Map/Seq/Scalar — and only `.toJS()` converts it). That's
@@ -112,6 +116,10 @@ import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, 
 import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 import { LineCounter } from "./line-counter.ts";
 export { LineCounter } from "./line-counter.ts";
+import { Lexer } from "./source/lexer.ts";
+import { Parser } from "./source/parser.ts";
+export { Lexer, Parser };
+export type { Token as CSTToken, SourceToken as CSTSourceToken } from "./source/cst.ts";
 
 // ---------------------------------------------------------------------------
 // Options-dispatch rules. Unsupported options throw a `YAMLCompatError` rather
@@ -341,6 +349,6 @@ export function stringify(value: unknown, replacerOrOptions?: unknown, options?:
   return ourStringify(value);
 }
 
-const yamlCompat = { parse, parseAllDocuments, parseDocument, stringify, LineCounter };
+const yamlCompat = { parse, parseAllDocuments, parseDocument, stringify, LineCounter, Lexer, Parser };
 
 export default yamlCompat;
