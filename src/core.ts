@@ -226,6 +226,13 @@ let plainStoppedAtComment = false;
 let quotedMultiline = false;
 
 /**
+ * Keep source positions so physical LF checks don't confuse line breaks with
+ * decoded escape data such as `\n`.
+ */
+let quotedSourceStart = -1;
+let quotedSourceEnd = -1;
+
+/**
  * Set by `scanFlowPlainEnd` (via `foldFlowPlain`): the folded text of a flow
  * plain scalar that physically spanned more than one source line, or `null`
  * when the scalar fit on one line (the overwhelming, hot case — no allocation).
@@ -538,6 +545,8 @@ function resetForStream(text: string): void {
   depth = 0;
   nextBackslash = -1;
   nextNewline = -1;
+  quotedSourceStart = -1;
+  quotedSourceEnd = -1;
   lineStart = 0;
   keyCache = new Map();
   keyCacheBytes = 0;
@@ -1581,13 +1590,17 @@ function parseFlowSeq(): unknown[] {
       // Explicit-key single-pair entry ([? a: b] → [{a: b}]).
       arr.push(parseFlowExplicitEntry());
     } else {
+      const keyStart = pos;
       const node = parseFlowValue();
+      const keyEnd = pos;
       skipFlowWs();
       if (src.charCodeAt(pos) === COLON) {
         // `node: value` inside a sequence → an implicit single-pair mapping entry.
         // Its implicit key must be on one line: a `:` that landed on a later line
         // than the key (`[ key\n : v ]`) is invalid (yaml-test-suite DK4H/ZXT5).
-        if (flowWsCrossedLine) fail("an implicit key in a flow sequence must be on a single line");
+        if (flowWsCrossedLine || quotedNodeHasPhysicalLF(keyStart, keyEnd)) {
+          fail("an implicit key in a flow sequence must be on a single line");
+        }
         arr.push(makeSinglePair(keyToString(node))); // leaves pos whitespace-skipped
       } else {
         // Common path: the skipFlowWs above already positioned us at ',' or ']'.
@@ -2591,6 +2604,8 @@ function foldFlowBreak(i: number): number {
 
 function parseDoubleQuoted(): string {
   quotedMultiline = false;
+  quotedSourceStart = pos;
+  quotedSourceEnd = -1;
   const start = pos + 1;
   const e = src.indexOf('"', start);
   if (e === -1) fail("unterminated double-quoted string");
@@ -2611,6 +2626,7 @@ function parseDoubleQuoted(): string {
     }
     if (nextNewline > e) {
       pos = e + 1;
+      quotedSourceEnd = pos;
       return internValue(src.slice(start, e));
     }
   }
@@ -2632,6 +2648,7 @@ function parseDoubleQuotedSlow(start: number): string {
     if (c === DQUOTE) {
       result += src.slice(seg, i);
       pos = i + 1;
+      quotedSourceEnd = pos;
       return result;
     }
     if (c === BACKSLASH) {
@@ -2780,6 +2797,8 @@ function hexVal(c: number): number {
 
 function parseSingleQuoted(): string {
   quotedMultiline = false;
+  quotedSourceStart = pos;
+  quotedSourceEnd = -1;
   const start = pos + 1;
   const e = src.indexOf("'", start);
   if (e === -1) fail("unterminated single-quoted string");
@@ -2794,6 +2813,7 @@ function parseSingleQuoted(): string {
   }
   if (nextNewline < e) return parseSingleQuotedSlow(start);
   pos = e + 1;
+  quotedSourceEnd = pos;
   return internValue(src.slice(start, e));
 }
 
@@ -2813,6 +2833,7 @@ function parseSingleQuotedSlow(start: number): string {
       }
       result += src.slice(seg, i);
       pos = i + 1;
+      quotedSourceEnd = pos;
       return result;
     }
     if (c === LF || c === CR) {
@@ -2828,6 +2849,17 @@ function parseSingleQuotedSlow(start: number): string {
     }
     i++;
   }
+}
+
+function quotedNodeHasPhysicalLF(nodeStart: number, nodeEnd: number): boolean {
+  // The last quote must be the whole candidate node: a nested quoted VALUE
+  // must not mark its containing collection key as a quoted scalar key.
+  if (quotedSourceStart < nodeStart || quotedSourceEnd !== nodeEnd) return false;
+  if (nextNewline < quotedSourceStart) {
+    const n = src.indexOf("\n", quotedSourceStart + 1);
+    nextNewline = n === -1 ? len : n;
+  }
+  return nextNewline < quotedSourceEnd - 1;
 }
 
 // ===========================================================================
@@ -3096,8 +3128,10 @@ function parseBlockNode(parentCol: number, mapValue = false): unknown {
     // lines out-indented from the enclosing block node (9C9N/VJP3/QB6E). An
     // alias never spans lines, so it needs no floor.
     if (c === LBRACKET || c === LBRACE || c === DQUOTE || c === SQUOTE) flowIndentFloor = parentCol;
+    const nodeStart = pos;
     const node = c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : c === STAR ? parseAlias() : registerPendingAnchor(parseFlowValue());
     flowIndentFloor = savedFloor;
+    const nodeEnd = pos;
     const save = pos;
     skipInlineSpaces();
     if (src.charCodeAt(pos) === COLON && isSpaceOrEolAt(pos + 1)) {
@@ -3106,7 +3140,9 @@ function parseBlockNode(parentCol: number, mapValue = false): unknown {
       // A block implicit key must fit on one line — for a quoted scalar that
       // folded across a real break (yaml-test-suite 7LBH/D49Q/JKF3) OR a flow
       // collection that spanned lines (`[23\n]: 42` — yaml-test-suite C2SP).
-      if ((c === DQUOTE || c === SQUOTE) && quotedMultiline) fail("a multi-line quoted scalar cannot be a block mapping key");
+      if ((c === DQUOTE || c === SQUOTE) && (quotedMultiline || quotedNodeHasPhysicalLF(nodeStart, nodeEnd))) {
+        fail("a multi-line quoted scalar cannot be a block mapping key");
+      }
       if ((c === LBRACKET || c === LBRACE) && flowSpanned) fail("a multi-line flow collection cannot be a block mapping key");
       // Quoted scalar becomes a mapping key: only a SAME-LINE property may
       // claim it (see `afterInlineProperty`'s doc comment) — a DEFERRED one
@@ -3402,6 +3438,7 @@ function parseTaggedBlockContent(parentCol: number, col: number, tag: string, sa
     if (c === STAR) fail("an alias node cannot carry a tag property");
     let raw: unknown;
     let kind: "map" | "seq" | "scalar";
+    const nodeStart = pos;
     if (c === DQUOTE) {
       raw = parseDoubleQuoted();
       kind = "scalar";
@@ -3415,9 +3452,13 @@ function parseTaggedBlockContent(parentCol: number, col: number, tag: string, sa
       raw = parseFlowSeq();
       kind = "seq";
     }
+    const nodeEnd = pos;
     const save = pos;
     skipInlineSpaces();
     if (src.charCodeAt(pos) === COLON && isSpaceOrEolAt(pos + 1)) {
+      if (kind === "scalar" && quotedNodeHasPhysicalLF(nodeStart, nodeEnd)) {
+        fail("a multi-line quoted scalar cannot be a block mapping key");
+      }
       if (parentCol === ROOT_AFTER_INLINE_MARKER) fail("a block mapping cannot start on the same line as a '---' document start");
       if (sameLine) {
         const keyRaw = kind === "scalar" ? applyScalarTag(tag, raw as string) : applyCollectionTag(tag, raw, kind);
@@ -3845,8 +3886,15 @@ function parseBlockMapKey(): string {
     return internKey(keyToString(value));
   }
   if (c === DQUOTE || c === SQUOTE || c === LBRACKET || c === LBRACE) {
+    const nodeStart = pos;
     const node = registerPendingAnchor(c === DQUOTE ? parseDoubleQuoted() : c === SQUOTE ? parseSingleQuoted() : parseFlowValue());
-    if ((c === DQUOTE || c === SQUOTE) && quotedMultiline) fail("a multi-line quoted scalar cannot be a block mapping key");
+    const nodeEnd = pos;
+    if (
+      (c === DQUOTE || c === SQUOTE) &&
+      (quotedMultiline || quotedNodeHasPhysicalLF(nodeStart, nodeEnd))
+    ) {
+      fail("a multi-line quoted scalar cannot be a block mapping key");
+    }
     skipInlineSpaces();
     if (src.charCodeAt(pos) !== COLON || !isSpaceOrEolAt(pos + 1)) fail("expected ':' after mapping key");
     return internKey(keyToString(node));
@@ -3927,12 +3975,17 @@ function parseBlockMapKeyTagged(): string {
 /** The RAW (pre-`keyToString`) tag-applied value of a block mapping key, given the already-peeked current char `c`. */
 function parseTaggedBlockMapKeyRaw(tag: string, c: number): unknown {
   if (c === DQUOTE || c === SQUOTE || c === LBRACE || c === LBRACKET) {
+    const nodeStart = pos;
     const raw =
       c === DQUOTE
         ? applyScalarTag(tag, parseDoubleQuoted())
         : c === SQUOTE
           ? applyScalarTag(tag, parseSingleQuoted())
           : applyCollectionTag(tag, parseFlowValue(), c === LBRACE ? "map" : "seq");
+    const nodeEnd = pos;
+    if ((c === DQUOTE || c === SQUOTE) && quotedNodeHasPhysicalLF(nodeStart, nodeEnd)) {
+      fail("a multi-line quoted scalar cannot be a block mapping key");
+    }
     skipInlineSpaces();
     if (src.charCodeAt(pos) !== COLON || !isSpaceOrEolAt(pos + 1)) fail("expected ':' after mapping key");
     return raw;

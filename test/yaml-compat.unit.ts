@@ -23,6 +23,30 @@ for (const [label, text] of basicDocs) {
   });
 }
 
+test("yaml compatibility reports physical multiline implicit quoted keys as errors", () => {
+  for (const br of ["\n", "\r\n"]) {
+    for (const input of [
+      `["key${br} value": 1]`,
+      `["key\\${br} value": 1]`,
+      `!!str 'key${br} value': 1`,
+      `first: 0\n'key\\${br} value': 1`,
+    ]) {
+      throws(() => yamlReal.parse(input));
+      throws(() => parse(input));
+      const realOne = yamlReal.parseDocument(input);
+      const candidateOne = parseDocument(input);
+      strictEqual(realOne.errors.length > 0, true);
+      strictEqual(candidateOne.errors.length > 0, true);
+      const realAll = yamlReal.parseAllDocuments(input);
+      const candidateAll = parseAllDocuments(input);
+      strictEqual(realAll.some((doc) => doc.errors.length > 0), true);
+      strictEqual(candidateAll.some((doc) => doc.errors.length > 0), true);
+    }
+  }
+  deepStrictEqual(parse(`{"key\n value": 1}`), { "key value": 1 });
+  deepStrictEqual(parse(`[? "key\n value": 1]`), [{ "key value": 1 }]);
+});
+
 const MULTI_DOC = "---\na: 1\n---\nb: 2\n---\nc: 3\n";
 const DUMP_VALUE = { name: "svc", replicas: 3, enabled: true, tags: ["a", "b"] };
 const PARSE_THROWS: ReadonlyArray<readonly [string, Record<string, unknown>]> = [

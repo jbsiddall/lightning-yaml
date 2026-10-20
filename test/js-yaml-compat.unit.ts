@@ -25,6 +25,24 @@ for (const [label, text] of basicDocs) {
   });
 }
 
+test("js-yaml compatibility rejects implicit quoted keys with physical line breaks", () => {
+  for (const br of ["\n", "\r\n"]) {
+    for (const input of [
+      `["key${br} value": 1]`,
+      `["key\\${br} value": 1]`,
+      `!!str 'key${br} value': 1`,
+      `first: 0\n'key\\${br} value': 1`,
+    ]) {
+      throws(() => jsyamlReal.load(input));
+      throws(() => load(input), YAMLException);
+      throws(() => jsyamlReal.loadAll(input));
+      throws(() => loadAll(input), YAMLException);
+    }
+  }
+  deepStrictEqual(load(`{\"key\n value\": 1}`), { "key value": 1 });
+  deepStrictEqual(load(`[? \"key\n value\": 1]`), [{ "key value": 1 }]);
+});
+
 const MULTI_DOC = "---\na: 1\n---\nb: 2\n---\nc: 3\n";
 const DUMP_VALUE = { name: "svc", replicas: 3, enabled: true, tags: ["a", "b"] };
 const MALFORMED = "a: [1, 2\n";
