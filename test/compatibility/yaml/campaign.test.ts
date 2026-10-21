@@ -102,10 +102,11 @@ describe("YAML campaign metric denominators", () => {
     const result = evaluate(replayed);
     const metrics = summarize([result]);
     expect(metrics.callbackDifferences).toEqual({
-      numerator: 1,
+      numerator: 0,
       denominator: 1,
-      percent: 100,
+      percent: 0,
     });
+    expect(result.reference.trace).toEqual(result.candidate.trace);
     expect(descriptorOptionKeys(replayed)).toEqual(["onAnchor"]);
     expect(descriptorExplicitUndefinedKeys({
       ...replayed,

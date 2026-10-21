@@ -5,6 +5,31 @@ shims. The current reference is
 pinned to js-yaml **5.4.3**, whose API differs from v4. The recorded
 2026-10-11 report below is a historical run against js-yaml 5.2.1.
 
+## `yaml` source-document API
+
+<!-- yaml:2.9.0 ly:b68a7af4f6b7ccd1073e29be835cb650dfcebb24 -->
+
+The normal project test suite also covers the source-aware `yaml` document
+surface: `parseDocument`, `parseAllDocuments`, `Composer`, document/node
+constructors, ranges, diagnostics, conversion, and writing. These APIs compose
+the local parser's tokens. Their `.contents` value is a YAML node; use
+`Document.toJS()` or `Document.toJSON()` for JavaScript values. The value
+entrypoints `parse` and `stringify` remain separate native APIs.
+
+The source-document tests include malformed-document recovery, chunked parser
+input, and a bounded seeded property over JSON-compatible YAML values. The
+property checks parsed values, source ranges, and diagnostics with shrinking.
+Approved policy witnesses are fixed separately so the property does not
+normalize differences away. The separate yaml `#184` CST campaign below stays
+pinned to its unmerged candidate and is not the main validation for this
+source-document API.
+
+Two intentional differences from the pinned `yaml` 2.9.0 reference are pending
+the maintainer's decision: the Lexer recovers a root document marker across a
+chunk boundary inside an unfinished flow collection, and the binary writer
+encodes only the visible bytes of a `Uint8Array` subview. The tests preserve
+these behaviors; the source compatibility registry has not been updated yet.
+
 ## Run
 
 From the repository root:

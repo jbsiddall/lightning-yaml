@@ -147,7 +147,28 @@ import { parse, stringify } from 'lightning-yaml/yaml';
 > ([js-yaml](https://lightning-yaml.dev/api/js-yaml-compat/readme/#option-support-matrix),
 > [yaml](https://lightning-yaml.dev/api/yaml-compat/readme/#option-support-matrix))
 > lists which options are easy or hard to support next.
-<!-- js-yaml:5.4.3 yaml:2.9.0 ly:6598b78 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:b68a7af4f6b7ccd1073e29be835cb650dfcebb24 -->
+
+The `yaml` subpath keeps native `parse` and `stringify` on the value path.
+`parseDocument` and `parseAllDocuments` return source-aware documents whose
+`.contents` is a YAML node tree; call `.toJS()` or `.toJSON()` to get ordinary
+JavaScript values:
+
+```ts
+import { parseDocument } from 'lightning-yaml/yaml';
+
+const doc = parseDocument('name: lightning-yaml');
+doc.contents; // YAMLMap node
+doc.toJS();   // { name: 'lightning-yaml' }
+```
+
+The source document API supports YAML 1.2 core and strict syntax checks. It can
+retain parser tokens with `keepSourceTokens`, populate a supplied `LineCounter`,
+and collect recoverable diagnostics on each document. `mapAsMap`,
+`maxAliasCount`, `onAnchor`, and `reviver` are conversion controls for
+`doc.toJS()`; unsupported composition options throw. Source documents check
+indentation strictly by default, while native value parsing keeps the tab
+leniency described under decisions below.
 
 ## Project priorities
 
@@ -157,10 +178,12 @@ In order:
    always — a fast parser that mis-reads your config is worthless. Where the spec
    itself is unclear, the [yaml-test-suite](https://github.com/yaml/yaml-test-suite)
    is our north star; where even that is ambiguous, we fall back to matching the
-   behaviour of the `yaml` and js-yaml libraries. By default `parse` is lenient
-   about a handful of spec-invalid inputs real-world YAML sometimes contains (see
-   [Decisions and deviations](#decisions-and-deviations)); pass `{ strict: true }`
-   for full YAML 1.2.2 rejection of those inputs too.
+   behaviour of the `yaml` and js-yaml libraries. Native value `parse` and
+   `parseAll` are lenient about a handful of spec-invalid inputs real-world YAML
+   sometimes contains (see [Decisions and deviations](#decisions-and-deviations));
+   pass `{ strict: true }` to those functions to reject those tolerated inputs.
+   Source-aware `yaml.parseDocument` and `parseAllDocuments` use strict
+   validation by default.
 2. **Speed and memory within reach of native `JSON.parse` / `JSON.stringify`.**
    We'll never match native byte-for-byte, and we know it — but we treat that gap
    as a bug to shrink, chasing every last nanosecond so there's no performance
@@ -225,7 +248,8 @@ For the source-aware CST/document/node goal, explicitly run `pnpm gen:yaml-cst-c
 then `pnpm test:yaml-cst` or `pnpm audit:yaml-cst:full`. That comparison targets the pinned, unmerged
 [PR #184](https://github.com/jbsiddall/lightning-yaml/pull/184) implementation
 against `yaml`, including tokens, source ranges, comments and line positions.
-The CST implementation is not included in the package on `main`.
+The separate #184 evaluator remains pinned to its unmerged candidate; the
+source-aware document API is shipped through `lightning-yaml/yaml`.
 See [the compatibility guide](docs/compatibility-testing.md) for scope,
 replay and report interpretation. Neither sampled compatibility percentages nor
 line coverage establish equivalence for every possible input.
@@ -273,19 +297,18 @@ here, treat it as a bug and
   The installed js-yaml 5.4.3 and `yaml` 2.9.0 defaults also leave it literal.
   It's neither expanded nor rejected today.
   <!-- js-yaml:5.4.3 yaml:2.9.0 ly:67d2e0b -->
-- **Compat options that aren't implemented yet throw.** The
-  `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
-  (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we
-  can't yet honour throws a clear error naming it — rather than silently leaving
-  the output unchanged. A boolean flag left at the value lightning-yaml already
-  produces (e.g. `mapAsMap: false`) still works; any other value throws. This
-  covers `yaml`'s `JSON.stringify`-style positional indent shorthand too —
-  `stringify(value, 4)` or `stringify(value, replacer, 4)` — where a number or
-  string throws even for a width real `yaml` would quietly clamp to its own
-  default rather than honour — e.g. a negative number.
+- **Compat options are checked per entry point.** Native-backed `parse` and
+  `stringify` keep their own option allowlists, as do the js-yaml calls. Source
+  documents accept `keepSourceTokens`, `lineCounter`, `prettyErrors`,
+  `uniqueKeys`, `stringKeys`, and `intAsBigInt` with the YAML 1.2 core defaults.
+  Options not implemented by that particular call throw instead of being
+  ignored. This also covers `yaml`'s `JSON.stringify`-style positional indent
+  shorthand: `stringify(value, 4)` and `stringify(value, replacer, 4)` throw even
+  for a width the reference library clamps to its default.
 - **YAML 1.2 core schema, not 1.1.** Plain `yes`/`no`/`on`/`off` stay strings (not
   booleans) and there are no base-60 numbers, so results can differ from js-yaml's
-  1.1-flavoured default. YAML 1.1 is a non-goal.
+  1.1-flavoured default. YAML 1.1 is a non-goal. Source documents diagnose an
+  explicit `%YAML 1.1` directive and recover using YAML 1.2 core.
 - **Implicit flow-collection keys are rejected.** Input like `{[1, 2]: v}` — a
   sequence used as a mapping key — is an error here, matching the spec; the `yaml`
   library accepts it, and we deliberately don't.

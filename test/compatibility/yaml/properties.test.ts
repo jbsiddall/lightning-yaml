@@ -104,7 +104,7 @@ describe("yaml compatibility differential properties", () => {
     expect(row.candidate.status).toBe("error");
     expect(row.differences.map((d) => d.category)).toContain("acceptance");
   });
-  test("keeps document AST mismatch separate from converted-value agreement", () => {
+  test("compares composed document ASTs separately from converted values", () => {
     const row = evaluate({
       id: "ast-gap",
       operation: "parseDocument",
@@ -113,15 +113,14 @@ describe("yaml compatibility differential properties", () => {
       source: "sentinel",
       categories: ["document"],
     });
-    expect(row.differences.map((d) => d.category)).toContain("document-ast");
-    expect(row.differences.map((d) => d.category)).toContain(
-      "document-semantic",
-    );
+    expect(row.differences.map((d) => d.category)).not.toContain("document-ast");
+    expect(row.differences.map((d) => d.category)).not.toContain("document-semantic");
     expect((row.reference.docs?.[0] as { toJS: unknown }).toJS).toEqual(
       (row.candidate.docs?.[0] as { toJS: unknown }).toJS,
     );
+    expect((row.candidate.docs?.[0] as { contents: { kind: string } }).contents.kind).toBe("YAMLMap");
   });
-  test("retains partial stream recovery and diagnostics as observable differences", () => {
+  test("matches partial stream recovery and diagnostics across documents", () => {
     const row = evaluate(
       behaviorWitnesses().find(
         (x) => x.id === "partial-stream-parseAllDocuments",
@@ -129,11 +128,11 @@ describe("yaml compatibility differential properties", () => {
     );
     expect(row.reference.status).toBe("success");
     expect(row.candidate.status).toBe("success");
-    expect(
-      row.differences.some((d) =>
-        ["diagnostic", "document-semantic"].includes(d.category),
-      ),
-    ).toBe(true);
+    expect(row.differences).toEqual([]);
+    expect(row.reference.docs).toHaveLength(3);
+    expect(row.candidate.docs).toHaveLength(3);
+    expect((row.candidate.docs?.[1] as { errors: unknown[] }).errors).toHaveLength(1);
+    expect((row.candidate.docs?.[2] as { toJSRepeated: unknown }).toJSRepeated).toEqual({ c: 3 });
   });
   test("preserves undefined stringify return as a successful call result", () => {
     const row = evaluate({
@@ -260,11 +259,10 @@ describe("yaml compatibility differential properties", () => {
     expect((row.reference.trace as unknown[][]).map((event) => event[2])).toEqual([2, 2]);
     const candidateObservation = (row.candidate.docs?.[0] as Record<string, unknown>)
       .toJSONAnchorObservation as Observation;
-    expect(candidateObservation.calls).toEqual([]);
+    expect(candidateObservation.calls).toEqual(calls);
     expect(compareGraph(result, candidateObservation.result).equal).toBe(true);
-    expect(row.differences.map(({ category }) => category)).toContain(
-      "document-semantic",
-    );
+    expect(row.differences.map(({ category }) => category)).not.toContain("document-semantic");
+    expect(compareGraph(row.reference.trace, row.candidate.trace).equal).toBe(true);
     const persisted = decodeGraph(encodeGraph(observation)) as Observation;
     expect(persisted.result.first).toBe(persisted.result.second);
     expect(persisted.calls[0]?.[0]).toBe(persisted.result.first);
@@ -296,7 +294,7 @@ describe("yaml compatibility differential properties", () => {
     );
   });
 
-  test("saved conversionOptions onAnchor descriptors keep legacy repeated toJS tracing", () => {
+  test("saved conversionOptions onAnchor descriptors keep repeated toJS tracing", () => {
     const row = evaluate({
       id: "saved-conversion-onAnchor",
       operation: "parseDocument",
@@ -313,7 +311,8 @@ describe("yaml compatibility differential properties", () => {
     expect((row.reference.trace as unknown[][]).map((event) => event[2])).toEqual(
       [2, 2, 2, 2, 2, 2],
     );
-    expect(row.candidate.trace).toEqual([]);
+    expect(row.candidate.trace).toEqual(row.reference.trace);
+    expect(row.candidate.trace).toHaveLength(6);
     expect(row.reference.docs?.[0]).not.toHaveProperty(
       "toJSONAnchorObservation",
     );
