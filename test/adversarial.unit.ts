@@ -214,6 +214,15 @@ test("flow plain scalars cannot start with invalid indicator characters", () => 
 // correct rejection as a bug.
 // --------------------------------------------------------------------------
 
+test("complex keys: cyclic complex mapping keys do not cause RangeError call stack overflow", () => {
+  deepStrictEqual(parse("? &a [*a]\n: 1"), { "[ ... ]": 1 });
+  deepStrictEqual(parse("? &a {k: *a}\n: 1"), { "{ k: ... }": 1 });
+  deepStrictEqual(parse("{? &a [*a]: 1}"), { "[ ... ]": 1 });
+  deepStrictEqual(parse("{? &a {k: *a}: 1}"), { "{ k: ... }": 1 });
+  // Shared non-cyclic references (DAGs) in complex keys preserve structure without false truncation:
+  deepStrictEqual(parse("? [ &a [1], *a ]\n: 1"), { "[ [ 1 ], [ 1 ] ]": 1 });
+});
+
 test("complex keys: EXPLICIT `?` collection key (block + flow) is accepted per spec", () => {
   deepStrictEqual(parse("? [a, b]\n: v"), { "[ a, b ]": "v" }); // block
   deepStrictEqual(parse("? [a, b]\n: v"), oracleParse("? [a, b]\n: v"));
