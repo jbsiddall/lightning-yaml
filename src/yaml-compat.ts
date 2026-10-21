@@ -12,8 +12,9 @@
  * source tokens, line counters, diagnostics, `uniqueKeys`, `stringKeys`, and
  * `intAsBigInt`. Conversion controls such as `mapAsMap` and `maxAliasCount`
  * belong on `doc.toJS()`. Unsupported options throw. Directives selecting a
- * different schema or version, custom tags, and merge keys are rejected;
- * supported explicit known tags such as `!!binary` remain available. Source
+ * different schema or version, custom tags, and merge-key expansion options
+ * are rejected; a literal `<<` key is retained. Supported explicit known tags
+ * such as `!!binary` remain available. Source
  * documents reject tab indentation by default, while the native value parser
  * keeps its separately documented leniency.
  *
