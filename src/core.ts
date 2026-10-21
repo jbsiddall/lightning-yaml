@@ -1668,6 +1668,9 @@ function parseFlowMap(): Record<string, unknown> {
       skipFlowWs();
       c = src.charCodeAt(pos);
       key = c === COLON || c === COMMA || c === RBRACE ? "" : keyToString(parseFlowValue());
+    } else if (c === COLON && flowSeparatorAt(pos + 1)) {
+      // Implicit empty key starting directly with ':' (e.g. `{ : v}`, `{: v}`, `{:}`)
+      key = "";
     } else {
       const ek = matched && expected !== null && kc < expected.length && pendingAnchorName === null ? expected[kc] : null;
       key = ek !== null && fastMatchFlowKey(c, ek) ? ek : parseFlowKey();
