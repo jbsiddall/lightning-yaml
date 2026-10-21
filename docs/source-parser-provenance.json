@@ -151,9 +151,10 @@
       "sha256": "345db9b5577d1efb2078bc9e191973545ae7ce0595bf182d51c2e0842e11f913",
       "localPath": "src/source/compose/resolve-flow-scalar.ts",
       "adaptations": [
-        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Replaced regex-based multiline flow scalar folding with a forward scanner to bound whitespace processing linearly."
       ],
-      "localSha256": "086b2f4cee4eb18ec1ef2b6712c0592426a7f4171531e46ca617880346e4ea73"
+      "localSha256": "818c17f7d148f3228f52d89a681817ff8999129cac12feab43316e44cac3005f"
     },
     {
       "upstreamPath": "src/compose/resolve-props.ts",

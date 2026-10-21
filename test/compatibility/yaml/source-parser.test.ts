@@ -465,6 +465,84 @@ test("malformed marker recovery terminates and retains tokens in a bounded worke
   });
 });
 
+test("single-quoted folding stays bounded on long final indentation", () => {
+  const source = "'a\n" + " ".repeat(64 * 1024) + "x'";
+  const worker = new Worker(new URL("./source-scalar-fold-worker.mjs", import.meta.url), { workerData: source });
+  return new Promise<void>((resolve, reject) => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let settled = false;
+    const finish = async (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      if (timeout) clearTimeout(timeout);
+      await worker.terminate();
+      if (error) reject(error);
+      else resolve();
+    };
+    worker.once("error", (error) => { void finish(error); });
+    worker.once("exit", (code) => {
+      if (!settled && code !== 0) void finish(new Error(`source scalar worker exited with code ${code}`));
+    });
+    worker.on("message", (result: { ready?: boolean; value?: unknown; errors?: string[]; range?: number[]; sourceLength?: number }) => {
+      if (result.ready) {
+        timeout = setTimeout(() => { void finish(new Error("source scalar folding exceeded 5 second termination guard")); }, 5000);
+        return;
+      }
+      try {
+        deepStrictEqual(result.errors, []);
+        strictEqual(result.value, "a x");
+        deepStrictEqual(result.range, [0, source.length, source.length]);
+        strictEqual(result.sourceLength, source.length);
+        void finish();
+      } catch (error) {
+        void finish(error as Error);
+      }
+    });
+  });
+}, 7000);
+
+test("flow scalar folding matches yaml 2.9.0 values, ranges and diagnostics", () => {
+  const sources = [
+    "'a\n b'",
+    "'a\r\n b'",
+    "'a\n \t\n\n b'",
+    "'\n\na'",
+    "'a\nb  \t'",
+    "''",
+    "'a''b'",
+    "[plain\n  folded]",
+    "[plain\r\n  folded]",
+    "['a\r b']",
+  ];
+  for (const source of sources) {
+    const actual = compat.parseDocument(source, { keepSourceTokens: true });
+    const expected = reference.parseDocument(source, { keepSourceTokens: true });
+    deepStrictEqual(actual.toJS(), expected.toJS(), source);
+    deepStrictEqual(actual.range, expected.range, source);
+    deepStrictEqual(actual.contents?.range, expected.contents?.range, source);
+    deepStrictEqual(actual.errors.map(({ code, message, pos }) => ({ code, message, pos })), expected.errors.map(({ code, message, pos }) => ({ code, message, pos })), source);
+    deepStrictEqual(actual.contents?.srcToken, expected.contents?.srcToken, source);
+  }
+
+  const bodyArb = fc.array(
+    fc.constantFrom("a", "Z", " ", "\t", "\r", "\n", "'", "😀", "雪"),
+    { maxLength: 40 },
+  ).map((chars) => chars.join(""));
+  fc.assert(
+    fc.property(bodyArb, (body) => {
+      const source = `'${body.replaceAll("'", "''")}'`;
+      const actual = compat.parseDocument(source, { keepSourceTokens: true });
+      const expected = reference.parseDocument(source, { keepSourceTokens: true });
+      deepStrictEqual(actual.toJS(), expected.toJS(), source);
+      deepStrictEqual(actual.range, expected.range, source);
+      deepStrictEqual(actual.contents?.range, expected.contents?.range, source);
+      deepStrictEqual(actual.errors.map(({ code, message, pos }) => ({ code, message, pos })), expected.errors.map(({ code, message, pos }) => ({ code, message, pos })), source);
+      deepStrictEqual(actual.contents?.srcToken, expected.contents?.srcToken, source);
+    }),
+    { seed: 21023, numRuns: 200 },
+  );
+});
+
 test("public parser matches reference on every chunk split of representative inputs", () => {
   for (const source of ["a: hello\n", "x: \"a\\nb\" # c\n", "a: [1, {b: 2}]\n", "a: |2-\n  hi\n", "\ufeffa: 😀\r\nb: 2\r\n"]) {
     const expected = [...new reference.Parser().parse(source)];

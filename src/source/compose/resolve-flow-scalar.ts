@@ -103,43 +103,48 @@ function singleQuotedValue(source: string, onError: FlowScalarErrorHandler) {
 }
 
 function foldLines(source: string) {
-  /**
-   * The negative lookbehind here and in the `re` RegExp is to
-   * prevent causing a polynomial search time in certain cases.
-   *
-   * The try-catch is for Safari, which doesn't support this yet:
-   * https://caniuse.com/js-regexp-lookbehind
-   */
-  let first: RegExp, line: RegExp
-  try {
-    first = new RegExp('(.*?)(?<![ \t])[ \t]*\r?\n', 'sy')
-    line = new RegExp('[ \t]*(.*?)(?:(?<![ \t])[ \t]*)?\r?\n', 'sy')
-  } catch {
-    first = /(.*?)[ \t]*\r?\n/sy
-    line = /[ \t]*(.*?)[ \t]*\r?\n/sy
-  }
-  let match = first.exec(source)
-  if (!match) return source
+  const firstNewline = source.indexOf('\n')
+  if (firstNewline < 0) return source
 
-  let res = match[1]
-  let sep = ' '
-  let pos = first.lastIndex
-  line.lastIndex = pos
-  while ((match = line.exec(source))) {
-    if (match[1] === '') {
-      if (sep === '\n') res += sep
-      else sep = '\n'
+  const parts: string[] = []
+  let firstLineEnd = firstNewline
+  if (source[firstLineEnd - 1] === '\r') firstLineEnd -= 1
+  while (firstLineEnd > 0 && isFlowWhitespace(source[firstLineEnd - 1]))
+    firstLineEnd -= 1
+  parts.push(source.slice(0, firstLineEnd))
+
+  let separator = ' '
+  let lineStart = firstNewline + 1
+  let newline = source.indexOf('\n', lineStart)
+  // Each newline advances the cursor, so folding remains linear in source length.
+  while (newline >= 0) {
+    let lineEnd = newline
+    if (source[lineEnd - 1] === '\r') lineEnd -= 1
+    let contentStart = lineStart
+    while (contentStart < lineEnd && isFlowWhitespace(source[contentStart]))
+      contentStart += 1
+    while (lineEnd > contentStart && isFlowWhitespace(source[lineEnd - 1]))
+      lineEnd -= 1
+
+    if (contentStart === lineEnd) {
+      if (separator === '\n') parts.push(separator)
+      else separator = '\n'
     } else {
-      res += sep + match[1]
-      sep = ' '
+      parts.push(separator, source.slice(contentStart, lineEnd))
+      separator = ' '
     }
-    pos = line.lastIndex
+    lineStart = newline + 1
+    newline = source.indexOf('\n', lineStart)
   }
 
-  const last = /[ \t]*(.*)/sy
-  last.lastIndex = pos
-  match = last.exec(source)
-  return res + sep + (match?.[1] ?? '')
+  while (lineStart < source.length && isFlowWhitespace(source[lineStart]))
+    lineStart += 1
+  parts.push(separator, source.slice(lineStart))
+  return parts.join('')
+}
+
+function isFlowWhitespace(ch: string) {
+  return ch === ' ' || ch === '\t'
 }
 
 function doubleQuotedValue(source: string, onError: FlowScalarErrorHandler) {
