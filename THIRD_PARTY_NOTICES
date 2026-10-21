@@ -1,3 +1,8 @@
+The source-aware document composer, nodes, schema, and writer under
+`src/source/` are derived from `yaml` 2.9.0 by Eemeli Aro. The pinned source
+commit, per-file hashes, and local adaptations are listed in
+`docs/source-parser-provenance.json`.
+
 Copyright Eemeli Aro <eemeli@gmail.com>
 
 Permission to use, copy, modify, and/or distribute this software for any purpose

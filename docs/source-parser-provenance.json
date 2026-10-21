@@ -4,13 +4,16 @@
     "version": "2.9.0",
     "commit": "ddb21b04cb889722cec8f89dc1b67f19d62d7f7d",
     "sourceArchive": {
-      "path": "/tmp/ly-yaml-upstream-v2.9.0.tar.gz",
+      "filename": "ly-yaml-upstream-v2.9.0.tar.gz",
       "sha256": "119a96e0bd4f0da36dd45d3450c25f92818a425c02df07b988d15f4044ea3415"
     },
     "license": {
       "path": "LICENSE",
       "sha256": "5bba27375d93e9119f76c1015f7672cf9ad5f70952296e0842fb2243d6376869"
     }
+  },
+  "implementation": {
+    "commit": "b68a7af4f6b7ccd1073e29be835cb650dfcebb24"
   },
   "files": [
     {
