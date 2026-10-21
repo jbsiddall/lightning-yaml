@@ -575,6 +575,18 @@ test("regression [6]: '?' before a flow close is an explicit empty key", () => {
   deepStrictEqual(parse("{?}"), oracleParse("{?}"));
 });
 
+test("flow mapping with implicit empty key starting directly with ':'", () => {
+  deepStrictEqual(parse("{ : v}"), { "": "v" });
+  deepStrictEqual(parse("{: v}"), { "": "v" });
+  deepStrictEqual(parse("{ : }"), { "": null });
+  deepStrictEqual(parse("{:}"), { "": null });
+  deepStrictEqual(parse("{\n  : v\n}"), { "": "v" });
+  deepStrictEqual(parse("{\n  :\n}"), { "": null });
+  for (const s of ["{ : v}", "{: v}", "{ : }", "{:}", "{\n  : v\n}", "{\n  :\n}"]) {
+    deepStrictEqual(parse(s), oracleParse(s));
+  }
+});
+
 test("regression [7]: quoted-scalar multi-line flow folding matches the oracle", () => {
   // A quoted scalar with a LITERAL newline folds to a space; blank lines become
   // preserved newlines; leading whitespace on continuation lines (spaces AND
