@@ -121,7 +121,6 @@ export function resolveFlowCollection(
       if (!props.found && key?.type === 'flow-collection')
         onError(key, 'UNEXPECTED_TOKEN', 'Implicit flow collection keys are not allowed')
 
-      // key value
       ctx.atKey = true
       const keyStart = props.end
       const keyNode = key
@@ -130,7 +129,6 @@ export function resolveFlowCollection(
       if (isBlock(key)) onError(keyNode.range, 'BLOCK_IN_FLOW', blockMsg)
       ctx.atKey = false
 
-      // value properties
       const valueProps = resolveProps(sep ?? [], {
         flow: fcName,
         indicator: 'map-value-ind',
@@ -173,7 +171,6 @@ export function resolveFlowCollection(
           )
       }
 
-      // value value
       const valueNode = value
         ? composeNode(ctx, value, valueProps, onError)
         : valueProps.found

@@ -51,18 +51,14 @@ export class Document<
 > {
   declare readonly [NODE_TYPE]: symbol
 
-  /** A comment before this Document */
   commentBefore: string | null = null
 
-  /** A comment immediately after this Document */
   comment: string | null = null
 
-  /** The document contents. */
   contents: Strict extends true ? Contents | null : Contents
 
   directives: Strict extends true ? Directives | undefined : Directives
 
-  /** Errors encountered during parsing. */
   errors: YAMLError[] = []
 
   options: Required<
@@ -84,7 +80,6 @@ export class Document<
   /** The schema used with the document. Use `setSchema()` to change. */
   declare schema: Schema
 
-  /** Warnings encountered during parsing. */
   warnings: YAMLWarning[] = []
 
   /**
@@ -167,12 +162,10 @@ export class Document<
     return copy
   }
 
-  /** Adds a value to the document. */
   add(value: any) {
     if (assertCollection(this.contents)) this.contents.add(value)
   }
 
-  /** Adds a value to the document. */
   addIn(path: Iterable<unknown>, value: unknown) {
     if (assertCollection(this.contents)) this.contents.addIn(path, value)
   }

@@ -107,7 +107,6 @@ export class Composer<
 
   private decorate(doc: Document.Parsed<Contents, Strict>, afterDoc: boolean) {
     const { comment, afterEmptyLine } = parsePrelude(this.prelude)
-    //console.log({ dc: doc.comment, prelude, comment })
     if (comment) {
       const dc = doc.contents
       if (afterDoc) {

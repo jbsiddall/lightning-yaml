@@ -126,7 +126,6 @@ export function resolveProps(
         break
       }
       case indicator:
-        // Could here handle preceding comments differently
         if (anchor || tag)
           onError(
             token,

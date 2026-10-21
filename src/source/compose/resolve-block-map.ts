@@ -28,7 +28,6 @@ export function resolveBlockMap(
   for (const collItem of bm.items) {
     const { start, key, sep, value } = collItem
 
-    // key properties
     const keyProps = resolveProps(start, {
       indicator: 'explicit-key-ind',
       next: key ?? sep?.[0],
@@ -68,7 +67,6 @@ export function resolveBlockMap(
       onError(offset, 'BAD_INDENT', startColMsg)
     }
 
-    // key value
     ctx.atKey = true
     const keyStart = keyProps.end
     const keyNode = key
@@ -80,7 +78,6 @@ export function resolveBlockMap(
     if (mapIncludes(ctx, map.items, keyNode))
       onError(keyStart, 'DUPLICATE_KEY', 'Map keys must be unique')
 
-    // value properties
     const valueProps = resolveProps(sep ?? [], {
       indicator: 'map-value-ind',
       next: value,
@@ -109,7 +106,6 @@ export function resolveBlockMap(
             'The : indicator must be at most 1024 chars after the start of an implicit block mapping key'
           )
       }
-      // value value
       const valueNode = value
         ? composeNode(ctx, value, valueProps, onError)
         : composeEmptyNode(ctx, offset, sep, null, valueProps, onError)

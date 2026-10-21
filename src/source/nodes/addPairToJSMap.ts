@@ -13,7 +13,6 @@ export function addPairToJSMap(
   { key, value }: Pair
 ): MapLike {
   if (isNode(key) && key.addToJSMap) key.addToJSMap(ctx, map, value)
-  // TODO: Should drop this special case for bare << handling
   else if (isMergeKey(ctx, key)) addMergeToJSMap(ctx, map, value)
   else {
     const jsKey = toJS(key, '', ctx)

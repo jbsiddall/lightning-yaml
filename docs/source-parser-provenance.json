@@ -92,27 +92,30 @@
       "localPath": "src/source/compose/composer.ts",
       "adaptations": [
         "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
-        "Replaced node:process with optional globalThis.process access for LOG_STREAM; added YAML 1.2-core option guards and last-wins defaults."
+        "Replaced node:process with optional globalThis.process access for LOG_STREAM; added YAML 1.2-core option guards and last-wins defaults.",
+        "Removed a commented-out console.log; no runtime or API change."
       ],
-      "localSha256": "35dc950d65d366febb76efac07a7ed6291f79414872d146a0335ae35f9fafe37"
+      "localSha256": "c7106b0e8d73d4657d65dbf4814613027e31711f43667c52ba737763eab44c67"
     },
     {
       "upstreamPath": "src/compose/resolve-block-map.ts",
       "sha256": "db8f068e7c0f5bb74cb80a558a83e7df5ea91e584641fd7a335aa008eace300e",
       "localPath": "src/source/compose/resolve-block-map.ts",
       "adaptations": [
-        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Removed comments that only labeled key/value properties and values; no runtime or API change."
       ],
-      "localSha256": "cd8264c356283cc731f031ff36f6270af7ad331df17dbb4446e368dc3b632807"
+      "localSha256": "2b147388f26bf6dd4efa7af8f2b6ea43d9b79e730381b8500c47387169f316d1"
     },
     {
       "upstreamPath": "src/compose/resolve-block-scalar.ts",
       "sha256": "51a9c85a5dd88d3ee45d41c88d76b9cfd24d457f06a0915295463d84e32dff40",
       "localPath": "src/source/compose/resolve-block-scalar.ts",
       "adaptations": [
-        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Removed comments that restated the following content-end, empty-content, and indentation steps; no runtime or API change."
       ],
-      "localSha256": "030b3e0816f5111ac9d1a444154c0d55bb6494e7daff0bf2942d1f5b114c4842"
+      "localSha256": "18982aa1758d95c8eeb553ec771adb3ec34abfdc7218184aeff9e0d921cd09aa"
     },
     {
       "upstreamPath": "src/compose/resolve-block-seq.ts",
@@ -138,9 +141,10 @@
       "localPath": "src/source/compose/resolve-flow-collection.ts",
       "adaptations": [
         "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
-        "Reports implicit flow collection keys as composition errors while retaining the partial node graph."
+        "Reports implicit flow collection keys as composition errors while retaining the partial node graph.",
+        "Removed comments that only labeled key/value properties and values; no runtime or API change."
       ],
-      "localSha256": "6bd223c362a3e5ac8f348a1cae62ef3d46c491981baf5352a329a83cc23d33e7"
+      "localSha256": "1db41852cdc35923c2df23978e76ecc2e93ff12218436b2661bf8593798e2b7d"
     },
     {
       "upstreamPath": "src/compose/resolve-flow-scalar.ts",
@@ -156,9 +160,10 @@
       "sha256": "fa9f959f21e63eab0151467c46868fd1b49c080f1e2b2991eaec6de389a5da71",
       "localPath": "src/source/compose/resolve-props.ts",
       "adaptations": [
-        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Removed speculative comment about changing preceding-comment handling; no runtime or API change."
       ],
-      "localSha256": "f61456217fd282cc5894b2b3649549aba4299381969911c5fe0e511b409f4a4c"
+      "localSha256": "bc8aadabdacd52c37b008bd6c9fe17a2359530340e67362bbd2857f944408cb6"
     },
     {
       "upstreamPath": "src/compose/util-contains-newline.ts",
@@ -202,9 +207,10 @@
       "localPath": "src/source/doc/Document.ts",
       "adaptations": [
         "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
-        "Constrained direct Document/setSchema use to YAML 1.2 core and set duplicate-key conversion default to last-wins."
+        "Constrained direct Document/setSchema use to YAML 1.2 core and set duplicate-key conversion default to last-wins.",
+        "Removed field and method comments that repeated member names or declarations; retained explanatory API and constraint comments. No runtime or API change."
       ],
-      "localSha256": "109ff142d77a7af34ba14d9619578e2db484a41c3c783f75c351f89257fb2340"
+      "localSha256": "f6988324b2e801662fd7c00fd7e6bf55f25b9fdc8f6e125811748206603c537a"
     },
     {
       "upstreamPath": "src/doc/anchors.ts",
@@ -330,9 +336,10 @@
       "sha256": "ec8c69ec4965aa9ba93654eae613adf627b3a24399cb0cb3db568ad6375c11b4",
       "localPath": "src/source/nodes/addPairToJSMap.ts",
       "adaptations": [
-        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+        "No semantic adaptation; upstream implementation copied with its full ISC notice.",
+        "Removed the untracked future TODO comment; no runtime or API change."
       ],
-      "localSha256": "ec8c69ec4965aa9ba93654eae613adf627b3a24399cb0cb3db568ad6375c11b4"
+      "localSha256": "f8a46783d2e7cce7cea2c25a2436d2310de05329bd53f5b38e4f409f228f5db3"
     },
     {
       "upstreamPath": "src/nodes/identity.ts",

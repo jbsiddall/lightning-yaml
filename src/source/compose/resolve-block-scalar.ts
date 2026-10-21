@@ -21,7 +21,6 @@ export function resolveBlockScalar(
   const type = header.mode === '>' ? Scalar.BLOCK_FOLDED : Scalar.BLOCK_LITERAL
   const lines = scalar.source ? splitLines(scalar.source) : []
 
-  // determine the end of content & start of chomping
   let chompStart = lines.length
   for (let i = lines.length - 1; i >= 0; --i) {
     const content = lines[i][1]
@@ -29,7 +28,6 @@ export function resolveBlockScalar(
     else break
   }
 
-  // shortcut for empty contents
   if (chompStart === 0) {
     const value =
       header.chomp === '+' && lines.length > 0
@@ -40,7 +38,6 @@ export function resolveBlockScalar(
     return { value, type, comment: header.comment, range: [start, end, end] }
   }
 
-  // find the indentation level to trim from start
   let trimIndent = scalar.indent + header.indent
   let offset = scalar.offset + header.length
   let contentStart = 0
