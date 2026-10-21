@@ -158,6 +158,8 @@ export class Lexer {
    */
   private flowKey = false
 
+  private flowDocMarkerCandidate = false
+
   /** Count of surrounding flow collection levels. */
   private flowLevel = 0
 
@@ -389,21 +391,28 @@ export class Lexer {
   private *parseFlowCollection() {
     let nl: number, sp: number
     let indent = -1
+    let markerCandidate = this.flowDocMarkerCandidate
     do {
       nl = yield* this.pushNewline()
       if (nl > 0) {
         sp = yield* this.pushSpaces(false)
         this.indentValue = indent = sp
+        markerCandidate = sp === 0
       } else {
         sp = 0
       }
       sp += yield* this.pushSpaces(true)
+      if (sp > 0) markerCandidate = false
     } while (nl + sp > 0)
     const line = this.getLine()
-    if (line === null) return this.setNext('flow')
+    if (line === null) {
+      this.flowDocMarkerCandidate = markerCandidate
+      return this.setNext('flow')
+    }
+    this.flowDocMarkerCandidate = false
     if (
       (indent !== -1 && indent < this.indentNext && line[0] !== '#') ||
-      (indent === 0 &&
+      ((indent === 0 || (indent === -1 && markerCandidate)) &&
         (line.startsWith('---') || line.startsWith('...')) &&
         isEmpty(line[3]))
     ) {

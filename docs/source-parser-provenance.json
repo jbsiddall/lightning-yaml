@@ -3,6 +3,10 @@
     "repository": "https://github.com/eemeli/yaml",
     "version": "2.9.0",
     "commit": "ddb21b04cb889722cec8f89dc1b67f19d62d7f7d",
+    "sourceArchive": {
+      "path": "/tmp/ly-yaml-upstream-v2.9.0.tar.gz",
+      "sha256": "119a96e0bd4f0da36dd45d3450c25f92818a425c02df07b988d15f4044ea3415"
+    },
     "license": {
       "path": "LICENSE",
       "sha256": "5bba27375d93e9119f76c1015f7672cf9ad5f70952296e0842fb2243d6376869"
@@ -15,8 +19,10 @@
       "localPath": "src/source/lexer.ts",
       "adaptations": [
         "Added retained ISC legal comment; updated relative CST import to local module path/style.",
-        "Removed redundant comments that restated the buffer, indentation, line-end, saved-state, and position member names."
-      ]
+        "Removed redundant comments that restated the buffer, indentation, line-end, saved-state, and position member names.",
+        "Fixes the pinned upstream chunk-boundary recovery bug by retaining a root-line document-marker candidate across an unfinished flow collection; the corrected lexer resumes at the marker and allows later documents to compose. This intentional reference divergence is approval-pending."
+      ],
+      "localSha256": "bc4ce774e20785c25736f86d3e27105c9b5fbbd5fa089072b709c5e8a7cb564c"
     },
     {
       "upstreamPath": "src/parse/parser.ts",
@@ -27,7 +33,8 @@
         "Replaced node:process env import with optional globalThis.process?.env access so browsers need no process shim; LOG_TOKENS remains dynamically checked and uses the same prettyToken console output when available.",
         "Updated relative local module import paths/style.",
         "Removed redundant comments that restated parser state member names and types."
-      ]
+      ],
+      "localSha256": "99955f3c304daffb119a694fd91fd1172d6d24d462d67fc96c697b82b8d8cdd2"
     },
     {
       "upstreamPath": "src/parse/cst.ts",
@@ -37,7 +44,608 @@
         "Added retained ISC legal comment.",
         "Removed the first eight lines of re-exports for scalar mutation/resolution, stringify, and visitors; retained the complete token types, constants, and helpers required by Lexer and Parser.",
         "Removed redundant comments that restated BOM, helper names, and helper predicates; retained control-character explanations."
-      ]
+      ],
+      "localSha256": "6bdf2a967fd441c68094df085f4711671c9d7979b3860b378d685897cfd92336"
+    },
+    {
+      "upstreamPath": "src/compose/compose-collection.ts",
+      "sha256": "9846e0279cc4e63e22736c5443e152298d9e87f17515355aa6101e3f1d9b091a",
+      "localPath": "src/source/compose/compose-collection.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "56d19d26d243273ac59feb1eae1a2f3b56e695ee612bff3f759d87e170f49f6b"
+    },
+    {
+      "upstreamPath": "src/compose/compose-doc.ts",
+      "sha256": "437b289476b5256b2f9eb64a9ea40bd96056a6e241830ec0eead67398d7f4ef6",
+      "localPath": "src/source/compose/compose-doc.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "4ac2a926cf97530128843db7ce558ba4e67d491a8a2f36ebdc0ae73152982d2d"
+    },
+    {
+      "upstreamPath": "src/compose/compose-node.ts",
+      "sha256": "d303028bdf4f6bb6f1d71679bb4bffeb7a3123f01f062a369deb7ca0a988dce0",
+      "localPath": "src/source/compose/compose-node.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "d11a39c05eaf81c93a75a8617cb933e38046e582b698a47ff241157da5f294d4"
+    },
+    {
+      "upstreamPath": "src/compose/compose-scalar.ts",
+      "sha256": "4b56cf46cf950088125ecbd07f2f1ce857305f426f1d6479a51a5f871f322cb6",
+      "localPath": "src/source/compose/compose-scalar.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "2f3dc88b7918c286e6d0d0fc6908867869f2b432fe7e57d07a5c4afd50cc067c"
+    },
+    {
+      "upstreamPath": "src/compose/composer.ts",
+      "sha256": "f82f0f35f85ecaf80da4f88566c680622ae67feee31ae3556732ad37667cf299",
+      "localPath": "src/source/compose/composer.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Replaced node:process with optional globalThis.process access for LOG_STREAM; added YAML 1.2-core option guards and last-wins defaults."
+      ],
+      "localSha256": "35dc950d65d366febb76efac07a7ed6291f79414872d146a0335ae35f9fafe37"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-block-map.ts",
+      "sha256": "db8f068e7c0f5bb74cb80a558a83e7df5ea91e584641fd7a335aa008eace300e",
+      "localPath": "src/source/compose/resolve-block-map.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "cd8264c356283cc731f031ff36f6270af7ad331df17dbb4446e368dc3b632807"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-block-scalar.ts",
+      "sha256": "51a9c85a5dd88d3ee45d41c88d76b9cfd24d457f06a0915295463d84e32dff40",
+      "localPath": "src/source/compose/resolve-block-scalar.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "030b3e0816f5111ac9d1a444154c0d55bb6494e7daff0bf2942d1f5b114c4842"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-block-seq.ts",
+      "sha256": "4d7a391b034420531498d20e86379e332f450d90bbbe0a1b406beffdcd1ff60c",
+      "localPath": "src/source/compose/resolve-block-seq.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "3349493fe660924e344d573a56c1445d2c8ca494d614c45f64e69cd2ae698225"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-end.ts",
+      "sha256": "9b3e56640d624adeb3df4b2d6aa569ff541ee3d4902208d53d348414beb8e494",
+      "localPath": "src/source/compose/resolve-end.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "12bfbdd5f8cac67d06c318e4be618c4b7fbd60f2f56fd074b36cb27271f027a2"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-flow-collection.ts",
+      "sha256": "41b15b13645d7609707bd396d36ec3ceed31cef4411264d610a698cbbd7b5f30",
+      "localPath": "src/source/compose/resolve-flow-collection.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Reports implicit flow collection keys as composition errors while retaining the partial node graph."
+      ],
+      "localSha256": "6bd223c362a3e5ac8f348a1cae62ef3d46c491981baf5352a329a83cc23d33e7"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-flow-scalar.ts",
+      "sha256": "345db9b5577d1efb2078bc9e191973545ae7ce0595bf182d51c2e0842e11f913",
+      "localPath": "src/source/compose/resolve-flow-scalar.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "086b2f4cee4eb18ec1ef2b6712c0592426a7f4171531e46ca617880346e4ea73"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-props.ts",
+      "sha256": "fa9f959f21e63eab0151467c46868fd1b49c080f1e2b2991eaec6de389a5da71",
+      "localPath": "src/source/compose/resolve-props.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "f61456217fd282cc5894b2b3649549aba4299381969911c5fe0e511b409f4a4c"
+    },
+    {
+      "upstreamPath": "src/compose/util-contains-newline.ts",
+      "sha256": "babc11ad4aec28e2feca6e45a9d1d610f5647950e62376acb528b3fc5de42d0b",
+      "localPath": "src/source/compose/util-contains-newline.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "d1ec2c095ee0038dbc7f7ae5f92fca3ef503ae5f28cf5c9e6d7e6569885e2563"
+    },
+    {
+      "upstreamPath": "src/compose/util-empty-scalar-position.ts",
+      "sha256": "99430353fe064b5e524dc3b6a73cce5579a1ccfb6723adbe7b9e87612be752fb",
+      "localPath": "src/source/compose/util-empty-scalar-position.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "f42f35f15c2f2935d65ef79cdc3b1562ada3ce816891111217744ff7d7d5ab79"
+    },
+    {
+      "upstreamPath": "src/compose/util-flow-indent-check.ts",
+      "sha256": "36e44d522d81899fc29e5c2fd464b1fcca5c5419f37e13a37e6361f80c7e81c8",
+      "localPath": "src/source/compose/util-flow-indent-check.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "f3e0ab24ce39bf6d56988a929fdf6a0e5ebede6d9763d55ae3b35c7e10da3abb"
+    },
+    {
+      "upstreamPath": "src/compose/util-map-includes.ts",
+      "sha256": "11279d57e3fcbd347eacc6ee4627e80f9782e10e65d3a1607d964610e489a5a4",
+      "localPath": "src/source/compose/util-map-includes.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "11279d57e3fcbd347eacc6ee4627e80f9782e10e65d3a1607d964610e489a5a4"
+    },
+    {
+      "upstreamPath": "src/doc/Document.ts",
+      "sha256": "64b2d388c9d7970a96903afb371900f4546ada1702d904393f2f18c09c74d934",
+      "localPath": "src/source/doc/Document.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Constrained direct Document/setSchema use to YAML 1.2 core and set duplicate-key conversion default to last-wins."
+      ],
+      "localSha256": "109ff142d77a7af34ba14d9619578e2db484a41c3c783f75c351f89257fb2340"
+    },
+    {
+      "upstreamPath": "src/doc/anchors.ts",
+      "sha256": "e994e66a5059e8db978b8e0e4fc81a4585b6c1fc80d86c00a93ff61bc004eae0",
+      "localPath": "src/source/doc/anchors.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "e994e66a5059e8db978b8e0e4fc81a4585b6c1fc80d86c00a93ff61bc004eae0"
+    },
+    {
+      "upstreamPath": "src/doc/applyReviver.ts",
+      "sha256": "071a33e5e931cc56f08c4166bc10e487ce693fc0a7854f13d8b146a9d85ab1dd",
+      "localPath": "src/source/doc/applyReviver.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "071a33e5e931cc56f08c4166bc10e487ce693fc0a7854f13d8b146a9d85ab1dd"
+    },
+    {
+      "upstreamPath": "src/doc/createNode.ts",
+      "sha256": "c5bbc871c3ea9c0ed0a1d7e028634a8c2a2fcabbb28f01bd1f9a33db637593b7",
+      "localPath": "src/source/doc/createNode.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "c5bbc871c3ea9c0ed0a1d7e028634a8c2a2fcabbb28f01bd1f9a33db637593b7"
+    },
+    {
+      "upstreamPath": "src/doc/directives.ts",
+      "sha256": "3b7b3567e01ce07938a3f943be2d7a735fd8a14669997dc5bf02eb1d79142da8",
+      "localPath": "src/source/doc/directives.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Rejects repeated explicit %TAG handles and unsupported YAML versions with errors; falls back to core 1.2."
+      ],
+      "localSha256": "6bd7a95f4e4e4de4542e60888851cfad335eddd6a3e1d4367c5984238875cc0c"
+    },
+    {
+      "upstreamPath": "src/errors.ts",
+      "sha256": "f53386c16360887008e24db1928d9d8fc234eb0288ecb2b28ce9b512929cd511",
+      "localPath": "src/source/errors.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "0c06bbc72d4d5a98e6ce18ae7b8991d00da5942c131b94d9eaae1c25f8360057"
+    },
+    {
+      "upstreamPath": "src/log.ts",
+      "sha256": "1f27319d41b781d64f66b1dc8fce3b56d4e9026c0eaaaa0cdcc7cbd7883e6acf",
+      "localPath": "src/source/log.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Replaced node:process warning import with optional global process.emitWarning and console.warn fallback."
+      ],
+      "localSha256": "6e9751a4d1682d8c00593bde4fc1bba5dd20a3f7c40c6ddd167968d1993d90b2"
+    },
+    {
+      "upstreamPath": "src/nodes/Alias.ts",
+      "sha256": "69b2db9e44c887c1d87563b464aceb29c97f83edcdedabbbce0afa6c83708fea",
+      "localPath": "src/source/nodes/Alias.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "11444403fdf7f5dc60efd8a5af98a945c46a1c7173b9ef39836ab4c5edbc622f"
+    },
+    {
+      "upstreamPath": "src/nodes/Collection.ts",
+      "sha256": "3271285b9c9984d834b4893c374cb1e4ce24b2e69e2e8eaa510ed137c262e1cc",
+      "localPath": "src/source/nodes/Collection.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "3271285b9c9984d834b4893c374cb1e4ce24b2e69e2e8eaa510ed137c262e1cc"
+    },
+    {
+      "upstreamPath": "src/nodes/Node.ts",
+      "sha256": "2ee85c90a44bc672a4646a6f692c55ac36132214c03b6ec8a6dde88d9c47b585",
+      "localPath": "src/source/nodes/Node.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "a6c5abe725ca6ac45b997b7987d29df2b53231dcbf5ebb9aa2eb16bb1b3b0004"
+    },
+    {
+      "upstreamPath": "src/nodes/Pair.ts",
+      "sha256": "e55e44f6e804e41bf3221784facf4b4ae79647ac7d76a760dd636525ae629e1f",
+      "localPath": "src/source/nodes/Pair.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "9aa9daf0e36b622888db045f6448d734626e88660b45b21cd1bbac0b2ba69387"
+    },
+    {
+      "upstreamPath": "src/nodes/Scalar.ts",
+      "sha256": "9b3aa03a8490658cafed45c855d9ac27ae8fabf348e2c4045787e30527f48a9e",
+      "localPath": "src/source/nodes/Scalar.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "6ca7b6047ed48d837a3e78dab112b61301972ad6c0a364edbc71c0ea12d86037"
+    },
+    {
+      "upstreamPath": "src/nodes/YAMLMap.ts",
+      "sha256": "b13535633f411c1a7d84155ac5274e386bea28333b454c1d9a06ec325d50cd05",
+      "localPath": "src/source/nodes/YAMLMap.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "d74d6df1636f2f3a68358a669f6a94cb4d529f5028e44ed885610867647a5442"
+    },
+    {
+      "upstreamPath": "src/nodes/YAMLSeq.ts",
+      "sha256": "4970e2678868cfbb782a07553c87e73ababb1bc1f52156d0efaf4b90bd87c02f",
+      "localPath": "src/source/nodes/YAMLSeq.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "bea1058637136ccf8420e5a05e065fa40996158bfec0b56dae3889cd4904c84b"
+    },
+    {
+      "upstreamPath": "src/nodes/addPairToJSMap.ts",
+      "sha256": "ec8c69ec4965aa9ba93654eae613adf627b3a24399cb0cb3db568ad6375c11b4",
+      "localPath": "src/source/nodes/addPairToJSMap.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "ec8c69ec4965aa9ba93654eae613adf627b3a24399cb0cb3db568ad6375c11b4"
+    },
+    {
+      "upstreamPath": "src/nodes/identity.ts",
+      "sha256": "0580d865a51573f937d636de60d435d62a1433fdb3c854ac847e3ae1a25087fe",
+      "localPath": "src/source/nodes/identity.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "0580d865a51573f937d636de60d435d62a1433fdb3c854ac847e3ae1a25087fe"
+    },
+    {
+      "upstreamPath": "src/nodes/toJS.ts",
+      "sha256": "0ce25a01421d769ec9505be8a3e4d055ffa9ad86cf141412d61fc2d248fa6de1",
+      "localPath": "src/source/nodes/toJS.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "0ce25a01421d769ec9505be8a3e4d055ffa9ad86cf141412d61fc2d248fa6de1"
+    },
+    {
+      "upstreamPath": "src/options.ts",
+      "sha256": "d86eb6b3b0bdb3c830b25fcd6353146b83f626f3da4fddbffecbfd68d49c45f3",
+      "localPath": "src/source/options.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules."
+      ],
+      "localSha256": "34bdf86c9a6a2dfaeb1082d3c561010b69c65ee1b603dbdb465110ed40443d9f"
+    },
+    {
+      "upstreamPath": "src/schema/Schema.ts",
+      "sha256": "889d5f53295605c74bfc8e7382b0365f5d9d043beb6cc0033f83c9820e82e727",
+      "localPath": "src/source/schema/Schema.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "889d5f53295605c74bfc8e7382b0365f5d9d043beb6cc0033f83c9820e82e727"
+    },
+    {
+      "upstreamPath": "src/schema/common/map.ts",
+      "sha256": "144488c89b7290c84132ba277a9446cd67bd2adf44fcfd1bbd7b67b7b8d2c64d",
+      "localPath": "src/source/schema/common/map.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "144488c89b7290c84132ba277a9446cd67bd2adf44fcfd1bbd7b67b7b8d2c64d"
+    },
+    {
+      "upstreamPath": "src/schema/common/null.ts",
+      "sha256": "d355f26c649494f41f8d3bdd5df0f07919a74c40fd09148a8902e0dc28df886b",
+      "localPath": "src/source/schema/common/null.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "d355f26c649494f41f8d3bdd5df0f07919a74c40fd09148a8902e0dc28df886b"
+    },
+    {
+      "upstreamPath": "src/schema/common/seq.ts",
+      "sha256": "8825a0d2413ae94cc4edd9974f836f68aac0e3334e1c7f4fbc924436002038f9",
+      "localPath": "src/source/schema/common/seq.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "8825a0d2413ae94cc4edd9974f836f68aac0e3334e1c7f4fbc924436002038f9"
+    },
+    {
+      "upstreamPath": "src/schema/common/string.ts",
+      "sha256": "f13e48c18a349c683710332b4dd3682c8654eb2202d509146f0829908ef8a468",
+      "localPath": "src/source/schema/common/string.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "f13e48c18a349c683710332b4dd3682c8654eb2202d509146f0829908ef8a468"
+    },
+    {
+      "upstreamPath": "src/schema/core/bool.ts",
+      "sha256": "c45f336deffc644b0794d664a19029e12c9c0734bc11c727801e95f2654742d3",
+      "localPath": "src/source/schema/core/bool.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "c45f336deffc644b0794d664a19029e12c9c0734bc11c727801e95f2654742d3"
+    },
+    {
+      "upstreamPath": "src/schema/core/float.ts",
+      "sha256": "f35d682e60aadff5eeeb2e74eb04dfcd58664cb91cdfa33e4afa383a6fda6948",
+      "localPath": "src/source/schema/core/float.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "f35d682e60aadff5eeeb2e74eb04dfcd58664cb91cdfa33e4afa383a6fda6948"
+    },
+    {
+      "upstreamPath": "src/schema/core/int.ts",
+      "sha256": "594655a9e7fa5479443e1d54e535eb80689c76ffeb9d3872802ca8dce592589a",
+      "localPath": "src/source/schema/core/int.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "594655a9e7fa5479443e1d54e535eb80689c76ffeb9d3872802ca8dce592589a"
+    },
+    {
+      "upstreamPath": "src/schema/core/schema.ts",
+      "sha256": "9c591b9140a1cd49f7691689c4ebabc3424a0e827b188338c47486485a816c43",
+      "localPath": "src/source/schema/core/schema.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "9c591b9140a1cd49f7691689c4ebabc3424a0e827b188338c47486485a816c43"
+    },
+    {
+      "upstreamPath": "src/schema/json/schema.ts",
+      "sha256": "999bdc60e9053d72fd9d9c490172f2427c7c0883a6ff0aa0eec6538b6acbe816",
+      "localPath": "src/source/schema/json/schema.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "999bdc60e9053d72fd9d9c490172f2427c7c0883a6ff0aa0eec6538b6acbe816"
+    },
+    {
+      "upstreamPath": "src/schema/tags.ts",
+      "sha256": "40b798f80553a128a8adacb7fac16b859a845a389dcb4cb2a61a57d181bd1367",
+      "localPath": "src/source/schema/tags.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "40b798f80553a128a8adacb7fac16b859a845a389dcb4cb2a61a57d181bd1367"
+    },
+    {
+      "upstreamPath": "src/schema/types.ts",
+      "sha256": "335b9f9b1191ff1a11439c71fed5d62cbfdd53b41e170785701a35ac4fc8fecc",
+      "localPath": "src/source/schema/types.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "335b9f9b1191ff1a11439c71fed5d62cbfdd53b41e170785701a35ac4fc8fecc"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/binary.ts",
+      "sha256": "bfc494c99609cb78b747281b926c18453bc60e73b582c4281e3dd9ea92ed16ce",
+      "localPath": "src/source/schema/yaml-1.1/binary.ts",
+      "adaptations": [
+        "Updated explicit relative imports to reuse this repository source CST and LineCounter modules.",
+        "Replaced node:buffer with optional global Buffer and atob/btoa host bindings; serializes Uint8Array subviews using byteOffset and byteLength."
+      ],
+      "localSha256": "2d640268924bd0d07259154b85f2ff8da9693eaa8b51b460f853288b26de4ee7"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/bool.ts",
+      "sha256": "93b044705523635b79b7de2b0e328df974349efc7ebab2e320850e788542a029",
+      "localPath": "src/source/schema/yaml-1.1/bool.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "93b044705523635b79b7de2b0e328df974349efc7ebab2e320850e788542a029"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/float.ts",
+      "sha256": "9750f79a43ba968245b983e2cb33b09904252ce6d424337210adb48d02f5ae67",
+      "localPath": "src/source/schema/yaml-1.1/float.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "9750f79a43ba968245b983e2cb33b09904252ce6d424337210adb48d02f5ae67"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/int.ts",
+      "sha256": "5319ce6e9b7e70d8e71ba72afa8179e5d601b545c661db81eef1f1cd72c38f5c",
+      "localPath": "src/source/schema/yaml-1.1/int.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "5319ce6e9b7e70d8e71ba72afa8179e5d601b545c661db81eef1f1cd72c38f5c"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/merge.ts",
+      "sha256": "e102203386a4759595aeddb522a72f3130e2daf7b646e84dfb3df7c4eec8acd8",
+      "localPath": "src/source/schema/yaml-1.1/merge.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "e102203386a4759595aeddb522a72f3130e2daf7b646e84dfb3df7c4eec8acd8"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/omap.ts",
+      "sha256": "79e0abbd2a7da9eac4bb0b6e60e9e200524edbd8c4d8a764c0bf29590abe7c88",
+      "localPath": "src/source/schema/yaml-1.1/omap.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "79e0abbd2a7da9eac4bb0b6e60e9e200524edbd8c4d8a764c0bf29590abe7c88"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/pairs.ts",
+      "sha256": "aa8df5d3f7c755f74f09a6b422172ed3797bb1bf1ba0419f375393e267050607",
+      "localPath": "src/source/schema/yaml-1.1/pairs.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "aa8df5d3f7c755f74f09a6b422172ed3797bb1bf1ba0419f375393e267050607"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/schema.ts",
+      "sha256": "c7b100572c15a16d869088b73500ee27fe89415ce7fe073ea90131f4afc7fe0c",
+      "localPath": "src/source/schema/yaml-1.1/schema.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "c7b100572c15a16d869088b73500ee27fe89415ce7fe073ea90131f4afc7fe0c"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/set.ts",
+      "sha256": "2327b5817d2779c3435708c73e1f59fd4fb532b0746650427d721bd5bd8d8276",
+      "localPath": "src/source/schema/yaml-1.1/set.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "2327b5817d2779c3435708c73e1f59fd4fb532b0746650427d721bd5bd8d8276"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/timestamp.ts",
+      "sha256": "cb8e05c34fbd300fb0bc3faa07a1a7c443e4ca3508a016a17eb3c236d4122195",
+      "localPath": "src/source/schema/yaml-1.1/timestamp.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "cb8e05c34fbd300fb0bc3faa07a1a7c443e4ca3508a016a17eb3c236d4122195"
+    },
+    {
+      "upstreamPath": "src/stringify/foldFlowLines.ts",
+      "sha256": "20e2179a5bf3a3019b8bd40ad09a9b82f59c0a1c3da28464c53c5089c5c89096",
+      "localPath": "src/source/stringify/foldFlowLines.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "20e2179a5bf3a3019b8bd40ad09a9b82f59c0a1c3da28464c53c5089c5c89096"
+    },
+    {
+      "upstreamPath": "src/stringify/stringify.ts",
+      "sha256": "f496c3b5994d06a6a4d1d342975e1557d0a70f143b349b5c8e6587679739ca74",
+      "localPath": "src/source/stringify/stringify.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "f496c3b5994d06a6a4d1d342975e1557d0a70f143b349b5c8e6587679739ca74"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyCollection.ts",
+      "sha256": "34387b05c734e2f3562bd77cd83e053009c0c94f93924c4b09fee93b9c176123",
+      "localPath": "src/source/stringify/stringifyCollection.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "34387b05c734e2f3562bd77cd83e053009c0c94f93924c4b09fee93b9c176123"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyComment.ts",
+      "sha256": "f5edadfa8d5203670e95ca59bab31372b8978fa2c462cb2b1a0c8c8738909299",
+      "localPath": "src/source/stringify/stringifyComment.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "f5edadfa8d5203670e95ca59bab31372b8978fa2c462cb2b1a0c8c8738909299"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyDocument.ts",
+      "sha256": "0a7101dd863100b14b68819c7422ab7b83efa24a2998322105025d4de2cf7f0e",
+      "localPath": "src/source/stringify/stringifyDocument.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "0a7101dd863100b14b68819c7422ab7b83efa24a2998322105025d4de2cf7f0e"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyNumber.ts",
+      "sha256": "64be9a2d9cc023c00fa91e65708af2e4407de7c6ce0715fd18b8f18743ad0d20",
+      "localPath": "src/source/stringify/stringifyNumber.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "64be9a2d9cc023c00fa91e65708af2e4407de7c6ce0715fd18b8f18743ad0d20"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyPair.ts",
+      "sha256": "244bfff2d284e68666d3b8c6352895ff327c589235767b17a9a139625543a4d9",
+      "localPath": "src/source/stringify/stringifyPair.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "244bfff2d284e68666d3b8c6352895ff327c589235767b17a9a139625543a4d9"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyString.ts",
+      "sha256": "badac28dac2f8df4cff74c9ad15a11a942f3312510efcf50dd1444959e26cd02",
+      "localPath": "src/source/stringify/stringifyString.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "badac28dac2f8df4cff74c9ad15a11a942f3312510efcf50dd1444959e26cd02"
+    },
+    {
+      "upstreamPath": "src/util.ts",
+      "sha256": "1c61d8968bb31b54394bf757875ab7c52ed345b605bef9f08c2b90f4ba20ebec",
+      "localPath": "src/source/util.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "1c61d8968bb31b54394bf757875ab7c52ed345b605bef9f08c2b90f4ba20ebec"
+    },
+    {
+      "upstreamPath": "src/visit.ts",
+      "sha256": "5d96745276f8a761cf00e8f9aeaf1c4e9b60d004be21de979fcf58f45f13e508",
+      "localPath": "src/source/visit.ts",
+      "adaptations": [
+        "No semantic adaptation; upstream implementation copied with its full ISC notice."
+      ],
+      "localSha256": "5d96745276f8a761cf00e8f9aeaf1c4e9b60d004be21de979fcf58f45f13e508"
     }
   ],
   "distributionNotice": "THIRD_PARTY_NOTICES"

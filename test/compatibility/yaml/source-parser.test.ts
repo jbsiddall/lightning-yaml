@@ -1,9 +1,10 @@
 import { test } from "vitest";
-import { deepStrictEqual, strictEqual, ok } from "node:assert";
+import { deepStrictEqual, strictEqual, ok, throws } from "node:assert";
 import { Worker } from "node:worker_threads";
 import fc from "fast-check";
 import * as reference from "yaml";
 import * as compat from "../../../src/yaml-compat.ts";
+import { binary } from "../../../src/source/schema/yaml-1.1/binary.ts";
 import type { CSTSourceToken, CSTToken } from "../../../src/yaml-compat.ts";
 
 const textArb = fc.array(
@@ -76,7 +77,209 @@ test("yaml shim exposes the complete source lexer and parser constructors", () =
   strictEqual((compat.default as Record<string, unknown>).Lexer, compat.Lexer);
   strictEqual((compat.default as Record<string, unknown>).Parser, compat.Parser);
   strictEqual("CST" in compat.default, false);
-  strictEqual("Composer" in compat, false);
+  strictEqual(typeof compat.Composer, "function");
+  strictEqual(typeof compat.Document, "function");
+  strictEqual((compat.default as Record<string, unknown>).Composer, compat.Composer);
+  strictEqual((compat.default as Record<string, unknown>).Document, compat.Document);
+  strictEqual((compat.default as Record<string, unknown>).YAMLSeq, compat.YAMLSeq);
+});
+
+test("source document wrappers preserve partial documents across malformed streams", () => {
+  const source = '---\nfirst: 0\n---\n["key\n value": 1]\n---\nlast: 2\n';
+  const docs = compat.parseAllDocuments(source);
+  strictEqual(docs.length, 3);
+  deepStrictEqual(docs.map((doc) => doc.range), [[0, 13, 13], [13, 35, 35], [35, 47, 47]]);
+  ok(docs[1]?.contents instanceof compat.YAMLSeq);
+  ok(docs[1]?.errors.some((error) => error.code === "MULTILINE_IMPLICIT_KEY"));
+  const seq = docs[1]!.contents as InstanceType<typeof compat.YAMLSeq>;
+  ok(seq.items[0] instanceof compat.YAMLMap);
+  const pair = (seq.items[0] as InstanceType<typeof compat.YAMLMap>).items[0]!;
+  ok(pair instanceof compat.Pair);
+  ok(pair.key instanceof compat.Scalar);
+  strictEqual(pair.key.value, "key value");
+  deepStrictEqual(pair.key.range, [18, 30, 30]);
+  deepStrictEqual(docs[1]!.errors[0]?.pos, [18, 30]);
+  strictEqual((docs[2]?.toJS() as Record<string, unknown>).last, 2);
+});
+
+test("real documents expose node APIs, conversion identity, directives and option boundaries", () => {
+  const source = "base: &base {n: 1}\ncopy: *base\nself: &self [*self]\n? [1, 2]\n: seq-key\n? {x: y}\n: map-key\n";
+  const doc = compat.parseDocument(source, { keepSourceTokens: true });
+  const sourceTokens = [...new compat.Parser().parse(source)];
+  ok(doc instanceof compat.Document);
+  ok(compat.isDocument(doc));
+  ok(doc.contents instanceof compat.YAMLMap);
+  const root = doc.contents as InstanceType<typeof compat.YAMLMap>;
+  const get = (key: string) => root.items.find((pair) => pair.key instanceof compat.Scalar && pair.key.value === key)!.value;
+  const base = get("base");
+  const copy = get("copy");
+  ok(base instanceof compat.YAMLMap);
+  ok(copy instanceof compat.Alias);
+  strictEqual((copy as InstanceType<typeof compat.Alias>).resolve(doc), base);
+  const value = doc.toJS() as Record<string, unknown>;
+  strictEqual(value.base, value.copy);
+  const self = value.self as unknown[];
+  strictEqual(self[0], self);
+  const mapValues = doc.toJS({ mapAsMap: true }) as Map<unknown, unknown>;
+  ok(mapValues.get("base") instanceof Map);
+  ok([...mapValues.keys()].some(Array.isArray));
+  ok([...mapValues.keys()].some((key) => key instanceof Map));
+  ok(doc.clone() instanceof compat.Document);
+  strictEqual(doc.toString().includes("base:"), true);
+  ok(root.srcToken);
+  const parsedDocToken = sourceTokens.find((token) => token.type === "document");
+  ok(parsedDocToken?.type === "document");
+  const parserDoc = [...new compat.Composer({ keepSourceTokens: true }).compose(sourceTokens)][0]!;
+  const parserRoot = parserDoc.contents as InstanceType<typeof compat.YAMLMap>;
+  strictEqual(parserRoot.srcToken, parsedDocToken.value);
+  throws(() => compat.parse("a: 1", { keepSourceTokens: true }));
+  throws(() => compat.parseDocument("a: 1", { mapAsMap: true }));
+  throws(() => new compat.Composer({ schema: "json" } as never));
+  throws(() => new compat.Composer({ resolveKnownTags: false } as never));
+  throws(() => new compat.Document(undefined, { version: "1.1" } as never));
+  deepStrictEqual(
+    compat.parseDocument("value: 999999999999999999999", { intAsBigInt: true }).toJS(),
+    { value: 999999999999999999999n },
+  );
+  const tagged = compat.parseDocument("value: !!binary AQI=", { resolveKnownTags: true, logLevel: "silent" });
+  deepStrictEqual([...(tagged.toJS() as { value: Uint8Array }).value], [1, 2]);
+});
+
+test("source directives reject unsupported versions and repeated handles, then reset per document", () => {
+  const docs = compat.parseAllDocuments("%YAML 1.1\n---\na: yes\n---\nb: yes\n");
+  strictEqual(docs.length, 2);
+  ok(docs[0]!.errors.some((error) => error.code === "BAD_DIRECTIVE"));
+  strictEqual((docs[0]!.toJS() as Record<string, unknown>).a, "yes");
+  strictEqual((docs[1]!.toJS() as Record<string, unknown>).b, "yes");
+  const repeated = compat.parseDocument("%TAG !e! tag:one.example,2020:\n%TAG !e! tag:two.example,2020:\n---\na: !e!x value\n");
+  ok(repeated.errors.some((error) => error.code === "BAD_DIRECTIVE"));
+  const reset = compat.parseAllDocuments("%TAG !e! tag:one.example,2020:\n---\na: !e!x one\n%TAG !e! tag:two.example,2020:\n---\nb: !e!x two\n");
+  strictEqual(reset.length, 2);
+  strictEqual(reset.every((doc) => !doc.errors.some((error) => error.code === "BAD_DIRECTIVE")), true);
+  const highVersion = compat.parseDocument("%YAML 2.0\n---\na: yes\n");
+  ok(highVersion.errors.some((error) => error.code === "BAD_DIRECTIVE"));
+  strictEqual((highVersion.toJS() as Record<string, unknown>).a, "yes");
+  strictEqual(compat.parseDocument("{[a, b]: value}").errors.some((error) => error.message.includes("Implicit flow collection keys")), true);
+  strictEqual(compat.parseDocument("{? [a, b]: value}").errors.some((error) => error.message.includes("Implicit flow collection keys")), false);
+});
+
+test("Composer preserves empty-stream state, first-document diagnostics, source tokens and duplicate AST pairs", () => {
+  const emptyComposer = new compat.Composer();
+  strictEqual([...emptyComposer.compose([])].length, 0);
+  strictEqual(emptyComposer.streamInfo().errors.length, 0);
+  const forced = [...new compat.Composer().compose([], true, 0)];
+  deepStrictEqual(forced[0]?.range, [0, 0, 0]);
+
+  const multiple = compat.parseDocument("---\na: 1\n---\nb: 2\n");
+  strictEqual((multiple.toJS() as Record<string, unknown>).a, 1);
+  ok(multiple.errors.some((error) => error.code === "MULTIPLE_DOCS"));
+
+  const source = "a: 1\na: 2\n";
+  const tokens = [...new compat.Parser().parse(source)];
+  const token = tokens.find((item) => item.type === "document");
+  ok(token?.type === "document" && token.value?.type === "block-map");
+  const composed = [...new compat.Composer({ keepSourceTokens: true }).compose(tokens)][0]!;
+  const map = composed.contents as InstanceType<typeof compat.YAMLMap>;
+  strictEqual(map.items.length, 2);
+  strictEqual(map.srcToken, token.value);
+  strictEqual(map.items[0]!.srcToken, token.value.items[0]);
+  strictEqual((composed.toJS() as Record<string, unknown>).a, 2);
+  const unique = compat.parseDocument(source, { uniqueKeys: true });
+  ok(unique.errors.some((error) => error.code === "DUPLICATE_KEY"));
+});
+
+test("source line counters and pretty diagnostics use absolute UTF-16 positions", () => {
+  const lineCounter = new compat.LineCounter();
+  const source = "\ufeffa: 😀\r\nb: [1, 2\r\n";
+  const doc = compat.parseDocument(source, { lineCounter, prettyErrors: true });
+  deepStrictEqual(lineCounter.lineStarts, [0, 8, 18]);
+  const error = doc.errors.find((item) => item.code === "BAD_INDENT");
+  ok(error?.linePos);
+  strictEqual(error.pos[0], 18);
+  strictEqual(error.linePos[0]?.line, 3);
+  strictEqual(error instanceof compat.YAMLParseError, true);
+  strictEqual(doc.contents instanceof compat.YAMLMap, true);
+});
+
+test("source document writer serializes only a Uint8Array subview", () => {
+  const backing = Uint8Array.from([0, 1, 2, 3]);
+  const view = backing.subarray(1, 3);
+  const doc = new compat.Document();
+  doc.schema.tags.push(binary);
+  const scalar = new compat.Scalar(view);
+  scalar.tag = binary.tag;
+  doc.contents = scalar;
+  ok(doc.toString().includes("AQI="));
+  strictEqual(doc.toString().includes("AAECAw=="), false);
+});
+
+test("seeded JSON-like values compose and convert with exact values and clean diagnostics", () => {
+  fc.assert(
+    fc.property(jsonValueArb, (value) => {
+      const source = compat.stringify(value);
+      const doc = compat.parseDocument(source);
+      deepStrictEqual(doc.toJS(), value);
+      deepStrictEqual(doc.errors, []);
+      strictEqual(doc.range?.[0], 0);
+      strictEqual(doc.range?.[2], source.length);
+    }),
+    { seed: 21021, numRuns: 100 },
+  );
+});
+
+test("seeded Documents match reference writing across selected styles and convert back", () => {
+  const writerOptionsArb = fc.record({
+    collectionStyle: fc.constantFrom("any" as const, "block" as const, "flow" as const),
+    indent: fc.constantFrom(1, 2, 4),
+    lineWidth: fc.constantFrom(0, 40, 80),
+    singleQuote: fc.boolean(),
+  });
+  fc.assert(
+    fc.property(jsonValueArb, writerOptionsArb, (value, writerOptions) => {
+      const referenceText = new reference.Document(value).toString(writerOptions);
+      const sourceText = new compat.Document(value).toString(writerOptions);
+      strictEqual(sourceText, referenceText);
+      deepStrictEqual(compat.parseDocument(sourceText).toJS(), reference.parseDocument(referenceText).toJS());
+    }),
+    { seed: 21022, numRuns: 100 },
+  );
+
+  const doc = new compat.Document({ nested: [1, 2], removed: true });
+  const clone = doc.clone();
+  strictEqual(doc.getIn(["nested", 1]), 2);
+  doc.setIn(["nested", 1], 3);
+  strictEqual(doc.delete("removed"), true);
+  deepStrictEqual(doc.toJS(), { nested: [1, 3] });
+  deepStrictEqual(clone.toJS(), { nested: [1, 2], removed: true });
+});
+
+test("Composer next/end retains source offsets over every split of recovery fixtures", () => {
+  for (const source of [
+    '---\nfirst: 0\n---\n["key\n value": 1]\n---\nlast: 2\n',
+    '---\na: [1, 2\n---\ngood: 2\n',
+    '---\na: [1, 2\n...\nb: 2\n',
+    'a: "open\n---\nb: 2\n',
+    '\ufeffa: 😀\r\nb: 2\r\n',
+    '[a, --- , b]\n',
+    '[a, ... , b]\n',
+    'x: [a, --- , b]\n',
+    '---x\n  ---\nkey: text\n',
+    'text: |\n  ---\n',
+    'text: "---"\n',
+  ]) {
+    const whole = compat.parseAllDocuments(source);
+    const expected = whole.map((doc) => ({ range: doc.range, errors: doc.errors.map((error) => [error.code, error.pos]), contents: doc.toJS() }));
+    for (let split = 0; split <= source.length; split++) {
+      const parser = new compat.Parser();
+      const composer = new compat.Composer({ keepSourceTokens: true });
+      const actual: InstanceType<typeof compat.Document>[] = [];
+      const push = (tokens: Iterable<CSTToken>) => { for (const token of tokens) actual.push(...composer.next(token)); };
+      push(parser.parse(source.slice(0, split), true));
+      push(parser.parse(source.slice(split)));
+      actual.push(...composer.end());
+      deepStrictEqual(actual.map((doc) => ({ range: doc.range, errors: doc.errors.map((error) => [error.code, error.pos]), contents: doc.toJS() })), expected, `${JSON.stringify(source)} @ ${split}`);
+    }
+  }
 });
 
 test("public parser preserves nested source tokens, trivia, and absolute offsets", () => {
@@ -246,13 +449,14 @@ test("malformed marker recovery terminates and retains tokens in a bounded worke
       clearTimeout(timeout);
       reject(error);
     });
-    worker.once("message", async (result: { offsets: number[]; itemCount: number; reconstructed: string }) => {
+    worker.once("message", async (result: { ranges: number[][]; itemCount: number; middleErrors: string[]; finalValue: unknown }) => {
       clearTimeout(timeout);
       await worker.terminate();
       try {
-        deepStrictEqual(result.offsets, [0, 9, 22]);
+        deepStrictEqual(result.ranges, [[0, 9, 9], [9, 22, 22], [22, 31, 31]]);
         strictEqual(result.itemCount, 2);
-        strictEqual(result.reconstructed, source);
+        ok(result.middleErrors.includes("BAD_INDENT"));
+        deepStrictEqual(result.finalValue, { c: 3 });
         resolve();
       } catch (error) {
         reject(error);
@@ -403,6 +607,15 @@ test("fast-check renders bounded JSON-compatible YAML and compares tokens plus g
       const chunkTokens = parseChunks(source, cuts);
       deepStrictEqual(chunkTokens, parseChunks(source, cuts, reference.Parser));
       deepStrictEqual(chunkTokens, tokens);
+
+      const sourceDocuments = [...new compat.Composer().compose(chunkTokens, true, source.length)];
+      const referenceDocuments = reference.parseAllDocuments(source);
+      deepStrictEqual(sourceDocuments.map((doc) => doc.toJS()), referenceDocuments.map((doc) => doc.toJS()));
+      deepStrictEqual(sourceDocuments.map((doc) => doc.range), referenceDocuments.map((doc) => doc.range));
+      deepStrictEqual(
+        sourceDocuments.map((doc) => doc.errors.map((error) => ({ code: error.code, pos: error.pos }))),
+        referenceDocuments.map((doc) => doc.errors.map((error) => ({ code: error.code, pos: error.pos }))),
+      );
     }),
     { numRuns: 300, seed: 20261020 },
   );

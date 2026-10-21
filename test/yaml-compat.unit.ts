@@ -27,7 +27,6 @@ const MULTI_DOC = "---\na: 1\n---\nb: 2\n---\nc: 3\n";
 const DUMP_VALUE = { name: "svc", replicas: 3, enabled: true, tags: ["a", "b"] };
 const PARSE_THROWS: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
   ["mapAsMap", { mapAsMap: true }],
-  ["intAsBigInt", { intAsBigInt: true }],
   ["maxAliasCount", { maxAliasCount: 10 }],
   ["merge", { merge: true }],
   ["schema:json", { schema: "json" }],
@@ -53,6 +52,10 @@ test("yaml-compat: named exports exist with the right shapes", () => {
   strictEqual(typeof parseAllDocuments, "function");
   strictEqual(typeof parseDocument, "function");
   strictEqual(typeof stringify, "function");
+  strictEqual(typeof yamlCompatDefault.Composer, "function");
+  strictEqual(typeof yamlCompatDefault.Document, "function");
+  strictEqual(typeof yamlCompatDefault.YAMLMap, "function");
+  strictEqual(typeof yamlCompatDefault.isNode, "function");
 });
 
 test("yaml-compat: default export object mirrors the named exports", () => {
@@ -73,7 +76,7 @@ test("yaml-compat.parseDocument wraps a single document like parseAllDocuments' 
   const doc = parseDocument("a: 1\nb: 2\n");
   deepStrictEqual(doc.toJS(), { a: 1, b: 2 });
   deepStrictEqual(doc.toJSON(), { a: 1, b: 2 });
-  deepStrictEqual(doc.contents, { a: 1, b: 2 });
+  ok(doc.contents && typeof doc.contents === "object" && "items" in doc.contents);
   deepStrictEqual(doc.errors, []);
   deepStrictEqual(doc.warnings, []);
 });
@@ -125,12 +128,14 @@ test("yaml compatibility retains invalid marker and late-document recovery behav
 
   for (const input of ["...\n[", "---\nnull\n...\n...\n["]) {
     const docs = parseAllDocuments(input);
-    strictEqual(docs.length, 1);
-    strictEqual(docs[0].contents, undefined);
-    strictEqual(docs[0].errors.length, 1);
+    strictEqual(docs.length, input.startsWith("---") ? 3 : 2);
+    strictEqual(docs[0].toJS(), null);
+    const partial = docs.at(-1)!;
+    ok(partial.contents instanceof Object);
+    ok(partial.errors.some((error) => error.code === "MISSING_CHAR"));
     const document = parseDocument(input);
-    strictEqual(document.contents, undefined);
-    strictEqual(document.errors.length, 1);
+    strictEqual(document.toJS(), null);
+    ok(document.errors.some((error) => error.code === "MULTIPLE_DOCS"));
   }
 });
 
