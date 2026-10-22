@@ -245,6 +245,21 @@ test("complex keys: IMPLICIT flow collection key is a spec error — we reject i
   deepStrictEqual(oracleParse("{[1, 2]: v}"), { "[ 1, 2 ]": "v" });
 });
 
+test("flow mapping: implicit empty key entries starting with colon (spec §7.3.2 / §8.2.2)", () => {
+  const cases: [string, Record<string, unknown>][] = [
+    ["{ : 1 }", { "": 1 }],
+    ["{: 1}", { "": 1 }],
+    ["{ : }", { "": null }],
+    ["{:}", { "": null }],
+    ["{ : 1, a: 2 }", { "": 1, a: 2 }],
+    ["{ &a : 1 }", { "": 1 }],
+  ];
+  for (const [input, expected] of cases) {
+    deepStrictEqual(parse(input), expected, `parse(${JSON.stringify(input)})`);
+    deepStrictEqual(parse(input), oracleParse(input), `oracle agrees on ${JSON.stringify(input)}`);
+  }
+});
+
 // --------------------------------------------------------------------------
 // §4.10 Anchor/alias resource bombs (billion laughs, quadratic blowup).
 // lightning-yaml resolves an alias to the SAME reference (structural sharing,
