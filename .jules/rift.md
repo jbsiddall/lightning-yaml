@@ -1,0 +1,3 @@
+## 2026-08-12 - Flow Mapping Implicit Empty Key Handling
+**Learning:** Flow mapping entries starting directly with a colon followed by a flow separator or whitespace (e.g. `{ : 1 }`, `{: 1}`, `{ : }`, `{:}`) represent an implicit empty key (""). In `src/core.ts`, `parseFlowMap` must handle `c === COLON && flowSeparatorAt(pos + 1)` and `parseFlowKeyAnchored` must allow `end === start` when `src.charCodeAt(pos) === COLON` so anchored empty keys (`{ &a : 1 }`) register their anchor on `null` and stringify key to `""`.
+**Action:** When probing flow mappings, test leading colons and anchored empty keys.

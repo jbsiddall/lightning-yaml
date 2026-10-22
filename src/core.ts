@@ -1662,7 +1662,9 @@ function parseFlowMap(): Record<string, unknown> {
       break;
     }
     let key: string;
-    if (c === QUESTION && flowSeparatorAt(pos + 1)) {
+    if (c === COLON && flowSeparatorAt(pos + 1)) {
+      key = "";
+    } else if (c === QUESTION && flowSeparatorAt(pos + 1)) {
       // Explicit `? key` (cold): the key is a full node up to ':'/','/'}'.
       pos++;
       skipFlowWs();
@@ -1881,7 +1883,7 @@ function parseFlowKeyAnchored(): string {
     const end = scanFlowPlainEnd();
     if (flowFolded !== null) key = internKey(keyToString(registerPendingAnchor(flowFolded)));
     else {
-      if (end === start) fail("expected a mapping key");
+      if (end === start && src.charCodeAt(pos) !== COLON) fail("expected a mapping key");
       key = plainKey(start, end); // plainKey itself calls registerPendingAnchor
     }
   }
