@@ -1834,6 +1834,7 @@ function parseFlowKey(): string {
   if (c === STAR) return internKey(keyToString(parseAlias()));
   if (c === DQUOTE) return internKey(parseDoubleQuoted());
   if (c === SQUOTE) return internKey(parseSingleQuoted());
+  if (c === COLON && flowSeparatorAt(pos + 1)) return "";
   const start = pos;
   const end = scanFlowPlainEnd();
   if (flowFolded !== null) return internKey(flowFolded);
@@ -1881,8 +1882,13 @@ function parseFlowKeyAnchored(): string {
     const end = scanFlowPlainEnd();
     if (flowFolded !== null) key = internKey(keyToString(registerPendingAnchor(flowFolded)));
     else {
-      if (end === start) fail("expected a mapping key");
-      key = plainKey(start, end); // plainKey itself calls registerPendingAnchor
+      if (end === start) {
+        if (src.charCodeAt(pos) === COLON && flowSeparatorAt(pos + 1)) {
+          key = internKey(keyToString(registerPendingAnchor("")));
+        } else {
+          fail("expected a mapping key");
+        }
+      } else key = plainKey(start, end); // plainKey itself calls registerPendingAnchor
     }
   }
   pendingAnchorName = outerPending;
