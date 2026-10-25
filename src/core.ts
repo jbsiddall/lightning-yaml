@@ -3803,7 +3803,7 @@ function parseExplicitValue(col: number): unknown {
     nextLine();
     return parseDeferredBlockNode(col, true);
   }
-  const value = parseBlockNode(col, false); // inline: NOT gated by the implicit-value inline-seq restriction
+  const value = parseBlockNode(col, true); // inline: NOT gated by the implicit-value inline-seq restriction
   if (tabRightAfterIndicator && isTabRestrictedCollection(value)) fail("a tab cannot separate ':' from a value that opens a new collection");
   return value;
 }
@@ -3828,7 +3828,7 @@ function parseExplicitKey(col: number): unknown {
     nextLine();
     return parseDeferredBlockNode(col, true);
   }
-  const keyNode = parseBlockNode(col, false); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
+  const keyNode = parseBlockNode(col, true); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
   if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
   return keyNode;
 }

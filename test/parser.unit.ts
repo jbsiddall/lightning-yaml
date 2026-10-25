@@ -1907,6 +1907,13 @@ test("mostly-distinct mapping keys all parse to the right key/value pairs", () =
   for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
 });
 
+test("tagged or anchored block collections as explicit mapping values and keys parse correctly", () => {
+  deepStrictEqual(parse("? key\n: !!seq\n- entry"), { key: ["entry"] });
+  deepStrictEqual(parse("? key\n: &a\n- entry"), { key: ["entry"] });
+  deepStrictEqual(parse("? !!seq\n- entry\n: val"), { "[ entry ]": "val" });
+  deepStrictEqual(parse("? &a\n- entry\n: val"), { "[ entry ]": "val" });
+});
+
 // A caller-supplied `keyCacheMaxKb` far below the default still yields every
 // correct key/value pair — the cap only stops the cache from growing, it never
 // drops or corrupts a key already being parsed (`internKey` returns `s` either

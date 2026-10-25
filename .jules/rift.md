@@ -1,0 +1,3 @@
+## 2026-07-16 - Explicit Mapping Key/Value Tagged and Anchored Block Collections
+**Learning:** `parseExplicitKey` and `parseExplicitValue` previously passed `inline = false` (`mapValue = false`) to `parseBlockNode` when parsing inline content after `?` or `:`. This caused inline properties like `!!seq` or `&a` on the indicator line to wrongly reject deferred block collections on subsequent lines as scalar mismatches. Passing `mapValue = true` (`inline = true`) allows block collections to correctly attach to tagged or anchored explicit keys and values.
+**Action:** When auditing explicit block key/value grammar handling, verify that `parseBlockNode` receives `mapValue = true` so deferred block nodes accept node properties on the indicator line.
