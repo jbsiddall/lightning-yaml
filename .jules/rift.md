@@ -1,0 +1,3 @@
+## 2026-10-26 - Root-level explicit indentation indicators in block scalars
+**Learning:** In `parseBlockScalar`, root-level parent column is represented as `effParentCol = -1`. When an explicit indentation indicator `m` is given (e.g. `|1`, `|2`), calculating `effParentCol + indentIndicator` under-calculated content indentation by 1 space (`-1 + m`), causing leading spaces not to be stripped on root-level block scalars. `Math.max(0, effParentCol) + indentIndicator` bases the calculation on column 0 at root level per YAML 1.2 §8.1.1.1.
+**Action:** When working with indentation calculations where root level is `-1`, always normalize `effParentCol` to `0` via `Math.max(0, effParentCol)`.
