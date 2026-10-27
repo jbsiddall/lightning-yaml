@@ -542,6 +542,11 @@ test("regression [1]: plain mapping keys are scalar-typed and canonicalized (blo
   }
 });
 
+test("explicit block keys: cyclic complex mapping keys do not overflow call stack", () => {
+  deepStrictEqual(parse("&a [*a]: 1"), { "[ [Circular] ]": 1 });
+  deepStrictEqual(parse("&a {self: *a}: 1"), { "{ self: [Circular] }": 1 });
+});
+
 test("regression [2]: leading ':' in a flow sequence is plain unless a boundary colon", () => {
   deepStrictEqual(parse("[:ff]"), [":ff"]);
   deepStrictEqual(parse("[:00:]"), [{ ":00": null }]);
