@@ -310,3 +310,21 @@ test("binary: invalid base64 characters (e.g. wide unicode or non-base64 charact
   throwsBecause(() => parse("!!binary \"\u0100\u0100\u0100\u0100\""), /invalid base64 character/);
   throwsBecause(() => parse("!!binary \"AAAA-A==\""), /invalid base64 character/);
 });
+
+test("implicit empty key in flow mapping resolves to empty string key", () => {
+  const cases: [string, unknown][] = [
+    ["{: 1}", { "": 1 }],
+    ["{ : 1}", { "": 1 }],
+    ["{ : }", { "": null }],
+    ["{:}", { "": null }],
+    ["{ : v}", { "": "v" }],
+    ["{: v}", { "": "v" }],
+    ["{ &a : v}", { "": "v" }],
+    ["{ !str : v}", { "": "v" }],
+    ["{ &a !str : v}", { "": "v" }],
+  ];
+  for (const [input, expected] of cases) {
+    deepStrictEqual(parse(input), expected, `parse(${JSON.stringify(input)})`);
+    deepStrictEqual(parse(input), oracleParse(input), `oracle agrees on ${JSON.stringify(input)}`);
+  }
+});

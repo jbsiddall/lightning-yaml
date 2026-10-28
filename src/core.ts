@@ -1829,6 +1829,7 @@ function plainKey(start: number, end: number): string {
 /** A flow mapping key: an anchor/alias, tag, double-quoted, single-quoted, or a plain scalar. */
 function parseFlowKey(): string {
   const c = src.charCodeAt(pos);
+  if (c === COLON && flowSeparatorAt(pos + 1)) return "";
   if (c === AMP) return parseFlowKeyAnchored();
   if (c === EXCLAIM) return parseFlowKeyTagged();
   if (c === STAR) return internKey(keyToString(parseAlias()));
@@ -1876,7 +1877,9 @@ function parseFlowKeyAnchored(): string {
     key = internKey(keyToString(raw));
   } else if (c === DQUOTE) key = internKey(keyToString(registerPendingAnchor(parseDoubleQuoted())));
   else if (c === SQUOTE) key = internKey(keyToString(registerPendingAnchor(parseSingleQuoted())));
-  else {
+  else if (c === COLON && flowSeparatorAt(pos + 1)) {
+    key = keyToString(registerPendingAnchor(""));
+  } else {
     const start = pos;
     const end = scanFlowPlainEnd();
     if (flowFolded !== null) key = internKey(keyToString(registerPendingAnchor(flowFolded)));
