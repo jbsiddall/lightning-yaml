@@ -221,11 +221,14 @@ compatibility gaps; `pnpm audit:js-yaml:strict` makes gaps fail the command.
 Run `pnpm audit:yaml:full` for the separate yaml 2.9.0 campaign, including
 `parse`, `stringify`, document conversions, callbacks and option witnesses.
 Document AST and API differences are reported separately from converted values.
-For the source-aware CST/document/node goal, explicitly run `pnpm gen:yaml-cst-candidate`,
-then `pnpm test:yaml-cst` or `pnpm audit:yaml-cst:full`. That comparison targets the pinned, unmerged
-[PR #184](https://github.com/jbsiddall/lightning-yaml/pull/184) implementation
-against `yaml`, including tokens, source ranges, comments and line positions.
-The CST implementation is not included in the package on `main`.
+The main package includes the yaml-compatible `Lexer`, `Parser`, and `CST`
+helper namespace for source token inspection and editing. The historical
+`pnpm gen:yaml-cst-candidate` / `pnpm test:yaml-cst` campaign still targets the
+pinned, unmerged [PR #184](https://github.com/jbsiddall/lightning-yaml/pull/184)
+candidate and its broader Document/node work; it does not describe the current
+main package. Composer, AST nodes, source-aware Document integration,
+`keepSourceTokens` parse-option support, and complete language-server
+compatibility remain absent.
 See [the compatibility guide](docs/compatibility-testing.md) for scope,
 replay and report interpretation. Neither sampled compatibility percentages nor
 line coverage establish equivalence for every possible input.

@@ -211,8 +211,9 @@ comparator, generators and CLI argument parser with the js-yaml campaign.
 ## Implemented source layer
 
 The public source layer is the complete yaml 2.9.0 `Lexer` and `Parser` token
-pipeline. Composer, AST nodes, document diagnostics/recovery, and the CST helper
-namespace remain future work. Earlier CST comparison branches and their reports
+pipeline plus its `CST` helper namespace for token construction, scalar
+resolution and mutation, source concatenation, and collection-item traversal.
+Composer, AST nodes, and document diagnostics/recovery remain future work. Earlier CST comparison branches and their reports
 are historical evidence for those drafts; they do not describe this exported
 Lexer/Parser implementation or establish language-server compatibility.
 
@@ -228,8 +229,9 @@ expectations and the pinned reference. A fixed-seed fast-check property runs 300
 rendered JSON-compatible YAML cases and compares whole-input and chunked tokens
 with the reference under the same chunk schedule. Development tests also pass these
 tokens to yaml's Composer to check the token contract; Composer is not shipped
-by lightning-yaml. The shim still has no public CST helper namespace, Composer,
-AST nodes, document recovery, or `keepSourceTokens` parse-option integration.
+by lightning-yaml. The public `CST` namespace does not add Composer, AST nodes,
+document recovery, source-aware Document integration, or `keepSourceTokens`
+parse-option integration.
 Parser output is source syntax and does not establish YAML validity or provide
 document diagnostics. This milestone makes no source-aware speed claim and does
 not establish language-server compatibility.
@@ -263,7 +265,8 @@ package API.
 | `LineCounter`       | Standalone source-offset lookup utility; it does not scan source text or populate parse calls |
 | `contents`         | Plain JavaScript value; the reference provides an AST node                                 |
 | Options            | Default core schema/version and selected inactive flags; unsupported defined options throw. `lineCounter` remains an unsupported parse option |
-| Other package APIs | Composer, AST nodes, CST runtime helpers, visitors, and document editing APIs are absent |
+| `CST` | Token helpers, scalar creation/resolution/mutation, source concatenation, and collection-item visitor |
+| Other package APIs | Composer, AST nodes, source-aware Document integration, and top-level AST visitor are absent |
 
 <!-- yaml:2.9.0 ly:57d28ea62ca656e5bc63fad4c6e73faf69df9a99 -->
 

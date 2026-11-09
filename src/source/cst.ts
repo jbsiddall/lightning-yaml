@@ -251,3 +251,7 @@ export function tokenType(source: string): TokenType | null {
   }
   return null
 }
+
+export { createScalarToken, resolveAsScalar, setScalarValue } from './cst-scalar.ts'
+export { stringify } from './cst-stringify.ts'
+export { visit, type VisitPath, type Visitor } from './cst-visit.ts'
