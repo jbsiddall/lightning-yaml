@@ -16,8 +16,12 @@ const repoRoot = process.cwd()
 const args = process.argv.slice(2)
 const candidatePath = resolve(args[0] || 'dist/yaml-compat.js')
 const baselinePath = args[1] && args[1] !== '-' ? resolve(args[1]) : null
-const oracleRequire = createRequire('/tmp/ly-owner-browser-benchmark-nov8/package.json')
-const referencePath = resolve(args[2] || oracleRequire.resolve('yaml'))
+const referenceOverride = args[2] ? resolve(args[2]) : null
+const repoRequire = createRequire(import.meta.url)
+const referencePath = referenceOverride || repoRequire.resolve('yaml')
+const referencePackageVersion = referenceOverride
+  ? null
+  : JSON.parse(readFileSync(resolve(dirname(referencePath), '../package.json'), 'utf8')).version
 const samplesPerCase = 3
 const iterationCounts = { scalar: 2500, block: 700, flow: 700, commented: 700 }
 const fixtures = {
@@ -203,7 +207,8 @@ async function main() {
       platform: process.platform,
       arch: process.arch,
       entries: infos,
-      referencePackage: 'yaml@2.9.0 via /tmp/ly-owner-browser-benchmark-nov8/node_modules'
+      referenceEntrySource: referenceOverride ? 'explicit third-argument entry override' : 'repository yaml dependency',
+      referencePackageVersion
     },
     design: {
       format: 'ESM only',
