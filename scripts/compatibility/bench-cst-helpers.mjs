@@ -22,6 +22,7 @@ const referencePath = referenceOverride || repoRequire.resolve('yaml')
 const referencePackageVersion = referenceOverride
   ? null
   : JSON.parse(readFileSync(resolve(dirname(referencePath), '../package.json'), 'utf8')).version
+const referenceLabel = referenceOverride ? 'reference-override' : `reference-yaml-${referencePackageVersion}`
 const samplesPerCase = 3
 const iterationCounts = { scalar: 2500, block: 700, flow: 700, commented: 700 }
 const fixtures = {
@@ -175,7 +176,7 @@ async function main() {
   if (process.argv[2] === '--worker') return worker()
   const entries = [{ label: 'candidate', path: candidatePath }]
   if (baselinePath) entries.push({ label: 'baseline', path: baselinePath })
-  entries.push({ label: 'reference-yaml-2.9.0', path: referencePath })
+  entries.push({ label: referenceLabel, path: referencePath })
   const infos = Object.fromEntries(entries.map(({ label, path }) => [label, fileInfo(path)]))
   const cold = []
   for (let sample = 0; sample < samplesPerCase; sample++) {
@@ -184,7 +185,7 @@ async function main() {
   }
   const scanner = [
     { label: 'candidate', sizes: '10000,50000,250000' },
-    { label: 'reference-yaml-2.9.0', sizes: '1000,5000,10000' }
+    { label: referenceLabel, sizes: '1000,5000,10000' }
   ].map(({ label, sizes }) => ({ label, ...runWorker('scanner', label, entries.find((entry) => entry.label === label).path, sizes) }))
   const warm = []
   const warmEntries = entries.filter((entry) => entry.label !== 'baseline')
