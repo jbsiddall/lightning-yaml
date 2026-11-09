@@ -331,7 +331,6 @@ function plainString(
     type !== ScalarStyle.PLAIN &&
     value.includes('\n')
   ) {
-    // Where allowed & type not set explicitly, prefer block style for multiline strings
     return blockString(item, ctx, onComment, onChompKeep)
   }
   if (containsDocumentMarker(value)) {
@@ -371,7 +370,6 @@ export function stringifyString(
 
   let { type } = item
   if (type !== ScalarStyle.QUOTE_DOUBLE) {
-    // force double quotes on control characters & unpaired surrogates
     if (/[\x00-\x08\x0b-\x1f\x7f-\x9f\u{D800}-\u{DFFF}]/u.test(ss.value))
       type = ScalarStyle.QUOTE_DOUBLE
   }

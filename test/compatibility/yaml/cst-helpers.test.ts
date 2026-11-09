@@ -6,6 +6,50 @@ import { Worker } from 'node:worker_threads'
 import * as compat from '../../../src/yaml-compat.ts'
 import type { Document, FlowScalar, Token } from '../../../src/source/cst.ts'
 
+function waitForScannerWorker(worker: Worker, deadlineMs: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let settled = false
+    let started = false
+    let workTimer: ReturnType<typeof setTimeout> | undefined
+    const startupTimer = setTimeout(() => {
+      settled = true
+      void worker.terminate()
+      reject(new Error('CST scanner worker did not become ready'))
+    }, 10_000)
+    worker.on('message', message => {
+      if (message?.type === 'ready') {
+        if (started) return
+        started = true
+        clearTimeout(startupTimer)
+        workTimer = setTimeout(() => {
+          settled = true
+          void worker.terminate()
+          resolve('timeout')
+        }, deadlineMs)
+      } else if (message?.type === 'result') {
+        settled = true
+        clearTimeout(startupTimer)
+        if (workTimer) clearTimeout(workTimer)
+        resolve(message.value)
+      }
+    })
+    worker.once('error', error => {
+      if (settled) return
+      settled = true
+      clearTimeout(startupTimer)
+      if (workTimer) clearTimeout(workTimer)
+      reject(error)
+    })
+    worker.once('exit', code => {
+      if (settled) return
+      settled = true
+      clearTimeout(startupTimer)
+      if (workTimer) clearTimeout(workTimer)
+      reject(new Error(`CST scanner worker exited before a result (${code})`))
+    })
+  })
+}
+
 function collectTokens(token: Token, collected: Token[] = []): Token[] {
   collected.push(token)
   if (token.type === 'document') {
@@ -218,31 +262,21 @@ describe('public CST helper namespace', () => {
     ), { numRuns: 150, seed: 20261109, path: process.env.FC_PATH })
   })
 
-  it('finishes folding a bounded hostile whitespace scalar inside its worker deadline', async () => {
+  it('finishes resolving a bounded hostile plain scalar inside its worker deadline', async () => {
+    const width = 250_000
     const worker = new Worker(new URL('./cst-scalar-worker.mjs', import.meta.url), {
-      workerData: { width: 250_000 }
+      workerData: { width }
     })
-    const result = await new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        void worker.terminate()
-        reject(new Error('CST whitespace folding exceeded 3 seconds'))
-      }, 3000)
-      worker.once('message', value => {
-        clearTimeout(timer)
-        resolve(value)
-      })
-      worker.once('error', error => {
-        clearTimeout(timer)
-        reject(error)
-      })
-      worker.once('exit', code => {
-        if (code !== 0) {
-          clearTimeout(timer)
-          reject(new Error(`CST whitespace worker exited with ${code}`))
-        }
-      })
+    const result = await waitForScannerWorker(worker, 3000)
+    strictEqual(result, `x${' '.repeat(width)}`)
+  })
+
+  it('times out on the same bounded scalar with the legacy regex fallback', async () => {
+    const worker = new Worker(new URL('./cst-scalar-worker.mjs', import.meta.url), {
+      workerData: { width: 250_000, legacyFallback: true }
     })
-    strictEqual(result, ' x')
+    const outcome = await waitForScannerWorker(worker, 1500)
+    strictEqual(outcome, 'timeout')
   })
 
   it('keeps UTF-16 ranges and comment text for quoted scalars', () => {

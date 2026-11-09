@@ -1,12 +1,24 @@
 import { parentPort, workerData } from 'node:worker_threads'
 import { tsImport } from 'tsx/esm/api'
 
-const { CST } = await tsImport('../../../src/yaml-compat.ts', import.meta.url)
+let CST
+if (workerData.legacyFallback) {
+  const NativeRegExp = globalThis.RegExp
+  globalThis.RegExp = function (pattern, flags) {
+    if (String(pattern).includes('(?<!')) throw new SyntaxError('lookbehind disabled for fallback control')
+    return new NativeRegExp(pattern, flags)
+  }
+  globalThis.RegExp.prototype = NativeRegExp.prototype
+  ;({ CST } = await import('yaml'))
+} else {
+  ;({ CST } = await tsImport('../../../src/yaml-compat.ts', import.meta.url))
+}
 
 const token = {
-  type: 'double-quoted-scalar',
+  type: 'scalar',
   offset: 0,
   indent: 0,
-  source: `"${' '.repeat(workerData.width)}\n${' '.repeat(workerData.width)}x"`
+  source: `x${' '.repeat(workerData.width)}`
 }
-parentPort.postMessage(CST.resolveAsScalar(token).value)
+parentPort.postMessage({ type: 'ready' })
+parentPort.postMessage({ type: 'result', value: CST.resolveAsScalar(token).value })

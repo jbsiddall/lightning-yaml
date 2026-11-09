@@ -76,7 +76,7 @@
       "upstreamPath": "src/compose/resolve-flow-scalar.ts",
       "sha256": "345db9b5577d1efb2078bc9e191973545ae7ce0595bf182d51c2e0842e11f913",
       "localPath": "src/source/compose/resolve-flow-scalar.ts",
-      "localSha256": "6b56c0ed4168a249eaab9324dbc9fa50e8e9702ebe3759e3be201cf32c9c6f80",
+      "localSha256": "5eb14c125d56f6eaf46b2f9f35d929d333b8883c1ae601e6ce13568b388d0ee0",
       "adaptations": ["Retained ISC notice and pinned resolver behavior; uses the monotonic foldLines scanner from held PR #275 at dc419be9 instead of the pinned quadratic regex scanner; replaced runtime Scalar and Composer dependencies with private style literals and structural helper types."]
     },
     {
@@ -90,7 +90,7 @@
       "upstreamPath": "src/stringify/stringifyString.ts",
       "sha256": "badac28dac2f8df4cff74c9ad15a11a942f3312510efcf50dd1444959e26cd02",
       "localPath": "src/source/stringify/stringifyString.ts",
-      "localSha256": "ad54d5e09390d544b2c06ce18f49e8f101a1e4d50b28ef7b93c8760fcf1d3bdb",
+      "localSha256": "bda5061a4457047e0e4bceefc8014210db7904732bba7d94bfdd3816ba735410",
       "adaptations": ["Retained ISC notice and upstream string writing behavior; uses the pinned folder and private structural context; replaces runtime Scalar/schema imports with style literals and a narrow tag-test shape."]
     },
     {

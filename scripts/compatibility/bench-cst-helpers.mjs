@@ -150,15 +150,15 @@ async function worker() {
     const widths = workload.split(',').map(Number)
     result.scannerSamples = widths.map((width) => {
       const token = {
-        type: 'double-quoted-scalar',
+        type: 'scalar',
         offset: 0,
         indent: 0,
-        source: `"${' '.repeat(width)}\n${' '.repeat(width)}x"`
+        source: `x${' '.repeat(width)}`
       }
       const start = performance.now()
       const resolved = api.CST.resolveAsScalar(token)
       const elapsedMs = performance.now() - start
-      if (resolved?.value !== ' x') fail(`${label}: whitespace fold output mismatch at ${width}`)
+      if (resolved?.value !== token.source) fail(`${label}: plain scalar output mismatch at ${width}`)
       return { width, sourceChars: token.source.length, elapsedMs, valueLength: resolved.value.length }
     })
   } else {
@@ -212,7 +212,7 @@ async function main() {
       coldMetrics: 'fresh subprocess baseline heap/RSS and cold ESM import latency/post-import heap/RSS deltas; candidate/reference separately time the first Parser + CST workflow, and report importThroughFirstWorkflowMs from import start through that workflow, including intervening GC and memory reads',
       warmTimingRegions: 'per workload below; no parsing/cloning in timed visit/stringify regions',
       workloads: iterationCounts,
-      scanner: 'one candidate subprocess samples 10k/50k/250k whitespace widths; one reference subprocess samples only 1k/5k/10k to bound exposure to the known quadratic fallback; timings are local samples, not a proof of complexity',
+      scanner: 'plain scalar input begins with x and has a trailing whitespace run without a newline, forcing resolveAsScalar through foldLines; one candidate subprocess samples 10k/50k/250k widths and one reference subprocess samples only 1k/5k/10k widths on its normal lookbehind-capable scanner path; the separate regression test forces the pinned reference fallback in a worker under a timeout; timings are local samples, not a proof of complexity',
       fixtureBytes: Object.fromEntries(Object.entries(fixtures).map(([name, source]) => [name, source.length])),
       caveat: 'Short local samples are sensitive to process startup, GC, JIT, filesystem cache, and machine load. Compare raw samples and matched work only; this does not establish universal or native-parser performance.'
     },
