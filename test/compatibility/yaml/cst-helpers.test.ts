@@ -6,6 +6,36 @@ import { Worker } from 'node:worker_threads'
 import * as compat from '../../../src/yaml-compat.ts'
 import type { Document, FlowScalar, Token } from '../../../src/source/cst.ts'
 
+function collectTokens(token: Token, collected: Token[] = []): Token[] {
+  collected.push(token)
+  if (token.type === 'document') {
+    collected.push(...token.start)
+    if (token.end) collected.push(...token.end)
+    if (token.value) collectTokens(token.value, collected)
+  } else if (token.type === 'block-scalar') {
+    for (const prop of token.props) collectTokens(prop, collected)
+  } else if (token.type === 'block-map' || token.type === 'block-seq' || token.type === 'flow-collection') {
+    if (token.type === 'flow-collection') collected.push(token.start)
+    for (const item of token.items) {
+      collected.push(...item.start)
+      if (item.key) collectTokens(item.key, collected)
+      if (item.sep) collected.push(...item.sep)
+      if (item.value) collectTokens(item.value, collected)
+    }
+    if (token.type === 'flow-collection') collected.push(...token.end)
+  } else if ('end' in token && token.end) {
+    collected.push(...token.end)
+  }
+  return collected
+}
+
+function composeWithOracle(tokens: unknown[]) {
+  return [...new reference.Composer({ keepSourceTokens: true }).compose(tokens as never)].map(document => ({
+    value: document.toJSON(),
+    errors: document.errors.map(({ code, message }) => ({ code, message }))
+  }))
+}
+
 const namespaceKeys = [
   'BOM', 'DOCUMENT', 'FLOW_END', 'SCALAR', 'createScalarToken', 'isCollection',
   'isScalar', 'prettyToken', 'resolveAsScalar', 'setScalarValue', 'stringify',
@@ -56,6 +86,42 @@ describe('public CST helper namespace', () => {
     strictEqual(noNewline.offset, 7)
     strictEqual((noNewline as FlowScalar).end, emptyEnd)
     strictEqual(compat.CST.stringify(noNewline), 'alpha')
+
+    const trivia = { type: 'comment', offset: 20, indent: 0, source: '#tail' }
+    const newline = { type: 'newline', offset: 12, indent: 0, source: '\n' }
+    const block = {
+      type: 'block-scalar', offset: 10, indent: 0,
+      props: [
+        { type: 'block-scalar-header', offset: 10, indent: 0, source: '|-' },
+        trivia,
+        newline
+      ],
+      source: 'old\n'
+    } as unknown as Token
+    const blockIdentity = block
+    compat.CST.setScalarValue(block, 'a "quoted" value', { type: 'QUOTE_DOUBLE' })
+    strictEqual(block, blockIdentity)
+    if (!('end' in block) || !block.end) throw new Error('expected retained block trivia')
+    strictEqual(block.end[0], trivia)
+    strictEqual(trivia.offset, 38)
+    strictEqual(newline.offset, 30)
+    strictEqual(compat.CST.stringify(block), '"a \\"quoted\\" value"#tail\n')
+    const referenceTrivia = { type: 'comment', offset: 20, indent: 0, source: '#tail' }
+    const referenceNewline = { type: 'newline', offset: 12, indent: 0, source: '\n' }
+    const referenceBlock = {
+      type: 'block-scalar', offset: 10, indent: 0,
+      props: [
+        { type: 'block-scalar-header', offset: 10, indent: 0, source: '|-' },
+        referenceTrivia,
+        referenceNewline
+      ],
+      source: 'old\n'
+    }
+    reference.CST.setScalarValue(referenceBlock as never, 'a "quoted" value', { type: 'QUOTE_DOUBLE' })
+    deepStrictEqual(block, referenceBlock)
+    const referenceEnd = (referenceBlock as { end?: unknown[] }).end
+    if (!referenceEnd) throw new Error('expected oracle trivia')
+    strictEqual(referenceEnd[0], referenceTrivia)
   })
 
   it('matches yaml scalar construction for bounded generated styles and contexts', () => {
@@ -106,6 +172,35 @@ describe('public CST helper namespace', () => {
     }), { numRuns: 300, seed: 20261109, path: process.env.FC_PATH })
   })
 
+  it('matches mutation behavior for parser-produced token kinds and invalid block headers', () => {
+    const source = '%YAML 1.2\n---\nanchor: &a plain\nalias: *a # retained\nsingle: \'quoted\'\ndouble: "quoted"\nflow: [a, {b: c}]\nblock:\n  - |2-\n    body\n...\n'
+    const ours = [...new compat.Parser().parse(source)] as Token[]
+    const theirs = [...new reference.Parser().parse(source)] as unknown as Token[]
+    const malformedSource = 'broken: ]\n'
+    const malformedOurs = [...new compat.Parser().parse(malformedSource)] as Token[]
+    const malformedTheirs = [...new reference.Parser().parse(malformedSource)] as unknown as Token[]
+    const oursTokens = [...ours, ...malformedOurs].flatMap(token => collectTokens(token))
+    const theirTokens = [...theirs, ...malformedTheirs].flatMap(token => collectTokens(token))
+    const covered = new Set(oursTokens.map(token => token.type))
+    for (const type of ['directive', 'document', 'error', 'block-map', 'block-seq', 'flow-collection', 'block-scalar', 'alias', 'single-quoted-scalar', 'double-quoted-scalar', 'scalar', 'doc-end', 'space', 'comment', 'block-scalar-header']) {
+      if (!covered.has(type as Token['type'])) throw new Error(`fixture did not produce token type ${type}`)
+    }
+    strictEqual(oursTokens.length, theirTokens.length)
+    for (let index = 0; index < oursTokens.length; index++) {
+      const actual = structuredClone(oursTokens[index]!)
+      const expected = structuredClone(theirTokens[index]!)
+      const identity = actual
+      compat.CST.setScalarValue(actual, 'replacement')
+      reference.CST.setScalarValue(expected as never, 'replacement')
+      strictEqual(actual, identity)
+      deepStrictEqual(actual, expected)
+    }
+    const invalid = { type: 'block-scalar', offset: 0, indent: 0, props: [{ type: 'space', offset: 0, indent: 0, source: ' ' }], source: 'body\n' } as unknown as Token
+    const expectedInvalid = structuredClone(invalid)
+    throws(() => compat.CST.setScalarValue(invalid, 'new'), /Invalid block scalar header/)
+    throws(() => reference.CST.setScalarValue(expectedInvalid as never, 'new'), /Invalid block scalar header/)
+  })
+
   it('matches yaml whitespace folding across generated LF and CRLF lines', () => {
     const whitespace = fc.array(fc.constantFrom(' ', '\t', 'a', 'b'), { maxLength: 12 }).map(parts => parts.join(''))
     fc.assert(fc.property(
@@ -125,8 +220,7 @@ describe('public CST helper namespace', () => {
 
   it('finishes folding a bounded hostile whitespace scalar inside its worker deadline', async () => {
     const worker = new Worker(new URL('./cst-scalar-worker.mjs', import.meta.url), {
-      workerData: { width: 250_000 },
-      execArgv: ['--import', 'tsx']
+      workerData: { width: 250_000 }
     })
     const result = await new Promise<string>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -254,6 +348,89 @@ describe('public CST helper namespace', () => {
       }
     })
     strictEqual(continuations, 2)
+
+    const wrapperDoc = [...new compat.Parser().parse('root: [a, b]\n')][0] as Document
+    const originalValue = wrapperDoc.value
+    let rootItem: unknown
+    compat.CST.visit(wrapperDoc, (item, path) => {
+      if (path.length === 0) {
+        rootItem = item
+        item.value = compat.CST.createScalarToken('replacement', { indent: 0 })
+      }
+    })
+    strictEqual(rootItem === wrapperDoc, false)
+    strictEqual(wrapperDoc.value, originalValue)
+  })
+
+  it('supports scalar, flow-collection, commented-key, and block-body rewrite workflows', () => {
+    const source = 'name: "before"\n'
+    const ours = [...new compat.Parser().parse(source)]
+    const theirs = [...new reference.Parser().parse(source)]
+    const oursDoc = ours[0] as Document
+    const theirsDoc = theirs[0] as unknown as Document
+    if (!oursDoc.value || !compat.CST.isCollection(oursDoc.value)) throw new Error('expected map')
+    if (!theirsDoc.value || !reference.CST.isCollection(theirsDoc.value)) throw new Error('expected reference map')
+    compat.CST.setScalarValue(oursDoc.value.items[0]!.value!, 'after')
+    reference.CST.setScalarValue(theirsDoc.value.items[0]!.value!, 'after')
+    const scalarText = compat.CST.stringify(oursDoc)
+    strictEqual(scalarText, 'name: "after"\n')
+    strictEqual(scalarText, reference.CST.stringify(theirsDoc))
+    deepStrictEqual(
+      composeWithOracle([...new compat.Parser().parse(scalarText)]),
+      composeWithOracle([...new reference.Parser().parse(scalarText)])
+    )
+
+    const flowSource = 'items: [one, two]\n'
+    const blockSource = 'items:\n  - one\n  - two\n'
+    const flowDoc = [...new compat.Parser().parse(flowSource)][0] as Document
+    const flowOracle = [...new reference.Parser().parse(flowSource)][0] as unknown as Document
+    const parsedBlock = [...new compat.Parser().parse(blockSource)][0] as Document
+    const parsedBlockOracle = [...new reference.Parser().parse(blockSource)][0] as unknown as Document
+    if (!flowDoc.value || !compat.CST.isCollection(flowDoc.value) || !parsedBlock.value || !compat.CST.isCollection(parsedBlock.value)) throw new Error('expected collections')
+    if (!flowOracle.value || !reference.CST.isCollection(flowOracle.value) || !parsedBlockOracle.value || !reference.CST.isCollection(parsedBlockOracle.value)) throw new Error('expected reference collections')
+    flowDoc.value.items[0]!.sep = parsedBlock.value.items[0]!.sep
+    flowOracle.value.items[0]!.sep = parsedBlockOracle.value.items[0]!.sep
+    flowDoc.value.items[0]!.value = parsedBlock.value.items[0]!.value
+    flowOracle.value.items[0]!.value = parsedBlockOracle.value.items[0]!.value
+    strictEqual(compat.CST.stringify(flowDoc), blockSource)
+    strictEqual(compat.CST.stringify(flowDoc), reference.CST.stringify(flowOracle))
+    deepStrictEqual(
+      composeWithOracle([...new compat.Parser().parse(blockSource)]),
+      composeWithOracle([...new reference.Parser().parse(blockSource)])
+    )
+
+    const commentedSource = 'a: 1 # keep-a\nb: 2 # keep-b\n'
+    const oursCommented = [...new compat.Parser().parse(commentedSource)][0] as Document
+    const theirsCommented = [...new reference.Parser().parse(commentedSource)][0] as unknown as Document
+    if (!oursCommented.value || !compat.CST.isCollection(oursCommented.value)) throw new Error('expected map')
+    if (!theirsCommented.value || !reference.CST.isCollection(theirsCommented.value)) throw new Error('expected reference map')
+    oursCommented.value.items.reverse()
+    theirsCommented.value.items.reverse()
+    const reordered = compat.CST.stringify(oursCommented)
+    strictEqual(reordered, 'b: 2 # keep-b\na: 1 # keep-a\n')
+    strictEqual(reordered, reference.CST.stringify(theirsCommented))
+    deepStrictEqual([...new compat.Parser().parse(reordered)], [...new reference.Parser().parse(reordered)])
+    deepStrictEqual(
+      composeWithOracle([...new compat.Parser().parse(reordered)]),
+      composeWithOracle([...new reference.Parser().parse(reordered)])
+    )
+
+    const blockScalarSource = 'text: |-\n  old\n'
+    const oursBlock = [...new compat.Parser().parse(blockScalarSource)][0] as Document
+    const theirsBlock = [...new reference.Parser().parse(blockScalarSource)][0] as unknown as Document
+    if (!oursBlock.value || !compat.CST.isCollection(oursBlock.value) || !theirsBlock.value || !reference.CST.isCollection(theirsBlock.value)) throw new Error('expected map')
+    const oursValue = oursBlock.value.items[0]!.value!
+    const theirsValue = theirsBlock.value.items[0]!.value!
+    compat.CST.setScalarValue(oursValue, 'new\nline', { afterKey: true })
+    reference.CST.setScalarValue(theirsValue, 'new\nline', { afterKey: true })
+    const blockText = compat.CST.stringify(oursBlock)
+    strictEqual(blockText, 'text: |-\n  new\n  line\n')
+    strictEqual(blockText, reference.CST.stringify(theirsBlock))
+    deepStrictEqual([...new compat.Parser().parse(blockText)], [...new reference.Parser().parse(blockText)])
+    deepStrictEqual(
+      composeWithOracle([...new compat.Parser().parse(blockText)]),
+      composeWithOracle([...new reference.Parser().parse(blockText)])
+    )
   })
 
   it('reports malformed quoted scalar diagnostics with upstream positions', () => {

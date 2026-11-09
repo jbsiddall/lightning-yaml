@@ -97,7 +97,7 @@ async function worker() {
       if (api.CST.resolveAsScalar(scalar)?.value !== 'first value') fail(`${label}: first scalar resolution mismatch`)
       if (serialized !== fixtures.block || visited < 3) fail(`${label}: first parser/helper workflow mismatch`)
       result.firstWorkflowMs = performance.now() - firstStart
-      result.importPlusFirstWorkflowMs = performance.now() - importStart
+      result.importThroughFirstWorkflowMs = performance.now() - importStart
       result.firstWorkflow = { sourceBytes: fixtures.block.length, serializedBytes: serialized.length, visitedItems: visited }
     }
   } else if (mode === 'warm') {
@@ -193,7 +193,7 @@ async function main() {
   }
   const output = {
     kind: 'focused-cst-helper-measurement',
-    status: 'mechanics measurement; not a universal performance claim',
+    status: 'bounded local measurements; not a universal performance claim',
     provenance: {
       generatedAt: new Date().toISOString(),
       cwd: repoRoot,
@@ -209,7 +209,7 @@ async function main() {
       format: 'ESM only',
       wallLimitMs,
       samplesPerCase,
-      coldMetrics: 'fresh subprocess baseline heap/RSS, cold ESM import latency and post-import heap/RSS deltas; candidate/reference also report first Parser + CST workflow time',
+      coldMetrics: 'fresh subprocess baseline heap/RSS and cold ESM import latency/post-import heap/RSS deltas; candidate/reference separately time the first Parser + CST workflow, and report importThroughFirstWorkflowMs from import start through that workflow, including intervening GC and memory reads',
       warmTimingRegions: 'per workload below; no parsing/cloning in timed visit/stringify regions',
       workloads: iterationCounts,
       scanner: 'one candidate subprocess samples 10k/50k/250k whitespace widths; one reference subprocess samples only 1k/5k/10k to bound exposure to the known quadratic fallback; timings are local samples, not a proof of complexity',

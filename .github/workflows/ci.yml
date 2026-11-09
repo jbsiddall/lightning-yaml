@@ -51,6 +51,7 @@ jobs:
       - name: Smoke test built dist (ESM + CJS + compat subpaths)
         run: |
           set -eu
+          node scripts/compatibility/check-source-parser-provenance.mjs
 
           cat > ./.smoke-test.mjs <<'EOF'
           import { existsSync, statSync } from 'node:fs';

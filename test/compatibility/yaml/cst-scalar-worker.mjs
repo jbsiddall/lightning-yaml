@@ -1,5 +1,7 @@
 import { parentPort, workerData } from 'node:worker_threads'
-import { CST } from '../../../src/yaml-compat.ts'
+import { tsImport } from 'tsx/esm/api'
+
+const { CST } = await tsImport('../../../src/yaml-compat.ts', import.meta.url)
 
 const token = {
   type: 'double-quoted-scalar',
