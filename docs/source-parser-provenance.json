@@ -35,9 +35,109 @@
       "localPath": "src/source/cst.ts",
       "adaptations": [
         "Added retained ISC legal comment.",
-        "Removed the first eight lines of re-exports for scalar mutation/resolution, stringify, and visitors; retained the complete token types, constants, and helpers required by Lexer and Parser.",
+        "Restored the pinned re-exports for scalar mutation/resolution, stringify, and visitors; retained existing token types, constants, and helpers required by Lexer and Parser.",
         "Removed redundant comments that restated BOM, helper names, and helper predicates; retained control-character explanations."
       ]
+    },
+    {
+      "upstreamPath": "src/parse/cst-scalar.ts",
+      "sha256": "197486d731f73820ea948772d03316f90351d1b94e7e5539380e3f15ee09f165",
+      "localPath": "src/source/cst-scalar.ts",
+      "adaptations": [
+        "Retained ISC notice and upstream create/resolve/set behavior; redirected imports to private source-layer helpers.",
+        "Replaced Composer, Scalar, and Document stringify context dependencies with structural private types and string-style literals; source-layer YAMLParseError behavior is preserved.",
+        "CST stringification continues to use the upstream helper options blockQuote:true and lineWidth:-1."
+      ]
+    },
+    {
+      "upstreamPath": "src/parse/cst-stringify.ts",
+      "sha256": "8307375dc102377a65e33a3828bc547366b40ec9718ba8c27da2061bd6b5893a",
+      "localPath": "src/source/cst-stringify.ts",
+      "adaptations": ["Retained ISC notice and upstream logical-order concatenation behavior; imports the local CST token types."]
+    },
+    {
+      "upstreamPath": "src/parse/cst-visit.ts",
+      "sha256": "8ca68ffc11e50bfb7431d67bb427e1b66e2eec1015e5447cff865ac626307a72",
+      "localPath": "src/source/cst-visit.ts",
+      "adaptations": ["Retained ISC notice and upstream visitor controls, path behavior, and live edits; imports the local structural token types."]
+    },
+    {
+      "upstreamPath": "src/compose/resolve-block-scalar.ts",
+      "sha256": "51a9c85a5dd88d3ee45d41c88d76b9cfd24d457f06a0915295463d84e32dff40",
+      "localPath": "src/source/compose/resolve-block-scalar.ts",
+      "adaptations": ["Retained ISC notice and pinned resolver behavior; replaced runtime Scalar constants and Composer/context imports with private style literals and structural helper types."]
+    },
+    {
+      "upstreamPath": "src/compose/resolve-flow-scalar.ts",
+      "sha256": "345db9b5577d1efb2078bc9e191973545ae7ce0595bf182d51c2e0842e11f913",
+      "localPath": "src/source/compose/resolve-flow-scalar.ts",
+      "adaptations": ["Retained ISC notice and pinned resolver behavior; uses the monotonic foldLines scanner from held PR #275 at dc419be9 instead of the pinned quadratic regex scanner; replaced runtime Scalar and Composer dependencies with private style literals and structural helper types."]
+    },
+    {
+      "upstreamPath": "src/compose/resolve-end.ts",
+      "sha256": "9b3e56640d624adeb3df4b2d6aa569ff541ee3d4902208d53d348414beb8e494",
+      "localPath": "src/source/compose/resolve-end.ts",
+      "adaptations": ["Retained ISC notice and pinned end-trivia diagnostics; imports the local callback and token types."]
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyString.ts",
+      "sha256": "badac28dac2f8df4cff74c9ad15a11a942f3312510efcf50dd1444959e26cd02",
+      "localPath": "src/source/stringify/stringifyString.ts",
+      "adaptations": ["Retained ISC notice and upstream string writing behavior; uses the pinned folder and private structural context; replaces runtime Scalar/schema imports with style literals and a narrow tag-test shape."]
+    },
+    {
+      "upstreamPath": "src/stringify/foldFlowLines.ts",
+      "sha256": "20e2179a5bf3a3019b8bd40ad09a9b82f59c0a1c3da28464c53c5089c5c89096",
+      "localPath": "src/source/stringify/foldFlowLines.ts",
+      "adaptations": ["Retained ISC notice and upstream line folding algorithm; helper has no Composer or Document dependency."]
+    },
+    {
+      "upstreamPath": "src/errors.ts",
+      "sha256": "f53386c16360887008e24db1928d9d8fc234eb0288ecb2b28ce9b512929cd511",
+      "localPath": "src/source/errors.ts",
+      "adaptations": ["Retained ISC notice, pinned ErrorCode members needed by scalar helpers, YAMLError, and YAMLParseError; omitted unused warning and prettifier support."]
+    },
+    {
+      "upstreamPath": "src/nodes/Scalar.ts",
+      "sha256": "9b3aa03a8490658cafed45c855d9ac27ae8fabf348e2c4045787e30527f48a9e",
+      "localPath": "src/source/scalar-types.d.ts",
+      "adaptations": ["Extracted the five scalar-style string literal types without importing or defining a runtime Scalar class."]
+    },
+    {
+      "upstreamPath": "src/nodes/Node.ts",
+      "sha256": "2ee85c90a44bc672a4646a6f692c55ac36132214c03b6ec8a6dde88d9c47b585",
+      "localPath": "src/source/scalar-types.d.ts",
+      "adaptations": ["Extracted only the three-number Range tuple used by scalar resolution."]
+    },
+    {
+      "upstreamPath": "src/compose/compose-node.ts",
+      "sha256": "d303028bdf4f6bb6f1d71679bb4bffeb7a3123f01f062a369deb7ca0a988dce0",
+      "localPath": "src/source/scalar-types.d.ts",
+      "adaptations": ["Extracted the strict option context as a private structural type; no Composer runtime or module dependency is included."]
+    },
+    {
+      "upstreamPath": "src/compose/composer.ts",
+      "sha256": "f82f0f35f85ecaf80da4f88566c680622ae67feee31ae3556732ad37667cf299",
+      "localPath": "src/source/scalar-types.d.ts",
+      "adaptations": ["Extracted the resolver callback position/code/message shape as a private structural type; no Composer runtime or module dependency is included."]
+    },
+    {
+      "upstreamPath": "src/stringify/stringify.ts",
+      "sha256": "f496c3b5994d06a6a4d1d342975e1557d0a70f143b349b5c8e6587679739ca74",
+      "localPath": "src/source/stringify/stringify-types.d.ts",
+      "adaptations": ["Extracted the partial writer context fields actually read by stringifyString; CST's undefined option defaults are preserved, without loading Document runtime."]
+    },
+    {
+      "upstreamPath": "src/schema/types.ts",
+      "sha256": "335b9f9b1191ff1a11439c71fed5d62cbfdd53b41e170785701a35ac4fc8fecc",
+      "localPath": "src/source/stringify/stringify-types.d.ts",
+      "adaptations": ["Extracted only the structural tag test shape used by stringifyString; no schema runtime graph is loaded."]
+    },
+    {
+      "upstreamPath": "src/parse/cst.ts",
+      "sha256": "064b5e0505d2fe275b1d022efbdd71d6a6c288886599f70475eb57dfdcfe3b92",
+      "localPath": "src/source/scalar-types.d.ts",
+      "adaptations": ["Uses existing CST token types for the private resolver context; does not add node or Composer dependencies."]
     }
   ],
   "distributionNotice": "THIRD_PARTY_NOTICES"

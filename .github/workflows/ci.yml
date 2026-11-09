@@ -107,6 +107,10 @@ jobs:
 
           node ./.smoke-test.mjs
           node ./.smoke-test.cjs
+          node scripts/compatibility/smoke-cst-helpers.mjs
+          ln -s .. node_modules/lightning-yaml
+          pnpm exec tsc --noEmit -p test/compatibility/yaml/cst-consumer.tsconfig.json
+          rm node_modules/lightning-yaml
 
           rm -f ./.smoke-test.mjs ./.smoke-test.cjs
 
