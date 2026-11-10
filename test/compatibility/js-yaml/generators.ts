@@ -39,7 +39,6 @@ export const textArb: fc.Arbitrary<string> = fc.oneof(
     .map((xs) => `items: [${xs.map((x) => JSON.stringify(x)).join(", ")}]\n`),
   fc.string({ maxLength: 96 }).map((s) => `value: ${JSON.stringify(s)}\n`),
 );
-// Container depth is explicitly capped at two; leaves follow scalarSchema.
 export const graphArb: fc.Arbitrary<unknown> = fc.oneof(
   scalarArb,
   fc.array(scalarArb, { maxLength: 6 }),
