@@ -8,7 +8,7 @@
     "@traversable/registry": "0.0.49",
     "@traversable/zod-test": "0.0.28",
     "@traversable/zod-types": "0.0.30",
-    "fast-check": "3.23.2",
-    "zod": "4.6.6"
+    "fast-check": "4.10.2",
+    "zod": "4.6.7"
   }
 }
