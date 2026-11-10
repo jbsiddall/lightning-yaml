@@ -451,7 +451,14 @@ export async function main(): Promise<void> {
   }).trim();
   const dependencies = Object.fromEntries(
     await Promise.all(
-      ["@fast-check/vitest", "fast-check", "js-yaml", "yaml", "zod", "zod-fast-check"].map(
+      [
+        "@fast-check/vitest",
+        "@traversable/zod-test",
+        "fast-check",
+        "js-yaml",
+        "yaml",
+        "zod",
+      ].map(
         async (name) => [name, await installedPackageVersion(name)] as const,
       ),
     ),

@@ -18,10 +18,27 @@ pnpm test:coverage
 
 <!-- js-yaml:5.4.3 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
 
-The compatibility harness is a private workspace package with pinned Zod 3 and
-fast-check 3 dependencies for `zod-fast-check`; the application keeps root Zod 4.
-`@fast-check/vitest` runs generated properties, and `ZodFastCheck().inputOf()`
-supplies scalar arbitraries used in the campaign.
+<!-- zod:4.6.6 fast-check:3.23.2 @traversable/zod-test:0.0.28 -->
+
+The compatibility harness is a private workspace package with pinned Zod 4.6.6
+and fast-check 3 dependencies. `@fast-check/vitest` runs generated properties;
+[`@traversable/zod-test`](https://github.com/traversable/schema/tree/main/packages/zod-test#zxtestfuzz)
+derives scalar arbitraries from a Zod schema, and a validation guard throws if
+the adapter emits a value that fails that schema. The fast-check
+[ecosystem entry](https://fast-check.dev/docs/ecosystem/#traversablezod-test)
+lists it as third-party software and does not guarantee maintenance or
+stability.
+The generated scalar domain preserves the prior effective budgets: strings up
+to 10 characters, safe-range doubles without NaN, plus positive infinity,
+booleans and null. Container shapes and their depth/length/key limits remain
+explicit in the harness. The adapter has a known limitation with some numeric
+schema bounds, so this harness keeps those sampling budgets outside the schema
+and validates every generated value. Schema transforms and coercions are not
+part of this helper's contract: it returns generated raw inputs and only the
+identity input/output schemas used here are supported. New dependency versions
+or arbitrary construction can change seeded samples and shrink paths; saved
+campaign descriptors remain the replay format. The adapter's dependency
+metadata does not establish universal derivation of every Zod constraint.
 
 <!-- js-yaml:5.4.3 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
 
@@ -205,8 +222,9 @@ excluded; other built-in typed arrays retain backing-buffer identity checks.
 # yaml compatibility testing
 
 This campaign compares `lightning-yaml/yaml` with pinned `yaml@2.9.0`.
-It shares the private fast-check/zod-fast-check workspace package, graph
-comparator, generators and CLI argument parser with the js-yaml campaign.
+It shares the private fast-check and schema-derived arbitrary workspace
+package, graph comparator, generators and CLI argument parser with the js-yaml
+campaign.
 
 ## Implemented source layer
 
