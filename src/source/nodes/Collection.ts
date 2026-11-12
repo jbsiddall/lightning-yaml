@@ -103,7 +103,6 @@ export abstract class Collection extends NodeBase {
     return copy
   }
 
-  /** Adds a value to the collection. */
   abstract add(value: unknown): void
 
   /**

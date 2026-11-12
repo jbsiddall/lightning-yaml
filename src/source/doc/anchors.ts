@@ -22,11 +22,6 @@ import { visit } from '../visit.ts'
 import type { CreateNodeContext } from './createNode.ts'
 import type { Document } from './document-context.d.ts'
 
-/**
- * Verify that the input string is a valid anchor.
- *
- * Will throw on errors.
- */
 export function anchorIsValid(anchor: string): true {
   if (/[\x00-\x19\s,[\]{}]/.test(anchor)) {
     const sa = JSON.stringify(anchor)
@@ -46,7 +41,6 @@ export function anchorNames(root: Document<Node, boolean> | Node) {
   return anchors
 }
 
-/** Find a new anchor name with the given `prefix` and a one-indexed suffix. */
 export function findNewAnchor(prefix: string, exclude: Set<string>) {
   for (let i = 1; true; ++i) {
     const name = `${prefix}${i}`

@@ -193,9 +193,10 @@
       "localPath": "src/source/doc/anchors.ts",
       "adaptations": [
         "Added retained ISC notice.",
-        "Replaced the unavailable Document implementation import with a private type-only DocumentContext; traversal and anchor behavior are unchanged."
+        "Replaced the unavailable Document implementation import with a private type-only DocumentContext; traversal and anchor behavior are unchanged.",
+        "Removed redundant source-narration comments; runtime behavior is unchanged."
       ],
-      "localSha256": "13b81b1e057be67217844886e8f2949bf24a1c307fb2141587e5b994bbe373fc"
+      "localSha256": "94e4304e9c4efc44cfc29e6bf9383f63070aee281d018ded6c3280eaeeb784b8"
     },
     {
       "upstreamPath": "src/doc/applyReviver.ts",
@@ -241,9 +242,10 @@
       "localPath": "src/source/nodes/Collection.ts",
       "adaptations": [
         "Added retained ISC notice.",
-        "Replaced the unavailable Schema type with private SchemaContext for collection/path methods."
+        "Replaced the unavailable Schema type with private SchemaContext for collection/path methods.",
+        "Removed redundant source-narration comments; runtime behavior is unchanged."
       ],
-      "localSha256": "e5bd24fd11cc6d9458147ba7e5d5f4247182bd41ee827edaf2f465d24d1ddce3"
+      "localSha256": "31953801ca99f79f18bf16e88f7ff79772d030572c720a579a11eb0936bc8a9a"
     },
     {
       "upstreamPath": "src/nodes/Node.ts",

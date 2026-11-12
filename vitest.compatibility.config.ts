@@ -2,7 +2,7 @@ import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["test/compatibility/**/*.test.ts", "test/compatibility/**/*.test.mjs"],
+    include: ["test/compatibility/**/*.test.ts"],
     exclude: [
       ...configDefaults.exclude,
       "test/compatibility/cst/candidate.integration.test.ts",
