@@ -388,7 +388,7 @@
         "Added retained ISC notice.",
         "Extracted a private type-only context; Type-only Document API and NODE_TYPE marker contract. No upstream runtime class or module is included."
       ],
-      "localSha256": "8ec949b4af75b3f604cd3d27b0615ff965b79089f20eadf461f1c4404cced4ec"
+      "localSha256": "b68faa4d57aab93aa0a1b7a68d013ffffec24ad95e868acf64f0fdccecf65cf6"
     },
     {
       "upstreamPath": "src/options.ts",
@@ -398,7 +398,7 @@
         "Added retained ISC notice.",
         "Extracted a private type-only context; Type-only context option/callback signatures used by node methods. No upstream runtime class or module is included."
       ],
-      "localSha256": "8ec949b4af75b3f604cd3d27b0615ff965b79089f20eadf461f1c4404cced4ec"
+      "localSha256": "b68faa4d57aab93aa0a1b7a68d013ffffec24ad95e868acf64f0fdccecf65cf6"
     },
     {
       "upstreamPath": "src/schema/Schema.ts",
@@ -408,7 +408,7 @@
         "Added retained ISC notice.",
         "Extracted a private type-only context; Type-only Schema fields and local MAP/SCALAR/SEQ slots. No upstream runtime class or module is included."
       ],
-      "localSha256": "bdb7a86dd055d65999db9d897b0993468807674dc78fa43482eaea61d0a920e6"
+      "localSha256": "49388a269274ec91cdb22acf007573e6a083ac812d95dcbb905bde5c00d144ab"
     },
     {
       "upstreamPath": "src/schema/types.ts",
@@ -418,7 +418,7 @@
         "Added retained ISC notice.",
         "Extracted a private type-only context; Exact ScalarTag/CollectionTag callback contracts copied into the private context. No upstream runtime class or module is included."
       ],
-      "localSha256": "bdb7a86dd055d65999db9d897b0993468807674dc78fa43482eaea61d0a920e6"
+      "localSha256": "49388a269274ec91cdb22acf007573e6a083ac812d95dcbb905bde5c00d144ab"
     },
     {
       "upstreamPath": "src/options.ts",
@@ -428,7 +428,7 @@
         "Added retained ISC notice.",
         "Extracted a private type-only context; Type-only parse/create/toJS/stringify option subsets, preserving upstream callback and comparator types. No upstream runtime class or module is included."
       ],
-      "localSha256": "70499c36459e17f45cd40710bc821e6f2f7c5f3821eab90565c89cdc408de75c"
+      "localSha256": "3828769d222d1482978389e42ca014f4c7921732bbd5a617ab65a40f9dd1dab7"
     }
   ],
   "distributionNotice": "THIRD_PARTY_NOTICES"

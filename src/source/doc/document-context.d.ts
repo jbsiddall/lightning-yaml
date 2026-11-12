@@ -17,7 +17,34 @@ import type { Node } from '../nodes/Node.ts'
 import type { NodeType } from '../nodes/Node.ts'
 import type { NODE_TYPE } from '../nodes/identity.ts'
 import type { SchemaContext } from '../schema/schema-context.d.ts'
-import type { CreateNodeOptions, ToJSOptions, ToStringOptions } from '../nodes/node-options.d.ts'
-export interface DocumentContext { readonly [NODE_TYPE]: symbol; commentBefore: string | null; comment: string | null; contents: Node | null; directives: { tagString(tag: string): string } | undefined; options: { logLevel: 'silent' | 'error' | 'warn' | 'debug' }; schema: SchemaContext; createNode<T = unknown>(value: T, options?: CreateNodeOptions): NodeType<T>; createNode<T = unknown>(value: T, replacer: unknown[] | ((key: unknown, value: unknown) => unknown) | CreateNodeOptions | null, options?: CreateNodeOptions): NodeType<T>; toJS(options?: ToJSOptions & { [ignored: string]: unknown }): any; toJSON(key?: string | null, onAnchor?: ToJSOptions['onAnchor']): any; toString(options?: ToStringOptions): string }
+import type {
+  CreateNodeOptions,
+  ToJSOptions,
+  ToStringOptions
+} from '../nodes/node-options.d.ts'
+
+export interface DocumentContext {
+  readonly [NODE_TYPE]: symbol
+  commentBefore: string | null
+  comment: string | null
+  contents: Node | null
+  directives: { tagString(tag: string): string } | undefined
+  options: { logLevel: 'silent' | 'error' | 'warn' | 'debug' }
+  schema: SchemaContext
+  createNode<T = unknown>(value: T, options?: CreateNodeOptions): NodeType<T>
+  createNode<T = unknown>(
+    value: T,
+    replacer:
+      | unknown[]
+      | ((key: unknown, value: unknown) => unknown)
+      | CreateNodeOptions
+      | null,
+    options?: CreateNodeOptions
+  ): NodeType<T>
+  toJS(options?: ToJSOptions & { [ignored: string]: unknown }): any
+  toJSON(key?: string | null, onAnchor?: ToJSOptions['onAnchor']): any
+  toString(options?: ToStringOptions): string
+}
+
 export type Document<T = Node, Strict extends boolean = boolean> = DocumentContext
 export type Replacer = unknown[] | ((key: unknown, value: unknown) => unknown)

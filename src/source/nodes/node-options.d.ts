@@ -20,8 +20,57 @@ import type { ParsedNode } from './Node.ts'
 import type { Pair } from './Pair.ts'
 import type { Scalar } from './Scalar.ts'
 import type { CollectionTag, ScalarTag } from '../schema/schema-context.d.ts'
-export interface ParseOptions { intAsBigInt?: boolean; keepSourceTokens?: boolean; lineCounter?: LineCounter; prettyErrors?: boolean; strict?: boolean; stringKeys?: boolean; uniqueKeys?: boolean | ((a: ParsedNode, b: ParsedNode) => boolean) }
-export interface DocumentOptions { logLevel?: LogLevelId; version?: '1.1' | '1.2' | 'next' }
-export interface CreateNodeOptions { aliasDuplicateObjects?: boolean; anchorPrefix?: string; flow?: boolean; keepUndefined?: boolean | null; onTagObj?: (tagObj: ScalarTag | CollectionTag) => void; tag?: string }
-export interface ToJSOptions { mapAsMap?: boolean; maxAliasCount?: number; onAnchor?: (value: unknown, count: number) => void; reviver?: Reviver }
-export interface ToStringOptions { blockQuote?: boolean | 'folded' | 'literal'; collectionStyle?: 'any' | 'block' | 'flow'; commentString?: (comment: string) => string; defaultKeyType?: Scalar.Type | null; defaultStringType?: Scalar.Type; directives?: boolean | null; doubleQuotedAsJSON?: boolean; doubleQuotedMinMultiLineLength?: number; falseStr?: string; flowCollectionPadding?: boolean; indent?: number; indentSeq?: boolean; lineWidth?: number; minContentWidth?: number; nullStr?: string; simpleKeys?: boolean; singleQuote?: boolean | null; trailingComma?: boolean; trueStr?: string; verifyAliasOrder?: boolean }
+
+export interface ParseOptions {
+  intAsBigInt?: boolean
+  keepSourceTokens?: boolean
+  lineCounter?: LineCounter
+  prettyErrors?: boolean
+  strict?: boolean
+  stringKeys?: boolean
+  uniqueKeys?: boolean | ((a: ParsedNode, b: ParsedNode) => boolean)
+}
+
+export interface DocumentOptions {
+  logLevel?: LogLevelId
+  version?: '1.1' | '1.2' | 'next'
+}
+
+export interface CreateNodeOptions {
+  aliasDuplicateObjects?: boolean
+  anchorPrefix?: string
+  flow?: boolean
+  keepUndefined?: boolean | null
+  onTagObj?: (tagObj: ScalarTag | CollectionTag) => void
+  tag?: string
+}
+
+export interface ToJSOptions {
+  mapAsMap?: boolean
+  maxAliasCount?: number
+  onAnchor?: (value: unknown, count: number) => void
+  reviver?: Reviver
+}
+
+export interface ToStringOptions {
+  blockQuote?: boolean | 'folded' | 'literal'
+  collectionStyle?: 'any' | 'block' | 'flow'
+  commentString?: (comment: string) => string
+  defaultKeyType?: Scalar.Type | null
+  defaultStringType?: Scalar.Type
+  directives?: boolean | null
+  doubleQuotedAsJSON?: boolean
+  doubleQuotedMinMultiLineLength?: number
+  falseStr?: string
+  flowCollectionPadding?: boolean
+  indent?: number
+  indentSeq?: boolean
+  lineWidth?: number
+  minContentWidth?: number
+  nullStr?: string
+  simpleKeys?: boolean
+  singleQuote?: boolean | null
+  trailingComma?: boolean
+  trueStr?: string
+  verifyAliasOrder?: boolean
+}

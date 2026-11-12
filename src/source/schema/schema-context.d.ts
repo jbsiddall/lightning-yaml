@@ -22,8 +22,62 @@ import type { YAMLSeq } from '../nodes/YAMLSeq.ts'
 import type { ParseOptions, ToStringOptions } from '../nodes/node-options.d.ts'
 import type { StringifyContext } from '../stringify/stringify.ts'
 import { MAP, SCALAR, SEQ } from '../nodes/identity.ts'
-interface TagBase { createNode?: (schema: SchemaContext, value: unknown, ctx: CreateNodeContext) => Node; default?: boolean | 'key'; format?: string; identify?: (value: unknown) => boolean; tag: string }
-export interface ScalarTag extends TagBase { collection?: never; nodeClass?: never; resolve(value: string, onError: (message: string) => void, options: ParseOptions): unknown; stringify?: (item: Scalar, ctx: StringifyContext, onComment?: () => void, onChompKeep?: () => void) => string; test?: RegExp }
-export interface CollectionTag extends TagBase { collection: 'map' | 'seq'; nodeClass?: { new (schema?: SchemaContext): Node; from?: (schema: SchemaContext, obj: unknown, ctx: CreateNodeContext) => Node }; resolve?: (value: YAMLMap.Parsed | YAMLSeq.Parsed, onError: (message: string) => void, options: ParseOptions) => unknown; stringify?: never; test?: never }
-export interface SchemaContext { compat: Array<CollectionTag | ScalarTag> | null; knownTags: Record<string, CollectionTag | ScalarTag>; name: string; sortMapEntries: ((a: Pair, b: Pair) => number) | null; tags: Array<CollectionTag | ScalarTag>; toStringOptions: Readonly<ToStringOptions> | null; clone(): SchemaContext; readonly [MAP]: CollectionTag; readonly [SCALAR]: ScalarTag; readonly [SEQ]: CollectionTag }
+
+interface TagBase {
+  createNode?: (
+    schema: SchemaContext,
+    value: unknown,
+    ctx: CreateNodeContext
+  ) => Node
+  default?: boolean | 'key'
+  format?: string
+  identify?: (value: unknown) => boolean
+  tag: string
+}
+
+export interface ScalarTag extends TagBase {
+  collection?: never
+  nodeClass?: never
+  resolve(
+    value: string,
+    onError: (message: string) => void,
+    options: ParseOptions
+  ): unknown
+  stringify?: (
+    item: Scalar,
+    ctx: StringifyContext,
+    onComment?: () => void,
+    onChompKeep?: () => void
+  ) => string
+  test?: RegExp
+}
+
+export interface CollectionTag extends TagBase {
+  collection: 'map' | 'seq'
+  nodeClass?: {
+    new (schema?: SchemaContext): Node
+    from?: (schema: SchemaContext, obj: unknown, ctx: CreateNodeContext) => Node
+  }
+  resolve?: (
+    value: YAMLMap.Parsed | YAMLSeq.Parsed,
+    onError: (message: string) => void,
+    options: ParseOptions
+  ) => unknown
+  stringify?: never
+  test?: never
+}
+
+export interface SchemaContext {
+  compat: Array<CollectionTag | ScalarTag> | null
+  knownTags: Record<string, CollectionTag | ScalarTag>
+  name: string
+  sortMapEntries: ((a: Pair, b: Pair) => number) | null
+  tags: Array<CollectionTag | ScalarTag>
+  toStringOptions: Readonly<ToStringOptions> | null
+  clone(): SchemaContext
+  readonly [MAP]: CollectionTag
+  readonly [SCALAR]: ScalarTag
+  readonly [SEQ]: CollectionTag
+}
+
 export type Schema = SchemaContext

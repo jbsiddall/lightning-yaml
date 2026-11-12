@@ -32,6 +32,14 @@ const referenceDocument = contents => {
   return doc
 }
 
+const capture = fn => {
+  try {
+    return { status: 'return', value: fn() }
+  } catch (error) {
+    return { status: 'throw', name: error.name, message: error.message }
+  }
+}
+
 test('real node constructors use shared Symbol.for markers and predicates', () => {
   const scalar = new NodeScalar('x')
   const pair = new NodePair(scalar, new NodeSeq())
@@ -261,4 +269,502 @@ test('seeded bounded node arrays match reference YAML values', () => {
     }),
     { seed: 20261112, numRuns: 60 }
   )
+})
+
+test('alias limits match the reference for zero, finite, default, and unlimited counts', () => {
+  const makeGraph = (Scalar, Seq, Alias) => {
+    const anchor = new Scalar('shared')
+    anchor.anchor = 'a'
+    const root = new Seq()
+    root.items.push(anchor, new Alias('a'), new Alias('a'))
+    return { root, doc: referenceDocument(root) }
+  }
+  const candidate = makeGraph(NodeScalar, NodeSeq, NodeAlias)
+  const reference = makeGraph(yaml.Scalar, yaml.YAMLSeq, yaml.Alias)
+  for (const maxAliasCount of [0, 1, 2, 3, undefined, -1]) {
+    const options = maxAliasCount === undefined ? {} : { maxAliasCount }
+    const getResult = (root, doc) => capture(() => {
+      const anchorEvents = []
+      const value = root.toJS(doc, {
+        ...options,
+        onAnchor: (result, count) => anchorEvents.push([result, count])
+      })
+      return {
+        values: value,
+        sharesAnchor: value[0] === value[1] && value[1] === value[2],
+        anchorEvents
+      }
+    })
+    const actual = getResult(candidate.root, candidate.doc)
+    const expected = getResult(reference.root, reference.doc)
+    assert.equal(actual.status, expected.status, `maxAliasCount=${maxAliasCount}`)
+    if (actual.status === 'throw') {
+      assert.deepEqual(
+        { name: actual.name, message: actual.message },
+        { name: expected.name, message: expected.message },
+        `maxAliasCount=${maxAliasCount}`
+      )
+    } else {
+      assert.deepEqual(actual.value, expected.value, `maxAliasCount=${maxAliasCount}`)
+      assert.equal(actual.value.sharesAnchor, true)
+    }
+  }
+})
+
+test('alias resolution uses the last prior duplicate anchor and rejects unresolved aliases', () => {
+  const resolveCases = (Scalar, Seq, Alias) => {
+    const first = new Scalar('first')
+    first.anchor = 'dup'
+    const second = new Scalar('second')
+    second.anchor = 'dup'
+    const before = new Alias('dup')
+    const between = new Alias('dup')
+    const after = new Alias('dup')
+    const root = new Seq()
+    root.items.push(before, first, between, second, after)
+    const doc = referenceDocument(root)
+    return {
+      resolution: [before, between, after].map(alias => {
+        const resolved = alias.resolve(doc)
+        return resolved === first ? 'first' : resolved === second ? 'second' : null
+      }),
+      unresolved: capture(() =>
+        new Alias('missing').toJSON('', {
+          anchors: new Map(),
+          doc,
+          keep: true,
+          mapAsMap: false,
+          mapKeyWarned: false,
+          maxAliasCount: 100
+        })
+      )
+    }
+  }
+  const actual = resolveCases(NodeScalar, NodeSeq, NodeAlias)
+  const expected = resolveCases(yaml.Scalar, yaml.YAMLSeq, yaml.Alias)
+  assert.deepEqual(actual.resolution, [null, 'first', 'second'])
+  assert.deepEqual(actual.resolution, expected.resolution)
+  assert.deepEqual(actual.unresolved, expected.unresolved)
+  assert.equal(actual.unresolved.status, 'throw')
+  assert.equal(actual.unresolved.name, 'ReferenceError')
+})
+
+test('shared and cyclic alias conversion preserves the reference graph', () => {
+  const makeSelfCycle = (Seq, Alias) => {
+    const root = new Seq()
+    root.anchor = 'self'
+    root.items.push(new Alias('self'))
+    const doc = referenceDocument(root)
+    return { root, doc }
+  }
+  const actual = makeSelfCycle(NodeSeq, NodeAlias)
+  const expected = makeSelfCycle(yaml.YAMLSeq, yaml.Alias)
+  const actualValue = actual.root.toJS(actual.doc)
+  const expectedValue = expected.root.toJS(expected.doc)
+  assert.equal(actualValue[0], actualValue)
+  assert.equal(expectedValue[0], expectedValue)
+  assert.deepEqual(actualValue, expectedValue)
+})
+
+test('scalar object brands and custom toJSON values convert like the reference', () => {
+  const make = Scalar => {
+    const calls = []
+    const value = {
+      toJSON(key) {
+        calls.push(key)
+        return { converted: true }
+      }
+    }
+    const scalar = new Scalar(value)
+    const doc = referenceDocument(scalar)
+    const output = scalar.toJS(doc)
+    const converted = scalar.toJSON('field')
+    return { rawIdentity: output === value, converted, calls, scalarValue: scalar.value }
+  }
+  const actual = make(NodeScalar)
+  const expected = make(yaml.Scalar)
+  assert.deepEqual(
+    {
+      rawIdentity: actual.rawIdentity,
+      converted: actual.converted,
+      calls: actual.calls
+    },
+    {
+      rawIdentity: expected.rawIdentity,
+      converted: expected.converted,
+      calls: expected.calls
+    }
+  )
+  assert.equal(actual.rawIdentity, true)
+  assert.deepEqual(actual.calls, ['field'])
+  assert.equal(isScalarValue(actual.scalarValue), false)
+  assert.deepEqual(
+    capture(() => new NodeScalar({ toJSON: 1 }).toJSON('', { keep: false })),
+    capture(() => new yaml.Scalar({ toJSON: 1 }).toJSON('', { keep: false }))
+  )
+})
+
+test('map and sequence key operations, failed mutations, and deep schema clones match reference', () => {
+  const exerciseMap = (Map, Pair, Scalar, schema) => {
+    const map = new Map(schema)
+    const value = new Scalar('before')
+    value.anchor = 'kept'
+    value.range = [0, 6, 6]
+    map.add(new Pair(new Scalar('key'), value))
+    const initial = {
+      get: map.get('key'),
+      getNode: map.get(new Scalar('key'), true).value,
+      hasWrapped: map.has(new Scalar('key')),
+      missing: map.get('absent'),
+      missingHas: map.has('absent')
+    }
+    map.set('key', 'after')
+    const keptNode = map.get('key', true)
+    const removedMissing = map.delete('absent')
+    const removed = map.delete(new Scalar('key'))
+    return {
+      map,
+      initial,
+      kept: {
+        value: keptNode.value,
+        anchor: keptNode.anchor,
+        range: keptNode.range
+      },
+      removedMissing,
+      removed
+    }
+  }
+  const schema = new yaml.Document().schema
+  const actual = exerciseMap(NodeMap, NodePair, NodeScalar, schema)
+  const expected = exerciseMap(yaml.YAMLMap, yaml.Pair, yaml.Scalar, schema)
+  assert.deepEqual(actual.initial, expected.initial)
+  assert.deepEqual(actual.kept, expected.kept)
+  assert.deepEqual([actual.removedMissing, actual.removed], [false, true])
+  assert.deepEqual([actual.removedMissing, actual.removed], [expected.removedMissing, expected.removed])
+  assert.deepEqual(actual.map.toJSON(), expected.map.toJSON())
+
+  const exerciseSeq = (Seq, Scalar) => {
+    const seq = new Seq()
+    const first = new Scalar('first')
+    seq.items.push(first, 'second')
+    const before = [
+      seq.get('0'),
+      seq.get(new Scalar(0)),
+      seq.get(new Scalar(0), true) === first,
+      seq.has('1'),
+      seq.has(-1),
+      seq.delete('8'),
+      capture(() => seq.set('not-index', 'x'))
+    ]
+    seq.set(new Scalar('0'), 'changed')
+    const after = [seq.get(0), first.value, seq.delete(new Scalar('1')), seq.toJSON()]
+    return { before, after }
+  }
+  const actualSeq = exerciseSeq(NodeSeq, NodeScalar)
+  const expectedSeq = exerciseSeq(yaml.YAMLSeq, yaml.Scalar)
+  assert.deepEqual(actualSeq, expectedSeq)
+
+  const sourceMap = new NodeMap(schema)
+  const sourceSeq = new NodeSeq(schema)
+  const ranged = new NodeScalar('leaf')
+  ranged.range = [2, 6, 6]
+  sourceSeq.add(ranged)
+  sourceMap.add(new NodePair('branch', sourceSeq))
+  const referenceMap = new yaml.YAMLMap(schema)
+  const referenceSeq = new yaml.YAMLSeq(schema)
+  const referenceRanged = new yaml.Scalar('leaf')
+  referenceRanged.range = [2, 6, 6]
+  referenceSeq.add(referenceRanged)
+  referenceMap.add(new yaml.Pair('branch', referenceSeq))
+  const replacementSchema = new yaml.Document().schema
+  const cloned = sourceMap.clone(replacementSchema)
+  const referenceClone = referenceMap.clone(replacementSchema)
+  assert.notEqual(cloned.items, sourceMap.items)
+  assert.notEqual(cloned.items[0], sourceMap.items[0])
+  assert.notEqual(cloned.items[0].value.items, sourceSeq.items)
+  assert.notEqual(cloned.items[0].value.items[0].range, ranged.range)
+  assert.equal(cloned.schema, replacementSchema)
+  assert.equal(cloned.items[0].value.schema, replacementSchema)
+  assert.deepEqual(cloned.toJSON(), referenceClone.toJSON())
+  assert.equal(referenceClone.schema, replacementSchema)
+  assert.equal(referenceClone.items[0].value.schema, replacementSchema)
+})
+
+test('path creation and failures through missing schema or scalar nodes match reference', () => {
+  const exercise = (Map, Scalar, schema) => {
+    const map = new Map(schema)
+    map.setIn(['new', 0, 'leaf'], 'value')
+    const result = {
+      json: map.toJSON(),
+      found: map.getIn(['new', 0, 'leaf']),
+      has: map.hasIn(['new', 0, 'leaf']),
+      missingDelete: capture(() => map.deleteIn(['no', 'path'])),
+      createdCollection: map.get('new', true).constructor.name,
+      indexedCollection: map.getIn(['new', 0], true).constructor.name
+    }
+    const scalarPath = new Map(schema)
+    scalarPath.set('fixed', new Scalar('text'))
+    result.scalarPathError = capture(() => scalarPath.setIn(['fixed', 'child'], 'x'))
+    return result
+  }
+  const schema = new yaml.Document().schema
+  const actual = exercise(NodeMap, NodeScalar, schema)
+  const expected = exercise(yaml.YAMLMap, yaml.Scalar, schema)
+  assert.deepEqual(actual, expected)
+  assert.equal(actual.createdCollection, 'YAMLSeq')
+  assert.equal(actual.indexedCollection, 'YAMLMap')
+  assert.equal(actual.found, 'value')
+  assert.equal(actual.has, true)
+  assert.equal(actual.missingDelete.status, 'throw')
+
+  const noSchema = new NodeMap()
+  assert.deepEqual(
+    capture(() => noSchema.setIn(['missing', 0], 'x')),
+    capture(() => new yaml.YAMLMap().setIn(['missing', 0], 'x'))
+  )
+})
+
+test('visitors match replacement, deletion, skips, breaks, jumps, and handler precedence', async () => {
+  const replacementRun = (Seq, Scalar, Pair, Map) => {
+    const root = new Seq()
+    root.items.push(new Scalar('old'), new Scalar('stay'))
+    const document = referenceDocument(root)
+    const rootReplacement = new Map()
+    visit(document, (_key, node) => node === root ? rootReplacement : undefined)
+    assert.equal(document.contents, rootReplacement)
+
+    const childRoot = new Seq()
+    const oldChild = new Scalar('old')
+    const replacement = new Scalar('new')
+    childRoot.items.push(oldChild, new Scalar('stay'))
+    visit(childRoot, (_key, node) => node === oldChild ? replacement : undefined)
+
+    const key = new Scalar('key')
+    const value = new Scalar('value')
+    const pair = new Pair(key, value)
+    const map = new Map()
+    map.add(pair)
+    const newKey = new Scalar('renamed')
+    const newValue = new Scalar('changed')
+    visit(map, (slot, node) => {
+      if (node === key && slot === 'key') return newKey
+      if (node === value && slot === 'value') return newValue
+    })
+    return {
+      replacedRoot: document.contents.toJSON(),
+      childRoot: childRoot.toJSON(),
+      pair: map.toJSON(),
+      keyIdentity: pair.key === newKey,
+      valueIdentity: pair.value === newValue
+    }
+  }
+  const actual = replacementRun(NodeSeq, NodeScalar, NodePair, NodeMap)
+  const expected = replacementRun(yaml.YAMLSeq, yaml.Scalar, yaml.Pair, yaml.YAMLMap)
+  assert.deepEqual(actual, expected)
+  assert.equal(actual.keyIdentity, true)
+  assert.equal(actual.valueIdentity, true)
+
+  const controlRun = (Seq, Scalar, Pair, Map, visitFn) => {
+    const root = new Seq()
+    const nested = new Seq()
+    nested.items.push(new Scalar('hidden'))
+    root.items.push(new Scalar('skip'), nested, new Scalar('remove'), new Scalar('keep'))
+    const order = []
+    visitFn(root, (_key, node) => {
+      if (node instanceof Scalar) order.push(node.value)
+      if (node === nested) return visitFn.SKIP
+      if (node instanceof Scalar && node.value === 'remove') return visitFn.REMOVE
+    })
+    const jumpRoot = new Seq()
+    jumpRoot.items.push(new Scalar('zero'), new Scalar('one'), new Scalar('two'))
+    const jumps = []
+    visitFn(jumpRoot, (key, node) => {
+      if (node instanceof Scalar) jumps.push(node.value)
+      if (key === 0) return 2
+    })
+    const broken = new Seq()
+    broken.items.push(new Scalar('first'), new Scalar('never'))
+    const brokenOrder = []
+    visitFn(broken, (_key, node) => {
+      if (node instanceof Scalar) brokenOrder.push(node.value)
+      if (node instanceof Scalar && node.value === 'first') return visitFn.BREAK
+    })
+    return { order, remaining: root.toJSON(), jumps, brokenOrder }
+  }
+  const actualControls = controlRun(NodeSeq, NodeScalar, NodePair, NodeMap, visit)
+  const expectedControls = controlRun(yaml.YAMLSeq, yaml.Scalar, yaml.Pair, yaml.YAMLMap, yaml.visit)
+  assert.deepEqual(actualControls, expectedControls)
+  assert.deepEqual(actualControls.order, ['skip', 'remove', 'keep'])
+  assert.deepEqual(actualControls.jumps, ['zero', 'two'])
+  assert.deepEqual(actualControls.brokenOrder, ['first'])
+
+  const precedence = (Scalar, Seq, visitFn) => {
+    const seq = new Seq()
+    seq.add(new Scalar('x'))
+    const calls = []
+    visitFn(seq, {
+      Node: (_key, node) => calls.push(`Node:${node.constructor.name}`),
+      Value: (_key, node) => calls.push(`Value:${node.constructor.name}`),
+      Collection: (_key, node) => calls.push(`Collection:${node.constructor.name}`),
+      Seq: (_key, node) => calls.push(`Seq:${node.constructor.name}`),
+      Scalar: (_key, node) => calls.push(`Scalar:${node.value}`)
+    })
+    return calls
+  }
+  assert.deepEqual(precedence(NodeScalar, NodeSeq, visit), precedence(yaml.Scalar, yaml.YAMLSeq, yaml.visit))
+  assert.deepEqual(precedence(NodeScalar, NodeSeq, visit), ['Seq:YAMLSeq', 'Scalar:x'])
+
+  const asyncPrecedence = async (Scalar, Seq, visitAsyncFn) => {
+    const seq = new Seq()
+    seq.add(new Scalar('x'))
+    const calls = []
+    await visitAsyncFn(seq, {
+      Node: async (_key, node) => calls.push(`Node:${node.constructor.name}`),
+      Value: async (_key, node) => calls.push(`Value:${node.constructor.name}`),
+      Collection: async (_key, node) => calls.push(`Collection:${node.constructor.name}`),
+      Seq: async (_key, node) => calls.push(`Seq:${node.constructor.name}`),
+      Scalar: async (_key, node) => calls.push(`Scalar:${node.value}`)
+    })
+    return calls
+  }
+  assert.deepEqual(
+    await asyncPrecedence(NodeScalar, NodeSeq, visitAsync),
+    await asyncPrecedence(yaml.Scalar, yaml.YAMLSeq, yaml.visitAsync)
+  )
+  assert.deepEqual(
+    await asyncPrecedence(NodeScalar, NodeSeq, visitAsync),
+    ['Seq:YAMLSeq', 'Scalar:x']
+  )
+
+  const asyncVisit = async (Seq, Scalar, visitAsyncFn) => {
+    const root = new Seq()
+    root.items.push(new Scalar('first'), new Scalar('skip'), new Scalar('last'))
+    const order = []
+    await visitAsyncFn(root, async (key, node) => {
+      await Promise.resolve()
+      if (node instanceof Scalar) order.push(node.value)
+      if (key === 0) return 2
+      if (node instanceof Scalar && node.value === 'skip') return visitAsyncFn.BREAK
+    })
+    return order
+  }
+  assert.deepEqual(
+    await asyncVisit(NodeSeq, NodeScalar, visitAsync),
+    await asyncVisit(yaml.YAMLSeq, yaml.Scalar, yaml.visitAsync)
+  )
+})
+
+test('sync and async visitors remove root and Pair slots and replace root, item, key, and value nodes', async () => {
+  const run = async (Seq, Scalar, Pair, Map, visitFn, asyncMode) => {
+    const apply = visitFn
+    const callback = fn => asyncMode ? async (...args) => fn(...args) : fn
+    const removedDoc = referenceDocument(new Scalar('root'))
+    await apply(removedDoc, callback((_key, node) => node instanceof Scalar ? visitFn.REMOVE : undefined))
+    const removedKeyPair = new Pair(new Scalar('key'), new Scalar('value'))
+    const removedValuePair = new Pair(new Scalar('key'), new Scalar('value'))
+    const mapForKey = new Map()
+    mapForKey.add(removedKeyPair)
+    const mapForValue = new Map()
+    mapForValue.add(removedValuePair)
+    await apply(
+      mapForKey,
+      callback((_key, node) =>
+        node instanceof Scalar && node.value === 'key' ? visitFn.REMOVE : undefined
+      )
+    )
+    await apply(
+      mapForValue,
+      callback((_key, node) =>
+        node instanceof Scalar && node.value === 'value' ? visitFn.REMOVE : undefined
+      )
+    )
+
+    const doc = referenceDocument(new Scalar('old-root'))
+    const rootReplacement = new Map()
+    const replacement = new Scalar('new-item')
+    await apply(doc, callback((_key, node) => {
+      if (node.value === 'old-root') return rootReplacement
+    }))
+    const seq = new Seq()
+    const oldItem = new Scalar('old-item')
+    seq.items.push(oldItem)
+    await apply(seq, callback((_key, node) => node === oldItem ? replacement : undefined))
+    const key = new Scalar('old-key')
+    const value = new Scalar('old-value')
+    const pair = new Pair(key, value)
+    const pairMap = new Map()
+    pairMap.add(pair)
+    await apply(pairMap, callback((slot, node) => {
+      if (node === key && slot === 'key') return new Scalar('new-key')
+      if (node === value && slot === 'value') return new Scalar('new-value')
+    }))
+    return {
+      removedRoot: removedDoc.contents,
+      removedKey: removedKeyPair.key,
+      removedValue: removedValuePair.value,
+      rootReplacement: doc.contents.toJSON(),
+      itemReplacement: seq.toJSON(),
+      pairReplacement: pairMap.toJSON()
+    }
+  }
+  for (const [visitFn, asyncMode] of [[visit, false], [visitAsync, true]]) {
+    const actual = await run(NodeSeq, NodeScalar, NodePair, NodeMap, visitFn, asyncMode)
+    const expectedVisitor = asyncMode ? yaml.visitAsync : yaml.visit
+    const expected = await run(
+      yaml.YAMLSeq,
+      yaml.Scalar,
+      yaml.Pair,
+      yaml.YAMLMap,
+      expectedVisitor,
+      asyncMode
+    )
+    assert.deepEqual(actual, expected)
+    assert.equal(actual.removedRoot, null)
+    assert.equal(actual.removedKey, null)
+    assert.equal(actual.removedValue, null)
+    assert.deepEqual(actual.itemReplacement, ['new-item'])
+    assert.deepEqual(actual.pairReplacement, { 'new-key': 'new-value' })
+  }
+})
+
+test('async visitor awaits controls and matches skip, break, removal, and numeric jumps', async () => {
+  const exercise = async (Seq, Scalar, visitAsyncFn) => {
+    const root = new Seq()
+    const nested = new Seq()
+    nested.add(new Scalar('hidden'))
+    root.items.push(nested, new Scalar('remove'), new Scalar('keep'))
+    const seen = []
+    await visitAsyncFn(root, async (key, node) => {
+      await new Promise(resolve => setTimeout(resolve, 0))
+      if (node instanceof Scalar) seen.push(node.value)
+      if (node === nested) return visitAsyncFn.SKIP
+      if (node instanceof Scalar && node.value === 'remove') return visitAsyncFn.REMOVE
+    })
+
+    const broken = new Seq()
+    broken.items.push(new Scalar('first'), new Scalar('never'))
+    const breakSeen = []
+    await visitAsyncFn(broken, async (_key, node) => {
+      await Promise.resolve()
+      if (node instanceof Scalar) breakSeen.push(node.value)
+      if (node instanceof Scalar && node.value === 'first') return visitAsyncFn.BREAK
+    })
+
+    const jumped = new Seq()
+    jumped.items.push(new Scalar('zero'), new Scalar('one'), new Scalar('two'))
+    const jumpSeen = []
+    await visitAsyncFn(jumped, async (key, node) => {
+      await Promise.resolve()
+      if (node instanceof Scalar) jumpSeen.push(node.value)
+      if (key === 0) return 2
+    })
+    return { seen, remaining: root.toJSON(), breakSeen, broken: broken.toJSON(), jumpSeen }
+  }
+  const actual = await exercise(NodeSeq, NodeScalar, visitAsync)
+  const expected = await exercise(yaml.YAMLSeq, yaml.Scalar, yaml.visitAsync)
+  assert.deepEqual(actual, expected)
+  assert.deepEqual(actual.seen, ['remove', 'keep'])
+  assert.deepEqual(actual.remaining, [['hidden'], 'keep'])
+  assert.deepEqual(actual.breakSeen, ['first'])
+  assert.deepEqual(actual.jumpSeen, ['zero', 'two'])
 })
