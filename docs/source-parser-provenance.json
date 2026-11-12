@@ -253,9 +253,10 @@
       "localPath": "src/source/nodes/Node.ts",
       "adaptations": [
         "Added retained ISC notice.",
-        "Replaced unavailable Document and ToJS option imports with private contexts/options; inherited toJS algorithm and DOC marker validation are unchanged."
+        "Replaced unavailable Document and ToJS option imports with private contexts/options; inherited toJS algorithm and DOC marker validation are unchanged.",
+        "Removed redundant comments that restated NodeType and narrated a future plan."
       ],
-      "localSha256": "f4d25a51d5cf1f528c847f68d6dd7bad667bdc6caab702bbdc55d3e863c25cf3"
+      "localSha256": "e142c9e64547d7892044931151d840b69cbb2ee021c67d319a15549454fa7869"
     },
     {
       "upstreamPath": "src/nodes/Pair.ts",

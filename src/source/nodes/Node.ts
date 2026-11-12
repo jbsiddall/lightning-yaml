@@ -32,7 +32,6 @@ export type Node<T = unknown> =
   | YAMLMap<unknown, T>
   | YAMLSeq<T>
 
-/** Utility type mapper */
 export type NodeType<T> = T extends
   | string
   | number
@@ -47,7 +46,7 @@ export type NodeType<T> = T extends
       ? YAMLSeq<NodeType<T[number]>>
       : T extends { [key: string]: any }
         ? YAMLMap<NodeType<keyof T>, NodeType<T[keyof T]>>
-        : T extends { [key: number]: any } // Merge with previous once supported in all TS versions
+        : T extends { [key: number]: any }
           ? YAMLMap<NodeType<keyof T>, NodeType<T[keyof T]>>
           : Node
 
