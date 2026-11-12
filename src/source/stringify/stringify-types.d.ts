@@ -16,12 +16,12 @@ THIS SOFTWARE.
 
 import type { ScalarType } from '../scalar-types.d.ts'
 export interface StringifyContext {
-  implicitKey: boolean; indent: string; inFlow: boolean; indentAtStart: number
-  indentStep: string; forceBlockIndent: boolean; actualString: boolean
+  implicitKey?: boolean; indent: string; inFlow: boolean | null; indentAtStart?: number
+  indentStep: string; forceBlockIndent?: boolean; actualString?: boolean
   options: { blockQuote?: boolean | 'literal' | 'folded'; commentString: (comment: string) => string
     doubleQuotedAsJSON: boolean; doubleQuotedMinMultiLineLength: number
-    lineWidth: number; minContentWidth: number; singleQuote: boolean
-    defaultKeyType?: ScalarType; defaultStringType?: ScalarType }
-  doc: { schema: { compat?: Array<Tag>; tags: Array<Tag> } }
+    lineWidth: number; minContentWidth: number; singleQuote: boolean | null
+    defaultKeyType?: ScalarType | null; defaultStringType?: ScalarType | null }
+  doc: { schema: { compat?: Array<Tag> | null; tags: Array<Tag> } }
 }
-interface Tag { default?: boolean; tag: string; test?: RegExp }
+interface Tag { default?: boolean | 'key'; tag: string; test?: RegExp }

@@ -8,6 +8,7 @@ export default mergeConfig(
     test: {
       include: [
         "test/**/*.test.ts",
+        "test/**/*.test.mjs",
         "test/**/*.unit.ts",
       ],
       exclude: ["test/compatibility/cst/candidate.integration.test.ts"],

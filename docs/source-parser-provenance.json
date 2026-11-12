@@ -56,105 +56,379 @@
       "sha256": "8307375dc102377a65e33a3828bc547366b40ec9718ba8c27da2061bd6b5893a",
       "localPath": "src/source/cst-stringify.ts",
       "localSha256": "913e1adadeec773310e0c7d981cb302573ca24ee2c7aa80efc8bef50035eb537",
-      "adaptations": ["Retained ISC notice and upstream logical-order concatenation behavior; imports the local CST token types."]
+      "adaptations": [
+        "Retained ISC notice and upstream logical-order concatenation behavior; imports the local CST token types."
+      ]
     },
     {
       "upstreamPath": "src/parse/cst-visit.ts",
       "sha256": "8ca68ffc11e50bfb7431d67bb427e1b66e2eec1015e5447cff865ac626307a72",
       "localPath": "src/source/cst-visit.ts",
       "localSha256": "184063b7f91b278619dabe02a6665b5f7f255d736359c53bba5531ae812a918d",
-      "adaptations": ["Retained ISC notice and upstream visitor controls, path behavior, and live edits; imports the local structural token types."]
+      "adaptations": [
+        "Retained ISC notice and upstream visitor controls, path behavior, and live edits; imports the local structural token types."
+      ]
     },
     {
       "upstreamPath": "src/compose/resolve-block-scalar.ts",
       "sha256": "51a9c85a5dd88d3ee45d41c88d76b9cfd24d457f06a0915295463d84e32dff40",
       "localPath": "src/source/compose/resolve-block-scalar.ts",
       "localSha256": "55558865dedc5d8cfb071f5999d5042de4785dcba41401407099a8182bf9c6b6",
-      "adaptations": ["Retained ISC notice and pinned resolver behavior; replaced runtime Scalar constants and Composer/context imports with private style literals and structural helper types."]
+      "adaptations": [
+        "Retained ISC notice and pinned resolver behavior; replaced runtime Scalar constants and Composer/context imports with private style literals and structural helper types."
+      ]
     },
     {
       "upstreamPath": "src/compose/resolve-flow-scalar.ts",
       "sha256": "345db9b5577d1efb2078bc9e191973545ae7ce0595bf182d51c2e0842e11f913",
       "localPath": "src/source/compose/resolve-flow-scalar.ts",
       "localSha256": "5eb14c125d56f6eaf46b2f9f35d929d333b8883c1ae601e6ce13568b388d0ee0",
-      "adaptations": ["Retained ISC notice and pinned resolver behavior; uses the monotonic foldLines scanner from held PR #275 at dc419be9 instead of the pinned quadratic regex scanner; replaced runtime Scalar and Composer dependencies with private style literals and structural helper types."]
+      "adaptations": [
+        "Retained ISC notice and pinned resolver behavior; uses the monotonic foldLines scanner from held PR #275 at dc419be9 instead of the pinned quadratic regex scanner; replaced runtime Scalar and Composer dependencies with private style literals and structural helper types."
+      ]
     },
     {
       "upstreamPath": "src/compose/resolve-end.ts",
       "sha256": "9b3e56640d624adeb3df4b2d6aa569ff541ee3d4902208d53d348414beb8e494",
       "localPath": "src/source/compose/resolve-end.ts",
       "localSha256": "185e29e5f476dc48b1e73d2ff74c67ee52b23d3964ce3f90e82f7abaf4d64108",
-      "adaptations": ["Retained ISC notice and pinned end-trivia diagnostics; imports the local callback and token types."]
+      "adaptations": [
+        "Retained ISC notice and pinned end-trivia diagnostics; imports the local callback and token types."
+      ]
     },
     {
       "upstreamPath": "src/stringify/stringifyString.ts",
       "sha256": "badac28dac2f8df4cff74c9ad15a11a942f3312510efcf50dd1444959e26cd02",
       "localPath": "src/source/stringify/stringifyString.ts",
-      "localSha256": "bda5061a4457047e0e4bceefc8014210db7904732bba7d94bfdd3816ba735410",
-      "adaptations": ["Retained ISC notice and upstream string writing behavior; uses the pinned folder and private structural context; replaces runtime Scalar/schema imports with style literals and a narrow tag-test shape."]
+      "localSha256": "347e4546ab0dd782773a31f6a3b750b27bc14451a21912d53d8b1ea2385ae869",
+      "adaptations": [
+        "Reused current main implementation and retained ISC notice.",
+        "Widened only internal helper type annotations to accept the AST stringifier context; runtime behavior is unchanged."
+      ]
     },
     {
       "upstreamPath": "src/stringify/foldFlowLines.ts",
       "sha256": "20e2179a5bf3a3019b8bd40ad09a9b82f59c0a1c3da28464c53c5089c5c89096",
       "localPath": "src/source/stringify/foldFlowLines.ts",
       "localSha256": "85ec85952c9c3bb7b7ab2be91997f06e64959fd637a4f8678334d9a3d7ddec09",
-      "adaptations": ["Retained ISC notice and upstream line folding algorithm; helper has no Composer or Document dependency."]
+      "adaptations": [
+        "Retained ISC notice and upstream line folding algorithm; helper has no Composer or Document dependency."
+      ]
     },
     {
       "upstreamPath": "src/errors.ts",
       "sha256": "f53386c16360887008e24db1928d9d8fc234eb0288ecb2b28ce9b512929cd511",
       "localPath": "src/source/errors.ts",
       "localSha256": "da32591892d8b60494b47c44543581803d2f0718b0ac2c69cfc7bb8cf1113d81",
-      "adaptations": ["Retained ISC notice, pinned ErrorCode members needed by scalar helpers, YAMLError, and YAMLParseError; omitted unused warning and prettifier support."]
+      "adaptations": [
+        "Retained ISC notice, pinned ErrorCode members needed by scalar helpers, YAMLError, and YAMLParseError; omitted unused warning and prettifier support."
+      ]
     },
     {
       "upstreamPath": "src/nodes/Scalar.ts",
       "sha256": "9b3aa03a8490658cafed45c855d9ac27ae8fabf348e2c4045787e30527f48a9e",
       "localPath": "src/source/scalar-types.d.ts",
       "localSha256": "9bb2b34f99fc4c173c61331d67c9ce45bfd81ba7fc25e72452cbfe76a01efb99",
-      "adaptations": ["Extracted the five scalar-style string literal types without importing or defining a runtime Scalar class."]
+      "adaptations": [
+        "Extracted the five scalar-style string literal types without importing or defining a runtime Scalar class."
+      ]
     },
     {
       "upstreamPath": "src/nodes/Node.ts",
       "sha256": "2ee85c90a44bc672a4646a6f692c55ac36132214c03b6ec8a6dde88d9c47b585",
       "localPath": "src/source/scalar-types.d.ts",
       "localSha256": "9bb2b34f99fc4c173c61331d67c9ce45bfd81ba7fc25e72452cbfe76a01efb99",
-      "adaptations": ["Extracted only the three-number Range tuple used by scalar resolution."]
+      "adaptations": [
+        "Extracted only the three-number Range tuple used by scalar resolution."
+      ]
     },
     {
       "upstreamPath": "src/compose/compose-node.ts",
       "sha256": "d303028bdf4f6bb6f1d71679bb4bffeb7a3123f01f062a369deb7ca0a988dce0",
       "localPath": "src/source/scalar-types.d.ts",
       "localSha256": "9bb2b34f99fc4c173c61331d67c9ce45bfd81ba7fc25e72452cbfe76a01efb99",
-      "adaptations": ["Extracted the strict option context as a private structural type; no Composer runtime or module dependency is included."]
+      "adaptations": [
+        "Extracted the strict option context as a private structural type; no Composer runtime or module dependency is included."
+      ]
     },
     {
       "upstreamPath": "src/compose/composer.ts",
       "sha256": "f82f0f35f85ecaf80da4f88566c680622ae67feee31ae3556732ad37667cf299",
       "localPath": "src/source/scalar-types.d.ts",
       "localSha256": "9bb2b34f99fc4c173c61331d67c9ce45bfd81ba7fc25e72452cbfe76a01efb99",
-      "adaptations": ["Extracted the resolver callback position/code/message shape as a private structural type; no Composer runtime or module dependency is included."]
+      "adaptations": [
+        "Extracted the resolver callback position/code/message shape as a private structural type; no Composer runtime or module dependency is included."
+      ]
     },
     {
       "upstreamPath": "src/stringify/stringify.ts",
       "sha256": "f496c3b5994d06a6a4d1d342975e1557d0a70f143b349b5c8e6587679739ca74",
       "localPath": "src/source/stringify/stringify-types.d.ts",
-      "localSha256": "d0a1f3b095709740b2f8458b35e37daf282fb17d3ecc645dfb8c9c83fc520626",
-      "adaptations": ["Extracted the partial writer context fields actually read by stringifyString; CST's undefined option defaults are preserved, without loading Document runtime."]
+      "localSha256": "8cb201d0569289f36a47d23e2b74807ef2a72d6bb17ff8e8e35ac493cc515516",
+      "adaptations": [
+        "Expanded the partial helper context to accept both the current CST writer callers and the private AST stringifier context, preserving optional/nullable fields."
+      ]
     },
     {
       "upstreamPath": "src/schema/types.ts",
       "sha256": "335b9f9b1191ff1a11439c71fed5d62cbfdd53b41e170785701a35ac4fc8fecc",
       "localPath": "src/source/stringify/stringify-types.d.ts",
-      "localSha256": "d0a1f3b095709740b2f8458b35e37daf282fb17d3ecc645dfb8c9c83fc520626",
-      "adaptations": ["Extracted only the structural tag test shape used by stringifyString; no schema runtime graph is loaded."]
+      "localSha256": "8cb201d0569289f36a47d23e2b74807ef2a72d6bb17ff8e8e35ac493cc515516",
+      "adaptations": [
+        "Expanded the partial helper context to accept both the current CST writer callers and the private AST stringifier context, preserving optional/nullable fields."
+      ]
     },
     {
       "upstreamPath": "src/parse/cst.ts",
       "sha256": "064b5e0505d2fe275b1d022efbdd71d6a6c288886599f70475eb57dfdcfe3b92",
       "localPath": "src/source/scalar-types.d.ts",
       "localSha256": "9bb2b34f99fc4c173c61331d67c9ce45bfd81ba7fc25e72452cbfe76a01efb99",
-      "adaptations": ["Uses existing CST token types for the private resolver context; does not add node or Composer dependencies."]
+      "adaptations": [
+        "Uses existing CST token types for the private resolver context; does not add node or Composer dependencies."
+      ]
+    },
+    {
+      "upstreamPath": "src/doc/anchors.ts",
+      "sha256": "e994e66a5059e8db978b8e0e4fc81a4585b6c1fc80d86c00a93ff61bc004eae0",
+      "localPath": "src/source/doc/anchors.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced the unavailable Document implementation import with a private type-only DocumentContext; traversal and anchor behavior are unchanged."
+      ],
+      "localSha256": "13b81b1e057be67217844886e8f2949bf24a1c307fb2141587e5b994bbe373fc"
+    },
+    {
+      "upstreamPath": "src/doc/applyReviver.ts",
+      "sha256": "071a33e5e931cc56f08c4166bc10e487ce693fc0a7854f13d8b146a9d85ab1dd",
+      "localPath": "src/source/doc/applyReviver.ts",
+      "adaptations": [
+        "Added retained ISC notice; algorithm copied unchanged."
+      ],
+      "localSha256": "a547e931ab4070c0e582b530d88cae752c76adc76597f7415ff065915c360b28"
+    },
+    {
+      "upstreamPath": "src/doc/createNode.ts",
+      "sha256": "c5bbc871c3ea9c0ed0a1d7e028634a8c2a2fcabbb28f01bd1f9a33db637593b7",
+      "localPath": "src/source/doc/createNode.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced unavailable Schema and Document implementation types with private structural contexts; kept original runtime constructor dispatch and behavior."
+      ],
+      "localSha256": "76e4fd5b799451e01e136af832f1af9046d75a5fc55ef691bfaf9fefb847f4f0"
+    },
+    {
+      "upstreamPath": "src/log.ts",
+      "sha256": "1f27319d41b781d64f66b1dc8fce3b56d4e9026c0eaaaa0cdcc7cbd7883e6acf",
+      "localPath": "src/source/log.ts",
+      "adaptations": [
+        "Added retained ISC notice; no semantic adaptation."
+      ],
+      "localSha256": "f99c07e4b7c7bdd7330aae51e88086bf0798806e3798c181a64e9823b2461574"
+    },
+    {
+      "upstreamPath": "src/nodes/Alias.ts",
+      "sha256": "69b2db9e44c887c1d87563b464aceb29c97f83edcdedabbbce0afa6c83708fea",
+      "localPath": "src/source/nodes/Alias.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced the unavailable Document type with private DocumentContext; alias resolution, limits, and writers are unchanged."
+      ],
+      "localSha256": "dbfe2f73faf31063cacef2e11af92d305e4a7563db363b5d087fbb21aaa3c36d"
+    },
+    {
+      "upstreamPath": "src/nodes/Collection.ts",
+      "sha256": "3271285b9c9984d834b4893c374cb1e4ce24b2e69e2e8eaa510ed137c262e1cc",
+      "localPath": "src/source/nodes/Collection.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced the unavailable Schema type with private SchemaContext for collection/path methods."
+      ],
+      "localSha256": "e5bd24fd11cc6d9458147ba7e5d5f4247182bd41ee827edaf2f465d24d1ddce3"
+    },
+    {
+      "upstreamPath": "src/nodes/Node.ts",
+      "sha256": "2ee85c90a44bc672a4646a6f692c55ac36132214c03b6ec8a6dde88d9c47b585",
+      "localPath": "src/source/nodes/Node.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced unavailable Document and ToJS option imports with private contexts/options; inherited toJS algorithm and DOC marker validation are unchanged."
+      ],
+      "localSha256": "f4d25a51d5cf1f528c847f68d6dd7bad667bdc6caab702bbdc55d3e863c25cf3"
+    },
+    {
+      "upstreamPath": "src/nodes/Pair.ts",
+      "sha256": "e55e44f6e804e41bf3221784facf4b4ae79647ac7d76a760dd636525ae629e1f",
+      "localPath": "src/source/nodes/Pair.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced unavailable Schema type with private SchemaContext."
+      ],
+      "localSha256": "2fe91b7a3daf83d360c796b1fa07bee0262d04ec5bd283c1d7b01abea76f962d"
+    },
+    {
+      "upstreamPath": "src/nodes/Scalar.ts",
+      "sha256": "9b3aa03a8490658cafed45c855d9ac27ae8fabf348e2c4045787e30527f48a9e",
+      "localPath": "src/source/nodes/Scalar.ts",
+      "adaptations": [
+        "Added retained ISC notice; runtime scalar implementation copied unchanged."
+      ],
+      "localSha256": "1282369cf7e28d60d27eef224db5519c9eddbdf001eae5894721589781f156c7"
+    },
+    {
+      "upstreamPath": "src/nodes/YAMLMap.ts",
+      "sha256": "b13535633f411c1a7d84155ac5274e386bea28333b454c1d9a06ec325d50cd05",
+      "localPath": "src/source/nodes/YAMLMap.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced unavailable Schema type and util type barrel with private SchemaContext and direct type import; mapping behavior is unchanged."
+      ],
+      "localSha256": "021834c0baaa16f6a896ea762dc3aec1e1340f303f8334152d4f8b5ab0a8fa4a"
+    },
+    {
+      "upstreamPath": "src/nodes/YAMLSeq.ts",
+      "sha256": "4970e2678868cfbb782a07553c87e73ababb1bc1f52156d0efaf4b90bd87c02f",
+      "localPath": "src/source/nodes/YAMLSeq.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced unavailable Schema type with private SchemaContext."
+      ],
+      "localSha256": "e0d58ae6a06d3f70997eb367578fbb8e244d0940a39f3706b6d47df6f87195d9"
+    },
+    {
+      "upstreamPath": "src/nodes/addPairToJSMap.ts",
+      "sha256": "ec8c69ec4965aa9ba93654eae613adf627b3a24399cb0cb3db568ad6375c11b4",
+      "localPath": "src/source/nodes/addPairToJSMap.ts",
+      "adaptations": [
+        "Added retained ISC notice; runtime mapping and warning behavior copied unchanged."
+      ],
+      "localSha256": "0773cd77560572560c60f8812f3b41db7259afc30ce12fb49173183c3a606ce4"
+    },
+    {
+      "upstreamPath": "src/nodes/identity.ts",
+      "sha256": "0580d865a51573f937d636de60d435d62a1433fdb3c854ac847e3ae1a25087fe",
+      "localPath": "src/source/nodes/identity.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Kept Symbol.for marker values and predicates; replaced only the Document type import."
+      ],
+      "localSha256": "c9c1d0128a0f31fb88337b936ee716758eaf3e23000e78707e8603ad23416218"
+    },
+    {
+      "upstreamPath": "src/nodes/toJS.ts",
+      "sha256": "0ce25a01421d769ec9505be8a3e4d055ffa9ad86cf141412d61fc2d248fa6de1",
+      "localPath": "src/source/nodes/toJS.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced the unavailable Document type with private DocumentContext."
+      ],
+      "localSha256": "5af3f2941778c46c002d828516fa49f4a7eedefb06cca006235ba056d2047ba8"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/merge.ts",
+      "sha256": "e102203386a4759595aeddb522a72f3130e2daf7b646e84dfb3df7c4eec8acd8",
+      "localPath": "src/source/schema/yaml-1.1/merge.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Kept merge helper code in the runtime closure without enabling or exporting a YAML 1.1 schema; replaced only its tag type import."
+      ],
+      "localSha256": "dc52b3bb90161aa90870e3795db31c869b43beef4fcdb6a250c83f45f7a6c850"
+    },
+    {
+      "upstreamPath": "src/stringify/stringify.ts",
+      "sha256": "f496c3b5994d06a6a4d1d342975e1557d0a70f143b349b5c8e6587679739ca74",
+      "localPath": "src/source/stringify/stringify.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced unavailable Document, Schema, option, and tag types with private contexts; writer algorithms are unchanged."
+      ],
+      "localSha256": "d8d2bbe6b2b0b2093cf0cdba17c57915704a6bb685a6a1510587960af89f3ca9"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyCollection.ts",
+      "sha256": "34387b05c734e2f3562bd77cd83e053009c0c94f93924c4b09fee93b9c176123",
+      "localPath": "src/source/stringify/stringifyCollection.ts",
+      "adaptations": [
+        "Added retained ISC notice; collection writer implementation copied unchanged."
+      ],
+      "localSha256": "12f8e534e1f8ce34aa9c8f162828c3a649aa925eee5b32c037763446064aabcb"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyComment.ts",
+      "sha256": "f5edadfa8d5203670e95ca59bab31372b8978fa2c462cb2b1a0c8c8738909299",
+      "localPath": "src/source/stringify/stringifyComment.ts",
+      "adaptations": [
+        "Added retained ISC notice; comment writer implementation copied unchanged."
+      ],
+      "localSha256": "fd08d22181c934b78c57ea935b6739dcdf8d34cbfd2d6664d79ffce2a589f497"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyPair.ts",
+      "sha256": "244bfff2d284e68666d3b8c6352895ff327c589235767b17a9a139625543a4d9",
+      "localPath": "src/source/stringify/stringifyPair.ts",
+      "adaptations": [
+        "Added retained ISC notice; pair writer implementation copied unchanged."
+      ],
+      "localSha256": "254cb5bb5d516fd9bc2324ee0c6815005f680d4805d1d48d6e8d080de2fe653a"
+    },
+    {
+      "upstreamPath": "src/visit.ts",
+      "sha256": "5d96745276f8a761cf00e8f9aeaf1c4e9b60d004be21de979fcf58f45f13e508",
+      "localPath": "src/source/visit.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Replaced the unavailable Document type with private DocumentContext; sync and async traversal algorithms are unchanged."
+      ],
+      "localSha256": "ffe107f0c3b8ff76a06435a5cf895eb374266d5535058a0a09098edf686b414f"
+    },
+    {
+      "upstreamPath": "src/doc/Document.ts",
+      "sha256": "64b2d388c9d7970a96903afb371900f4546ada1702d904393f2f18c09c74d934",
+      "localPath": "src/source/doc/document-context.d.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Extracted a private type-only context; Type-only Document API and NODE_TYPE marker contract. No upstream runtime class or module is included."
+      ],
+      "localSha256": "8ec949b4af75b3f604cd3d27b0615ff965b79089f20eadf461f1c4404cced4ec"
+    },
+    {
+      "upstreamPath": "src/options.ts",
+      "sha256": "d86eb6b3b0bdb3c830b25fcd6353146b83f626f3da4fddbffecbfd68d49c45f3",
+      "localPath": "src/source/doc/document-context.d.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Extracted a private type-only context; Type-only context option/callback signatures used by node methods. No upstream runtime class or module is included."
+      ],
+      "localSha256": "8ec949b4af75b3f604cd3d27b0615ff965b79089f20eadf461f1c4404cced4ec"
+    },
+    {
+      "upstreamPath": "src/schema/Schema.ts",
+      "sha256": "889d5f53295605c74bfc8e7382b0365f5d9d043beb6cc0033f83c9820e82e727",
+      "localPath": "src/source/schema/schema-context.d.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Extracted a private type-only context; Type-only Schema fields and local MAP/SCALAR/SEQ slots. No upstream runtime class or module is included."
+      ],
+      "localSha256": "bdb7a86dd055d65999db9d897b0993468807674dc78fa43482eaea61d0a920e6"
+    },
+    {
+      "upstreamPath": "src/schema/types.ts",
+      "sha256": "335b9f9b1191ff1a11439c71fed5d62cbfdd53b41e170785701a35ac4fc8fecc",
+      "localPath": "src/source/schema/schema-context.d.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Extracted a private type-only context; Exact ScalarTag/CollectionTag callback contracts copied into the private context. No upstream runtime class or module is included."
+      ],
+      "localSha256": "bdb7a86dd055d65999db9d897b0993468807674dc78fa43482eaea61d0a920e6"
+    },
+    {
+      "upstreamPath": "src/options.ts",
+      "sha256": "d86eb6b3b0bdb3c830b25fcd6353146b83f626f3da4fddbffecbfd68d49c45f3",
+      "localPath": "src/source/nodes/node-options.d.ts",
+      "adaptations": [
+        "Added retained ISC notice.",
+        "Extracted a private type-only context; Type-only parse/create/toJS/stringify option subsets, preserving upstream callback and comparator types. No upstream runtime class or module is included."
+      ],
+      "localSha256": "70499c36459e17f45cd40710bc821e6f2f7c5f3821eab90565c89cdc408de75c"
     }
   ],
   "distributionNotice": "THIRD_PARTY_NOTICES"

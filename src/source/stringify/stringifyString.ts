@@ -16,7 +16,7 @@ THIS SOFTWARE.
 
 import type { ScalarType } from '../scalar-types.d.ts'
 const ScalarStyle = { BLOCK_FOLDED: 'BLOCK_FOLDED', BLOCK_LITERAL: 'BLOCK_LITERAL', PLAIN: 'PLAIN', QUOTE_DOUBLE: 'QUOTE_DOUBLE', QUOTE_SINGLE: 'QUOTE_SINGLE' } as const
-type Tag = { default?: boolean; tag: string; test?: RegExp }
+type Tag = { default?: boolean | 'key'; tag: string; test?: RegExp }
 import {
   FOLD_BLOCK,
   FOLD_FLOW,
@@ -374,7 +374,7 @@ export function stringifyString(
       type = ScalarStyle.QUOTE_DOUBLE
   }
 
-  const _stringify = (_type: string | undefined) => {
+  const _stringify = (_type: string | null | undefined) => {
     switch (_type) {
       case ScalarStyle.BLOCK_FOLDED:
       case ScalarStyle.BLOCK_LITERAL:
