@@ -1,88 +1,90 @@
 import { describe, expect, it } from "vitest";
-import fc from "fast-check";
 import * as jsYamlReference from "js-yaml";
 import * as yamlReference from "yaml";
 import { load as candidateLoad, loadAll as candidateLoadAll, dump as candidateDump } from "../../../src/js-yaml-compat.ts";
-import { parse as candidateParse, parseAllDocuments as candidateParseAllDocuments, stringify as candidateStringify } from "../../../src/yaml-compat.ts";
+import { parse as candidateParse, parseAllDocuments as candidateParseAllDocuments, parseDocument as candidateParseDocument, stringify as candidateStringify, Lexer as candidateLexer, Parser as candidateParser, CST as candidateCST } from "../../../src/yaml-compat.ts";
 import { parse as nativeParse, parseAll as nativeParseAll, stringify as nativeStringify } from "../../../src/core.ts";
 import { compareGraph } from "./graph.js";
 import { loadRealWorldCorpus } from "./realWorldCorpus.js";
 
-const corpusPromise = loadRealWorldCorpus();
+const realWorldInputs = await loadRealWorldCorpus();
 
-async function checkFixture(id: string, seed: number): Promise<void> {
-  const input = (await corpusPromise).find((entry) => entry.id === id);
+function assertSingleDocumentBehavior(text: string, documents: unknown[]): void {
+  if (documents.length > 1) {
+    expect(() => nativeParse(text)).toThrow();
+    expect(() => jsYamlReference.load(text)).toThrow();
+    expect(() => candidateLoad(text)).toThrow();
+    expect(() => yamlReference.parse(text)).toThrow();
+    expect(() => candidateParse(text)).toThrow();
+    return;
+  }
+  expect(compareGraph(documents[0], nativeParse(text)).equal).toBe(true);
+  expect(compareGraph(documents[0], jsYamlReference.load(text)).equal).toBe(true);
+  expect(compareGraph(documents[0], candidateLoad(text)).equal).toBe(true);
+  expect(compareGraph(documents[0], yamlReference.parse(text)).equal).toBe(true);
+  expect(compareGraph(documents[0], candidateParse(text)).equal).toBe(true);
+}
+
+async function checkFixture(id: string): Promise<void> {
+  const input = realWorldInputs.find((entry) => entry.id === id);
   if (!input) throw new Error(`real-world fixture missing from manifest: ${id}`);
   expect(input.text).toContain("\n");
   expect(input.text).not.toContain("\r\n");
+  const variants = [input.text, input.text.replace(/\n/g, "\r\n")];
 
-  const jsBaseline = jsYamlReference.load(input.text);
-  const jsStreamBaseline: unknown[] = [];
-  jsYamlReference.loadAll(input.text, (value) => jsStreamBaseline.push(value));
-  const yamlBaseline = yamlReference.parse(input.text);
-  const yamlStreamBaseline = yamlReference.parseAllDocuments(input.text).map((doc) => doc.toJS());
+  for (const text of variants) {
+    const jsReferenceStream: unknown[] = [];
+    const jsCandidateStream: unknown[] = [];
+    jsYamlReference.loadAll(text, (value) => jsReferenceStream.push(value));
+    candidateLoadAll(text, (value) => jsCandidateStream.push(value));
+    assertSingleDocumentBehavior(text, jsReferenceStream);
+    expect(compareGraph(jsReferenceStream, jsCandidateStream).equal).toBe(true);
 
-  const candidateJsBaseline = candidateLoad(input.text);
-  const candidateJsStreamBaseline: unknown[] = [];
-  candidateLoadAll(input.text, (value) => candidateJsStreamBaseline.push(value));
-  expect(compareGraph(jsBaseline, candidateJsBaseline).equal).toBe(true);
-  expect(compareGraph(jsStreamBaseline, candidateJsStreamBaseline).equal).toBe(true);
-  expect(compareGraph(yamlBaseline, candidateParse(input.text)).equal).toBe(true);
-  expect(compareGraph(yamlStreamBaseline, candidateParseAllDocuments(input.text).map((doc) => doc.toJS())).equal).toBe(true);
-  expect(compareGraph(yamlBaseline, nativeParse(input.text)).equal).toBe(true);
+    const yamlReferenceDocuments = yamlReference.parseAllDocuments(text);
+    const yamlCandidateDocuments = candidateParseAllDocuments(text);
+    const yamlReferenceStream = yamlReferenceDocuments.map((document) => document.toJS());
+    const yamlCandidateStream = yamlCandidateDocuments.map((document) => document.toJS());
+    expect(compareGraph(yamlReferenceStream, yamlCandidateStream).equal).toBe(true);
+    expect(compareGraph(yamlReferenceStream, nativeParseAll(text)).equal).toBe(true);
+    expect(yamlReferenceStream).toHaveLength(yamlReferenceDocuments.length);
 
-  expect(compareGraph(nativeParse(input.text), yamlBaseline).equal).toBe(true);
-  expect(compareGraph(nativeParseAll(input.text), yamlStreamBaseline).equal).toBe(true);
-
-  const jsYamlSerialized = candidateDump(jsBaseline);
-  const jsYamlRoundTrip = jsYamlReference.load(jsYamlSerialized);
-  expect(compareGraph(jsBaseline, jsYamlRoundTrip).equal).toBe(true);
-  const yamlSerialized = candidateStringify(yamlBaseline);
-  const yamlRoundTrip = yamlReference.parse(yamlSerialized);
-  expect(compareGraph(yamlBaseline, yamlRoundTrip).equal).toBe(true);
-  const nativeSerialized = nativeStringify(yamlBaseline);
-  expect(compareGraph(yamlBaseline, yamlReference.parse(nativeSerialized)).equal).toBe(true);
-
-  const eolVariant = fc.boolean().map((toCrlf) =>
-    toCrlf ? input.text.replace(/\n/g, "\r\n") : input.text,
-  );
-  fc.assert(fc.property(eolVariant, (text) => {
-    const jsValue = jsYamlReference.load(text);
-    const jsStream: unknown[] = [];
-    jsYamlReference.loadAll(text, (value) => jsStream.push(value));
-    expect(compareGraph(jsBaseline, jsValue).equal).toBe(true);
-    expect(compareGraph(jsStreamBaseline, jsStream).equal).toBe(true);
-    expect(compareGraph(jsValue, candidateLoad(text)).equal).toBe(true);
-    const candidateJsStream: unknown[] = [];
-    candidateLoadAll(text, (value) => candidateJsStream.push(value));
-    expect(compareGraph(jsStream, candidateJsStream).equal).toBe(true);
-
-    const yamlValue = yamlReference.parse(text);
-    const yamlStream = yamlReference.parseAllDocuments(text).map((doc) => doc.toJS());
-    expect(compareGraph(yamlBaseline, yamlValue).equal).toBe(true);
-    expect(compareGraph(yamlStreamBaseline, yamlStream).equal).toBe(true);
-    expect(compareGraph(yamlValue, candidateParse(text)).equal).toBe(true);
-    expect(compareGraph(yamlStream, candidateParseAllDocuments(text).map((doc) => doc.toJS())).equal).toBe(true);
-    expect(compareGraph(yamlStream, nativeParseAll(text)).equal).toBe(true);
-
-    for (const [value, serialize, parseReference] of [
-      [jsValue, candidateDump, jsYamlReference.load],
-      [yamlValue, candidateStringify, yamlReference.parse],
-    ] as const) {
-      const roundTrip = parseReference(serialize(value));
-      expect(compareGraph(value, roundTrip).equal).toBe(true);
+    const referenceErrorDocument = yamlReference.parseDocument(text);
+    const candidateErrorDocument = candidateParseDocument(text);
+    if (jsReferenceStream.length > 1) {
+      expect(referenceErrorDocument.errors.length).toBeGreaterThan(0);
+      expect(candidateErrorDocument.errors.length).toBeGreaterThan(0);
+    } else {
+      expect(referenceErrorDocument.errors).toHaveLength(0);
+      expect(candidateErrorDocument.errors).toHaveLength(0);
     }
-  }), { numRuns: 16, seed });
+
+    const referenceLexemes = [...new yamlReference.Lexer().lex(text)];
+    const candidateLexemes = [...new candidateLexer().lex(text)];
+    expect(candidateLexemes).toEqual(referenceLexemes);
+    const referenceTokens = [...new yamlReference.Parser().parse(text)];
+    const candidateTokens = [...new candidateParser().parse(text)];
+    expect(candidateTokens).toEqual(referenceTokens);
+    expect(candidateTokens.map((token) => candidateCST.stringify(token)).join("")).toBe(text);
+    expect(candidateTokens.map((token) => yamlReference.CST.stringify(token)).join("")).toBe(text);
+
+    for (const documentValue of yamlReferenceStream) {
+      const nativeSerialized = nativeStringify(documentValue);
+      const nativeRoundTrip = yamlReference.parse(nativeSerialized);
+      expect(compareGraph(documentValue, nativeRoundTrip).equal).toBe(true);
+
+      const jsSerialized = candidateDump(documentValue);
+      expect(compareGraph(documentValue, jsYamlReference.load(jsSerialized)).equal).toBe(true);
+
+      const yamlSerialized = candidateStringify(documentValue);
+      expect(compareGraph(documentValue, yamlReference.parse(yamlSerialized)).equal).toBe(true);
+    }
+  }
 }
 
-describe("pinned real-world EOL properties", () => {
-  it("Kubernetes Deployment: exact bytes and LF/CRLF preserve reference and candidate graphs", async () => {
-    await checkFixture("kubernetes-nginx-deployment", 20261016);
-  });
-  it("Docker Compose: exact bytes and LF/CRLF preserve reference and candidate graphs", async () => {
-    await checkFixture("docker-compose-nginx-flask-mysql", 20261017);
-  });
-  it("GitHub Actions: exact bytes and LF/CRLF preserve reference and candidate graphs", async () => {
-    await checkFixture("github-actions-node-ci", 20261018);
-  });
+describe("pinned real-world properties", () => {
+  for (const input of realWorldInputs) {
+    it(`${input.id}: exact bytes and deterministic LF/CRLF`, async () => {
+      await checkFixture(input.id);
+    });
+  }
 });
