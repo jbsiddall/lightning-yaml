@@ -11,14 +11,23 @@ const manifestPath = path.join(repo, "test/corpus/real-world/manifest.json");
 async function manifest(): Promise<any> {
   return JSON.parse(await readFile(manifestPath, "utf8"));
 }
+function refreshAggregate(value: any): void {
+  value.inputCount = value.inputs.length;
+  value.aggregateSha256 = createHash("sha256")
+    .update(JSON.stringify(value.inputs.map((input: any) => [input.localPath, input.sha256])))
+    .digest("hex");
+}
 
 describe("pinned real-world corpus", () => {
-  it("loads every explicitly listed fixture and verifies its source and license bytes", async () => {
+  it("loads every declared fixture and verifies its source and license bytes", async () => {
+    const declared = await manifest();
     const inputs = await loadRealWorldCorpus();
-    expect(inputs).toHaveLength(3);
-    expect(inputs.map((input) => input.category)).toEqual([
-      "kubernetes", "docker-compose", "github-actions",
-    ]);
+    expect(inputs.map(({ id, localPath, sha256 }) => [id, localPath, sha256]))
+      .toEqual(declared.inputs.map(({ id, localPath, sha256 }: any) => [id, localPath, sha256]));
+    expect(inputs).toHaveLength(declared.inputCount);
+    expect(new Set(inputs.map((input) => input.category))).toEqual(
+      new Set(["kubernetes", "docker-compose", "github-actions"]),
+    );
     for (const input of inputs) {
       expect(Buffer.byteLength(input.text)).toBe(input.bytes);
       expect(Buffer.byteLength(input.licenseText)).toBe(input.licenseBytes);
@@ -27,13 +36,15 @@ describe("pinned real-world corpus", () => {
 
   it("rejects changed source and license bytes", async () => {
     const value = await manifest();
+    const sourcePath = value.inputs.at(-1).localPath;
+    const licensePath = value.inputs.at(-1).licensePath;
     await expect(readRealWorldInputs(value, async (file) => {
       const bytes = await readFile(file);
-      return file.endsWith("kubernetes.yaml") ? Buffer.concat([bytes, Buffer.from(" ")]) : bytes;
+      return file.endsWith(path.basename(sourcePath)) ? Buffer.concat([bytes, Buffer.from(" ")]) : bytes;
     })).rejects.toThrow(/fixture bytes or SHA-256/);
     await expect(readRealWorldInputs(value, async (file) => {
       const bytes = await readFile(file);
-      return file.endsWith("kubernetes-website-LICENSE.txt") ? bytes.subarray(1) : bytes;
+      return file.endsWith(path.basename(licensePath)) ? bytes.subarray(1) : bytes;
     })).rejects.toThrow(/license bytes or SHA-256/);
   });
 
@@ -43,11 +54,9 @@ describe("pinned real-world corpus", () => {
     const bomBytes = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), await readFile(path.join(repo, entry.localPath))]);
     entry.bytes = bomBytes.length;
     entry.sha256 = createHash("sha256").update(bomBytes).digest("hex");
-    value.aggregateSha256 = createHash("sha256")
-      .update(JSON.stringify(value.inputs.map((input: any) => [input.localPath, input.sha256])))
-      .digest("hex");
+    refreshAggregate(value);
     const loaded = await readRealWorldInputs(value, async (file) =>
-      file.endsWith("kubernetes.yaml") ? bomBytes : readFile(file),
+      file.endsWith(path.basename(entry.localPath)) ? bomBytes : readFile(file),
     );
     expect(loaded[0]!.text.charCodeAt(0)).toBe(0xfeff);
     expect(Buffer.from(loaded[0]!.text, "utf8")).toEqual(bomBytes);
@@ -55,10 +64,12 @@ describe("pinned real-world corpus", () => {
 
   it("rejects missing entries and any required category", async () => {
     const original = await manifest();
-    await expect(readRealWorldInputs({ ...original, inputs: original.inputs.slice(0, 2), inputCount: 2 }))
-      .rejects.toThrow(/missing required category/);
+    const missingEntry = structuredClone(original);
+    missingEntry.inputs = missingEntry.inputs.slice(0, -1);
+    await expect(readRealWorldInputs(missingEntry)).rejects.toThrow(/declared count/);
     const withoutCategory = structuredClone(original);
-    withoutCategory.inputs[2].category = "docker-compose";
+    withoutCategory.inputs = withoutCategory.inputs.filter((input: any) => input.category !== "github-actions");
+    refreshAggregate(withoutCategory);
     await expect(readRealWorldInputs(withoutCategory)).rejects.toThrow(/missing required category/);
   });
 
@@ -77,7 +88,7 @@ describe("pinned real-world corpus", () => {
     badAttribution.inputs[0].sourceUrl = "https://evil.invalid/blob/109572ac97242c9b3d68b4b26afdd22b5f88ed73/content/en/examples/controllers/nginx-deployment.yaml";
     await expect(readRealWorldInputs(badAttribution)).rejects.toThrow(/non-pinned source or license URL/);
     await expect(readRealWorldInputs(original, async (file) => {
-      if (file.endsWith("kubernetes.yaml")) throw new Error("missing file");
+      if (file.endsWith(path.basename(original.inputs[0].localPath))) throw new Error("missing file");
       return readFile(file);
     })).rejects.toThrow(/missing file/);
   });
