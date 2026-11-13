@@ -49,14 +49,27 @@ export class Schema {
     sortMapEntries,
     toStringDefaults
   }: SchemaOptions) {
+    if (schema !== undefined && schema !== 'core')
+      throw new Error('lightning-yaml source documents support the core schema only')
+    if (merge !== undefined || compat !== undefined)
+      throw new Error('merge keys and compatibility schemas are not supported by source documents')
+    if (resolveKnownTags !== undefined && resolveKnownTags !== true)
+      throw new Error('source documents always resolve the supported explicit core tags')
     this.compat = Array.isArray(compat)
       ? getTags(compat, 'compat')
       : compat
         ? getTags(null, compat)
         : null
     this.name = (typeof schema === 'string' && schema) || 'core'
-    this.knownTags = resolveKnownTags ? coreKnownTags : {}
+    this.knownTags = {
+      'tag:yaml.org,2002:binary': coreKnownTags['tag:yaml.org,2002:binary']
+    }
     this.tags = getTags(customTags, this.name, merge)
+    if (this.tags.some(tag =>
+      tag.tag === 'tag:yaml.org,2002:timestamp' ||
+      tag.tag === 'tag:yaml.org,2002:merge'
+    ))
+      throw new Error('timestamp and merge tags are not supported by source documents')
     this.toStringOptions = toStringDefaults ?? null
 
     Object.defineProperty(this, MAP, { value: map })

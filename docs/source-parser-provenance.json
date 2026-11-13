@@ -119,10 +119,10 @@
       "upstreamPath": "src/errors.ts",
       "sha256": "f53386c16360887008e24db1928d9d8fc234eb0288ecb2b28ce9b512929cd511",
       "localPath": "src/source/errors.ts",
-      "localSha256": "de80d4c96ad92133032bed5ee3eaaa54b82eb779f8827528dc121b80827edb4a",
+      "localSha256": "7d59a278e8f91418f713f93813dce722d33320e65df838c625151da9f68fef1f",
       "adaptations": [
-        "Retained ISC notice, pinned ErrorCode members needed by scalar helpers, YAMLError, and YAMLParseError; omitted unused warning and prettifier support.",
-        "Added the pinned YAMLWarning class required by Composer while retaining existing parser errors."
+        "Retained ISC notice and pinned ErrorCode members required by scalar helpers and native Composer/Document diagnostics.",
+        "Added the pinned YAMLWarning class and prettifyError implementation with line positions and source context; retained parser error classes."
       ]
     },
     {
@@ -467,9 +467,10 @@
       "sha256": "4b56cf46cf950088125ecbd07f2f1ce857305f426f1d6479a51a5f871f322cb6",
       "localPath": "src/source/compose/compose-scalar.ts",
       "adaptations": [
-        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Rejects explicit !!timestamp and !!merge with source diagnostics rather than applying legacy automatic semantics."
       ],
-      "localSha256": "3a24c41f5949f9d482b5fd36fbd5e219862206753cb8a31eb469ba980e9fe276"
+      "localSha256": "601f0ed0567d28128266970d608cb71eece9ee0bde13fa778fe63f0bbeebaf0a"
     },
     {
       "upstreamPath": "src/compose/composer.ts",
@@ -477,9 +478,9 @@
       "localPath": "src/source/compose/composer.ts",
       "adaptations": [
         "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
-        "Retained the held core-schema/YAML-1.2 option restrictions and uniqueKeys:false default for the private source-document integration."
+        "Retained core-schema/YAML-1.2 restrictions and uniqueKeys:false default; allows explicitly registered custom tags through the native schema registry."
       ],
-      "localSha256": "d774f79f48787e3a12dbf5b4951777e1d3565b286acf69b5d0259d3a0b1e02b5"
+      "localSha256": "3f0185829b4b8e47d98d4eb927d343e7a71c4b9aed4bd34e8160be54e1cbd7a4"
     },
     {
       "upstreamPath": "src/compose/resolve-block-map.ts",
@@ -560,10 +561,10 @@
       "localPath": "src/source/doc/Document.ts",
       "adaptations": [
         "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
-        "Retained held core-schema/YAML-1.2 runtime restrictions and uniqueKeys:false defaults.",
+        "Retained core-schema/YAML-1.2 runtime restrictions and uniqueKeys:false defaults; accepts opt-in custom tags through Schema.",
         "Removed copied JSDoc claiming unsupported null-version behavior; documented the supported YAML 1.2 core schema."
       ],
-      "localSha256": "2651d6a84e220c2a8b72db6bb40202db6c5a12e75c20a0fc207c2e7197a13259"
+      "localSha256": "0ef9eb2fca0aedf3ac1e6e0c74bc96af5ea0f40f851681c931c8a6e3e3937b77"
     },
     {
       "upstreamPath": "src/doc/directives.ts",
@@ -589,9 +590,10 @@
       "sha256": "889d5f53295605c74bfc8e7382b0365f5d9d043beb6cc0033f83c9820e82e727",
       "localPath": "src/source/schema/Schema.ts",
       "adaptations": [
-        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Restricts public schemas to core, limits automatic known tags to !!binary, and rejects timestamp/merge tags while retaining opt-in application tags."
       ],
-      "localSha256": "4941936ac3add57e3bc42201d0114d81e5a9a11dcf1ebf3eecf3cefd6f766866"
+      "localSha256": "69211c691b40e2d15f20da99de0e4ce4fdaf8e5fa7bfeae39897463b49c79561"
     },
     {
       "upstreamPath": "src/schema/types.ts",

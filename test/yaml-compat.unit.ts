@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import * as yamlReal from "yaml";
-import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify } from "../src/yaml-compat.ts";
+import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify, Composer, Document, YAMLMap, Scalar, Schema, isDocument, isMap, visit, YAMLParseError, YAMLWarning } from "../src/yaml-compat.ts";
 import { parse as coreParse, parseAll as coreParseAll, requiredDocumentOptions, yamlDocumentOptions } from "../src/core.ts";
 import { load, YAMLException } from "../src/js-yaml-compat.ts";
 
@@ -27,7 +27,6 @@ const MULTI_DOC = "---\na: 1\n---\nb: 2\n---\nc: 3\n";
 const DUMP_VALUE = { name: "svc", replicas: 3, enabled: true, tags: ["a", "b"] };
 const PARSE_THROWS: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
   ["mapAsMap", { mapAsMap: true }],
-  ["intAsBigInt", { intAsBigInt: true }],
   ["maxAliasCount", { maxAliasCount: 10 }],
   ["merge", { merge: true }],
   ["schema:json", { schema: "json" }],
@@ -53,6 +52,14 @@ test("yaml-compat: named exports exist with the right shapes", () => {
   strictEqual(typeof parseAllDocuments, "function");
   strictEqual(typeof parseDocument, "function");
   strictEqual(typeof stringify, "function");
+  strictEqual(typeof Composer, "function");
+  strictEqual(typeof Document, "function");
+  strictEqual(typeof YAMLMap, "function");
+  strictEqual(typeof Scalar, "function");
+  strictEqual(typeof Schema, "function");
+  strictEqual(typeof visit, "function");
+  strictEqual(typeof YAMLParseError, "function");
+  strictEqual(typeof YAMLWarning, "function");
 });
 
 test("yaml-compat: default export object mirrors the named exports", () => {
@@ -73,9 +80,122 @@ test("yaml-compat.parseDocument wraps a single document like parseAllDocuments' 
   const doc = parseDocument("a: 1\nb: 2\n");
   deepStrictEqual(doc.toJS(), { a: 1, b: 2 });
   deepStrictEqual(doc.toJSON(), { a: 1, b: 2 });
-  deepStrictEqual(doc.contents, { a: 1, b: 2 });
+  ok(doc instanceof Document);
+  ok(isDocument(doc));
+  ok(doc.contents instanceof YAMLMap);
+  ok(isMap(doc.contents));
+  deepStrictEqual(doc.contents.toJS(doc), { a: 1, b: 2 });
   deepStrictEqual(doc.errors, []);
   deepStrictEqual(doc.warnings, []);
+});
+
+test("public source documents retain native diagnostics, offsets, and editable nodes", () => {
+  const source = "# heading\r\n---\r\nvalue: [1, 2]\r\n";
+  const doc = parseDocument(source, { keepSourceTokens: true });
+  ok(doc.contents instanceof YAMLMap);
+  strictEqual(doc.range[0], source.indexOf("---"));
+  ok(doc.contents.srcToken);
+  const tokens = [...new yamlCompatDefault.Parser().parse(source)];
+  const streamed = [...new Composer({ keepSourceTokens: true }).compose(tokens)];
+  const sourceDocument = tokens.find((token) => token.type === "document");
+  ok(sourceDocument?.type === "document");
+  strictEqual(streamed[0]?.contents?.srcToken, sourceDocument.value);
+  doc.setIn(["value", 0], 9);
+  deepStrictEqual(doc.toJS(), { value: [9, 2] });
+  strictEqual(isDocument(doc), true);
+  let visited = 0;
+  visit(doc, () => { visited++; });
+  ok(visited > 0);
+});
+
+test("source-only options are forwarded, while conversion options stay on toJS", () => {
+  const conversionOptions = { mapAsMap: true };
+  throws(() => Reflect.apply(parseDocument, undefined, ["a: 1\n", conversionOptions]));
+  const source = "a: [1, 2]\n";
+  deepStrictEqual(parseDocument(source, { strict: false }).toJS(), { a: [1, 2] });
+  const counter = new yamlCompatDefault.LineCounter();
+  const doc = parseDocument("a: [1,\n", { lineCounter: counter, prettyErrors: false });
+  ok(doc.errors.length > 0);
+  strictEqual(counter.lineStarts.length, 2);
+  strictEqual(doc.errors[0]?.linePos, undefined);
+  const pretty = parseDocument("a: [1,\n");
+  ok(pretty.errors[0]?.message.includes(" at line "));
+  deepStrictEqual(pretty.errors[0]?.linePos?.[0], { line: 2, col: 1 });
+  const warning = parseDocument("value: !unknown text\n");
+  ok(warning.warnings[0]?.linePos?.[0]);
+  ok(warning.warnings[0]?.message.includes(" at line 1, column 8"));
+  const empty = parseAllDocuments("# stream comment\n");
+  ok("empty" in empty && empty.empty);
+  strictEqual(empty.comment, " stream comment");
+  deepStrictEqual(parseDocument("integer: 9007199254740993\n", { intAsBigInt: true }).toJS(), { integer: 9007199254740993n });
+});
+
+test("native custom scalar and collection tags are explicit and usable", () => {
+  const include = {
+    tag: "!include",
+    resolve: (value: string) => ({ include: value }),
+    identify: (value: unknown) => !!value && typeof value === "object" && "include" in value,
+    createNode: (_schema: unknown, value: unknown) => new Scalar(value),
+  };
+  const docs = parseAllDocuments("entry: !include ./part.yaml\n", { customTags: [include] });
+  deepStrictEqual(docs[0]?.toJS(), { entry: { include: "./part.yaml" } });
+  const mapping = {
+    collection: "map" as const,
+    tag: "!dict",
+    nodeClass: YAMLMap,
+    identify: (value: unknown) => value instanceof Map,
+  };
+  const collectionDoc = parseDocument("settings: !dict {mode: safe}\n", { customTags: [mapping] });
+  deepStrictEqual(collectionDoc.toJS(), { settings: { mode: "safe" } });
+  const direct = new Document(undefined, { customTags: (tags) => [...tags, include] });
+  const node = direct.createNode({ include: "x" }, { tag: "!include" });
+  ok(node instanceof Scalar);
+  const mapDoc = new Document(new Map([["mode", "safe"]]), { customTags: [mapping], tag: "!dict" });
+  ok(mapDoc.contents instanceof YAMLMap);
+  deepStrictEqual(parseDocument(mapDoc.toString(), { customTags: [mapping] }).toJS(), { mode: "safe" });
+  ok(new Schema({ customTags: [include] }) instanceof Schema);
+  throws(() => new Composer({ version: "1.1" }));
+  throws(() => new Schema({ schema: "yaml-1.1" }));
+  throws(() => new Document(undefined, { merge: false }));
+});
+
+test("default native schema rejects automatic timestamp and merge typing but keeps binary", () => {
+  const timestampSource = "value: !!timestamp 2020-01-01\n";
+  const timestamp = parseDocument(timestampSource);
+  ok(timestamp.errors.some((error) => error.code === "TAG_RESOLVE_FAILED"));
+  ok(!((timestamp.toJS() as { value: unknown }).value instanceof Date));
+  const directTimestamp = [...new Composer().compose(
+    new yamlCompatDefault.Parser().parse(timestampSource), true, timestampSource.length
+  )][0]!;
+  ok(directTimestamp.errors.some((error) => error.code === "TAG_RESOLVE_FAILED"));
+  ok(!((directTimestamp.toJS() as { value: unknown }).value instanceof Date));
+
+  const mergeSource = "base: &base {x: 1}\n!!merge <<: *base\n";
+  const merge = parseDocument(mergeSource);
+  ok(merge.errors.some((error) => error.code === "TAG_RESOLVE_FAILED"));
+  deepStrictEqual(merge.toJS(), { base: { x: 1 }, "<<": { x: 1 } });
+  const directMerge = [...new Composer().compose(
+    new yamlCompatDefault.Parser().parse(mergeSource), true, mergeSource.length
+  )][0]!;
+  ok(directMerge.errors.some((error) => error.code === "TAG_RESOLVE_FAILED"));
+  deepStrictEqual(directMerge.toJS(), { base: { x: 1 }, "<<": { x: 1 } });
+  const binary = parseDocument("value: !!binary AQID\n");
+  ok((binary.toJS() as { value: unknown }).value instanceof Uint8Array);
+  ok("tag:yaml.org,2002:binary" in new Schema({}).knownTags);
+  ok(!("tag:yaml.org,2002:timestamp" in new Schema({}).knownTags));
+  ok(!("tag:yaml.org,2002:merge" in new Schema({}).knownTags));
+  throws(() => new Schema({ customTags: ["timestamp"] }));
+  throws(() => new Document(undefined, { schema: "yaml-1.1" }));
+});
+
+test("single-document diagnostics identify extra documents and honor silent log level", () => {
+  const source = "first: 1\n---\nsecond: 2\n";
+  const doc = parseDocument(source);
+  const error = doc.errors.find(item => item.code === "MULTIPLE_DOCS");
+  ok(error instanceof YAMLParseError);
+  strictEqual(error.pos[0], source.indexOf("---"));
+  ok(error.message.includes(" at line 2, column 1"));
+  strictEqual(parseDocument(source, { logLevel: "silent" }).errors.length, 0);
 });
 
 test("yaml compatibility preserves yaml 2.9 suffix document counting", () => {
@@ -125,12 +245,13 @@ test("yaml compatibility retains invalid marker and late-document recovery behav
 
   for (const input of ["...\n[", "---\nnull\n...\n...\n["]) {
     const docs = parseAllDocuments(input);
-    strictEqual(docs.length, 1);
-    strictEqual(docs[0].contents, undefined);
-    strictEqual(docs[0].errors.length, 1);
+    const referenceDocs = yamlReal.parseAllDocuments(input);
+    strictEqual(docs.length, referenceDocs.length);
+    deepStrictEqual(docs.map(doc => doc.toJS()), referenceDocs.map(doc => doc.toJS()));
+    ok(docs.some(doc => doc.errors.length > 0));
     const document = parseDocument(input);
-    strictEqual(document.contents, undefined);
-    strictEqual(document.errors.length, 1);
+    deepStrictEqual(document.toJS(), yamlReal.parseDocument(input).toJS());
+    strictEqual(document.errors[0]?.code, "MULTIPLE_DOCS");
   }
 });
 

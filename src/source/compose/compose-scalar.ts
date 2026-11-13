@@ -43,7 +43,10 @@ export function composeScalar(
     : null
 
   let tag: ScalarTag
-  if (ctx.options.stringKeys && ctx.atKey) {
+  if (tagName === 'tag:yaml.org,2002:timestamp' || tagName === 'tag:yaml.org,2002:merge') {
+    onError(tagToken!, 'TAG_RESOLVE_FAILED', `Unsupported core tag: ${tagName}`)
+    tag = ctx.schema[SCALAR]
+  } else if (ctx.options.stringKeys && ctx.atKey) {
     tag = ctx.schema[SCALAR]
   } else if (tagName)
     tag = findScalarTagByName(ctx.schema, value, tagName, tagToken!, onError)

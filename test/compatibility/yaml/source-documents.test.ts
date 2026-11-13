@@ -127,8 +127,10 @@ test('source document policies stay within the supported core subset', () => {
   throws(() => new Composer({ version: '1.1' }), /YAML 1.2 only/)
   throws(() => new Composer({ schema: 'yaml-1.1' }), /core schema only/)
   throws(() => new Composer({ merge: true }), /not supported/)
-  throws(() => new Composer({ customTags: [] }), /not supported/)
   throws(() => new Composer({ compat: 'yaml-1.1' }), /not supported/)
+  const custom = { tag: '!local', resolve: (value: string) => value.toUpperCase() }
+  const composed = [...new Composer({ customTags: [custom] }).compose(new Parser().parse('value: !local word\n'))]
+  deepStrictEqual(composed[0]?.toJS(), { value: 'WORD' })
   const repeatedTag = parse('%TAG !e! tag:example.com,2020:\n%TAG !e! tag:example.com,2021:\n---\na: !e!thing value\n').docs[0]!
   ok(repeatedTag.errors.some(error => error.code === 'BAD_DIRECTIVE'))
   const unsupportedVersion = parse('%YAML 2.0\n---\nb: 1\n').docs[0]!

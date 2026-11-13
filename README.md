@@ -142,8 +142,11 @@ import { parse, stringify } from 'lightning-yaml/yaml';
 
 > **Status — partial compatibility.** The subpaths provide selected functions,
 > not the full `yaml` or `js-yaml` export surfaces or every call signature.
-> Unsupported options throw instead of being silently ignored. Each shim's
-> **option-support matrix**
+> The `yaml` subpath includes source-aware `parseDocument` and
+> `parseAllDocuments` APIs that return editable native documents and nodes;
+> convert their contents with `doc.toJS()`. The fast `parse` and `stringify`
+> paths remain separate. Unsupported options throw instead of being silently
+> ignored. Each shim's **option-support matrix**
 > ([js-yaml](https://lightning-yaml.dev/api/js-yaml-compat/readme/#option-support-matrix),
 > [yaml](https://lightning-yaml.dev/api/yaml-compat/readme/#option-support-matrix))
 > lists which options are easy or hard to support next.
@@ -221,14 +224,17 @@ compatibility gaps; `pnpm audit:js-yaml:strict` makes gaps fail the command.
 Run `pnpm audit:yaml:full` for the separate yaml 2.9.0 campaign, including
 `parse`, `stringify`, document conversions, callbacks and option witnesses.
 Document AST and API differences are reported separately from converted values.
-The main package includes the yaml-compatible `Lexer`, `Parser`, and `CST`
-helper namespace for source token inspection and editing. The historical
+The yaml subpath includes native `Composer`, `Document`, node, AST visitor, and
+diagnostic APIs alongside the `Lexer`, `Parser`, and `CST` helper namespace for
+source-aware parsing and editing. Source documents support YAML 1.2 core plus
+explicitly registered application tags; YAML 1.1 and non-core schemas are
+rejected. The historical
 `pnpm gen:yaml-cst-candidate` / `pnpm test:yaml-cst` campaign still targets the
 pinned, unmerged [PR #184](https://github.com/jbsiddall/lightning-yaml/pull/184)
 candidate and its broader Document/node work; it does not describe the current
-main package. Composer, AST nodes, source-aware Document integration,
-`keepSourceTokens` parse-option support, and complete language-server
-compatibility remain absent.
+main package. Complete yaml-language-server compatibility remains unverified;
+its dependency and version-specific option behavior need a separate acceptance
+run.
 See [the compatibility guide](docs/compatibility-testing.md) for scope,
 replay and report interpretation. Neither sampled compatibility percentages nor
 line coverage establish equivalence for every possible input.

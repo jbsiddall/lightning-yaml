@@ -102,10 +102,12 @@ describe("YAML campaign metric denominators", () => {
     const replayed = parseReplayDescriptor(JSON.parse(JSON.stringify(descriptor)));
     const result = evaluate(replayed);
     const metrics = summarize([result]);
+    expect(result.candidate.status).toBe("success");
+    expect(result.differences).toEqual([]);
     expect(metrics.callbackDifferences).toEqual({
-      numerator: 1,
+      numerator: 0,
       denominator: 1,
-      percent: 100,
+      percent: 0,
     });
     expect(descriptorOptionKeys(replayed)).toEqual(["onAnchor"]);
     expect(descriptorExplicitUndefinedKeys({
