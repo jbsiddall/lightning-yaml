@@ -1738,7 +1738,7 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
 function keyToString(node: unknown): string {
   if (typeof node === "string") return node;
   if (node === null) return "";
-  if (typeof node === "object") return stringifyKeyNode(node);
+  if (typeof node === "object") return stringifyKeyNode(node, new Set());
   return String(node);
 }
 
@@ -1756,19 +1756,29 @@ function keyToString(node: unknown): string {
 // (and, rarely, a `!!set`/`!!omap` used as a key), never anchors/tags/comments.
 // ---------------------------------------------------------------------------
 
-function stringifyKeyNode(node: object): string {
-  if (Array.isArray(node)) return stringifyKeyItems(node.length, (i) => stringifyKeyValue(node[i]), "[", "]");
-  if (node instanceof Set) {
-    const items = [...node.values()];
-    return stringifyKeyItems(items.length, (i) => stringifyKeyValue(items[i]), "[", "]");
+function stringifyKeyNode(node: object, ancestors: Set<object>): string {
+  if (ancestors.has(node)) fail("cyclic collection key cannot be rendered");
+  ancestors.add(node);
+  try {
+    if (Array.isArray(node)) return stringifyKeyItems(node.length, (i) => stringifyKeyValue(node[i], ancestors), "[", "]");
+    if (node instanceof Set) {
+      const items = [...node.values()];
+      return stringifyKeyItems(items.length, (i) => stringifyKeyValue(items[i], ancestors), "[", "]");
+    }
+    if (node instanceof Map) {
+      const entries = [...node.entries()];
+      return stringifyKeyItems(entries.length, (i) => {
+        const [key, value] = entries[i]!;
+        const keyText = key !== null && typeof key === "object" ? stringifyKeyNode(key, ancestors) : keyToString(key);
+        return `${stringifyKeyScalar(keyText)}: ${stringifyKeyValue(value, ancestors)}`;
+      }, "{", "}");
+    }
+    if (node instanceof Uint8Array) return stringifyKeyNode(Array.from(node), ancestors);
+    const keys = Object.keys(node as Record<string, unknown>);
+    return stringifyKeyItems(keys.length, (i) => `${stringifyKeyScalar(keys[i]!)}: ${stringifyKeyValue((node as Record<string, unknown>)[keys[i]!], ancestors)}`, "{", "}");
+  } finally {
+    ancestors.delete(node);
   }
-  if (node instanceof Map) {
-    const entries = [...node.entries()];
-    return stringifyKeyItems(entries.length, (i) => `${stringifyKeyScalar(keyToString(entries[i]![0]))}: ${stringifyKeyValue(entries[i]![1])}`, "{", "}");
-  }
-  if (node instanceof Uint8Array) return stringifyKeyNode(Array.from(node)); // best-effort, rare (a binary key)
-  const keys = Object.keys(node as Record<string, unknown>);
-  return stringifyKeyItems(keys.length, (i) => `${stringifyKeyScalar(keys[i]!)}: ${stringifyKeyValue((node as Record<string, unknown>)[keys[i]!])}`, "{", "}");
 }
 
 /** Shared flow-padding join for `stringifyKeyNode`'s array/object branches: `"[]"`/`"{}"` empty, else `"X item, item Y"`. */
@@ -1782,12 +1792,12 @@ function stringifyKeyItems(count: number, render: (i: number) => string, open: s
   return out + " " + close;
 }
 
-function stringifyKeyValue(value: unknown): string {
+function stringifyKeyValue(value: unknown, ancestors: Set<object>): string {
   if (value === null) return "null";
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return stringifyKeyScalar(value);
-  if (typeof value === "object") return stringifyKeyNode(value);
+  if (typeof value === "object") return stringifyKeyNode(value, ancestors);
   return String(value);
 }
 

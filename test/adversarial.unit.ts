@@ -29,6 +29,8 @@ import { test } from "node:test";
 import { deepStrictEqual, throws, strictEqual, ok } from "node:assert";
 import { parse, parseAll, stringify, YAMLParseError } from "../src/index.ts";
 import { oracleParse } from "../bench/oracle.ts";
+import { parse as yamlParse } from "../src/yaml-compat.ts";
+import { load, YAMLException } from "../src/js-yaml-compat.ts";
 
 // C1/C0 code points that can't be written as literals in this source without
 // tripping tooling — built by value instead.
@@ -233,6 +235,18 @@ test("complex keys: a zero-indented ('compact') block sequence is a valid explic
   for (const s of ["?\n- a\n:\n- c\n", "?\n- a\n- b\n:\n- c\n- d\n", "?\n- a\n", "?\n- a\n:\n  b: 1\n", "? x\n: y\n?\n- a\n- b\n: z\n"]) {
     deepStrictEqual(parse(s), oracleParse(s));
   }
+});
+
+test("cyclic collection keys fail with a parse error without rejecting shared references", () => {
+  const inputs = ["? &a [*a]\n: 1", "? &a {self: *a}\n: 1", "{? &a [*a]: 1}", "{? &a {self: *a}: 1}"];
+  for (const input of inputs) {
+    for (const entry of [parse, parseAll, yamlParse]) {
+      throwsBecause(() => entry(input), /cyclic collection key/);
+    }
+    throws(() => load(input), (e: unknown) => e instanceof YAMLException && /cyclic collection key/.test(e.message));
+  }
+  deepStrictEqual(parse("? [ &a [1], *a ]\n: 1"), { "[ [ 1 ], [ 1 ] ]": 1 });
+  deepStrictEqual(parse("? [ &a {x: 1}, *a ]\n: 1"), { "[ { x: 1 }, { x: 1 } ]": 1 });
 });
 
 test("complex keys: IMPLICIT flow collection key is a spec error — we reject it (impl diverges)", () => {
