@@ -67,6 +67,24 @@ export type TagId = keyof typeof tagsByName
 
 export type Tags = Array<ScalarTag | CollectionTag | TagId>
 
+const unsupportedLegacyTagAliases = new Set<TagId>([
+  'floatTime',
+  'intTime',
+  'merge',
+  'omap',
+  'pairs',
+  'set',
+  'timestamp'
+])
+
+export function assertSupportedCustomTagAliases(tags: Tags): Tags {
+  for (const tag of tags) {
+    if (typeof tag === 'string' && unsupportedLegacyTagAliases.has(tag))
+      throw new Error(`legacy YAML tag shorthand "${tag}" is not supported by source documents`)
+  }
+  return tags
+}
+
 export const coreKnownTags = {
   'tag:yaml.org,2002:binary': binary,
   'tag:yaml.org,2002:merge': merge,

@@ -17,6 +17,7 @@ THIS SOFTWARE.
 
 import { Directives } from '../doc/directives.ts'
 import { Document } from '../doc/Document.ts'
+import { assertSupportedCustomTagAliases } from '../schema/tags.ts'
 import type { ErrorCode } from '../errors.ts'
 import { YAMLParseError, YAMLWarning } from '../errors.ts'
 import { isCollection, isPair } from '../nodes/identity.ts'
@@ -112,6 +113,8 @@ export class Composer<
       throw new Error('merge keys and compatibility schemas are not supported by source documents')
     if (options.resolveKnownTags !== undefined && options.resolveKnownTags !== true)
       throw new Error('source documents always resolve the supported explicit core tags')
+    if (Array.isArray(options.customTags))
+      assertSupportedCustomTagAliases(options.customTags)
     this.directives = new Directives({ version: '1.2' })
     this.options = { ...options, version: '1.2', uniqueKeys: options.uniqueKeys ?? false }
   }

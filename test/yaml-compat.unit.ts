@@ -188,6 +188,41 @@ test("default native schema rejects automatic timestamp and merge typing but kee
   throws(() => new Document(undefined, { schema: "yaml-1.1" }));
 });
 
+test("legacy numeric tag shorthands cannot bypass core source typing", () => {
+  const rejected = (run: () => unknown) => {
+    try {
+      run();
+      return false;
+    } catch {
+      return true;
+    }
+  };
+  deepStrictEqual([
+    rejected(() => parseDocument("x: 1:20\n", { customTags: ["intTime"] })),
+    rejected(() => parseAllDocuments("# comment only\n", { customTags: ["intTime"] })),
+    rejected(() => new Composer({ customTags: ["intTime"] })),
+    rejected(() => new Schema({ schema: "core", customTags: ["intTime"] })),
+    rejected(() => parseDocument("x: 1:20.5\n", { customTags: ["floatTime"] })),
+    rejected(() => new Schema({ schema: "core", customTags: ["floatTime"] })),
+  ], [true, true, true, true, true, true]);
+  for (const tag of ["merge", "omap", "pairs", "set", "timestamp"] as const) {
+    ok(rejected(() => new Schema({ schema: "core", customTags: [tag] })));
+  }
+  ok(new Schema({ schema: "core", customTags: ["binary", "int"] }) instanceof Schema);
+  ok(new Schema({
+    schema: "core",
+    customTags: tags => [...tags, "binary"],
+  }) instanceof Schema);
+  let callbackCalls = 0;
+  throws(() => parseDocument("x: 1:20\n", {
+    customTags: tags => {
+      callbackCalls++;
+      return [...tags, "intTime"];
+    },
+  }));
+  strictEqual(callbackCalls, 1);
+});
+
 test("single-document diagnostics identify extra documents and honor silent log level", () => {
   const source = "first: 1\n---\nsecond: 2\n";
   const doc = parseDocument(source);

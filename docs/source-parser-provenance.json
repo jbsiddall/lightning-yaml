@@ -478,9 +478,10 @@
       "localPath": "src/source/compose/composer.ts",
       "adaptations": [
         "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
-        "Retained core-schema/YAML-1.2 restrictions and uniqueKeys:false default; allows explicitly registered custom tags through the native schema registry."
+        "Retained core-schema/YAML-1.2 restrictions and uniqueKeys:false default; allows explicitly registered custom tags through the native schema registry.",
+        "Rejects unsupported static legacy named tags at construction, including for empty streams without invoking callbacks."
       ],
-      "localSha256": "3f0185829b4b8e47d98d4eb927d343e7a71c4b9aed4bd34e8160be54e1cbd7a4"
+      "localSha256": "56a798791ae2efbe837566c7708bad96d103b5504cd1114b813bc9b116956d2c"
     },
     {
       "upstreamPath": "src/compose/resolve-block-map.ts",
@@ -591,9 +592,11 @@
       "localPath": "src/source/schema/Schema.ts",
       "adaptations": [
         "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
-        "Restricts public schemas to core, limits automatic known tags to !!binary, and rejects timestamp/merge tags while retaining opt-in application tags."
+        "Restricts public schemas to core, limits automatic known tags to !!binary, and rejects timestamp/merge tags while retaining opt-in application tags.",
+        "Rejects unsupported YAML 1.1 named tag aliases before resolving custom-tag arrays or callbacks; preserves core aliases and !!binary.",
+        "Uses the shared legacy-alias guard for arrays and validates callback results after their single registry invocation."
       ],
-      "localSha256": "69211c691b40e2d15f20da99de0e4ce4fdaf8e5fa7bfeae39897463b49c79561"
+      "localSha256": "b638d09b04620943e66db1fbc553cf7bdb1836f72416c442197c2a81ec542bf8"
     },
     {
       "upstreamPath": "src/schema/types.ts",
@@ -611,9 +614,10 @@
       "localPath": "src/source/schema/tags.ts",
       "adaptations": [
         "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
-        "Keeps merge out of the default core tag list; Composer rejects merge option requests."
+        "Keeps merge out of the default core tag list; Composer rejects merge option requests.",
+        "Added a shared guard for unsupported YAML 1.1 named tag aliases; custom tag callbacks are checked after their single normal invocation."
       ],
-      "localSha256": "6084929ca9139a2bd02ddeeb37c524baf89eb5ef1f421c5a0d86269cf1654795"
+      "localSha256": "a828bb463fd62e337a9e7c8554dd7ba4572e064953f199af9ac6f1ed846378d1"
     },
     {
       "upstreamPath": "src/schema/common/map.ts",

@@ -21,11 +21,20 @@ import type { SchemaOptions, ToStringOptions } from '../options.ts'
 import { map } from './common/map.ts'
 import { seq } from './common/seq.ts'
 import { string } from './common/string.ts'
-import { coreKnownTags, getTags } from './tags.ts'
+import { assertSupportedCustomTagAliases, coreKnownTags, getTags } from './tags.ts'
 import type { CollectionTag, ScalarTag } from './types.ts'
 
 const sortMapEntriesByKey = (a: Pair<any>, b: Pair<any>) =>
   a.key < b.key ? -1 : a.key > b.key ? 1 : 0
+
+function supportedCustomTags(
+  customTags: SchemaOptions['customTags']
+): SchemaOptions['customTags'] {
+  if (Array.isArray(customTags)) return assertSupportedCustomTagAliases(customTags)
+  if (typeof customTags === 'function')
+    return tags => assertSupportedCustomTagAliases(customTags(tags))
+  return customTags
+}
 
 export class Schema {
   compat: Array<CollectionTag | ScalarTag> | null
@@ -64,7 +73,7 @@ export class Schema {
     this.knownTags = {
       'tag:yaml.org,2002:binary': coreKnownTags['tag:yaml.org,2002:binary']
     }
-    this.tags = getTags(customTags, this.name, merge)
+    this.tags = getTags(supportedCustomTags(customTags), this.name, merge)
     if (this.tags.some(tag =>
       tag.tag === 'tag:yaml.org,2002:timestamp' ||
       tag.tag === 'tag:yaml.org,2002:merge'
