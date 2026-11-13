@@ -7,8 +7,7 @@
  *
  *   node --expose-gc --import tsx bench/speed/stringify.bench.ts
  *
- * JSON is skipped for rich YAML (it can't represent `!!binary`/shared refs);
- * lightning-yaml's unimplemented stub is skipped everywhere.
+ * JSON is skipped for rich YAML (it can't represent `!!binary`/shared refs).
  */
 
 import { bench, group, run, do_not_optimize } from "mitata";

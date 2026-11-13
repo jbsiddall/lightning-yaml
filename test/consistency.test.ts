@@ -37,17 +37,14 @@ for (const subject of subjects) {
       if (candidateAppliesTo(subject, ds, "parse")) {
         it(`parse matches oracle · ${ds.name}`, () => {
           const text = loadFixtureText(ds);
-          // Call ours FIRST: while it's a stub this throws immediately, so the
-          // (heavy) oracle parse never runs for the still-unimplemented case.
+          // Run ours first so a failure does not also pay for the oracle parse.
           const actual = subject.parse(text);
           expect(actual).toEqual(oracleParse(text));
         });
       }
 
-      // Only when the subject actually ships a dumper. lightning-yaml's is a
-      // later milestone; until then there is nothing to round-trip (we do not
-      // substitute a foreign serializer), so this assertion is simply absent
-      // rather than red.
+      // Only candidates with their own dumper are checked; substituting a
+      // foreign serializer would measure the wrong implementation.
       const stringify = subject.stringify;
       if (stringify && candidateAppliesTo(subject, ds, "stringify")) {
         it(`stringify round-trips through oracle · ${ds.name}`, () => {

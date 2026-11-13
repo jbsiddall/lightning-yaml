@@ -15,6 +15,7 @@ import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
 import { parse, parseAll, stringify, YAMLParseError } from "../src/index.ts";
+import { requiredDocumentOptions } from "../src/core.ts";
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
 import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
@@ -734,6 +735,66 @@ test("empty document (via markers) is null", () => {
   strictEqual(parse("---\n"), null);
   strictEqual(parse("---"), null);
   strictEqual(parse("...\n"), null);
+});
+
+test("standalone document suffixes terminate a document without creating empty documents", () => {
+  deepStrictEqual(parseAll("..."), []);
+  strictEqual(parse("..."), null);
+  deepStrictEqual(parseAll("...\n..."), []);
+  deepStrictEqual(parseAll("---\n...\n..."), [null]);
+  strictEqual(parse("---\n...\n..."), null);
+  deepStrictEqual(parseAll("a\n...\n...\nb"), ["a", "b"]);
+  deepStrictEqual(parseAll("...\n%YAML 1.2\n---\nx\n"), ["x"]);
+  throws(() => parseAll("... garbage\n"), YAMLParseError);
+});
+
+test("suffix and parse errors leave core parser options reset for the next call", () => {
+  throws(() => parse("\tbad: value\n", { strict: true }), YAMLParseError);
+  deepStrictEqual(parse("\tbad: value\n"), { "bad": "value" });
+  throws(() => parse("", requiredDocumentOptions), (err: unknown) => {
+    ok(err instanceof YAMLParseError);
+    strictEqual(err.message, "expected a document, but the input is empty");
+    return true;
+  });
+  deepStrictEqual(parse("\tbad: value\n"), { "bad": "value" });
+  throws(() => parse("\tbad: value\n", { strict: true }), YAMLParseError);
+
+  deepStrictEqual(parse("a: shared\nb: shared\n", { optimizations: { internStrings: true } }), {
+    a: "shared", b: "shared",
+  });
+  throws(() => parse("# no document\n...\n", requiredDocumentOptions), YAMLParseError);
+  deepStrictEqual(parse("a: 1\n"), { a: 1 });
+  deepStrictEqual(parseAll("a: shared\nb: shared\n", { optimizations: { internStrings: true } }), [
+    { a: "shared", b: "shared" },
+  ]);
+
+  throws(() => parseAll("... garbage\n", { strict: true }), YAMLParseError);
+  deepStrictEqual(parseAll("---\n...\n...", { optimizations: { internStrings: true } }), [null]);
+  deepStrictEqual(parseAll("..."), []);
+  strictEqual(parse("---\n...\n..."), null);
+  deepStrictEqual(parseAll("a: shared\nb: shared\n", { optimizations: { internStrings: true } }), [
+    { a: "shared", b: "shared" },
+  ]);
+});
+
+test("the internal required-document option preserves single-document values", () => {
+  strictEqual(Object.isFrozen(requiredDocumentOptions), true);
+  strictEqual(parse("", {}), null);
+  strictEqual(parse("...", {}), null);
+  for (const input of ["", " # comment\n", "\ufeff", "...", "...\n..."]) {
+    throws(() => parse(input, requiredDocumentOptions), (err: unknown) => {
+      ok(err instanceof YAMLParseError);
+      strictEqual(err.message, "expected a document, but the input is empty");
+      return true;
+    });
+  }
+  for (const input of ["---", "---\n...\n...", "null", "~"]) {
+    strictEqual(parse(input, requiredDocumentOptions), null);
+  }
+  strictEqual(parse("42", requiredDocumentOptions), 42);
+  deepStrictEqual(parse("a: 1\n", requiredDocumentOptions), { a: 1 });
+  throws(() => parse("--- one\n--- two\n", requiredDocumentOptions), YAMLParseError);
+  throws(() => parse("[\n", requiredDocumentOptions), YAMLParseError);
 });
 
 test("parseAll splits a '---'-separated multi-document stream", () => {
