@@ -13,7 +13,8 @@ import {
 import { evaluate } from "./evaluate.js";
 import { optionWitnesses } from "./witnesses.js";
 import * as yamlReference from "yaml";
-import { parseDocument as candidateParseDocument, parseAllDocuments as candidateParseAllDocuments } from "../../../src/yaml-compat.ts";
+import { parseDocument as candidateParseDocument, parseAllDocuments as candidateParseAllDocuments, stringify as candidateStringify } from "../../../src/yaml-compat.ts";
+import { parseAll as nativeParseAll, stringify as nativeStringify } from "../../../src/core.ts";
 import type { CaseResult } from "./types.js";
 
 function row(
@@ -232,48 +233,69 @@ describe("YAML campaign metric denominators", () => {
 });
 
 describe("YAML campaign real-world corpus scheduling", () => {
-  it("schedules all three files through every parse lane and accepted reference serialization", async () => {
+  it("schedules every real-world source across parse lanes and accepted document serialization", async () => {
     const additions = (await loadRealWorldCorpus()).map((input) => ({
       ...input,
       corpusKind: "real-world" as const,
     }));
-    expect(additions).toHaveLength(3);
     const descriptors = buildCorpusParseDescriptors(additions);
-    expect(descriptors).toHaveLength(additions.length * 3);
+    expect(new Set(descriptors.map((descriptor) => descriptor.source))).toEqual(
+      new Set(additions.map((input) => input.source)),
+    );
     for (const input of additions) {
       const lanes = descriptors.filter((descriptor) => descriptor.source === input.source);
       expect(lanes.map((descriptor) => descriptor.operation)).toEqual([
         "parse", "parseDocument", "parseAllDocuments",
       ]);
-      const evaluated = lanes.map(evaluate);
-      for (const row of evaluated) {
-        expect(row.reference.status, `${input.id} ${row.descriptor.operation} reference`).toBe("success");
-        expect(row.candidate.status, `${input.id} ${row.descriptor.operation} candidate`).toBe("success");
+      expect(lanes.map((descriptor) => descriptor.categories)).toEqual([
+        ["corpus", "real-world", input.category, "parse"],
+        ["corpus", "real-world", input.category, "parseDocument"],
+        ["corpus", "real-world", input.category, "parseAllDocuments"],
+      ]);
+      const referenceDocuments = yamlReference.parseAllDocuments(input.text);
+      const referenceGraphs = referenceDocuments.map((document) => document.toJS());
+      const results = lanes.map(evaluate);
+      const parse = results[0]!;
+      if (referenceGraphs.length > 1) {
+        expect(yamlReference.parseDocument(input.text).errors.length).toBeGreaterThan(0);
+        expect(() => yamlReference.parse(input.text)).toThrow();
+        expect(parse.reference.status, `${input.id} parse reference`).toBe("error");
+        expect(parse.candidate.status, `${input.id} parse candidate`).toBe("error");
+      } else {
+        expect(parse.reference.status).toBe("success");
+        expect(parse.candidate.status).toBe("success");
+        expect(compareGraph(parse.reference.value, parse.candidate.value).equal).toBe(true);
       }
-      const parseRow = evaluated[0]!;
-      expect(compareGraph(parseRow.reference.value, parseRow.candidate.value).equal).toBe(true);
+      const docResult = results[1]!;
+      expect(docResult.reference.status).toBe("success");
+      expect(docResult.candidate.status).toBe("success");
+      expect(yamlReference.parseDocument(input.text).errors.length > 0)
+        .toBe(candidateParseDocument(input.text).errors.length > 0);
+      const streamResult = results[2]!;
+      expect(streamResult.reference.status).toBe("success");
+      expect(streamResult.candidate.status).toBe("success");
+      expect(streamResult.reference.value).toHaveLength(referenceGraphs.length);
+      expect(streamResult.candidate.value).toHaveLength(referenceGraphs.length);
+      expect(compareGraph(referenceGraphs, nativeParseAll(input.text)).equal).toBe(true);
       expect(compareGraph(
-        yamlReference.parseDocument(input.text).toJS(),
-        candidateParseDocument(input.text).toJS(),
-      ).equal).toBe(true);
-      expect(compareGraph(
-        yamlReference.parseAllDocuments(input.text).map((document) => document.toJS()),
+        referenceGraphs,
         candidateParseAllDocuments(input.text).map((document) => document.toJS()),
       ).equal).toBe(true);
-      const serializedDescriptor = buildCorpusReferenceSerializationDescriptor(
-        lanes[0]!, parseRow.reference.value,
-      );
-      const serialized = evaluate(serializedDescriptor);
-      expect(serialized.reference.status).toBe("success");
-      expect(serialized.candidate.status).toBe("success");
-      const roundTrip = evaluate({
-        ...lanes[0]!,
-        id: `${lanes[0]!.id}-serialization-roundtrip`,
-        text: String(serialized.candidate.text),
-      });
-      expect(roundTrip.reference.status).toBe("success");
-      expect(compareGraph(parseRow.reference.value, roundTrip.reference.value).equal).toBe(true);
-      expect(serialized.semantic?.equal).toBe(true);
+
+      for (const value of referenceGraphs) {
+        const serialized = candidateStringify(value);
+        expect(compareGraph(value, yamlReference.parse(serialized)).equal).toBe(true);
+        expect(compareGraph(value, yamlReference.parse(nativeStringify(value))).equal).toBe(true);
+        const stringifyDescriptor = buildCorpusReferenceSerializationDescriptor(lanes[0]!, value);
+        expect(stringifyDescriptor.source).toBe(`corpus-reference-value/${input.source}`);
+        expect(stringifyDescriptor.categories).toEqual([
+          "corpus-reference-value", "stringify", "real-world", input.category,
+        ]);
+        const stringifyResult = evaluate(stringifyDescriptor);
+        expect(stringifyResult.reference.status).toBe("success");
+        expect(stringifyResult.candidate.status).toBe("success");
+        expect(stringifyResult.semantic?.equal).toBe(true);
+      }
     }
   });
 

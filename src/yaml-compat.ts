@@ -15,11 +15,14 @@
  * **Partial API compatibility, not a drop-in replacement.** This module
  * exports `parse`, `parseAllDocuments`, `parseDocument`, `stringify`, the
  * standalone `LineCounter`, and the complete upstream `Lexer` and `Parser`
- * token APIs, plus the `CompatDocument` and `Reviver` types and a convenience
- * default object. The structural token types are available as `CSTToken` and
- * `CSTSourceToken`; no CST runtime namespace or helper API is exported.
+ * token APIs, the source-preserving `CST` helper namespace, plus the
+ * `CompatDocument` and `Reviver` types and a convenience default object.
+ * CST supports token inspection and editing, without Composer, AST nodes, or
+ * source-aware Document integration.
  * It does not mirror the full `yaml` export surface or every call signature;
- * Composer, AST nodes, error, and visitor APIs are not provided. `LineCounter`
+ * Composer, AST nodes, public error classes, and the top-level AST visitor are
+ * not provided. The visitor inside `CST` walks source collection items.
+ * `LineCounter`
  * maps caller-supplied UTF-16 offsets to line and
  * column positions; it does not scan source text or populate the rejected
  * `lineCounter` parse option. Options are honoured on a growing allowlist, and
@@ -118,7 +121,9 @@ import { LineCounter } from "./line-counter.ts";
 export { LineCounter } from "./line-counter.ts";
 import { Lexer } from "./source/lexer.ts";
 import { Parser } from "./source/parser.ts";
+import * as CST from "./source/cst.ts";
 export { Lexer, Parser };
+export { CST };
 export type { Token as CSTToken, SourceToken as CSTSourceToken } from "./source/cst.ts";
 
 // ---------------------------------------------------------------------------
@@ -349,6 +354,6 @@ export function stringify(value: unknown, replacerOrOptions?: unknown, options?:
   return ourStringify(value);
 }
 
-const yamlCompat = { parse, parseAllDocuments, parseDocument, stringify, LineCounter, Lexer, Parser };
+const yamlCompat = { parse, parseAllDocuments, parseDocument, stringify, LineCounter, Lexer, Parser, CST };
 
 export default yamlCompat;
