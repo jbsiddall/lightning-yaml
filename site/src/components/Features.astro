@@ -3,7 +3,7 @@
 const features = [
   'Anchors, aliases, !!binary & multi-doc streams',
   'parse · parseAll · stringify',
-  'js-yaml / yaml drop-in shims',
+  'js-yaml / yaml compatibility shims',
   'TypeScript-first types',
   'Zero dependencies',
 ];
@@ -20,11 +20,10 @@ const features = [
   </ul>
 
   <p class="features__note">
-    <b>Drop-in is API-level today.</b> Imports and call signatures match
-    <code>js-yaml</code> and <code>yaml</code>, so existing code runs — but an
-    option argument we don't yet honour (<code>schema</code>, <code>sortKeys</code>, <code>indent</code>, …)
-    <b>throws</b> rather than silently changing your output. Useful for migrating
-    now; not yet a 1:1 behavioural match.
+    <b>Compatibility is partial today.</b> The shims expose selected functions,
+    not the full exports or every call signature of <code>js-yaml</code> and
+    <code>yaml</code>. Unsupported options <b>throw</b> rather than being
+    silently ignored; see the module references for current support.
   </p>
 </section>
 

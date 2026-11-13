@@ -51,6 +51,7 @@ jobs:
       - name: Smoke test built dist (ESM + CJS + compat subpaths)
         run: |
           set -eu
+          node scripts/compatibility/check-source-parser-provenance.mjs
 
           cat > ./.smoke-test.mjs <<'EOF'
           import { existsSync, statSync } from 'node:fs';
@@ -107,6 +108,10 @@ jobs:
 
           node ./.smoke-test.mjs
           node ./.smoke-test.cjs
+          node scripts/compatibility/smoke-cst-helpers.mjs
+          ln -s .. node_modules/lightning-yaml
+          pnpm exec tsc --noEmit -p test/compatibility/yaml/cst-consumer.tsconfig.json
+          rm node_modules/lightning-yaml
 
           rm -f ./.smoke-test.mjs ./.smoke-test.cjs
 

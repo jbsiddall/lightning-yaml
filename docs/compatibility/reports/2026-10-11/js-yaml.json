@@ -1,0 +1,591 @@
+{
+  "date": "2026-10-11",
+  "runtime": {
+    "node": "v25.9.0",
+    "platform": "linux",
+    "arch": "x64",
+    "dependencies": {
+      "@fast-check/vitest": "0.5.0",
+      "fast-check": "3.23.2",
+      "js-yaml": "5.2.1",
+      "zod": "3.25.76",
+      "zod-fast-check": "0.10.1"
+    },
+    "revision": "69dd9390cb952a43b98c3423d469c03dced496e9",
+    "sourceBase": "f9e62ca9b3a4df753c76537843255b77d343eb5e"
+  },
+  "seed": 20261011,
+  "requestedGeneratedPerKind": 20000,
+  "scheduled": 49393,
+  "uniqueDescriptors": 29101,
+  "duplicates": 20292,
+  "corpus": {
+    "suite": {
+      "repository": "https://github.com/yaml/yaml-test-suite",
+      "ref": "data-2022-01-17",
+      "license": "MIT",
+      "fileCount": 1954
+    },
+    "realWorld": {
+      "file": "test/corpus/currencycloud-reference.yaml",
+      "provenance": "Source URL is recorded in the vendored file header; snapshot inherited from origin/main"
+    },
+    "snapshotSha256": "8be330b165c45e18e0f85fd6bb46f5a976d359a04d7cdfcdf9345cebbb33fbd0",
+    "totalInputFiles": 1955,
+    "dumpEligibility": {
+      "referenceAccepted": 1217,
+      "referenceRejected": 738,
+      "dumpDescriptors": 1217
+    }
+  },
+  "tests": {
+    "passed": 828,
+    "failed": 0,
+    "files": 12
+  },
+  "productionCoverage": {
+    "total": {
+      "lines": {
+        "total": 2279,
+        "covered": 2105,
+        "skipped": 0,
+        "pct": 92.36
+      },
+      "statements": {
+        "total": 2690,
+        "covered": 2390,
+        "skipped": 0,
+        "pct": 88.84
+      },
+      "functions": {
+        "total": 189,
+        "covered": 179,
+        "skipped": 0,
+        "pct": 94.7
+      },
+      "branches": {
+        "total": 2371,
+        "covered": 1985,
+        "skipped": 0,
+        "pct": 83.71
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": "Unknown"
+      }
+    },
+    "files": {
+      "src/compat-options.ts": {
+        "lines": {
+          "total": 12,
+          "covered": 12,
+          "skipped": 0,
+          "pct": 100
+        },
+        "functions": {
+          "total": 4,
+          "covered": 4,
+          "skipped": 0,
+          "pct": 100
+        },
+        "statements": {
+          "total": 20,
+          "covered": 20,
+          "skipped": 0,
+          "pct": 100
+        },
+        "branches": {
+          "total": 14,
+          "covered": 14,
+          "skipped": 0,
+          "pct": 100
+        }
+      },
+      "src/core.ts": {
+        "lines": {
+          "total": 2163,
+          "covered": 2004,
+          "skipped": 0,
+          "pct": 92.64
+        },
+        "functions": {
+          "total": 154,
+          "covered": 150,
+          "skipped": 0,
+          "pct": 97.4
+        },
+        "statements": {
+          "total": 2556,
+          "covered": 2276,
+          "skipped": 0,
+          "pct": 89.04
+        },
+        "branches": {
+          "total": 2279,
+          "covered": 1907,
+          "skipped": 0,
+          "pct": 83.67
+        }
+      },
+      "src/index.ts": {
+        "lines": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 0
+        },
+        "functions": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 0
+        },
+        "statements": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 0
+        },
+        "branches": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 0
+        }
+      },
+      "src/js-yaml-compat.ts": {
+        "lines": {
+          "total": 51,
+          "covered": 46,
+          "skipped": 0,
+          "pct": 90.19
+        },
+        "functions": {
+          "total": 17,
+          "covered": 12,
+          "skipped": 0,
+          "pct": 70.58
+        },
+        "statements": {
+          "total": 55,
+          "covered": 47,
+          "skipped": 0,
+          "pct": 85.45
+        },
+        "branches": {
+          "total": 35,
+          "covered": 26,
+          "skipped": 0,
+          "pct": 74.28
+        }
+      },
+      "src/yaml-compat.ts": {
+        "lines": {
+          "total": 53,
+          "covered": 43,
+          "skipped": 0,
+          "pct": 81.13
+        },
+        "functions": {
+          "total": 14,
+          "covered": 13,
+          "skipped": 0,
+          "pct": 92.85
+        },
+        "statements": {
+          "total": 59,
+          "covered": 47,
+          "skipped": 0,
+          "pct": 79.66
+        },
+        "branches": {
+          "total": 43,
+          "covered": 38,
+          "skipped": 0,
+          "pct": 88.37
+        }
+      }
+    }
+  },
+  "booleanBasis": {
+    "expected": 4096,
+    "observed": 4096
+  },
+  "metrics": {
+    "casesWithAnyGap": {
+      "numerator": 14007,
+      "denominator": 49393,
+      "percent": 28.35826939039945
+    },
+    "acceptanceFailures": {
+      "numerator": 4192,
+      "denominator": 44422,
+      "percent": 9.436765566611138
+    },
+    "graphMismatches": {
+      "numerator": 93,
+      "denominator": 18972,
+      "percent": 0.49019607843137253
+    },
+    "referenceValidSemanticGap": {
+      "numerator": 4287,
+      "denominator": 44422,
+      "percent": 9.650623564900275
+    },
+    "dumpByteDifferences": {
+      "numerator": 4752,
+      "denominator": 25404,
+      "percent": 18.705715635333018
+    },
+    "dumpByteCallFailures": {
+      "numerator": 4146,
+      "denominator": 25404,
+      "percent": 16.32026452527161
+    },
+    "dumpByteDifferenceBothSuccess": {
+      "numerator": 4752,
+      "denominator": 21258,
+      "percent": 22.35393734123624
+    },
+    "dumpSemanticGaps": {
+      "numerator": 4146,
+      "denominator": 25400,
+      "percent": 16.322834645669293
+    },
+    "rejectionDisagreements": {
+      "numerator": 915,
+      "denominator": 4971,
+      "percent": 18.4067592033796
+    },
+    "detailedErrorDifferences": {
+      "numerator": 4055,
+      "denominator": 4056,
+      "percent": 99.97534516765286
+    },
+    "callbackDifferences": {
+      "numerator": 10,
+      "denominator": 14,
+      "percent": 71.42857142857143
+    }
+  },
+  "buckets": {
+    "generatedGrammar": {
+      "scheduled": 20000,
+      "gaps": 3562,
+      "metrics": {
+        "casesWithAnyGap": {
+          "numerator": 3562,
+          "denominator": 20000,
+          "percent": 17.81
+        },
+        "acceptanceFailures": {
+          "numerator": 0,
+          "denominator": 16438,
+          "percent": 0
+        },
+        "graphMismatches": {
+          "numerator": 0,
+          "denominator": 16438,
+          "percent": 0
+        },
+        "referenceValidSemanticGap": {
+          "numerator": 0,
+          "denominator": 16438,
+          "percent": 0
+        },
+        "dumpByteDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "dumpByteCallFailures": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "dumpByteDifferenceBothSuccess": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "dumpSemanticGaps": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "rejectionDisagreements": {
+          "numerator": 521,
+          "denominator": 3562,
+          "percent": 14.626614261650758
+        },
+        "detailedErrorDifferences": {
+          "numerator": 3041,
+          "denominator": 3041,
+          "percent": 100
+        },
+        "callbackDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        }
+      }
+    },
+    "generatedGraph": {
+      "scheduled": 20000,
+      "gaps": 4190,
+      "metrics": {
+        "casesWithAnyGap": {
+          "numerator": 4190,
+          "denominator": 20000,
+          "percent": 20.95
+        },
+        "acceptanceFailures": {
+          "numerator": 0,
+          "denominator": 20000,
+          "percent": 0
+        },
+        "graphMismatches": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "referenceValidSemanticGap": {
+          "numerator": 0,
+          "denominator": 20000,
+          "percent": 0
+        },
+        "dumpByteDifferences": {
+          "numerator": 4190,
+          "denominator": 20000,
+          "percent": 20.95
+        },
+        "dumpByteCallFailures": {
+          "numerator": 0,
+          "denominator": 20000,
+          "percent": 0
+        },
+        "dumpByteDifferenceBothSuccess": {
+          "numerator": 4190,
+          "denominator": 20000,
+          "percent": 20.95
+        },
+        "dumpSemanticGaps": {
+          "numerator": 0,
+          "denominator": 20000,
+          "percent": 0
+        },
+        "rejectionDisagreements": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "detailedErrorDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "callbackDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        }
+      }
+    },
+    "corpus": {
+      "scheduled": 3910,
+      "gaps": 1487,
+      "metrics": {
+        "casesWithAnyGap": {
+          "numerator": 1487,
+          "denominator": 3910,
+          "percent": 38.030690537084396
+        },
+        "acceptanceFailures": {
+          "numerator": 18,
+          "denominator": 2533,
+          "percent": 0.7106198183971575
+        },
+        "graphMismatches": {
+          "numerator": 92,
+          "denominator": 2515,
+          "percent": 3.658051689860835
+        },
+        "referenceValidSemanticGap": {
+          "numerator": 110,
+          "denominator": 2533,
+          "percent": 4.342676667982629
+        },
+        "dumpByteDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "dumpByteCallFailures": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "dumpByteDifferenceBothSuccess": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "dumpSemanticGaps": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "rejectionDisagreements": {
+          "numerator": 385,
+          "denominator": 1377,
+          "percent": 27.959331880900507
+        },
+        "detailedErrorDifferences": {
+          "numerator": 992,
+          "denominator": 992,
+          "percent": 100
+        },
+        "callbackDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        }
+      }
+    },
+    "corpusDump": {
+      "scheduled": 1217,
+      "gaps": 551,
+      "metrics": {
+        "casesWithAnyGap": {
+          "numerator": 551,
+          "denominator": 1217,
+          "percent": 45.275267050123254
+        },
+        "acceptanceFailures": {
+          "numerator": 0,
+          "denominator": 1217,
+          "percent": 0
+        },
+        "graphMismatches": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "referenceValidSemanticGap": {
+          "numerator": 0,
+          "denominator": 1217,
+          "percent": 0
+        },
+        "dumpByteDifferences": {
+          "numerator": 551,
+          "denominator": 1217,
+          "percent": 45.275267050123254
+        },
+        "dumpByteCallFailures": {
+          "numerator": 0,
+          "denominator": 1217,
+          "percent": 0
+        },
+        "dumpByteDifferenceBothSuccess": {
+          "numerator": 551,
+          "denominator": 1217,
+          "percent": 45.275267050123254
+        },
+        "dumpSemanticGaps": {
+          "numerator": 0,
+          "denominator": 1217,
+          "percent": 0
+        },
+        "rejectionDisagreements": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "detailedErrorDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "callbackDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        }
+      }
+    },
+    "booleanMatrix": {
+      "scheduled": 4096,
+      "gaps": 4096,
+      "metrics": {
+        "casesWithAnyGap": {
+          "numerator": 4096,
+          "denominator": 4096,
+          "percent": 100
+        },
+        "acceptanceFailures": {
+          "numerator": 4096,
+          "denominator": 4096,
+          "percent": 100
+        },
+        "graphMismatches": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "referenceValidSemanticGap": {
+          "numerator": 4096,
+          "denominator": 4096,
+          "percent": 100
+        },
+        "dumpByteDifferences": {
+          "numerator": 0,
+          "denominator": 4096,
+          "percent": 0
+        },
+        "dumpByteCallFailures": {
+          "numerator": 4096,
+          "denominator": 4096,
+          "percent": 100
+        },
+        "dumpByteDifferenceBothSuccess": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "dumpSemanticGaps": {
+          "numerator": 4096,
+          "denominator": 4096,
+          "percent": 100
+        },
+        "rejectionDisagreements": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "detailedErrorDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        },
+        "callbackDifferences": {
+          "numerator": 0,
+          "denominator": 0,
+          "percent": null
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Percentages describe only this bounded corpus and generated sample; they do not estimate all js-yaml behavior.",
+    "Generated graph values are bounded. Custom scalar schemas are witnessed; custom sequence and mapping tag recipes are not generated.",
+    "Legacy unknown options are separate ignored-option probes, not accepted js-yaml 5 capabilities.",
+    "No shrinking is performed; replay each case directly with --replay."
+  ],
+  "negativeChecks": [
+    "Missing production file in coverage summary rejected",
+    "Missing pinned corpus input rejected",
+    "Strict replay completes one disagreement and exits 1"
+  ]
+}
