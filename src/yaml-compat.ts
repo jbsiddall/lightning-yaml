@@ -7,8 +7,9 @@
  * Parser and CST for source-aware tools.
  *
  * Source documents support YAML 1.2 core plus explicitly registered application
- * tags. The default known explicit tag is !!binary; YAML 1.1, merge keys, and
- * non-core schemas are rejected. Parsing and conversion options are separate:
+ * tags. The default known explicit tag is !!binary; YAML 1.1, merge expansion,
+ * and non-core schemas are rejected. An untagged `<<` stays an ordinary key.
+ * Parsing and conversion options are separate:
  * pass source options to a document parser, and pass alias/map/reviver options to
  * doc.toJS(). Unsupported option keys or values throw.
  *
@@ -22,7 +23,7 @@
  * | Option family | Fast `parse` / `stringify` | Source parse | Native `Document` |
  * | --- | --- | --- | --- |
  * | Core schema and version 1.2 | Accepted | Accepted | Accepted |
- * | YAML 1.1, other schemas, merge keys | Throws | Throws | Throws |
+ * | YAML 1.1, other schemas, merge expansion | Throws | Throws | Throws |
  * | `customTags` | Throws | Explicit scalar/collection tags and callbacks | Explicit scalar/collection tags |
  * | `keepSourceTokens`, `lineCounter`, `prettyErrors`, `strict`, `intAsBigInt` | Throws where unsupported by the fast value path | Applied by Parser/Composer | Applied by Document/Schema where relevant |
  * | Value conversion (`mapAsMap`, `maxAliasCount`, `onAnchor`, `reviver`) | `reviver` is supported; other active options throw | Conversion options throw here | Pass supported conversion options to `doc.toJS()` |
