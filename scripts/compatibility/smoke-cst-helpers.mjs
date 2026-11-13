@@ -35,6 +35,16 @@ for (const api of [esm, cjs]) {
   assert.ok(doc instanceof api.Document)
   assert.ok(api.isMap(doc.contents))
   assert.deepEqual(doc.toJS(), { answer: 42 })
+  let parseError
+  try {
+    api.parse('value: [1,')
+  } catch (error) {
+    parseError = error
+  }
+  assert.ok(parseError instanceof api.YAMLParseError)
+  assert.ok(parseError instanceof api.YAMLError)
+  assert.equal(parseError.constructor, api.YAMLParseError)
+  assert.equal(api.default.YAMLParseError, api.YAMLParseError)
 }
 
 console.log('built yaml document and CST ESM + CJS smoke test passed')

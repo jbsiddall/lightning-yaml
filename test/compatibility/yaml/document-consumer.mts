@@ -1,4 +1,4 @@
-import yaml, { Composer, Document, Scalar, Schema, isDocument, parseDocument, type DocumentOptions, type Node, type ParseOptions, type Tags } from 'lightning-yaml/yaml'
+import yaml, { Composer, Document, Scalar, Schema, YAMLParseError, YAMLError, isDocument, parseDocument, type DocumentOptions, type ErrorCode, type LinePos, type Node, type ParseOptions, type Tags } from 'lightning-yaml/yaml'
 
 const version: '1.1' | '1.2' = '1.2'
 const options: ParseOptions & DocumentOptions = { version, keepSourceTokens: true }
@@ -13,6 +13,22 @@ composed.toJS()
 new Schema({ schema: 'core' }).clone()
 new Schema({ schema: 'core', customTags })
 yaml.Document === Document
+try {
+  yaml.parse('value: [1,')
+} catch (error) {
+  if (error instanceof YAMLParseError) {
+    const code: ErrorCode = error.code
+    const pos: [number, number] = error.pos
+    const linePos: [LinePos] | [LinePos, LinePos] | undefined = error.linePos
+    const sourceError: YAMLError = error
+    void code
+    void pos
+    void linePos
+    void sourceError
+  }
+}
+const constructedError = new YAMLParseError([2, 3], 'MISSING_CHAR', 'message')
+void constructedError.pos
 void node
 
 // @ts-expect-error Source options must be an object with supported option types.

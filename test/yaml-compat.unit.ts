@@ -6,8 +6,8 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import * as yamlReal from "yaml";
-import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify, Composer, Document, YAMLMap, Scalar, Schema, isDocument, isMap, visit, YAMLParseError, YAMLWarning } from "../src/yaml-compat.ts";
-import { parse as coreParse, parseAll as coreParseAll, requiredDocumentOptions, yamlDocumentOptions } from "../src/core.ts";
+import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify, Composer, Document, YAMLMap, Scalar, Schema, isDocument, isMap, visit, YAMLParseError, YAMLWarning, YAMLError } from "../src/yaml-compat.ts";
+import { parse as coreParse, parseAll as coreParseAll, requiredDocumentOptions, yamlDocumentOptions, YAMLParseError as CoreYAMLParseError } from "../src/core.ts";
 import { load, YAMLException } from "../src/js-yaml-compat.ts";
 
 const basicDocs = [
@@ -87,6 +87,129 @@ test("yaml-compat.parseDocument wraps a single document like parseAllDocuments' 
   deepStrictEqual(doc.contents.toJS(doc), { a: 1, b: 2 });
   deepStrictEqual(doc.errors, []);
   deepStrictEqual(doc.warnings, []);
+});
+
+test("yaml-compat.parse syntax errors use the shared canonical YAMLParseError class", () => {
+  const source = "a: [1,";
+  const documentError = parseDocument(source).errors[0]!;
+  const capture = (run: () => unknown) => {
+    try {
+      run();
+      throw new Error("expected parse to fail");
+    } catch (error) {
+      return error as YAMLParseError;
+    }
+  };
+  const error = capture(() => parse(source));
+  strictEqual(yamlCompatDefault.YAMLParseError, YAMLParseError);
+  ok(error instanceof YAMLParseError);
+  ok(error instanceof YAMLError);
+  ok(error instanceof Error);
+  strictEqual(error.constructor, YAMLParseError);
+  strictEqual(error.code, documentError.code);
+  deepStrictEqual(error.pos, documentError.pos);
+  strictEqual(error.message, documentError.message);
+  deepStrictEqual(error.linePos, documentError.linePos);
+
+  const noPrettyDocumentError = parseDocument(source, { prettyErrors: false }).errors[0]!;
+  const noPrettyError = capture(() => parse(source, { prettyErrors: false }));
+  strictEqual(noPrettyError.code, noPrettyDocumentError.code);
+  deepStrictEqual(noPrettyError.pos, noPrettyDocumentError.pos);
+  strictEqual(noPrettyError.message, noPrettyDocumentError.message);
+  strictEqual(noPrettyError.linePos, undefined);
+
+  const unicodeSource = 'title: "😀"\r\nitems: [1,';
+  const unicodeDocumentError = parseDocument(unicodeSource).errors[0]!;
+  const unicodeError = capture(() => parse(unicodeSource));
+  strictEqual(unicodeError.code, unicodeDocumentError.code);
+  deepStrictEqual(unicodeError.pos, unicodeDocumentError.pos);
+  strictEqual(unicodeError.message, unicodeDocumentError.message);
+  deepStrictEqual(unicodeError.linePos, unicodeDocumentError.linePos);
+
+  const constructed = new YAMLParseError([2, 3], "MISSING_CHAR", "message");
+  ok(constructed instanceof YAMLError);
+  deepStrictEqual(constructed.pos, [2, 3]);
+  strictEqual(constructed.code, "MISSING_CHAR");
+  strictEqual(constructed.message, "message");
+  const raw = [...new Composer().compose(
+    new yamlCompatDefault.Parser().parse(source), true, source.length
+  )][0]!;
+  strictEqual(raw.errors[0]?.constructor, YAMLParseError);
+  strictEqual(documentError.constructor, YAMLParseError);
+});
+
+test("successful yaml-compat.parse does not enter the source diagnostic pipeline", () => {
+  const parserPrototype = yamlCompatDefault.Parser.prototype;
+  const originalParse = parserPrototype.parse;
+  let sourceParserCalls = 0;
+  Reflect.set(parserPrototype, "parse", function (this: unknown, ...args: Parameters<typeof originalParse>) {
+    sourceParserCalls++;
+    return Reflect.apply(originalParse, this, args);
+  });
+  try {
+    deepStrictEqual(parse("answer: 42\n"), { answer: 42 });
+  } finally {
+    Reflect.set(parserPrototype, "parse", originalParse);
+  }
+  strictEqual(sourceParserCalls, 0);
+});
+
+test("yaml-compat.parse canonicalizes depth errors and preserves reviver throws", () => {
+  const nested = "[".repeat(1100) + "0" + "]".repeat(1100);
+  let depthError: unknown;
+  try {
+    parse(nested);
+  } catch (error) {
+    depthError = error;
+  }
+  ok(depthError instanceof YAMLParseError);
+  strictEqual((depthError as YAMLParseError).code, "RESOURCE_EXHAUSTION");
+
+  const ordinarySentinel = new Error("reviver failed");
+  let ordinaryThrown: unknown;
+  try {
+    parse("a: 1", (_key, _value) => { throw ordinarySentinel; });
+  } catch (error) {
+    ordinaryThrown = error;
+  }
+  strictEqual(ordinaryThrown, ordinarySentinel);
+
+  const coreSentinel = new CoreYAMLParseError("reviver core sentinel");
+  let coreThrown: unknown;
+  try {
+    parse("a: 1", (_key, _value) => { throw coreSentinel; });
+  } catch (error) {
+    coreThrown = error;
+  }
+  strictEqual(coreThrown, coreSentinel);
+});
+
+test("source-clean diagnostics never turn a core parse failure into success", () => {
+  const source = "---\n[ a, b, c, ]#invalid\n";
+  strictEqual(parseDocument(source, {
+    strict: false,
+    uniqueKeys: false,
+    prettyErrors: false,
+  }).errors.length, 0);
+  let coreError: unknown;
+  try {
+    coreParse(source, yamlDocumentOptions);
+  } catch (error) {
+    coreError = error;
+  }
+  ok(coreError instanceof CoreYAMLParseError);
+  let compatError: unknown;
+  try {
+    parse(source);
+  } catch (error) {
+    compatError = error;
+  }
+  ok(compatError instanceof YAMLParseError);
+  strictEqual((compatError as YAMLParseError).code, "UNEXPECTED_TOKEN");
+  strictEqual((compatError as YAMLParseError).message, (coreError as Error).message);
+  strictEqual((compatError as YAMLParseError).pos[0], source.indexOf("#"));
+  strictEqual((compatError as YAMLParseError).pos[1], source.indexOf("#"));
+  strictEqual((compatError as YAMLParseError).linePos, undefined);
 });
 
 test("public source documents retain native diagnostics, offsets, and editable nodes", () => {

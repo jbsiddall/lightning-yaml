@@ -10,6 +10,22 @@ native.toJS()
 composed.toJS()
 new yaml.Schema({ schema: 'core' }).clone()
 new yaml.Schema({ schema: 'core', customTags })
+try {
+  yaml.parse('value: [1,')
+} catch (error) {
+  if (error instanceof yaml.YAMLParseError) {
+    const code: import('lightning-yaml/yaml').ErrorCode = error.code
+    const pos: [number, number] = error.pos
+    const linePos: [import('lightning-yaml/yaml').LinePos] | [import('lightning-yaml/yaml').LinePos, import('lightning-yaml/yaml').LinePos] | undefined = error.linePos
+    const sourceError: import('lightning-yaml/yaml').YAMLError = error
+    void code
+    void pos
+    void linePos
+    void sourceError
+  }
+}
+const constructedError = new yaml.YAMLParseError([2, 3], 'MISSING_CHAR', 'message')
+void constructedError.pos
 void node
 
 // @ts-expect-error Source options must be an object with supported option types.

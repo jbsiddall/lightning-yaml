@@ -14,8 +14,8 @@
  *
  * This is a selected compatibility surface, not a complete yaml replacement or
  * an end-to-end yaml-language-server acceptance claim. Source diagnostic classes
- * describe Composer/Document diagnostics; the fast value parser has its own
- * error class.
+ * are shared by Document diagnostics and parse failures; successful value
+ * parsing still uses the existing fast parser.
  *
  * ## Option support matrix
  *
@@ -37,12 +37,9 @@
  * const value = doc.toJS()
  * ```
  *
- * Unsupported keys, schema values and option placements throw instead of
- * being silently ignored. The `parse`/`stringify` value path remains separate
- * from native source documents.
  */
 
-import { parse as ourParse, stringify as ourStringify, yamlDocumentOptions } from "./core.ts";
+import { parse as ourParse, stringify as ourStringify, yamlDocumentOptions, YAMLParseError as CoreYAMLParseError } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 import { LineCounter } from "./line-counter.ts";
 import { Composer } from "./source/compose/composer.ts";
@@ -185,6 +182,51 @@ const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
 /** A `JSON.parse`-style reviver: `function (this, key, value) { ... return value }`. */
 export type Reviver = (this: unknown, key: string, value: unknown) => unknown;
 
+function coreErrorOffset(source: string, message: string): number {
+  if (message.endsWith(": unexpected end of input")) return source.length;
+  const match = / \(line ([1-9]\d*), column ([1-9]\d*)\)$/.exec(message);
+  if (!match) return -1;
+  const line = Number(match[1]);
+  const column = Number(match[2]);
+  let start = 0;
+  for (let currentLine = 1; currentLine < line; currentLine++) {
+    const newline = source.indexOf("\n", start);
+    if (newline < 0) return -1;
+    start = newline + 1;
+  }
+  const lineEnd = source.indexOf("\n", start);
+  const end = lineEnd < 0 ? source.length : lineEnd;
+  const offset = start + column - 1;
+  return offset <= end ? offset : -1;
+}
+
+function canonicalizeCoreParseError(
+  source: string,
+  error: InstanceType<typeof CoreYAMLParseError>,
+  prettyErrors: boolean
+): never {
+  const offset = coreErrorOffset(source, error.message);
+  const pos: [number, number] = offset < 0 ? [-1, -1] : [offset, offset];
+  const fallback = (code: ErrorCode) => new YAMLParseError(pos, code, error.message);
+
+  if (error.message.startsWith("maximum nesting depth exceeded"))
+    throw fallback("RESOURCE_EXHAUSTION");
+
+  let diagnostic: YAMLParseError | undefined;
+  try {
+    const doc = parseDocument(source, {
+      uniqueKeys: false,
+      strict: false,
+      prettyErrors,
+    });
+    diagnostic = doc.errors[0];
+  } catch {
+    // The original core error remains authoritative if diagnostic parsing fails.
+  }
+  if (diagnostic) throw diagnostic;
+  throw fallback("UNEXPECTED_TOKEN");
+}
+
 /**
  * Bottom-up walk matching `JSON.parse`'s own reviver algorithm (ECMA-262
  * `InternalizeJSONProperty`) — verified empirically that the real `yaml`
@@ -228,14 +270,21 @@ export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unkn
   // as stringify below.)
   const optionBag = opts === undefined && typeof reviverOrOpts !== "function" && reviverOrOpts ? reviverOrOpts : opts;
   validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
-  const value = ourParse(src, yamlDocumentOptions);
+  let value: unknown;
+  try {
+    value = ourParse(src, yamlDocumentOptions);
+  } catch (error) {
+    if (!(error instanceof CoreYAMLParseError)) throw error;
+    const prettyErrors =
+      !(optionBag && typeof optionBag === "object" && "prettyErrors" in optionBag) ||
+      Reflect.get(optionBag, "prettyErrors") !== false;
+    canonicalizeCoreParseError(src, error, prettyErrors);
+  }
   if (!reviver) return value;
   const holder: Record<string, unknown> = { "": value };
   return applyReviver(holder, "", reviver);
 }
 
-// ---------------------------------------------------------------------------
-// Source documents use the native Composer graph; value parse remains separate.
 // ---------------------------------------------------------------------------
 
 export type CompatDocument = Document.Parsed;
