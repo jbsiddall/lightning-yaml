@@ -75,7 +75,7 @@ test("yaml shim exposes the complete source lexer and parser constructors", () =
   strictEqual(typeof compat.Parser, "function");
   strictEqual((compat.default as Record<string, unknown>).Lexer, compat.Lexer);
   strictEqual((compat.default as Record<string, unknown>).Parser, compat.Parser);
-  strictEqual("CST" in compat.default, false);
+  strictEqual(compat.default.CST, compat.CST);
   strictEqual("Composer" in compat, false);
 });
 
@@ -123,7 +123,10 @@ test("lexer emits upstream lexemes and parser reconstructs raw syntax", () => {
     deepStrictEqual(lexemes, [...new reference.Lexer().lex(source)]);
     const tokens = [...new compat.Parser().parse(source)];
     deepStrictEqual(tokens, [...new reference.Parser().parse(source)]);
-    for (const token of tokens) strictEqual(reference.CST.stringify(token), source.slice(token.offset, token.offset + reference.CST.stringify(token).length));
+    for (const token of tokens) {
+      strictEqual(compat.CST.stringify(token), reference.CST.stringify(token));
+      strictEqual(reference.CST.stringify(token), source.slice(token.offset, token.offset + reference.CST.stringify(token).length));
+    }
   }
 });
 
@@ -140,6 +143,7 @@ test("source parser covers directives, trivia, block and flow structure, and mal
   for (const source of sources) {
     const tokens = [...new compat.Parser().parse(source)];
     deepStrictEqual(tokens, [...new reference.Parser().parse(source)], source);
+    strictEqual(tokens.map((token) => compat.CST.stringify(token)).join(""), source);
     strictEqual(tokens.map((token) => reference.CST.stringify(token)).join(""), source);
   }
 });
@@ -395,6 +399,7 @@ test("fast-check renders bounded JSON-compatible YAML and compares tokens plus g
       const expected = [...new reference.Parser().parse(source)];
       const tokens = [...new compat.Parser().parse(source)];
       deepStrictEqual(tokens, expected);
+      strictEqual(tokens.map((token) => compat.CST.stringify(token)).join(""), source);
       strictEqual(tokens.map((token) => reference.CST.stringify(token)).join(""), source);
 
       const cuts = [...new Set(scenario.cuts
@@ -404,7 +409,7 @@ test("fast-check renders bounded JSON-compatible YAML and compares tokens plus g
       deepStrictEqual(chunkTokens, parseChunks(source, cuts, reference.Parser));
       deepStrictEqual(chunkTokens, tokens);
     }),
-    { numRuns: 300, seed: 20261020 },
+    { numRuns: 300, seed: 20261109, path: process.env.FC_PATH },
   );
 });
 

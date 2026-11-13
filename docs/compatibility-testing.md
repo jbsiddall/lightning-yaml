@@ -18,10 +18,27 @@ pnpm test:coverage
 
 <!-- js-yaml:5.4.3 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
 
-The compatibility harness is a private workspace package with pinned Zod 3 and
-fast-check 3 dependencies for `zod-fast-check`; the application keeps root Zod 4.
-`@fast-check/vitest` runs generated properties, and `ZodFastCheck().inputOf()`
-supplies scalar arbitraries used in the campaign.
+<!-- zod:4.6.6 fast-check:3.23.2 @traversable/zod-test:0.0.28 -->
+
+The compatibility harness is a private workspace package with pinned Zod 4.6.6
+and fast-check 3 dependencies. `@fast-check/vitest` runs generated properties;
+[`@traversable/zod-test`](https://github.com/traversable/schema/tree/main/packages/zod-test#zxtestfuzz)
+derives scalar arbitraries from a Zod schema, and a validation guard throws if
+the adapter emits a value that fails that schema. The fast-check
+[ecosystem entry](https://fast-check.dev/docs/ecosystem/#traversablezod-test)
+lists it as third-party software and does not guarantee maintenance or
+stability.
+The generated scalar domain preserves the prior effective budgets: strings up
+to 10 characters, safe-range doubles without NaN, plus positive infinity,
+booleans and null. Container shapes and their depth/length/key limits remain
+explicit in the harness. The adapter has a known limitation with some numeric
+schema bounds, so this harness keeps those sampling budgets outside the schema
+and validates every generated value. Schema transforms and coercions are not
+part of this helper's contract: it returns generated raw inputs and only the
+identity input/output schemas used here are supported. New dependency versions
+or arbitrary construction can change seeded samples and shrink paths; saved
+campaign descriptors remain the replay format. The adapter's dependency
+metadata does not establish universal derivation of every Zod constraint.
 
 <!-- js-yaml:5.4.3 ly:f9e62ca9b3a4df753c76537843255b77d343eb5e -->
 
@@ -67,8 +84,8 @@ This is **option-name coverage**, not proof that all behavior of an option is co
 
 ### Pinned real-world inputs
 
-Normal corpus campaigns append three byte-preserved examples from Kubernetes,
-Docker Awesome Compose, and GitHub Actions. Their immutable source commits, local
+Normal corpus campaigns append manifest-listed byte-preserved examples from
+Kubernetes, Docker Awesome Compose, and GitHub Actions. Their immutable source commits, local
 paths, byte counts, SHA-256 hashes, SPDX identifiers, and separately pinned
 license files are recorded in `test/corpus/real-world/manifest.json`; attribution
 and license copies are beside it. The old YAML Test Suite snapshot remains an
@@ -78,9 +95,9 @@ then appends the additions in manifest order.
 Each added file always receives `load` and `loadAll-array` descriptors. An
 additional reference-derived `dump` descriptor is scheduled when the reference
 accepts its value and the graph codec can transport it. The bounded properties
-also run the exact source bytes and LF/CRLF forms through reference and candidate
-single and stream parsers, then check serialization by parsing it with the
-corresponding reference. These examples add input files to metric denominators;
+also run each exact source byte sequence and deterministic LF/CRLF forms through
+reference and candidate single and stream parsers, then check serialization by
+parsing each accepted document with the corresponding reference. These inputs add input files to metric denominators;
 descriptor counts remain separate because each input has multiple operation rows.
 The js-yaml manifest keeps its existing repeated `corpus` descriptor rows and
 adds `corpusInputFiles` for the unique input-file summary.
@@ -205,14 +222,16 @@ excluded; other built-in typed arrays retain backing-buffer identity checks.
 # yaml compatibility testing
 
 This campaign compares `lightning-yaml/yaml` with pinned `yaml@2.9.0`.
-It shares the private fast-check/zod-fast-check workspace package, graph
-comparator, generators and CLI argument parser with the js-yaml campaign.
+It shares the private fast-check and schema-derived arbitrary workspace
+package, graph comparator, generators and CLI argument parser with the js-yaml
+campaign.
 
 ## Implemented source layer
 
 The public source layer is the complete yaml 2.9.0 `Lexer` and `Parser` token
-pipeline. Composer, AST nodes, document diagnostics/recovery, and the CST helper
-namespace remain future work. Earlier CST comparison branches and their reports
+pipeline plus its `CST` helper namespace for token construction, scalar
+resolution and mutation, source concatenation, and collection-item traversal.
+Composer, AST nodes, and document diagnostics/recovery remain future work. Earlier CST comparison branches and their reports
 are historical evidence for those drafts; they do not describe this exported
 Lexer/Parser implementation or establish language-server compatibility.
 
@@ -228,8 +247,9 @@ expectations and the pinned reference. A fixed-seed fast-check property runs 300
 rendered JSON-compatible YAML cases and compares whole-input and chunked tokens
 with the reference under the same chunk schedule. Development tests also pass these
 tokens to yaml's Composer to check the token contract; Composer is not shipped
-by lightning-yaml. The shim still has no public CST helper namespace, Composer,
-AST nodes, document recovery, or `keepSourceTokens` parse-option integration.
+by lightning-yaml. The public `CST` namespace does not add Composer, AST nodes,
+document recovery, source-aware Document integration, or `keepSourceTokens`
+parse-option integration.
 Parser output is source syntax and does not establish YAML validity or provide
 document diagnostics. This milestone makes no source-aware speed claim and does
 not establish language-server compatibility.
@@ -263,7 +283,8 @@ package API.
 | `LineCounter`       | Standalone source-offset lookup utility; it does not scan source text or populate parse calls |
 | `contents`         | Plain JavaScript value; the reference provides an AST node                                 |
 | Options            | Default core schema/version and selected inactive flags; unsupported defined options throw. `lineCounter` remains an unsupported parse option |
-| Other package APIs | Composer, AST nodes, CST runtime helpers, visitors, and document editing APIs are absent |
+| `CST` | Token helpers, scalar creation/resolution/mutation, source concatenation, and collection-item visitor |
+| Other package APIs | Composer, AST nodes, source-aware Document integration, and top-level AST visitor are absent |
 
 <!-- yaml:2.9.0 ly:57d28ea62ca656e5bc63fad4c6e73faf69df9a99 -->
 
@@ -313,15 +334,15 @@ shrink failures; recorded descriptors replay the original cases.
   with omission and explicit undefined distinct from activated options.
 - Static API inventory: present/missing runtime export names, separate from behavior.
 
-Normal corpus runs include the unchanged pinned YAML Test Suite plus the three
-official Kubernetes, Docker Compose, and GitHub Actions examples described above.
+Normal corpus runs include the unchanged pinned YAML Test Suite plus the
+manifest-listed official Kubernetes, Docker Compose, and GitHub Actions examples described above.
 The explicit manifest and license copies live in `test/corpus/real-world/`.
 Both sets are validated independently before their inputs are composed. Each new
-input always receives `parse`, `parseDocument`, and `parseAllDocuments`; reference
+input receives `parse`, `parseDocument`, and `parseAllDocuments`; reference
 accepted values also receive `stringify` when graph transport supports them. The
-small fixed-seed properties use each exact upstream byte sequence, then bounded
-LF/CRLF variants, and compare semantic graphs after serialization. They do not
-require document AST or emitted-text equality. New files change input-based
+properties use each exact upstream byte sequence and deterministic LF/CRLF forms,
+compare complete stream graphs, and check serialization independently for each
+document. They do not require document AST or emitted-text equality. New files change input-based
 denominators; scheduled descriptor counts are reported separately. Replays report
 that no corpus was scheduled, and frozen historical reports retain their original
 corpus meaning.
