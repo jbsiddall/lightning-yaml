@@ -119,9 +119,10 @@
       "upstreamPath": "src/errors.ts",
       "sha256": "f53386c16360887008e24db1928d9d8fc234eb0288ecb2b28ce9b512929cd511",
       "localPath": "src/source/errors.ts",
-      "localSha256": "da32591892d8b60494b47c44543581803d2f0718b0ac2c69cfc7bb8cf1113d81",
+      "localSha256": "de80d4c96ad92133032bed5ee3eaaa54b82eb779f8827528dc121b80827edb4a",
       "adaptations": [
-        "Retained ISC notice, pinned ErrorCode members needed by scalar helpers, YAMLError, and YAMLParseError; omitted unused warning and prettifier support."
+        "Retained ISC notice, pinned ErrorCode members needed by scalar helpers, YAMLError, and YAMLParseError; omitted unused warning and prettifier support.",
+        "Added the pinned YAMLWarning class required by Composer while retaining existing parser errors."
       ]
     },
     {
@@ -432,6 +433,365 @@
         "Extracted a private type-only context; Type-only parse/create/toJS/stringify option subsets, preserving upstream callback and comparator types. No upstream runtime class or module is included."
       ],
       "localSha256": "3828769d222d1482978389e42ca014f4c7921732bbd5a617ab65a40f9dd1dab7"
+    },
+    {
+      "upstreamPath": "src/compose/compose-collection.ts",
+      "sha256": "9846e0279cc4e63e22736c5443e152298d9e87f17515355aa6101e3f1d9b091a",
+      "localPath": "src/source/compose/compose-collection.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "a50e8729b5485a453b8bc2579f187d18b55d468ec5c758d0d9e045c08809feb9"
+    },
+    {
+      "upstreamPath": "src/compose/compose-doc.ts",
+      "sha256": "437b289476b5256b2f9eb64a9ea40bd96056a6e241830ec0eead67398d7f4ef6",
+      "localPath": "src/source/compose/compose-doc.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "0655e76768199280e2d4e7ebf7829a0fe3ea9f2f4f502797846704ac8cf80a5f"
+    },
+    {
+      "upstreamPath": "src/compose/compose-node.ts",
+      "sha256": "d303028bdf4f6bb6f1d71679bb4bffeb7a3123f01f062a369deb7ca0a988dce0",
+      "localPath": "src/source/compose/compose-node.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "0a4adc1a4d3dad1f2d4b3c1757a57f5c4fda33208d28b634931d4120c80e4d84"
+    },
+    {
+      "upstreamPath": "src/compose/compose-scalar.ts",
+      "sha256": "4b56cf46cf950088125ecbd07f2f1ce857305f426f1d6479a51a5f871f322cb6",
+      "localPath": "src/source/compose/compose-scalar.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "3a24c41f5949f9d482b5fd36fbd5e219862206753cb8a31eb469ba980e9fe276"
+    },
+    {
+      "upstreamPath": "src/compose/composer.ts",
+      "sha256": "f82f0f35f85ecaf80da4f88566c680622ae67feee31ae3556732ad37667cf299",
+      "localPath": "src/source/compose/composer.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Retained the held core-schema/YAML-1.2 option restrictions and uniqueKeys:false default for the private source-document integration."
+      ],
+      "localSha256": "d774f79f48787e3a12dbf5b4951777e1d3565b286acf69b5d0259d3a0b1e02b5"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-block-map.ts",
+      "sha256": "db8f068e7c0f5bb74cb80a558a83e7df5ea91e584641fd7a335aa008eace300e",
+      "localPath": "src/source/compose/resolve-block-map.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "e76c01be3fd9866717a302498941acc73b52fc73dd98434d8854fe283835573d"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-block-seq.ts",
+      "sha256": "4d7a391b034420531498d20e86379e332f450d90bbbe0a1b406beffdcd1ff60c",
+      "localPath": "src/source/compose/resolve-block-seq.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "5f7412298b6bebece11c4a5dc6acb00b8ee26014aee5d47bf9b6c65881cf0854"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-flow-collection.ts",
+      "sha256": "41b15b13645d7609707bd396d36ec3ceed31cef4411264d610a698cbbd7b5f30",
+      "localPath": "src/source/compose/resolve-flow-collection.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "72a43df570a1defb860dc650d00b61b62bf7626b3720d77da1be71ed7d9cf1fc"
+    },
+    {
+      "upstreamPath": "src/compose/resolve-props.ts",
+      "sha256": "fa9f959f21e63eab0151467c46868fd1b49c080f1e2b2991eaec6de389a5da71",
+      "localPath": "src/source/compose/resolve-props.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "20c6e6c223353a6996d7b9e13c967c013d982f78c6998fd7eea44bfa5cf823bf"
+    },
+    {
+      "upstreamPath": "src/compose/util-contains-newline.ts",
+      "sha256": "babc11ad4aec28e2feca6e45a9d1d610f5647950e62376acb528b3fc5de42d0b",
+      "localPath": "src/source/compose/util-contains-newline.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "ca18fd67d8e3f546d471ddec64e415523e44172e541f7c1e4df56c610ec09635"
+    },
+    {
+      "upstreamPath": "src/compose/util-empty-scalar-position.ts",
+      "sha256": "99430353fe064b5e524dc3b6a73cce5579a1ccfb6723adbe7b9e87612be752fb",
+      "localPath": "src/source/compose/util-empty-scalar-position.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "531c5cbb2a75641a276b83ff9b3c3a46077c2744fed70d09273cd91fc8490a98"
+    },
+    {
+      "upstreamPath": "src/compose/util-flow-indent-check.ts",
+      "sha256": "36e44d522d81899fc29e5c2fd464b1fcca5c5419f37e13a37e6361f80c7e81c8",
+      "localPath": "src/source/compose/util-flow-indent-check.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "bc3b7c1209b181033197f41838c11e1cdbc4c8518590032925ef27fc205a8ead"
+    },
+    {
+      "upstreamPath": "src/compose/util-map-includes.ts",
+      "sha256": "11279d57e3fcbd347eacc6ee4627e80f9782e10e65d3a1607d964610e489a5a4",
+      "localPath": "src/source/compose/util-map-includes.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "2280bc7f99aa5b205fe08d01c1364eb7fde434962b114a2efe72d31698efbbeb"
+    },
+    {
+      "upstreamPath": "src/doc/Document.ts",
+      "sha256": "64b2d388c9d7970a96903afb371900f4546ada1702d904393f2f18c09c74d934",
+      "localPath": "src/source/doc/Document.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Retained held core-schema/YAML-1.2 runtime restrictions and uniqueKeys:false defaults."
+      ],
+      "localSha256": "15dd053d85c2c62bca45921e7efc6bfe0d66f23fd41094fa2971d6bf711dbbea"
+    },
+    {
+      "upstreamPath": "src/doc/directives.ts",
+      "sha256": "3b7b3567e01ce07938a3f943be2d7a735fd8a14669997dc5bf02eb1d79142da8",
+      "localPath": "src/source/doc/directives.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "d1a02f3d5224a64bf77c7e672c5321e4634ca9d71b1b64439bec774044b69444"
+    },
+    {
+      "upstreamPath": "src/options.ts",
+      "sha256": "d86eb6b3b0bdb3c830b25fcd6353146b83f626f3da4fddbffecbfd68d49c45f3",
+      "localPath": "src/source/options.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Reused the existing canonical node-options declarations for parse, create, conversion and stringify options; retained only private SchemaOptions and DocumentOptions extensions."
+      ],
+      "localSha256": "0dc583a179a6b396c3a13e47e81a19cfdfbbc0977b0a05906274183898a01d13"
+    },
+    {
+      "upstreamPath": "src/schema/Schema.ts",
+      "sha256": "889d5f53295605c74bfc8e7382b0365f5d9d043beb6cc0033f83c9820e82e727",
+      "localPath": "src/source/schema/Schema.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "4941936ac3add57e3bc42201d0114d81e5a9a11dcf1ebf3eecf3cefd6f766866"
+    },
+    {
+      "upstreamPath": "src/schema/types.ts",
+      "sha256": "335b9f9b1191ff1a11439c71fed5d62cbfdd53b41e170785701a35ac4fc8fecc",
+      "localPath": "src/source/schema/types.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Re-exported the canonical private ScalarTag and CollectionTag declarations to keep a single callback type family."
+      ],
+      "localSha256": "20f33635fe20e0cde2c2937eebdba3a1351974420273b685fe0ceef9052a804c"
+    },
+    {
+      "upstreamPath": "src/schema/tags.ts",
+      "sha256": "40b798f80553a128a8adacb7fac16b859a845a389dcb4cb2a61a57d181bd1367",
+      "localPath": "src/source/schema/tags.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Keeps merge out of the default core tag list; Composer rejects merge option requests."
+      ],
+      "localSha256": "6084929ca9139a2bd02ddeeb37c524baf89eb5ef1f421c5a0d86269cf1654795"
+    },
+    {
+      "upstreamPath": "src/schema/common/map.ts",
+      "sha256": "144488c89b7290c84132ba277a9446cd67bd2adf44fcfd1bbd7b67b7b8d2c64d",
+      "localPath": "src/source/schema/common/map.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "0248abfe4c90749f631e142ce964622e0c611d4a56fb22a3e6e6d2844bf3c958"
+    },
+    {
+      "upstreamPath": "src/schema/common/null.ts",
+      "sha256": "d355f26c649494f41f8d3bdd5df0f07919a74c40fd09148a8902e0dc28df886b",
+      "localPath": "src/source/schema/common/null.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "7da89b95ee737c6f962386c363a7f01ee4486d8f323ce4f52eb6646f55110b41"
+    },
+    {
+      "upstreamPath": "src/schema/common/seq.ts",
+      "sha256": "8825a0d2413ae94cc4edd9974f836f68aac0e3334e1c7f4fbc924436002038f9",
+      "localPath": "src/source/schema/common/seq.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "7e29962b2b69b580e09916e6c56de8891267771e8e3f04020018956ba3937ad1"
+    },
+    {
+      "upstreamPath": "src/schema/common/string.ts",
+      "sha256": "f13e48c18a349c683710332b4dd3682c8654eb2202d509146f0829908ef8a468",
+      "localPath": "src/source/schema/common/string.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "9bffbaecf6fd6a15eaf98d7da5d8899121075ba6e366ce24d68521711474f9d5"
+    },
+    {
+      "upstreamPath": "src/schema/core/bool.ts",
+      "sha256": "c45f336deffc644b0794d664a19029e12c9c0734bc11c727801e95f2654742d3",
+      "localPath": "src/source/schema/core/bool.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "ea43be8ac4d8466d9bbc8afa73538d2591c88757fbbef3bcc0ec9de4e9603ced"
+    },
+    {
+      "upstreamPath": "src/schema/core/float.ts",
+      "sha256": "f35d682e60aadff5eeeb2e74eb04dfcd58664cb91cdfa33e4afa383a6fda6948",
+      "localPath": "src/source/schema/core/float.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "ecfdcbd92544d9eef5f8b8d093c5a54d50963be2f5a44b07eed0622f4e774234"
+    },
+    {
+      "upstreamPath": "src/schema/core/int.ts",
+      "sha256": "594655a9e7fa5479443e1d54e535eb80689c76ffeb9d3872802ca8dce592589a",
+      "localPath": "src/source/schema/core/int.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "ad1a4ddf98c411c738b03ee164e92d51f3b6a72fa41b2c04225c95e3cd295603"
+    },
+    {
+      "upstreamPath": "src/schema/core/schema.ts",
+      "sha256": "9c591b9140a1cd49f7691689c4ebabc3424a0e827b188338c47486485a816c43",
+      "localPath": "src/source/schema/core/schema.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "b4963334d796130464a97d633e6843c09fddb126f7a9007888c3e8e54d01e6e6"
+    },
+    {
+      "upstreamPath": "src/schema/json/schema.ts",
+      "sha256": "999bdc60e9053d72fd9d9c490172f2427c7c0883a6ff0aa0eec6538b6acbe816",
+      "localPath": "src/source/schema/json/schema.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "681af5625cc1a60cf2c751d1c63b6d71d2db6be3dfacd62c11f3c5ea908b1cae"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/binary.ts",
+      "sha256": "bfc494c99609cb78b747281b926c18453bc60e73b582c4281e3dd9ea92ed16ce",
+      "localPath": "src/source/schema/yaml-1.1/binary.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Retained optional global Buffer/atob/btoa support and restored pinned Buffer instanceof plus whole-backing-ArrayBuffer writer behavior for Uint8Array views."
+      ],
+      "localSha256": "421614ca10fdef8862f911597cf0eba549e14ff27a22538cddcbf493e436993f"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/bool.ts",
+      "sha256": "93b044705523635b79b7de2b0e328df974349efc7ebab2e320850e788542a029",
+      "localPath": "src/source/schema/yaml-1.1/bool.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "26d20c469d5ff7df3e7b7fcdd8dea190e98a4ef6f20800da4f3bf86f7341230a"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/float.ts",
+      "sha256": "9750f79a43ba968245b983e2cb33b09904252ce6d424337210adb48d02f5ae67",
+      "localPath": "src/source/schema/yaml-1.1/float.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "3d2035332a4e10a7d62b447b8b45b3f4d6677145e233f9bce8c7a53249dca358"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/int.ts",
+      "sha256": "5319ce6e9b7e70d8e71ba72afa8179e5d601b545c661db81eef1f1cd72c38f5c",
+      "localPath": "src/source/schema/yaml-1.1/int.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "f2bb94d7c232a651f27af9a789c6913502acf7c9fa490758add464b9eb1af44a"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/omap.ts",
+      "sha256": "79e0abbd2a7da9eac4bb0b6e60e9e200524edbd8c4d8a764c0bf29590abe7c88",
+      "localPath": "src/source/schema/yaml-1.1/omap.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Imported CreateNodeContext directly from doc/createNode.ts to avoid the runtime util barrel."
+      ],
+      "localSha256": "ec3c6a1572784382ec3f42b01971886fb3e5b9a998edbcde76cfae0aa60549f5"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/pairs.ts",
+      "sha256": "aa8df5d3f7c755f74f09a6b422172ed3797bb1bf1ba0419f375393e267050607",
+      "localPath": "src/source/schema/yaml-1.1/pairs.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "7b76c2cfd7282dc17d2b76861cc602ce26c97c8e0c8ec3a1bbb4a55de73d8880"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/schema.ts",
+      "sha256": "c7b100572c15a16d869088b73500ee27fe89415ce7fe073ea90131f4afc7fe0c",
+      "localPath": "src/source/schema/yaml-1.1/schema.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "654cbd8773409b087500b9b92cb2b1a57d2a9add144afa9417fa0ff574da0507"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/set.ts",
+      "sha256": "2327b5817d2779c3435708c73e1f59fd4fb532b0746650427d721bd5bd8d8276",
+      "localPath": "src/source/schema/yaml-1.1/set.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Imported CreateNodeContext and createPair directly to avoid the runtime util barrel."
+      ],
+      "localSha256": "4ab49b848c9a00956e0564c0722bed2ec42bc3876cea4368612aeea51dba5a30"
+    },
+    {
+      "upstreamPath": "src/schema/yaml-1.1/timestamp.ts",
+      "sha256": "cb8e05c34fbd300fb0bc3faa07a1a7c443e4ca3508a016a17eb3c236d4122195",
+      "localPath": "src/source/schema/yaml-1.1/timestamp.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "d51834b3a347b6f92ae517465200ee6822de604a1febc537d08d762332345a2b"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyDocument.ts",
+      "sha256": "0a7101dd863100b14b68819c7422ab7b83efa24a2998322105025d4de2cf7f0e",
+      "localPath": "src/source/stringify/stringifyDocument.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "922ce6890689799ff5a71ebf4091ee26cffde04c6390ffda7dd09b5d3c299e59"
+    },
+    {
+      "upstreamPath": "src/stringify/stringifyNumber.ts",
+      "sha256": "64be9a2d9cc023c00fa91e65708af2e4407de7c6ce0715fd18b8f18743ad0d20",
+      "localPath": "src/source/stringify/stringifyNumber.ts",
+      "adaptations": [
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+      ],
+      "localSha256": "c34d592f737523c3775a367aa04c974c631574763d55ecfba160ecc05dc16ec9"
     }
   ],
   "distributionNotice": "THIRD_PARTY_NOTICES"

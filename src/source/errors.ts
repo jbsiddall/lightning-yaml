@@ -68,3 +68,9 @@ export class YAMLParseError extends YAMLError {
     super('YAMLParseError', pos, code, message)
   }
 }
+
+export class YAMLWarning extends YAMLError {
+  constructor(pos: [number, number], code: ErrorCode, message: string) {
+    super('YAMLWarning', pos, code, message)
+  }
+}
