@@ -1,13 +1,23 @@
 import fc from "fast-check";
 import { z } from "zod";
-import { ZodFastCheck } from "zod-fast-check";
 import { encodeGraph } from "../shared/graph.js";
+import { schemaArbitrary } from "../shared/schemaArbitrary.js";
 import type { CaseDescriptor, OptionRecipe, Operation } from "./types.js";
 
-const zfc = ZodFastCheck();
-const scalar = zfc.inputOf(
-  z.union([z.string(), z.number(), z.boolean(), z.null()]),
-);
+export const scalarSchema = z.union([
+  z.string(),
+  z.union([z.number(), z.literal(Infinity)]),
+  z.boolean(),
+  z.null(),
+]);
+export const scalarArb = schemaArbitrary(scalarSchema, {
+  string: { maxLength: 10 },
+  number: {
+    min: Number.MIN_SAFE_INTEGER,
+    max: Number.MAX_SAFE_INTEGER,
+    noNaN: true,
+  },
+});
 export const textArb: fc.Arbitrary<string> = fc.oneof(
   fc.constantFrom(
     "a: 1\nb: true\n",
@@ -25,21 +35,20 @@ export const textArb: fc.Arbitrary<string> = fc.oneof(
     "a: *missing\n",
   ),
   fc
-    .array(scalar, { maxLength: 8 })
+    .array(scalarArb, { maxLength: 8 })
     .map((xs) => `items: [${xs.map((x) => JSON.stringify(x)).join(", ")}]\n`),
   fc.string({ maxLength: 96 }).map((s) => `value: ${JSON.stringify(s)}\n`),
 );
-// Container depth is explicitly capped at two; scalar generation comes from zod-fast-check.
 export const graphArb: fc.Arbitrary<unknown> = fc.oneof(
-  scalar,
-  fc.array(scalar, { maxLength: 6 }),
-  fc.dictionary(fc.string({ maxLength: 12 }), scalar, { maxKeys: 6 }),
+  scalarArb,
+  fc.array(scalarArb, { maxLength: 6 }),
+  fc.dictionary(fc.string({ maxLength: 12 }), scalarArb, { maxKeys: 6 }),
   fc.dictionary(
     fc.string({ maxLength: 12 }),
-    fc.array(scalar, { maxLength: 4 }),
+    fc.array(scalarArb, { maxLength: 4 }),
     { maxKeys: 5 },
   ),
-  fc.array(fc.dictionary(fc.string({ maxLength: 8 }), scalar, { maxKeys: 4 }), {
+  fc.array(fc.dictionary(fc.string({ maxLength: 8 }), scalarArb, { maxKeys: 4 }), {
     maxLength: 4,
   }),
 );

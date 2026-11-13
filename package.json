@@ -128,7 +128,7 @@
     "vitest": "^4.1.10",
     "yaml": "2.9.0",
     "zod": "^4.4.3",
-    "@vitest/coverage-v8": "4.1.11",
-    "@vitest/ui": "4.1.11"
+    "@vitest/coverage-v8": "4.1.12",
+    "@vitest/ui": "4.1.12"
   }
 }
