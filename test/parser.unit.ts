@@ -1926,3 +1926,11 @@ test("a low keyCacheMaxKb still parses every key/value pair correctly", () => {
   strictEqual(Object.keys(result).length, n);
   for (let i = 0; i < n; i++) strictEqual(result[`key-${i}`], `value-${i}`);
 });
+
+test("explicit collection properties retain anchors and inline nested maps", () => {
+  const result = parse("? key\n: &a !!seq\n- entry\n? alias\n: *a\n") as Record<string, unknown>;
+  deepStrictEqual(result.key, ["entry"]);
+  strictEqual(result.key, result.alias);
+  deepStrictEqual(parse("? a: 1\n  b: 2\n: value\n"), { "{ a: 1, b: 2 }": "value" });
+  deepStrictEqual(parse("? key\n: a: 1\n  b: 2\n"), { key: { a: 1, b: 2 } });
+});

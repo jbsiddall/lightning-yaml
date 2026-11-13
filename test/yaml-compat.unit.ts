@@ -315,3 +315,11 @@ test("yaml-compat accepts no-op default option values, rejects the active value"
   throws(() => parse("a: 1\n", { mapAsMap: true }));
   throws(() => parse("a: 1\n", { merge: true }));
 });
+
+test("explicit tagged and anchored collection values reach yaml compatibility APIs", () => {
+  for (const source of ["? key\n: !!seq\n- entry\n", "? key\n: &a\n- entry\n"]) {
+    deepStrictEqual(parse(source), { key: ["entry"] });
+    deepStrictEqual(parseDocument(source).toJS(), { key: ["entry"] });
+    deepStrictEqual(parseAllDocuments(source).map((doc) => doc.toJS()), [{ key: ["entry"] }]);
+  }
+});

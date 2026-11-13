@@ -306,3 +306,10 @@ test("js-yaml-compat.dump throws on skipInvalid at either value (we neither drop
   throws(() => dump(DUMP_VALUE, { skipInvalid: false }), (err: unknown) => err instanceof YAMLException);
   throws(() => dump(DUMP_VALUE, { skipInvalid: true }), (err: unknown) => err instanceof YAMLException);
 });
+
+test("explicit tagged and anchored collection values reach js-yaml compatibility APIs", () => {
+  for (const source of ["? key\n: !!seq\n- entry\n", "? key\n: &a\n- entry\n"]) {
+    deepStrictEqual(load(source), { key: ["entry"] });
+    deepStrictEqual(loadAll(source), [{ key: ["entry"] }]);
+  }
+});

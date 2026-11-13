@@ -3814,10 +3814,9 @@ function parseExplicitValue(col: number): unknown {
  * its value counterpart (`s-l+block-indented(n)`), so a DEFERRED key accepts a
  * same-column ("zero-indented") compact sequence just as the value does
  * (`?\n- a\n- b` — yaml-test-suite 6PBE), hence `mapValue=true` to
- * `parseDeferredBlockNode`. INLINE key content stays `mapValue=false` so a
- * nested inline map is still a legal key (`? a: 1\n  b: 2`, which would set
- * `inlineMapValue` and wrongly reject under `true`); the tab-before-a-new-
- * collection restriction, like the value's, applies to that inline case only.
+ * `parseDeferredBlockNode`. Inline properties can also precede a same-column
+ * sequence on a later line, so the inline path passes the same flag. The
+ * separate `inlineMapValue` restriction does not apply to explicit keys.
  * `pos` is already past the `?`.
  */
 function parseExplicitKey(col: number): unknown {
