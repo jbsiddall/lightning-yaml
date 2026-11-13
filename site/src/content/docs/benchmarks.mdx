@@ -9,6 +9,7 @@ import memoryRaw from '../../data/benchmarks/memory.yaml?raw'
 import memoryRatiosRaw from '../../data/benchmarks/memory-ratios.yaml?raw'
 import conformanceRaw from '../../data/benchmarks/conformance.yaml?raw'
 import bundleSizeRaw from '../../data/benchmarks/bundle-size.yaml?raw'
+import { publishableMemoryRatios } from '../../../../bench/browser/memory/publication.ts'
 import ChartCard from '../../components/charts/ChartCard.astro'
 import RuntimePicker from '../../components/charts/RuntimePicker.astro'
 import {
@@ -67,7 +68,7 @@ export const memoryRuns = parseRuns(memoryRaw, MemoryDocSchema)
 export const memory = newestOf(memoryRuns)
 export const memoryTicks = xTicks(runDates(memoryRuns))
 
-export const memoryRatiosRuns = parseRuns(memoryRatiosRaw, MemoryRatiosDocSchema)
+export const memoryRatiosRuns = publishableMemoryRatios(parseRuns(memoryRatiosRaw, MemoryRatiosDocSchema))
 export const memoryRatiosEnvs = availableRuntimes(memoryRatiosRuns)
 export const memRatioOrder = presentIn(LIBRARY_ORDER, memoryRatiosEnvs.flatMap((e) => e.doc.workloads))
 export const provStyle = 'color:var(--sl-color-gray-3);font-family:var(--sl-font-mono);font-size:0.8em;margin:0 0 1rem'
@@ -309,6 +310,7 @@ questions, so they are not comparable to each other or to the Node figures above
 - **Safari's engine (WebKit)** — the operating system's peak memory reading for the browser's
   page process across the same parse-and-keep step. **Broader**, and noisier: it does catch
   memory spent during the parse, but also engine overhead that has nothing to do with the parser.
+  The two smallest workloads are omitted for WebKit because fixed process costs dominate them.
 
 Read the Chromium table below expecting a tie on the bigger files, because that is what the
 narrower question is bound to answer: past a certain size the bytes still held are the parsed
