@@ -24,14 +24,16 @@ import {
   ConformanceDocSchema,
   BundleSizeDocSchema,
 } from '../lib/queries';
-import { formatKB, formatRatio } from '../lib/charts';
+import { formatKB, formatPercent, formatRatio, sourceLine } from '../lib/charts';
 
 const speedRuns = parseRuns(speedRaw, SpeedDocSchema);
 const speed = canonicalRun(speedRuns);
 const conformance = newestRun(conformanceRaw, ConformanceDocSchema);
 const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
-const confPct = (conformance.results.find((r) => r.self)?.score ?? 97.6).toFixed(1);
+const conformanceSelf = conformance.results.find((r) => r.self);
+const confPct = conformanceSelf ? formatPercent(conformanceSelf.score) : 'unavailable';
+const conformanceSource = sourceLine(conformance);
 
 // Headline parse ratios: one real measurement in the canonical environment —
 // see queries.ts's "Ratio queries" section for why it's never blended across
@@ -75,7 +77,7 @@ const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
 <div class="landing">
   <section class="hero" aria-labelledby="hero-title">
     <div class="pitch">
-      <a class="badge" href="/benchmarks/">Passes <b>{confPct}%</b> of the YAML&nbsp;1.2 test suite&nbsp;→</a>
+      <a class="badge" href="/benchmarks/#conformance" title={conformanceSource}>YAML Test Suite: <b>{confPct}</b>&nbsp;→</a>
 
       <h1 class="title" id="hero-title">Spec-compliant YAML,<br /><span class="grad">approaching JSON speed.</span></h1>
 
@@ -113,8 +115,8 @@ const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
   </section>
 
   <Playground autorun="view" />
-  <Stats />
-  <Priorities />
+  <Stats conformance={conformance} />
+  <Priorities conformance={conformance} />
   <Features />
 </div>
 

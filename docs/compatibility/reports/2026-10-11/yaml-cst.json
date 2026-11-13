@@ -1,0 +1,406 @@
+{
+  "schema": "lightning-yaml-cst-properties/v1",
+  "generatedAt": "2026-10-11T00:22:14.419Z",
+  "mode": "bounded-persistent-worker",
+  "timeoutMs": 2000,
+  "yamlReferenceVersion": "2.9.0",
+  "harnessGitSha": "52f132bb10be8de9e9e906a19aa62c7de583e45f",
+  "seed": 20261011,
+  "requestedSamples": 20000,
+  "strict": false,
+  "candidate": {
+    "origin": "poc/yaml-compat/src/index.ts; unmerged CST implementation PR 182 with latest stack PR 184",
+    "pin": "6a25ef63d6d9d5114515660ecc25a06542af6647",
+    "entry": "poc/yaml-compat/src/index.ts",
+    "sourceTreeSha256": "4eb37c906d79e10c104beffd1529e9c523bac5296f6a3c41f0c6e5fea4035427",
+    "mainShimCapabilities": {
+      "available": false,
+      "missing": [
+        "Parser (CST token generator)",
+        "Composer (CST to Document pipeline)",
+        "LineCounter",
+        "CST token namespace",
+        "CST.stringify",
+        "Document node API",
+        "node type guards and source-token attachment"
+      ]
+    }
+  },
+  "corpus": {
+    "suite": {
+      "repository": "https://github.com/yaml/yaml-test-suite",
+      "ref": "data-2022-01-17",
+      "license": "MIT",
+      "suiteInputFiles": 1954
+    },
+    "realWorld": {
+      "file": "test/corpus/currencycloud-reference.yaml",
+      "provenance": "Source URL is recorded in the vendored file header; snapshot inherited from origin/main"
+    }
+  },
+  "summary": {
+    "inputs": 21955,
+    "successfulCandidatePipeline": 21900,
+    "failurePhases": {
+      "success": 21900,
+      "parse": 55
+    },
+    "discrepancyCases": 21900,
+    "discrepancies": {
+      "acceptance": {
+        "different": 0,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "tokens": {
+        "different": 21788,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "token-identity": {
+        "different": 12110,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "documents": {
+        "different": 21060,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "nodes": {
+        "different": 21881,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "node-identity": {
+        "different": 1729,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "source-token-identity": {
+        "different": 21705,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "diagnostics": {
+        "different": 2968,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "values": {
+        "different": 2537,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "pipeline-phase": {
+        "different": 0,
+        "comparable": 0,
+        "unavailable": 21955
+      },
+      "pipeline-error": {
+        "different": 0,
+        "comparable": 0,
+        "unavailable": 21955
+      },
+      "lineCounter": {
+        "different": 1933,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "reconstructed": {
+        "different": 318,
+        "comparable": 21900,
+        "unavailable": 55
+      },
+      "reconstruction-equality": {
+        "different": 318,
+        "comparable": 21900,
+        "unavailable": 55
+      }
+    },
+    "pipelineFailures": 55,
+    "reconstructionMismatches": 318,
+    "timeouts": 55
+  },
+  "node": "v25.9.0",
+  "sourceBase": "f9e62ca9b3a4df753c76537843255b77d343eb5e",
+  "generatedCases": 20000,
+  "corpusCases": 1955,
+  "timedOutCases": [
+    {
+      "id": "corpus:test/corpus/currencycloud-reference.yaml",
+      "source": "test/corpus/currencycloud-reference.yaml",
+      "inputSha256": "652595313125d831979055b4cb976ff3f07177360ca008b47ad5b3ac684c5d05"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/4FJ6/in.yaml",
+      "source": "bench/yaml-test-suite/data/4FJ6/in.yaml",
+      "inputSha256": "96c8e9421fd9f9570137800bbd2f912b6589500d99bf13ff103a2008e974d053"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/87E4/in.yaml",
+      "source": "bench/yaml-test-suite/data/87E4/in.yaml",
+      "inputSha256": "25a27872ef1f3a15cdd89dee5893b4d8292c37a54907744b5e813774efece6d8"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/8UDB/in.yaml",
+      "source": "bench/yaml-test-suite/data/8UDB/in.yaml",
+      "inputSha256": "da0a5cbdddca2edb9f228af50c19af087744f8e9f32e7b5fb4b98067d9b4ae22"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/9MMW/in.yaml",
+      "source": "bench/yaml-test-suite/data/9MMW/in.yaml",
+      "inputSha256": "1bf1070f7fc220aa46a74522a4ebe66acdafc08b78916c51ca05323b574ba6b4"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/CFD4/in.yaml",
+      "source": "bench/yaml-test-suite/data/CFD4/in.yaml",
+      "inputSha256": "04cd57b4759f93c416ebd55ec3a8c421e25fb19d89da2d450481f974fe8c5e92"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/CT4Q/in.yaml",
+      "source": "bench/yaml-test-suite/data/CT4Q/in.yaml",
+      "inputSha256": "d5b84b41a89e16518ab619a7d2887a786f601ce392684b31f1c78b521a81732e"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/DK4H/in.yaml",
+      "source": "bench/yaml-test-suite/data/DK4H/in.yaml",
+      "inputSha256": "981ad9614cfff3feae2f2c9962059586630f454b4d3117204f46149487f15bdb"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/L9U5/in.yaml",
+      "source": "bench/yaml-test-suite/data/L9U5/in.yaml",
+      "inputSha256": "bd4fb8634932665b1fc1fb48ef39bf07e9d1083a6c2cd287ee42b2c82cb06572"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/LQZ7/in.yaml",
+      "source": "bench/yaml-test-suite/data/LQZ7/in.yaml",
+      "inputSha256": "6aeffd9dc30dbe63be698d8f3733918d2e1e972fb931b4516fb017f4bc59d70d"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/QF4Y/in.yaml",
+      "source": "bench/yaml-test-suite/data/QF4Y/in.yaml",
+      "inputSha256": "77bd466043080117ff969bc68fea8c0c036d7d71aa82666e947ca873c8b55d23"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/empty-implicit-key-in-single-pair-flow-sequences/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/empty-implicit-key-in-single-pair-flow-sequences/in.yaml",
+      "inputSha256": "04cd57b4759f93c416ebd55ec3a8c421e25fb19d89da2d450481f974fe8c5e92"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/implicit-key-followed-by-newline/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/implicit-key-followed-by-newline/in.yaml",
+      "inputSha256": "981ad9614cfff3feae2f2c9962059586630f454b4d3117204f46149487f15bdb"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/nested-implicit-complex-keys/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/nested-implicit-complex-keys/in.yaml",
+      "inputSha256": "96c8e9421fd9f9570137800bbd2f912b6589500d99bf13ff103a2008e974d053"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/single-pair-implicit-entries/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/single-pair-implicit-entries/in.yaml",
+      "inputSha256": "1bf1070f7fc220aa46a74522a4ebe66acdafc08b78916c51ca05323b574ba6b4"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/spec-example-7-11-plain-implicit-keys/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/spec-example-7-11-plain-implicit-keys/in.yaml",
+      "inputSha256": "bd4fb8634932665b1fc1fb48ef39bf07e9d1083a6c2cd287ee42b2c82cb06572"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/spec-example-7-14-flow-sequence-entries/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/spec-example-7-14-flow-sequence-entries/in.yaml",
+      "inputSha256": "da0a5cbdddca2edb9f228af50c19af087744f8e9f32e7b5fb4b98067d9b4ae22"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/spec-example-7-19-single-pair-flow-mappings/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/spec-example-7-19-single-pair-flow-mappings/in.yaml",
+      "inputSha256": "77bd466043080117ff969bc68fea8c0c036d7d71aa82666e947ca873c8b55d23"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/spec-example-7-20-single-pair-explicit-entry/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/spec-example-7-20-single-pair-explicit-entry/in.yaml",
+      "inputSha256": "d5b84b41a89e16518ab619a7d2887a786f601ce392684b31f1c78b521a81732e"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/spec-example-7-4-double-quoted-implicit-keys/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/spec-example-7-4-double-quoted-implicit-keys/in.yaml",
+      "inputSha256": "6aeffd9dc30dbe63be698d8f3733918d2e1e972fb931b4516fb017f4bc59d70d"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/name/spec-example-7-8-single-quoted-implicit-keys/in.yaml",
+      "source": "bench/yaml-test-suite/data/name/spec-example-7-8-single-quoted-implicit-keys/in.yaml",
+      "inputSha256": "25a27872ef1f3a15cdd89dee5893b4d8292c37a54907744b5e813774efece6d8"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/complex-key/4FJ6/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/complex-key/4FJ6/in.yaml",
+      "inputSha256": "96c8e9421fd9f9570137800bbd2f912b6589500d99bf13ff103a2008e974d053"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/empty-key/CFD4/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/empty-key/CFD4/in.yaml",
+      "inputSha256": "04cd57b4759f93c416ebd55ec3a8c421e25fb19d89da2d450481f974fe8c5e92"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/error/DK4H/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/error/DK4H/in.yaml",
+      "inputSha256": "981ad9614cfff3feae2f2c9962059586630f454b4d3117204f46149487f15bdb"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/explicit-key/CT4Q/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/explicit-key/CT4Q/in.yaml",
+      "inputSha256": "d5b84b41a89e16518ab619a7d2887a786f601ce392684b31f1c78b521a81732e"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/4FJ6/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/4FJ6/in.yaml",
+      "inputSha256": "96c8e9421fd9f9570137800bbd2f912b6589500d99bf13ff103a2008e974d053"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/87E4/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/87E4/in.yaml",
+      "inputSha256": "25a27872ef1f3a15cdd89dee5893b4d8292c37a54907744b5e813774efece6d8"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/8UDB/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/8UDB/in.yaml",
+      "inputSha256": "da0a5cbdddca2edb9f228af50c19af087744f8e9f32e7b5fb4b98067d9b4ae22"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/9MMW/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/9MMW/in.yaml",
+      "inputSha256": "1bf1070f7fc220aa46a74522a4ebe66acdafc08b78916c51ca05323b574ba6b4"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/CFD4/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/CFD4/in.yaml",
+      "inputSha256": "04cd57b4759f93c416ebd55ec3a8c421e25fb19d89da2d450481f974fe8c5e92"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/CT4Q/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/CT4Q/in.yaml",
+      "inputSha256": "d5b84b41a89e16518ab619a7d2887a786f601ce392684b31f1c78b521a81732e"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/DK4H/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/DK4H/in.yaml",
+      "inputSha256": "981ad9614cfff3feae2f2c9962059586630f454b4d3117204f46149487f15bdb"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/L9U5/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/L9U5/in.yaml",
+      "inputSha256": "bd4fb8634932665b1fc1fb48ef39bf07e9d1083a6c2cd287ee42b2c82cb06572"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/LQZ7/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/LQZ7/in.yaml",
+      "inputSha256": "6aeffd9dc30dbe63be698d8f3733918d2e1e972fb931b4516fb017f4bc59d70d"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/flow/QF4Y/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/flow/QF4Y/in.yaml",
+      "inputSha256": "77bd466043080117ff969bc68fea8c0c036d7d71aa82666e947ca873c8b55d23"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/mapping/4FJ6/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/mapping/4FJ6/in.yaml",
+      "inputSha256": "96c8e9421fd9f9570137800bbd2f912b6589500d99bf13ff103a2008e974d053"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/mapping/87E4/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/mapping/87E4/in.yaml",
+      "inputSha256": "25a27872ef1f3a15cdd89dee5893b4d8292c37a54907744b5e813774efece6d8"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/mapping/9MMW/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/mapping/9MMW/in.yaml",
+      "inputSha256": "1bf1070f7fc220aa46a74522a4ebe66acdafc08b78916c51ca05323b574ba6b4"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/mapping/CT4Q/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/mapping/CT4Q/in.yaml",
+      "inputSha256": "d5b84b41a89e16518ab619a7d2887a786f601ce392684b31f1c78b521a81732e"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/mapping/DK4H/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/mapping/DK4H/in.yaml",
+      "inputSha256": "981ad9614cfff3feae2f2c9962059586630f454b4d3117204f46149487f15bdb"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/mapping/L9U5/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/mapping/L9U5/in.yaml",
+      "inputSha256": "bd4fb8634932665b1fc1fb48ef39bf07e9d1083a6c2cd287ee42b2c82cb06572"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/mapping/QF4Y/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/mapping/QF4Y/in.yaml",
+      "inputSha256": "77bd466043080117ff969bc68fea8c0c036d7d71aa82666e947ca873c8b55d23"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/scalar/LQZ7/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/scalar/LQZ7/in.yaml",
+      "inputSha256": "6aeffd9dc30dbe63be698d8f3733918d2e1e972fb931b4516fb017f4bc59d70d"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/sequence/4FJ6/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/sequence/4FJ6/in.yaml",
+      "inputSha256": "96c8e9421fd9f9570137800bbd2f912b6589500d99bf13ff103a2008e974d053"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/sequence/87E4/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/sequence/87E4/in.yaml",
+      "inputSha256": "25a27872ef1f3a15cdd89dee5893b4d8292c37a54907744b5e813774efece6d8"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/sequence/8UDB/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/sequence/8UDB/in.yaml",
+      "inputSha256": "da0a5cbdddca2edb9f228af50c19af087744f8e9f32e7b5fb4b98067d9b4ae22"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/sequence/9MMW/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/sequence/9MMW/in.yaml",
+      "inputSha256": "1bf1070f7fc220aa46a74522a4ebe66acdafc08b78916c51ca05323b574ba6b4"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/sequence/CFD4/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/sequence/CFD4/in.yaml",
+      "inputSha256": "04cd57b4759f93c416ebd55ec3a8c421e25fb19d89da2d450481f974fe8c5e92"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/sequence/DK4H/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/sequence/DK4H/in.yaml",
+      "inputSha256": "981ad9614cfff3feae2f2c9962059586630f454b4d3117204f46149487f15bdb"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/spec/87E4/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/spec/87E4/in.yaml",
+      "inputSha256": "25a27872ef1f3a15cdd89dee5893b4d8292c37a54907744b5e813774efece6d8"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/spec/8UDB/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/spec/8UDB/in.yaml",
+      "inputSha256": "da0a5cbdddca2edb9f228af50c19af087744f8e9f32e7b5fb4b98067d9b4ae22"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/spec/CT4Q/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/spec/CT4Q/in.yaml",
+      "inputSha256": "d5b84b41a89e16518ab619a7d2887a786f601ce392684b31f1c78b521a81732e"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/spec/L9U5/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/spec/L9U5/in.yaml",
+      "inputSha256": "bd4fb8634932665b1fc1fb48ef39bf07e9d1083a6c2cd287ee42b2c82cb06572"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/spec/LQZ7/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/spec/LQZ7/in.yaml",
+      "inputSha256": "6aeffd9dc30dbe63be698d8f3733918d2e1e972fb931b4516fb017f4bc59d70d"
+    },
+    {
+      "id": "corpus:bench/yaml-test-suite/data/tags/spec/QF4Y/in.yaml",
+      "source": "bench/yaml-test-suite/data/tags/spec/QF4Y/in.yaml",
+      "inputSha256": "77bd466043080117ff969bc68fea8c0c036d7d71aa82666e947ca873c8b55d23"
+    }
+  ]
+}
