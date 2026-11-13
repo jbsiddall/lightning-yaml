@@ -1,0 +1,36 @@
+name: Browser smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/browser-smoke.yml
+      - .github/workflows/benchmark.yml
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - tsconfig.json
+      - bench/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    # Playwright 1.56.1 supports Ubuntu 24.04; newer images may be unsupported.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright-core install --with-deps chromium webkit
+      - run: node --import tsx bench/browser/smoke.ts

@@ -1,7 +1,7 @@
 /**
  * @packageDocumentation
  *
- * yaml-compat.ts — a drop-in-ish replacement for the `yaml` v2 public API
+ * yaml-compat.ts — a partial compatibility shim for selected `yaml` v2 calls
  * (github.com/eemeli/yaml — also this repo's own correctness reference /
  * oracle, see bench/oracle.ts), backed by lightning-yaml's own parser
  * (./core.ts).
@@ -12,12 +12,23 @@
  *
  * ## Compatibility level TODAY
  *
- * **API-level, not behaviour-complete.** The exports and call signatures match
- * the real `yaml` library, so `import { parse } from "yaml"` (or the default
- * import) can swap to this module and keep running. Options are honoured on a
- * growing allowlist, and anything not yet honoured **throws** rather than
- * silently diverging. Today only the `parse` reviver runs, plus `schema` /
- * `version` accepted *as the 1.2-core defaults* (`"core"` / `"1.2"`), and any
+ * **Partial API compatibility, not a drop-in replacement.** This module
+ * exports `parse`, `parseAllDocuments`, `parseDocument`, `stringify`, the
+ * standalone `LineCounter`, and the complete upstream `Lexer` and `Parser`
+ * token APIs, the source-preserving `CST` helper namespace, plus the
+ * `CompatDocument` and `Reviver` types and a convenience default object.
+ * CST supports token inspection and editing, without Composer, AST nodes, or
+ * source-aware Document integration.
+ * It does not mirror the full `yaml` export surface or every call signature;
+ * Composer, AST nodes, public error classes, and the top-level AST visitor are
+ * not provided. The visitor inside `CST` walks source collection items.
+ * `LineCounter`
+ * maps caller-supplied UTF-16 offsets to line and
+ * column positions; it does not scan source text or populate the rejected
+ * `lineCounter` parse option. Options are honoured on a growing allowlist, and
+ * anything not yet honoured **throws** rather than silently diverging. Today
+ * only the `parse` reviver runs, plus `schema` / `version` accepted *as the
+ * 1.2-core defaults* (`"core"` / `"1.2"`), and any
  * boolean flag left at the value lightning-yaml already produces (usually
  * `false`, e.g. `mapAsMap: false`) — e.g. `parse(text, { mapAsMap: true })` or
  * `stringify(value, { indent: 4 })` throws until that option's sub-task lands. A
@@ -27,8 +38,9 @@
  *
  * ## Goal
  *
- * Maximise drop-in compatibility **without ever compromising the two things
- * that outrank it: YAML-1.2-spec correctness and core (./core.ts) speed.**
+ * Improve compatibility for these entry points **without ever compromising
+ * the two things that outrank it: YAML-1.2-spec correctness and core
+ * (./core.ts) speed.**
  * Per-option cost is paid either in this shim (pre-/post-processing the
  * plain-JS value, as the reviver already does — proof a hook here costs the
  * core nothing) or behind a gated core seam that leaves the options-free fast
@@ -57,7 +69,8 @@
  *   customTags        plug in custom tag resolvers               core         (needs a tag registry)
  *   resolveKnownTags  !!omap/!!set/!!timestamp under core        core         (we resolve !!binary only)
  *   merge             enable `<<` merge keys                     feature      (merge keys unimplemented)
- *   keepSourceTokens · lineCounter · onAnchor                    feature      (need CST / retained metadata)
+ *   keepSourceTokens · onAnchor                                  feature      (no document Composer integration)
+ *   lineCounter option                                           feature      (standalone class exported; parse integration remains unsupported)
  *
  * stringify (ToStringOptions·CreateNodeOptions·SchemaOptions)
  *   replacer          JSON.stringify-style replacer              compat       (pre-process the value)
@@ -82,7 +95,9 @@
  *
  * The remaining known simplifications, called out where they matter below:
  *
- *   - Document wrappers (`parseDocument`/`parseAllDocuments`) return a MINIMAL
+ *   - The public `Parser` produces source-preserving CST tokens; it does not
+ *     compose documents or validate YAML. Document wrappers
+ *     (`parseDocument`/`parseAllDocuments`) still return a MINIMAL
  *     stand-in: `{ toJS(), toJSON(), contents, errors, warnings }` where
  *     `contents` is already the plain JS value (real `yaml` gives you an AST
  *     `Node` there — Map/Seq/Scalar — and only `.toJS()` converts it). That's
@@ -100,8 +115,16 @@
  *     chased further for this milestone.
  */
 
-import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify } from "./core.ts";
+import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, yamlDocumentOptions } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
+import { LineCounter } from "./line-counter.ts";
+export { LineCounter } from "./line-counter.ts";
+import { Lexer } from "./source/lexer.ts";
+import { Parser } from "./source/parser.ts";
+import * as CST from "./source/cst.ts";
+export { Lexer, Parser };
+export { CST };
+export type { Token as CSTToken, SourceToken as CSTSourceToken } from "./source/cst.ts";
 
 // ---------------------------------------------------------------------------
 // Options-dispatch rules. Unsupported options throw a `YAMLCompatError` rather
@@ -175,41 +198,42 @@ const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
 // parse — calibrated against the REAL `yaml` v2 library, not assumed.
 // ---------------------------------------------------------------------------
 
-/** A `JSON.parse`-style reviver: `function (this, key, value) { ... return value }`. */
-export type Reviver = (this: unknown, key: string, value: unknown) => unknown;
+/** A bottom-up reviver; Map keys and Set items retain their original type. */
+export type Reviver = (this: unknown, key: unknown, value: unknown) => unknown;
 
 /**
  * Bottom-up walk matching `JSON.parse`'s own reviver algorithm (ECMA-262
  * `InternalizeJSONProperty`) — verified empirically that the real `yaml`
  * library's reviver support behaves the same way (called once per array
  * element / object property, deepest first, with string keys for array
- * indices, then once more for the synthetic root holder).
+ * indices, Map keys and Set items as-is, then once more for the synthetic root holder).
  */
-function applyReviver(holder: any, key: string, reviver: Reviver): unknown {
+function applyReviver(holder: Record<string, unknown> | Map<unknown, unknown> | Set<unknown>, key: unknown, reviver: Reviver): unknown {
   let value: unknown;
   if (holder instanceof Map) {
     value = holder.get(key);
   } else if (holder instanceof Set) {
     value = key;
   } else {
-    value = holder[key];
+    value = holder[key as string];
   }
 
   if (value !== null && typeof value === "object") {
     if (value instanceof Map) {
       const keys = Array.from(value.keys());
       for (const k of keys) {
-        const revived = applyReviver(value, k as string, reviver);
+        const previous = value.get(k);
+        const revived = applyReviver(value, k, reviver);
         if (revived === undefined) {
           value.delete(k);
-        } else {
+        } else if (revived !== previous) {
           value.set(k, revived);
         }
       }
     } else if (value instanceof Set) {
       const items = Array.from(value);
       for (const item of items) {
-        const revived = applyReviver(value, item as string, reviver);
+        const revived = applyReviver(value, item, reviver);
         if (revived === undefined) {
           value.delete(item);
         } else if (revived !== item) {
@@ -219,7 +243,7 @@ function applyReviver(holder: any, key: string, reviver: Reviver): unknown {
       }
     } else if (Array.isArray(value)) {
       for (let i = 0; i < value.length; i++) {
-        const revived = applyReviver(value, String(i), reviver);
+        const revived = applyReviver(value as unknown as Record<string, unknown>, String(i), reviver);
         if (revived === undefined) delete value[i];
         else value[i] = revived;
       }
@@ -236,12 +260,9 @@ function applyReviver(holder: any, key: string, reviver: Reviver): unknown {
 }
 
 /**
- * Multi-document calibration (checked against real `yaml@2.9`, not assumed):
- * `YAML.parse()` on a source with more than one document THROWS —
- * `"Source contains multiple documents; please use YAML.parseAllDocuments()"`
- * — it does not silently return the first document. Our own `parse()` (see
- * ./core.ts) also throws on a second document, so this divergence-prone case
- * is naturally aligned with no special-casing needed here.
+ * Multi-document behavior is checked against `yaml@2.9`: these entrypoints
+ * preserve its suffix-as-empty-document counting through an internal parser
+ * option. Native parsing and the js-yaml shim keep core stream semantics.
  */
 export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unknown> | null, opts?: Record<string, unknown>): unknown {
   const reviver = typeof reviverOrOpts === "function" ? (reviverOrOpts as Reviver) : undefined;
@@ -253,7 +274,7 @@ export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unkn
   // as stringify below.)
   const optionBag = opts === undefined && typeof reviverOrOpts !== "function" && reviverOrOpts ? reviverOrOpts : opts;
   validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
-  const value = ourParse(src);
+  const value = ourParse(src, yamlDocumentOptions);
   if (!reviver) return value;
   const holder: Record<string, unknown> = { "": value };
   return applyReviver(holder, "", reviver);
@@ -298,7 +319,7 @@ function makeDocument(contents: unknown, errors: Error[] = []): CompatDocument {
 export function parseAllDocuments(src: string, opts?: Record<string, unknown>): CompatDocument[] {
   validateOptions(opts, PARSE_OPTION_RULES, failOption);
   try {
-    return ourParseAll(src).map((v) => makeDocument(v));
+    return ourParseAll(src, yamlDocumentOptions).map((v) => makeDocument(v));
   } catch (err) {
     return [makeDocument(undefined, [toError(err)])];
   }
@@ -317,11 +338,11 @@ export function parseAllDocuments(src: string, opts?: Record<string, unknown>): 
 export function parseDocument(src: string, opts?: Record<string, unknown>): CompatDocument {
   validateOptions(opts, PARSE_OPTION_RULES, failOption);
   try {
-    return makeDocument(ourParse(src));
+    return makeDocument(ourParse(src, yamlDocumentOptions));
   } catch (err) {
     let contents: unknown;
     try {
-      contents = ourParseAll(src)[0];
+      contents = ourParseAll(src, yamlDocumentOptions)[0];
     } catch {
       contents = undefined;
     }
@@ -363,6 +384,6 @@ export function stringify(value: unknown, replacerOrOptions?: unknown, options?:
   return ourStringify(value);
 }
 
-const yamlCompat = { parse, parseAllDocuments, parseDocument, stringify };
+const yamlCompat = { parse, parseAllDocuments, parseDocument, stringify, LineCounter, Lexer, Parser, CST };
 
 export default yamlCompat;

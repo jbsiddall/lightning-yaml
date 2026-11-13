@@ -1,5 +1,5 @@
 ---
-"lightning-yaml": patch
+"lightning-yaml": minor
 ---
 
-The `yaml` (eemeli/yaml) compat layer now recursively traverses, mutates, and deletes elements inside JS `Set` (from `!!set`) and `Map` (from `!!omap` or `mapAsMap: true`) collections inside its JSON-style reviver callback, matching the behavior of the real `yaml` library.
+The `yaml` compatibility parser now visits the members of `!!set` and `!!omap` in reviver callbacks, allowing callbacks to change or remove them. Reviver keys are typed as `unknown`, because set items and map keys may be non-string values.

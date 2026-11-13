@@ -372,13 +372,11 @@ let lastRecordKeys: string[] | null = null;
 
 /**
  * `%TAG <handle> <prefix>` is per-document state (doc 07 §4) — never
- * inherited across documents in a stream. Created lazily (pay-on-first-use,
- * like `anchorMap`) and stored only so a later milestone can resolve
- * `!handle!suffix` tags against it; nothing reads it yet, but storing it must
- * not require tags to be implemented (design recipe). Reset at the start of
- * every document's `parseDirectives` call, not just per-stream. (`%YAML
- * <version>` is validated the same way but not retained — we stay 1.2-core
- * throughout this milestone and nothing yet branches on the declared version.)
+ * inherited across documents in a stream. Created lazily and read by `scanTag`
+ * when resolving `!handle!suffix` tags. Reset at the start of every document's
+ * `parseDirectives` call, not just per-stream. (`%YAML <version>` is validated
+ * the same way but not retained — we stay 1.2-core and don't branch on the
+ * declared version.)
  */
 let tagHandles: Map<string, string> | null = null;
 
@@ -611,6 +609,16 @@ export interface ParseOptions {
   optimizations?: ParseOptimizations;
 }
 
+/** @internal
+ * The js-yaml shim uses this identity to require a document without adding a public parse option.
+ */
+export const requiredDocumentOptions: ParseOptions = Object.freeze({});
+
+/** @internal
+ * yaml wrappers retain yaml@2.9 document counting without changing native parse options.
+ */
+export const yamlDocumentOptions: ParseOptions = Object.freeze({});
+
 /**
  * Parse a single YAML document into a JavaScript value.
  *
@@ -637,12 +645,18 @@ export interface ParseOptions {
  */
 export function parse(text: string, options?: ParseOptions): unknown {
   resetForStream(text);
+  const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
-    const value = parseNextDocument();
-    if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
+    const value = parseNextDocument(preserveSuffixDocuments);
+    if (value === NO_DOCUMENT) {
+      if (options === requiredDocumentOptions) {
+        throw new YAMLParseError("expected a document, but the input is empty");
+      }
+      return null; // empty stream → null (YAML), unlike JSON
+    }
 
     // Single-document contract (like js-yaml's `load`): a second document —
     // another marker, more directives, or any other trailing content — is an
@@ -681,13 +695,14 @@ export function parse(text: string, options?: ParseOptions): unknown {
  */
 export function parseAll(text: string, options?: ParseOptions): unknown[] {
   resetForStream(text);
+  const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const docs: unknown[] = [];
     for (;;) {
-      const value = parseNextDocument();
+      const value = parseNextDocument(preserveSuffixDocuments);
       if (value === NO_DOCUMENT) break;
       docs.push(value);
     }
@@ -829,14 +844,8 @@ function skipFlowWsSlow(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Anchors (`&name`) and aliases (`*name`) — M5. Node properties are a seam for
-// F4 (tags): a `!tag` may precede OR follow an anchor (both orders are legal
-// YAML — spec `c-ns-properties`), but tags aren't implemented yet, so no `!`
-// handling is added here; a future `parseNodeProperties`-style merge just
-// needs to also try a leading/trailing `!tag` around the `&name` scan below,
-// in both the flow and block property-dispatch functions. For now a bare `!`
-// falls through to whatever `parseFlowValue`/`parseBlockNode` already did with
-// it pre-F4 (plain-scalar text — no special casing, per the design recipe).
+// Anchors (`&name`) and aliases (`*name`). Tags are parsed by the separate
+// flow and block node-property dispatch paths.
 // ---------------------------------------------------------------------------
 
 /**
@@ -1949,25 +1958,21 @@ function internValue(s: string): string {
 }
 
 /**
- * FastKeyMatch (M7) — flow context. Try to recognise the upcoming flow mapping
- * key as the previous sibling's canonical key `ek` WITHOUT slicing/hashing.
- * Only the hot shape is fast-pathed: a double-quoted JSON key `"…"`. `c` is the
- * already-read char at `pos`. On a full byte match + closing quote it advances
- * `pos` past the close quote and returns `true` (caller reuses `ek`); on ANY
- * mismatch it returns `false` and leaves `pos` untouched for the slow
- * `parseFlowKey`. The byte-for-byte compare against the *canonical* string
- * inherently excludes escapes and folds (a `\`/newline in the source can't
- * equal the decoded key), so the closing-quote check guarantees the slow path
- * would have produced exactly `ek` — and skipping `parseDoubleQuoted` is safe
- * for the `nextBackslash`/`nextNewline` memos precisely because the matched
- * span is provably escape- and break-free.
+ * FastKeyMatch (M7) — flow context.
+ * Canonical keys can contain a backslash, quote, or line break produced by
+ * decoding or folding. Decline these source characters so parseFlowKey stays
+ * responsible for validation; every mismatch leaves pos untouched.
  */
 function fastMatchFlowKey(c: number, ek: string): boolean {
   if (c !== DQUOTE) return false;
   const n = ek.length;
   const q = pos + 1;
   let i = 0;
-  while (i < n && src.charCodeAt(q + i) === ek.charCodeAt(i)) i++;
+  while (i < n) {
+    const raw = src.charCodeAt(q + i);
+    if (raw === BACKSLASH || raw === DQUOTE || raw === LF || raw === CR || raw !== ek.charCodeAt(i)) break;
+    i++;
+  }
   if (i !== n || src.charCodeAt(q + n) !== DQUOTE) return false;
   pos = q + n + 1;
   return true;
@@ -2070,6 +2075,10 @@ function trimTrailingWs(from: number, end: number): number {
  * `flowFolded` up front, so a single-line scalar (the hot path) leaves it null.
  */
 function scanFlowPlainEnd(): number {
+  const c = src.charCodeAt(pos);
+  if (c === PERCENT || c === AT || c === BACKTICK || c === PIPE || c === GT) {
+    fail("a plain scalar cannot start with '%', '@', '`', '|', or '>'");
+  }
   flowFolded = null;
   const start = pos;
   const p = scanFlowPlainLine(start);
@@ -2611,8 +2620,7 @@ function parseDoubleQuoted(): string {
 /**
  * Cold path: the string contains at least one escape, so the first `indexOf('"')`
  * may have landed on an escaped quote. Walk it, copying spans between escapes and
- * decoding each escape. JSON escape set for now; YAML's extra escapes and
- * line-folding land in a later milestone.
+ * decoding each YAML escape and folding any multiline content.
  */
 function parseDoubleQuotedSlow(start: number): string {
   let result = "";
@@ -2767,8 +2775,7 @@ function hexVal(c: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Single-quoted scalar — indexOf hop; `''` is an escaped quote. (Single-line
-// for now; multi-line single-quoted folding is a later milestone.)
+// Single-quoted scalar — indexOf hop; `''` is an escaped quote.
 // ---------------------------------------------------------------------------
 
 function parseSingleQuoted(): string {
@@ -4372,12 +4379,10 @@ function parseYamlDirectiveArgs(): void {
 }
 
 /**
- * `%TAG <handle> <prefix>` — stores the handle → prefix mapping in the
- * per-document `tagHandles` map (created lazily), for a later milestone to
- * resolve `!handle!suffix` tags against. Tags themselves are not implemented
- * yet; storing directives must not require them to be (design recipe). Per
- * spec §6.8.2 (Example 6.17), redefining the same handle within one document
- * is an error, not last-wins — checked before the map is populated.
+ * `%TAG <handle> <prefix>` — stores the handle → prefix mapping consumed by
+ * `scanTag` for this document. Per spec §6.8.2 (Example 6.17), redefining the
+ * same handle within one document is an error, not last-wins — checked before
+ * the map is populated.
  */
 function parseTagDirectiveArgs(): void {
   skipInlineSpaces();
@@ -4437,14 +4442,24 @@ function parseDirectives(): boolean {
 /**
  * Parse one document from the current stream position: an optional
  * directives block (which then requires an explicit `---`), an optional
- * `---`/`...` marker, the document's root node (or `null` for an empty
- * document), and a trailing `...` if present. Leaves `pos` positioned for the
+ * `---` marker, the root node (or `null` for an explicit empty document), and
+ * trailing `...` markers if present. Leaves `pos` positioned for the
  * next call: at a following marker, at genuine trailing content (the caller
- * decides how to report that), or at EOF. Shared by `parse` and `parseAll` so
- * every rule above is enforced identically for single- and multi-document use.
+ * decides how to report that), or at EOF. The yaml shim can preserve suffixes
+ * as empty documents; native parsing follows the default stream rules.
  */
-function parseNextDocument(): unknown {
+function parseNextDocument(preserveSuffixDocuments: boolean): unknown {
   skipBlankLines();
+  while (
+    pos < len &&
+    src.charCodeAt(pos) === DOT &&
+    isDocMarkerAt(pos) &&
+    !preserveSuffixDocuments
+  ) {
+    consumeDocEndMarker();
+    bareDocAllowed = true;
+    skipBlankLines();
+  }
   if (pos >= len) return NO_DOCUMENT;
 
   const sawDirectives = parseDirectives();
@@ -4477,8 +4492,7 @@ function parseNextDocument(): unknown {
     // else the following content line, where they're perfectly ordinary).
     value = pos >= len || isDocMarkerAt(pos) ? null : inline ? parseBlockNode(ROOT_AFTER_INLINE_MARKER) : parseRootBlockNode();
   } else if (marker) {
-    // A bare '...' at a document's start position (no preceding content): an
-    // empty document. The shared end-marker handling below consumes it.
+    // The yaml shim counts a standalone suffix at document start as empty.
     value = null;
   } else {
     // No marker at all: a bare document. Only legal at stream start or right
@@ -4494,8 +4508,13 @@ function parseNextDocument(): unknown {
   // other ending (EOF, or landing right on a '---') keeps `bareDocAllowed`
   // false: only '...' unlocks a following bare document (grammar: bare
   // documents are the stream's first, or immediately after a doc-suffix).
-  if (pos < len && isDocMarkerAt(pos) && src.charCodeAt(pos) === DOT) {
+  let consumedFooter = false;
+  while (pos < len && src.charCodeAt(pos) === DOT && isDocMarkerAt(pos)) {
     consumeDocEndMarker();
+    consumedFooter = true;
+    if (preserveSuffixDocuments) break;
+  }
+  if (consumedFooter) {
     bareDocAllowed = true;
   } else {
     bareDocAllowed = false;
@@ -4868,6 +4887,14 @@ function writeStringScalar(s: string): string {
   return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
 }
 
+/** Root-only quoting for strings that would be read as a document end marker. */
+function writeRootStringScalar(s: string): string {
+  if (s === "..." || s.startsWith("... ")) {
+    return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+  }
+  return writeStringScalar(s);
+}
+
 // ---------------------------------------------------------------------------
 // Numbers.
 // ---------------------------------------------------------------------------
@@ -5049,7 +5076,7 @@ function writeEntryValue(value: unknown, indent: number): void {
  */
 function writeDocumentValue(value: unknown): void {
   if (value === null || typeof value !== "object") {
-    out += writeScalar(value) + "\n";
+    out += (typeof value === "string" ? writeRootStringScalar(value) : writeScalar(value)) + "\n";
     return;
   }
   const obj = value as object;
