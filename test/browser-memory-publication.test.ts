@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { publishableMemoryRatios } from '../site/src/lib/memory-ratios.ts';
+import { publishableMemoryRatios } from '../bench/browser/memory/publication.ts';
 
 const rows = ['yaml-plain-small-records', 'yaml-rich-small', 'yaml-rich-medium'].map((workload) => ({ workload, values: { 'lightning-yaml': 1 } }));
 const run = (runtime: string, method: 'peak-rss' | 'heap-delta') => ({
