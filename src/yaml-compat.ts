@@ -201,13 +201,6 @@ const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
 /** A bottom-up reviver; Map keys and Set items retain their original type. */
 export type Reviver = (this: unknown, key: unknown, value: unknown) => unknown;
 
-/**
- * Bottom-up walk matching `JSON.parse`'s own reviver algorithm (ECMA-262
- * `InternalizeJSONProperty`) — verified empirically that the real `yaml`
- * library's reviver support behaves the same way (called once per array
- * element / object property, deepest first, with string keys for array
- * indices, Map keys and Set items as-is, then once more for the synthetic root holder).
- */
 function applyReviver(holder: Record<string, unknown> | Map<unknown, unknown> | Set<unknown>, key: unknown, reviver: Reviver): unknown {
   let value: unknown;
   if (holder instanceof Map) {
