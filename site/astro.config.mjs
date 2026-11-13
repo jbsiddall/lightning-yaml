@@ -20,7 +20,6 @@ export default defineConfig({
     sitemap(),
     starlight({
       title: 'Lightning YAML',
-      tagline: 'Spec-compliant YAML parsing, out to give JSON.parse a run for its money.',
       customCss: [
         // Self-hosted fonts (Inter = body, IBM Plex Mono = display/data/code).
         // Loaded BEFORE theme.css so --sl-font / --sl-font-mono resolve to them.
