@@ -378,13 +378,7 @@ export class Document<
     }
   }
 
-  /**
-   * Change the YAML version and schema used by the document.
-   * A `null` version disables support for directives, explicit tags, anchors, and aliases.
-   * It also requires the `schema` option to be given as a `Schema` instance value.
-   *
-   * Overrides all previously set schema options.
-   */
+  /** Set the supported YAML 1.2 core schema, replacing previous schema options. */
   setSchema(
     version: '1.1' | '1.2' | 'next' | null,
     options: SchemaOptions = {}

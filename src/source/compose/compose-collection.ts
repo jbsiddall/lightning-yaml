@@ -103,8 +103,6 @@ export function composeCollection(
           ? 'map'
           : 'seq'
 
-  // shortcut: check if it's a generic YAMLMap or YAMLSeq
-  // before jumping into the custom tag logic.
   if (
     !tagToken ||
     !tagName ||

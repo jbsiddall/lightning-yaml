@@ -439,9 +439,10 @@
       "sha256": "9846e0279cc4e63e22736c5443e152298d9e87f17515355aa6101e3f1d9b091a",
       "localPath": "src/source/compose/compose-collection.ts",
       "adaptations": [
-        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Removed redundant shortcut narration before generic collection handling."
       ],
-      "localSha256": "a50e8729b5485a453b8bc2579f187d18b55d468ec5c758d0d9e045c08809feb9"
+      "localSha256": "ef4f064ead052dbff609e854670aa5c3bbb5b407b1f7bab1424e639eba5a1c00"
     },
     {
       "upstreamPath": "src/compose/compose-doc.ts",
@@ -512,9 +513,10 @@
       "sha256": "fa9f959f21e63eab0151467c46868fd1b49c080f1e2b2991eaec6de389a5da71",
       "localPath": "src/source/compose/resolve-props.ts",
       "adaptations": [
-        "Added the complete retained ISC notice and changed relative imports to the private local source graph."
+        "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
+        "Removed switch fallthrough narration."
       ],
-      "localSha256": "20c6e6c223353a6996d7b9e13c967c013d982f78c6998fd7eea44bfa5cf823bf"
+      "localSha256": "af10bf9dabd544a68318724f3cddfe1677a67f8521e385dd883d3a90b133ed71"
     },
     {
       "upstreamPath": "src/compose/util-contains-newline.ts",
@@ -558,9 +560,10 @@
       "localPath": "src/source/doc/Document.ts",
       "adaptations": [
         "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
-        "Retained held core-schema/YAML-1.2 runtime restrictions and uniqueKeys:false defaults."
+        "Retained held core-schema/YAML-1.2 runtime restrictions and uniqueKeys:false defaults.",
+        "Removed copied JSDoc claiming unsupported null-version behavior; documented the supported YAML 1.2 core schema."
       ],
-      "localSha256": "15dd053d85c2c62bca45921e7efc6bfe0d66f23fd41094fa2971d6bf711dbbea"
+      "localSha256": "2651d6a84e220c2a8b72db6bb40202db6c5a12e75c20a0fc207c2e7197a13259"
     },
     {
       "upstreamPath": "src/doc/directives.ts",

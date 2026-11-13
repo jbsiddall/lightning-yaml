@@ -169,7 +169,6 @@ export function resolveProps(
           hasSpace = false
           break
         }
-      // else fallthrough
       default:
         onError(token, 'UNEXPECTED_TOKEN', `Unexpected ${token.type} token`)
         atNewline = false
