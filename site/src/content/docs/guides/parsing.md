@@ -76,15 +76,32 @@ try {
 }
 ```
 
-## What's not supported yet
+## Strict vs. lenient parsing
 
-Merge keys (`<<: *defaults`) are not implemented. lightning-yaml won't
-silently mis-parse a merge key into the wrong value — it's a documented gap,
-not a correctness bug — but it also won't expand the merge for you today.
-Everything else in the YAML 1.2 core feature set (flow and block
-collections, block scalars, anchors/aliases, tags including `!!binary`,
-directives, multi-document streams) is implemented and covered by the
-conformance suite — see [Benchmarks](/benchmarks/).
+By default, `parse` and `parseAll` are **lenient** about one spec-invalid
+construct: a tab used to indent a block sequence or mapping ([YAML 1.2.2
+§6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces) forbids it, but
+real-world YAML sometimes has it anyway). Pass `{ strict: true }` to reject
+that input instead:
+
+```ts
+import { parse } from "lightning-yaml";
+
+const withTab = "a:\n\tb: 1\n"; // a tab indenting "b"
+
+parse(withTab); // { a: { b: 1 } } — accepted by default
+parse(withTab, { strict: true }); // throws YAMLParseError
+```
+
+Lenient parsing never changes how a *valid* document is read — it only
+widens what's accepted; `strict: true` narrows it back to the spec.
+
+## Merge keys
+
+Merge keys such as `<<: *defaults` are currently read as ordinary `<<` keys;
+lightning-yaml does not expand them. The parser also has other YAML 1.2 spec
+edge cases, tracked through the conformance suite and follow-up issues — see
+[Benchmarks](/benchmarks/) for the current suite result.
 
 ## Next
 

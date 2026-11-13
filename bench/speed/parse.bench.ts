@@ -7,8 +7,8 @@
  * `--expose-gc` lets mitata report GC/heap columns alongside timing.
  *
  * Candidates that don't apply to a dataset (e.g. JSON.parse can't read block
- * YAML) or aren't implemented yet (lightning-yaml's stub) are skipped, so YAML
- * fixtures benchmark only the parsers that can actually read them.
+ * YAML) or don't support a particular operation are skipped, so YAML fixtures
+ * benchmark only parsers that can read them.
  */
 
 import { bench, group, run, do_not_optimize } from "mitata";

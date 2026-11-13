@@ -2,6 +2,6 @@
 "lightning-yaml": minor
 ---
 
-Reject space-then-tab sequences used as block indentation (YAML 1.2 §6.1 forbids tabs in indentation); such input was previously accepted.
+Reject space-then-tab sequences used as block indentation, per [YAML 1.2.2 §6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces), when parsing with `{ strict: true }`; such input is accepted unconditionally otherwise.
 
-These guards cost ~4-8% of block-YAML parse time (more on deep, many-entry input), so they can be opted out per call via `parse(text, { optimizations: { skipStrictValidation: true } })` — an umbrella flag for strict-compliance validations that only reject malformed input. It trades strictness for speed/memory and accepts the tab-indented input the spec-compliant default rejects. Valid input parses identically either way: the flag can only ever turn a rejection into acceptance, never change how a well-formed document is interpreted.
+Full spec rejection of this costs ~4-8% of block-YAML parse time (more on deep, many-entry input), which is why it's opt-in via `strict` rather than the default — see the separate changeset introducing that option for the full lenient-by-default story. Valid input parses identically in both modes: `strict` only ever turns an acceptance into a rejection, never changes how a well-formed document is interpreted.

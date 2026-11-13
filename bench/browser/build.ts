@@ -21,14 +21,21 @@ export interface BuildResult {
   bundleBytes: number;
 }
 
-export async function buildBrowserBundle(): Promise<BuildResult> {
+/** Both default to the speed harness's single bundle; the memory harness overrides them to build one isolated bundle per library. */
+export interface BuildOptions {
+  entryPoint?: string;
+  outFile?: string;
+}
+
+export async function buildBrowserBundle(opts: BuildOptions = {}): Promise<BuildResult> {
   mkdirSync(GENERATED, { recursive: true });
 
   const manifest = buildManifest();
+  const outfile = opts.outFile ?? BUNDLE_PATH;
 
   const result = await esbuild.build({
-    entryPoints: [join(HERE, "entry.ts")],
-    outfile: BUNDLE_PATH,
+    entryPoints: [opts.entryPoint ?? join(HERE, "entry.ts")],
+    outfile,
     bundle: true,
     platform: "browser",
     format: "esm",
@@ -59,5 +66,5 @@ export async function buildBrowserBundle(): Promise<BuildResult> {
     throw new Error(`esbuild failed:\n${result.errors.map((e) => e.text).join("\n")}`);
   }
 
-  return { manifest, bundlePath: BUNDLE_PATH, bundleBytes: statSync(BUNDLE_PATH).size };
+  return { manifest, bundlePath: outfile, bundleBytes: statSync(outfile).size };
 }

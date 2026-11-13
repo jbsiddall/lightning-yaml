@@ -1,8 +1,8 @@
 /**
  * @packageDocumentation
  *
- * js-yaml-compat.ts — a drop-in-ish replacement for the `js-yaml` v5 public
- * API (`load`/`loadAll`/`dump`), backed by lightning-yaml's own parser
+ * js-yaml-compat.ts — a partial compatibility shim for selected `js-yaml` v5
+ * calls (`load`/`loadAll`/`dump`), backed by lightning-yaml's own parser
  * (./core.ts).
  *
  * This module doc block is the MASTER SOURCE for js-yaml compatibility: it is
@@ -11,9 +11,10 @@
  *
  * ## Compatibility level TODAY
  *
- * **API-level, not behaviour-complete.** Every export and call signature the
- * real `js-yaml` exposes exists here, so code that imports `load`/`loadAll`/
- * `dump` compiles and runs unchanged. Options are honoured on a growing
+ * **Partial API compatibility, not a drop-in replacement.** This module
+ * exposes `load`, `loadAll`, and `dump`, plus `YAMLException` and a subset of
+ * schema and tag helpers. It does not mirror the full `js-yaml` export surface
+ * or every call signature. Options are honoured on a growing
  * allowlist, and anything not yet honoured **throws a `YAMLException`** rather
  * than silently diverging. Today only `filename` (threaded into a thrown
  * error's mark), `loadAll`'s iterator, `json: true`, and `schema` *as the
@@ -25,8 +26,9 @@
  *
  * ## Goal
  *
- * Maximise drop-in compatibility **without ever compromising the two things
- * that outrank it: YAML-1.2-spec correctness and core (./core.ts) speed.**
+ * Improve compatibility for these entry points **without ever compromising
+ * the two things that outrank it: YAML-1.2-spec correctness and core
+ * (./core.ts) speed.**
  * Per-option cost is therefore paid either in this shim (pre-/post-processing
  * the plain-JS value, the way the `yaml` shim's reviver already does) or behind
  * a gated core seam that leaves the options-free fast path byte-identical. An
@@ -73,21 +75,20 @@
  * [3] `noRefs` can't just skip anchoring: the shared-reference pre-scan is also
  *     the cycle guard, so it must first tell a shared DAG node from a cycle.
  *
- * The construct-level gaps below are the current intentional simplifications
- * (a `NotImplementedError` here means "can't read this yet", not "malformed"):
+ * Parser behavior notes (a `NotImplementedError` means "can't read this yet",
+ * not "malformed"):
  *
- *   - Parser coverage: the core is feature-complete for YAML 1.2 core — block
- *     scalars, anchors/aliases, and tags (incl. `!!binary`) all parse, so
- *     `load`/`loadAll` return values for them rather than rejecting. The one
- *     known gap is merge keys (`<<`): they are neither merged nor rejected —
- *     `<<` comes back as an ordinary key (e.g. `{ "<<": {...}, y: 2 }`), which
- *     diverges from js-yaml's merge semantics. (See the matrix above.)
+ *   - Supported constructs include block scalars, anchors/aliases, and tags
+ *     (including `!!binary`); `load`/`loadAll` return values for them. Other
+ *     YAML 1.2 spec edge cases are tracked through the official suite and
+ *     follow-up issues. Merge keys (`<<`) are currently neither merged nor
+ *     rejected: they come back as ordinary keys (e.g. `{ "<<": {...}, y: 2 }`),
+ *     and remain literal in the returned mapping. (See the matrix above.)
  *   - Errors: a genuine syntax error surfaces as a `YAMLException` (see below),
  *     so a caller's `catch (e) { if (e instanceof YAMLException) ... }` gets the
  *     same "this document is broken" signal js-yaml gives. `load`/`loadAll` also
  *     re-throw our `NotImplementedError` unwrapped rather than mislabeling it a
- *     `YAMLException` — but that path is defensive: the current parser is
- *     complete and never throws it.
+ *     `YAMLException`.
  *   - `dump` delegates to our `stringify` (implemented); dump options are not
  *     honoured yet and throw (see the matrix).
  *   - Custom schemas/tags (`defineScalarTag`/`defineSequenceTag`/
@@ -97,10 +98,8 @@
  *     parser is hardwired to YAML 1.2 core (see ./core.ts) and never
  *     branches on them.
  *
- * One thing that IS aligned rather than merely stubbed: js-yaml's `load`
- * throws on a second document in the stream (use `loadAll` instead), and our
- * `parse` throws on a second document too (see ./core.ts) — so that
- * particular divergence risk doesn't exist here.
+ * `load` rejects empty streams and streams with multiple documents, while
+ * `loadAll` returns every document in order (see ./core.ts).
  *
  * v5 REWRITE NOTE: js-yaml v5 is a from-scratch rewrite (event-based AST,
  * dual ESM/CJS build with NO default export "by design" per its migration
@@ -113,7 +112,7 @@
  * that.
  */
 
-import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
+import { parse as ourParse, parseAll as ourParseAll, requiredDocumentOptions, stringify as ourStringify, YAMLParseError, NotImplementedError } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 
 // ---------------------------------------------------------------------------
@@ -345,22 +344,11 @@ const DUMP_OPTION_RULES: Record<string, OptionRule> = {
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * NOTE: js-yaml v4's `load("")` (and a few other near-empty inputs) returned
- * `undefined`, quirkily — e.g. `load(" ")` and `load("\n")` were `undefined`
- * too, but `load("  \n  \n")` and `load("# comment\n")` were `null`. js-yaml
- * v5 changed this again: `load("")` now THROWS a `YAMLException` ("an empty
- * stream has no document, and `load` has no output value to signal its
- * absence" — per the v5 migration guide), rather than returning anything. We
- * always return `null` for an empty document, matching our own `parse()`'s
- * documented contract, in BOTH cases — reproducing either v4's quirk or v5's
- * new throw isn't worth it for a compat shim. Tracked as a known, low-impact
- * divergence (see bench/conformance/compat.ts).
- */
+/** Parse exactly one document; an empty stream or multiple documents throws. */
 export function load(input: string, opts?: LoadOptions): unknown {
   validateOptions(opts, LOAD_OPTION_RULES, failOption);
   try {
-    return ourParse(input);
+    return ourParse(input, requiredDocumentOptions);
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
     throw toYAMLException(err, opts?.filename);

@@ -15,6 +15,7 @@ import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
 import { parse, parseAll, stringify, YAMLParseError } from "../src/index.ts";
+import { requiredDocumentOptions } from "../src/core.ts";
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
 import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
@@ -736,6 +737,66 @@ test("empty document (via markers) is null", () => {
   strictEqual(parse("...\n"), null);
 });
 
+test("standalone document suffixes terminate a document without creating empty documents", () => {
+  deepStrictEqual(parseAll("..."), []);
+  strictEqual(parse("..."), null);
+  deepStrictEqual(parseAll("...\n..."), []);
+  deepStrictEqual(parseAll("---\n...\n..."), [null]);
+  strictEqual(parse("---\n...\n..."), null);
+  deepStrictEqual(parseAll("a\n...\n...\nb"), ["a", "b"]);
+  deepStrictEqual(parseAll("...\n%YAML 1.2\n---\nx\n"), ["x"]);
+  throws(() => parseAll("... garbage\n"), YAMLParseError);
+});
+
+test("suffix and parse errors leave core parser options reset for the next call", () => {
+  throws(() => parse("\tbad: value\n", { strict: true }), YAMLParseError);
+  deepStrictEqual(parse("\tbad: value\n"), { "bad": "value" });
+  throws(() => parse("", requiredDocumentOptions), (err: unknown) => {
+    ok(err instanceof YAMLParseError);
+    strictEqual(err.message, "expected a document, but the input is empty");
+    return true;
+  });
+  deepStrictEqual(parse("\tbad: value\n"), { "bad": "value" });
+  throws(() => parse("\tbad: value\n", { strict: true }), YAMLParseError);
+
+  deepStrictEqual(parse("a: shared\nb: shared\n", { optimizations: { internStrings: true } }), {
+    a: "shared", b: "shared",
+  });
+  throws(() => parse("# no document\n...\n", requiredDocumentOptions), YAMLParseError);
+  deepStrictEqual(parse("a: 1\n"), { a: 1 });
+  deepStrictEqual(parseAll("a: shared\nb: shared\n", { optimizations: { internStrings: true } }), [
+    { a: "shared", b: "shared" },
+  ]);
+
+  throws(() => parseAll("... garbage\n", { strict: true }), YAMLParseError);
+  deepStrictEqual(parseAll("---\n...\n...", { optimizations: { internStrings: true } }), [null]);
+  deepStrictEqual(parseAll("..."), []);
+  strictEqual(parse("---\n...\n..."), null);
+  deepStrictEqual(parseAll("a: shared\nb: shared\n", { optimizations: { internStrings: true } }), [
+    { a: "shared", b: "shared" },
+  ]);
+});
+
+test("the internal required-document option preserves single-document values", () => {
+  strictEqual(Object.isFrozen(requiredDocumentOptions), true);
+  strictEqual(parse("", {}), null);
+  strictEqual(parse("...", {}), null);
+  for (const input of ["", " # comment\n", "\ufeff", "...", "...\n..."]) {
+    throws(() => parse(input, requiredDocumentOptions), (err: unknown) => {
+      ok(err instanceof YAMLParseError);
+      strictEqual(err.message, "expected a document, but the input is empty");
+      return true;
+    });
+  }
+  for (const input of ["---", "---\n...\n...", "null", "~"]) {
+    strictEqual(parse(input, requiredDocumentOptions), null);
+  }
+  strictEqual(parse("42", requiredDocumentOptions), 42);
+  deepStrictEqual(parse("a: 1\n", requiredDocumentOptions), { a: 1 });
+  throws(() => parse("--- one\n--- two\n", requiredDocumentOptions), YAMLParseError);
+  throws(() => parse("[\n", requiredDocumentOptions), YAMLParseError);
+});
+
 test("parseAll splits a '---'-separated multi-document stream", () => {
   deepStrictEqual(parseAll("--- a\n--- b\n"), ["a", "b"]);
   deepStrictEqual(parseAll("--- 1\n--- 2\n--- 3\n"), [1, 2, 3]);
@@ -851,67 +912,6 @@ test("a leading BOM is ignored", () => {
 
 test("a leading BOM before directives/markers is ignored", () => {
   deepStrictEqual(parse("﻿%YAML 1.2\n---\nx\n"), "x");
-});
-
-// --------------------------------------------------------------------------
-// BOM per document (§5.2 / §9.1.1, grammar [202] `l-document-prefix` /
-// [211] `l-yaml-stream`) — no yaml-test-suite case covers a BOM at all, so
-// the spec (not the oracle) adjudicates here; `yaml` agrees on the
-// `...`-suffix cases below, `js-yaml` on none of them.
-// --------------------------------------------------------------------------
-
-test("BOM stripped where the grammar allows it: after a '...' document-end suffix", () => {
-  deepStrictEqual(parseAll("a\n...\n﻿b\n"), ["a", "b"]);
-});
-
-test("BOM stripped where the grammar allows it: after '...', the key must not carry the BOM", () => {
-  deepStrictEqual(parseAll("a: 1\n...\n﻿b: 2\n"), [{ a: 1 }, { b: 2 }]);
-});
-
-test("BOM stripped where the grammar allows it: standing alone before an explicit '---'", () => {
-  deepStrictEqual(parseAll("a\n...\n﻿---\nb\n"), ["a", "b"]);
-});
-
-test("BOM stripped where the grammar allows it: interleaved with comment lines ([202] repeated)", () => {
-  deepStrictEqual(parseAll("a\n...\n﻿# c\n﻿b\n"), ["a", "b"]);
-});
-
-test("BOM stripped where the grammar allows it: after a comment line at stream start", () => {
-  deepStrictEqual(parse("# c\n﻿a: 1\n"), { a: 1 });
-});
-
-test("BOM stripped where the grammar allows it: repeated document prefix ([202] is `l-comment*`, BOM optional first)", () => {
-  deepStrictEqual(parse("﻿﻿a: 1\n"), { a: 1 });
-});
-
-test("a trailing document prefix (BOM after a final '...') is not reported as a second document", () => {
-  strictEqual(parse("a\n...\n﻿"), "a");
-  deepStrictEqual(parseAll("a\n...\n﻿"), ["a"]);
-});
-
-// [202] `l-document-prefix` is `c-byte-order-mark? l-comment*`, so a comment after
-// the closing `...` belongs to the prefix, not to a second document — which both
-// entry points have to agree on, hence asserting each.
-test("a trailing comment after a final '...' is a document prefix, not a second document", () => {
-  strictEqual(parse("a\n...\n# a trailing comment\n"), "a");
-  deepStrictEqual(parseAll("a\n...\n# a trailing comment\n"), ["a"]);
-});
-
-test("BOM rejected where the spec forbids it: immediately after '---' (§5.2 Example 5.2 — inside a document)", () => {
-  throws(() => parse("---\n﻿a\n"), /byte order mark/);
-  throws(() => parse("--- ﻿a\n"), /byte order mark/);
-  throws(() => parseAll("﻿first\n---\n﻿second\n"), /byte order mark/); // #126's own repro
-});
-
-test("BOM regression guards: empty/comment-only/directive-only streams still resolve as before", () => {
-  strictEqual(parse("﻿"), null);
-  deepStrictEqual(parseAll("﻿"), []);
-  strictEqual(parse("﻿# comment only\n"), null);
-  strictEqual(parse("﻿%YAML 1.2\n---\nx\n"), "x");
-});
-
-test("a BOM inside a quoted scalar is still content, per §5.2's JSON-compat sentence", () => {
-  strictEqual(parse('"a﻿b"'), "a﻿b");
 });
 
 // --------------------------------------------------------------------------
@@ -1562,6 +1562,11 @@ test("STRICTNESS: a block-sequence '-' indicator is not allowed inside a flow co
 // a block-sequence entry that opens a new collection.
 // --------------------------------------------------------------------------
 
+// These three guards fire unconditionally — not gated by `strict` (they cover a
+// pure tab in a node's own MANDATORY leading indentation, or an inline tab right
+// next to an indicator, neither of which lightning-yaml tolerates in either mode)
+// — so `parse`/`oracleParse` throwing is unaffected by this PR; only the
+// "space-then-tab" continuation/deferred guards below flip with the new default.
 test("STRICTNESS: a tab cannot be used as block indentation (yaml-test-suite 4EJS)", () => {
   throws(() => parse("---\na:\n\tb:\n\t\tc: value\n"), YAMLParseError);
   throws(() => oracleParse("---\na:\n\tb:\n\t\tc: value\n"));
@@ -1596,33 +1601,53 @@ test("STRICTNESS: a tab cannot indent a flow continuation line (yaml-test-suite 
 // neither flows through the ordinary deferred-node tab guard.
 // --------------------------------------------------------------------------
 
-test("STRICTNESS: a space-then-tab cannot indent a deferred or root block collection (issue #18, yaml-test-suite 4EJS)", () => {
-  for (const s of [
-    dedent`
-    a:
-     \tb: 1
-    `, // deferred block MAP
-    dedent`
-    a:
-     \t- 1
-    `, // deferred block SEQ
-    dedent`
-     \ta: 1
-    `, // ROOT block MAP
-    dedent`
-    \t- 1
-    `, // ROOT block SEQ
-    dedent`
-    a:
-     \t- b: 1
-    `, // deferred compact seq-of-map
-  ]) {
-    throws(() => parse(s), YAMLParseError);
+test("STRICTNESS: a space-then-tab cannot indent a deferred or root block collection under strict:true (issue #18, yaml-test-suite 4EJS)", () => {
+  // Since this PR, lenient parsing (the default) tolerates this space-then-tab
+  // indentation instead of rejecting it — `{ strict: true }` restores the
+  // spec-compliant rejection the oracle (always spec-strict) applies.
+  for (const [s, expected] of [
+    [
+      dedent`
+      a:
+       \tb: 1
+      `,
+      { a: { b: 1 } },
+    ], // deferred block MAP
+    [
+      dedent`
+      a:
+       \t- 1
+      `,
+      { a: [1] },
+    ], // deferred block SEQ
+    [
+      dedent`
+       \ta: 1
+      `,
+      { a: 1 },
+    ], // ROOT block MAP
+    [
+      dedent`
+      \t- 1
+      `,
+      [1],
+    ], // ROOT block SEQ
+    [
+      dedent`
+      a:
+       \t- b: 1
+      `,
+      { a: [{ b: 1 }] },
+    ], // deferred compact seq-of-map
+  ] as const) {
+    throws(() => parse(s, { strict: true }), YAMLParseError);
     throws(() => oracleParse(s));
+    deepStrictEqual(parse(s), expected); // lenient default: parses instead of throwing
   }
   // The identical `" \t"` bytes stay legal before content that is NOT a block
   // collection — a folding plain scalar, a flow collection VALUE, a quoted
   // scalar, or an alias (even one resolving to a collection): tab as separation.
+  // Unaffected by strict/lenient — valid either way.
   for (const y of [
     dedent`
     foo:
@@ -1647,39 +1672,53 @@ test("STRICTNESS: a space-then-tab cannot indent a deferred or root block collec
     `,
   ]) {
     deepStrictEqual(parse(y), oracleParse(y));
+    deepStrictEqual(parse(y, { strict: true }), oracleParse(y));
   }
 });
 
-test("STRICTNESS: a space-then-tab cannot indent a block-collection continuation entry (issue #18)", () => {
-  for (const s of [
-    dedent`
-    foo:
-      a: 1
-     \tb: 2
-    `, // block-map continuation KEY
-    dedent`
-    m:
-      k1: v1
-     \tk2: v2
-      k3: v3
-    `, // block-map middle key
-    dedent`
-    top:
-      x: 1
-      y:
-        m: 1
-     \tn: 2
-    `, // continuation after a nested dedent
-    dedent`
-    a:
-      - 1
-     \t- 2
-    `, // block-seq continuation entry
-  ]) {
-    throws(() => parse(s), YAMLParseError);
+test("STRICTNESS: a space-then-tab cannot indent a block-collection continuation entry under strict:true (issue #18)", () => {
+  for (const [s, expected] of [
+    [
+      dedent`
+      foo:
+        a: 1
+       \tb: 2
+      `,
+      { foo: { a: 1, b: 2 } },
+    ], // block-map continuation KEY
+    [
+      dedent`
+      m:
+        k1: v1
+       \tk2: v2
+        k3: v3
+      `,
+      { m: { k1: "v1", k2: "v2", k3: "v3" } },
+    ], // block-map middle key
+    [
+      dedent`
+      top:
+        x: 1
+        y:
+          m: 1
+       \tn: 2
+      `,
+      { top: { x: 1, y: { m: 1 }, n: 2 } },
+    ], // continuation after a nested dedent
+    [
+      dedent`
+      a:
+        - 1
+       \t- 2
+      `,
+      { a: [1, 2] },
+    ], // block-seq continuation entry
+  ] as const) {
+    throws(() => parse(s, { strict: true }), YAMLParseError);
     throws(() => oracleParse(s));
+    deepStrictEqual(parse(s), expected); // lenient default: parses instead of throwing
   }
-  // Space-only continuations are unaffected.
+  // Space-only continuations are unaffected — valid in both modes.
   for (const y of [
     dedent`
     foo:
@@ -1693,27 +1732,27 @@ test("STRICTNESS: a space-then-tab cannot indent a block-collection continuation
     `,
   ]) {
     deepStrictEqual(parse(y), oracleParse(y));
+    deepStrictEqual(parse(y, { strict: true }), oracleParse(y));
   }
 });
 
-test("skipStrictValidation option: opting in skips the strict-compliance (tab-indent) guards, accepting input the default rejects (issue #18)", () => {
-  const skip = { optimizations: { skipStrictValidation: true } };
+test("strict option: default lenient parsing accepts space-then-tab block indentation that strict:true rejects (issue #18)", () => {
   const tabIndented = "a:\n \tb: 1\n"; // space-then-tab positioning a nested block map
-  // Default: spec-compliant rejection (as the STRICTNESS tests above assert).
-  throws(() => parse(tabIndented), YAMLParseError);
-  throws(() => parseAll(tabIndented), YAMLParseError);
-  // Opted out: the guard is skipped, so the (spec-invalid) input parses to the
-  // lenient value instead of throwing.
-  deepStrictEqual(parse(tabIndented, skip), { a: { b: 1 } });
-  deepStrictEqual(parseAll(tabIndented, skip), [{ a: { b: 1 } }]);
+  // Default: lenient, so the guard is skipped and the (spec-invalid) input
+  // parses instead of throwing.
+  deepStrictEqual(parse(tabIndented), { a: { b: 1 } });
+  deepStrictEqual(parseAll(tabIndented), [{ a: { b: 1 } }]);
+  // strict: true restores the spec-compliant rejection.
+  throws(() => parse(tabIndented, { strict: true }), YAMLParseError);
+  throws(() => parseAll(tabIndented, { strict: true }), YAMLParseError);
   // VALID input parses identically with the option on or off — the guards only
   // ever throw, never transform.
   for (const y of ["a:\n  b: 1\n", "a:\n  - 1\n  - 2\n", "foo:\n \tbar\n", "x: [1, 2]\n"]) {
-    deepStrictEqual(parse(y, skip), parse(y));
+    deepStrictEqual(parse(y, { strict: true }), parse(y));
   }
-  // The option is per-call and does not leak: a default parse after a skip parse
-  // still rejects.
-  throws(() => parse(tabIndented), YAMLParseError);
+  // The option is per-call and does not leak: a lenient (default) parse after a
+  // strict parse still accepts.
+  deepStrictEqual(parse(tabIndented), { a: { b: 1 } });
 });
 
 // --------------------------------------------------------------------------

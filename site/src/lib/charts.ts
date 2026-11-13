@@ -20,6 +20,7 @@ import type {
   MemoryDoc,
   MemoryStat,
   MemoryWorkload,
+  MemoryRatiosWorkload,
   ConformanceDoc,
   ConformanceResult,
   BundleSizeDoc,
@@ -38,6 +39,22 @@ import type {
 /** Append a version to a display label when the benchmark data recorded one (e.g. `js-yaml 5.2.1`). */
 export function withVersion(label: string, version?: string): string {
   return version ? `${label} ${version}` : label;
+}
+
+/**
+ * One section's own provenance line — a page-wide line would misattribute every section fed
+ * by a different stream. Browser docs record cpu/clk as "unknown" (a page can't read the
+ * host's hardware) so they say "Measured in <runtime>"; a doc with no `env` gets date+source.
+ */
+export function sourceLine(doc: { generated?: unknown; source?: unknown; env?: { cpu: string; clk: string; runtime: string } }): string {
+  const generated = String(doc.generated ?? '');
+  const source = String(doc.source ?? '');
+  if (doc.env) {
+    const where =
+      doc.env.cpu === 'unknown' ? `in ${doc.env.runtime}` : `on ${doc.env.cpu} (${doc.env.clk}) · ${doc.env.runtime}`;
+    return `Measured ${where} · generated ${generated} · source ${source}`;
+  }
+  return `Generated ${generated} · source ${source}`;
 }
 
 /** Look up a library's display label by id (with version when available), falling back to the id itself. */
@@ -272,6 +289,11 @@ export function memoryBreakdownHtml(workloads: MemoryWorkload[], libraries: Libr
   return groupedBreakdownTableHtml(workloads, libraries, order, (s) => formatMB((s as MemoryStat).peak_rss));
 }
 
+/** Grouped breakdown for a browser memory-ratios document — each library relative to lightning-yaml. */
+export function ratioBreakdownHtml(workloads: MemoryRatiosWorkload[], libraries: LibraryMeta[], order: readonly LibraryId[]): string {
+  return groupedBreakdownTableHtml(workloads, libraries, order, (s) => formatRatio(s as number));
+}
+
 // ---------------------------------------------------------------------------
 // Brand palette — one color per library, reused identically across every
 // chart on the page so identity ("violet = lightning-yaml") only has to be
@@ -439,11 +461,12 @@ export function buildChart(rows: HeroChartRow[], order: readonly LibraryId[]): {
  */
 export function ratioPopoverHtml(points: readonly RatioPoint[], title: string): string {
   const rows = points
-    .map(
-      (r) =>
-        `<li><span class="ratio-pop__env">${escapeXml(r.runtime)}</span>` +
-        `<span class="ratio-pop__val">${escapeXml(formatRatio(r.ratio))}</span></li>`,
-    )
+    .map((r) => {
+      const env = r.methodLabel
+        ? `${escapeXml(r.runtime)} <span class="ratio-pop__method">· ${escapeXml(r.methodLabel)}</span>`
+        : escapeXml(r.runtime);
+      return `<li><span class="ratio-pop__env">${env}</span>` + `<span class="ratio-pop__val">${escapeXml(formatRatio(r.ratio))}</span></li>`;
+    })
     .join('');
   return (
     `<div class="ratio-pop__title">${escapeXml(title)}</div>` +

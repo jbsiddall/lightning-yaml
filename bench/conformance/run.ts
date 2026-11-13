@@ -56,10 +56,16 @@ interface ParserCandidate {
  * single parse() call only if parseAll itself isn't exported (defensive —
  * today parseAll always delegates to parse, so this is a no-op fallback, not
  * an error-swallowing one: a genuine parse error still propagates either way).
+ *
+ * `strict: true` because lightning-yaml's default parse is deliberately
+ * LENIENT (tolerates some spec-invalid block indentation — see README's
+ * Decisions and deviations); the suite's negative cases expect full YAML
+ * 1.2.2 rejection, so conformance is scored under strict mode, matching what
+ * every other candidate here already enforces unconditionally.
  */
 function ourParseDocs(text: string): unknown[] {
-  if (typeof ourParseAll === "function") return ourParseAll(text);
-  return [ourParse(text)];
+  if (typeof ourParseAll === "function") return ourParseAll(text, { strict: true });
+  return [ourParse(text, { strict: true })];
 }
 
 function jsYamlParseDocs(text: string): unknown[] {
@@ -235,20 +241,20 @@ function main(): void {
 
   // --- Cross-candidate sets --------------------------------------------------
 
-  let fixable = 0; // ours fails, both js-yaml and yaml pass
-  let specCorner = 0; // ours fails, yaml (our oracle-grade reference) also fails
+  let bothReferencesPass = 0;
+  let yamlAlsoFails = 0;
 
   for (const { tc } of ourFailures) {
     const passedSet = passedBy.get(tc.id)!;
     const jsYamlPassed = passedSet.has("js-yaml");
     const yamlPassed = passedSet.has("yaml");
-    if (jsYamlPassed && yamlPassed) fixable++;
-    if (!yamlPassed) specCorner++;
+    if (jsYamlPassed && yamlPassed) bothReferencesPass++;
+    if (!yamlPassed) yamlAlsoFails++;
   }
 
-  console.log("Cross-candidate breakdown of OUR failures:");
-  console.log(`  ours fails, both js-yaml AND yaml pass (clearly-fixable): ${fixable}`);
-  console.log(`  ours fails, yaml ALSO fails (spec-corner non-goal, skip): ${specCorner}`);
+  console.log("Cross-candidate signals among OUR failures (suite expectations determine correctness):");
+  console.log(`  ours fails; both js-yaml and yaml pass: ${bothReferencesPass}`);
+  console.log(`  ours fails; yaml also fails: ${yamlAlsoFails}`);
   console.log();
 
   if (dumpFailures) {

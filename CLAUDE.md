@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code (and humans) working in this repo.
+Guidance for Claude Code working in this repo.
 
 ## What this is
 

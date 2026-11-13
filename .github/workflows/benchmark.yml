@@ -12,7 +12,8 @@ name: Benchmarks
 #
 # Shared GitHub runners are noisy, so absolute timings drift run-to-run — the
 # site renders speed as ratios (fastest-in-row) to stay machine-invariant. Do
-# not "fix" the noise by pinning runners; the ratio display already handles it.
+# not use dedicated hardware as a timing-noise fix; this OS pin is for Playwright
+# compatibility only.
 
 on:
   push:
@@ -31,7 +32,8 @@ jobs:
   benchmark:
     # Only the canonical repo publishes data — forks have no write access anyway.
     if: github.repository == 'jbsiddall/lightning-yaml'
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 supports Ubuntu 24.04; newer images may be unsupported.
+    runs-on: ubuntu-24.04
     env:
       BENCH_SOURCE: ${{ github.sha }}
     steps:
@@ -79,6 +81,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm bench:browser webkit     # -> results/benchmarks/browser-speed-webkit.yaml
 
+      - name: Browser memory ratios (chromium)
+        if: ${{ !cancelled() }}
+        run: pnpm bench:browser:memory chromium   # -> results/benchmarks/memory-ratios-chromium.yaml
+      # Reads peak RSS from its own browser child's /proc entries — permitted for a same-user child on Ubuntu.
+      - name: Browser memory ratios (webkit)
+        if: ${{ !cancelled() }}
+        run: pnpm bench:browser:memory webkit     # -> results/benchmarks/memory-ratios-webkit.yaml
+
       - name: Conformance (yaml-test-suite)
         if: ${{ !cancelled() }}
         run: pnpm test:suite          # runs gen:suite itself -> results/benchmarks/conformance.yaml
@@ -119,6 +129,10 @@ jobs:
           # (env.runtime, site/src/lib/queries.ts) can tell the runs apart.
           for engine in chromium webkit; do
             append_doc "speed.yaml" "../results/benchmarks/browser-speed-$engine.yaml" "browser-speed-$engine"
+          done
+          # Its own stream, never memory.yaml: that one is absolute MB, this one is unitless ratios.
+          for engine in chromium webkit; do
+            append_doc "memory-ratios.yaml" "../results/benchmarks/memory-ratios-$engine.yaml" "memory-ratios-$engine"
           done
 
           git add -A

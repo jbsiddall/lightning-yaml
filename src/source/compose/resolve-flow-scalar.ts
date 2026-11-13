@@ -1,0 +1,264 @@
+/*!
+Copyright Eemeli Aro <eemeli@gmail.com>
+
+Permission to use, copy, modify, and/or distribute this software for any purpose
+with or without fee is hereby granted, provided that the above copyright notice
+and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+THIS SOFTWARE.
+*/
+
+import type { ErrorCode } from '../errors.ts'
+import type { Range, ComposeErrorHandler } from '../scalar-types.d.ts'
+import type { FlowScalar } from '../cst.ts'
+import { resolveEnd } from './resolve-end.ts'
+
+type FlowScalarErrorHandler = (
+  offset: number,
+  code: ErrorCode,
+  message: string
+) => void
+
+export function resolveFlowScalar(
+  scalar: FlowScalar,
+  strict: boolean,
+  onError: ComposeErrorHandler
+): {
+  value: string
+  type: 'PLAIN' | 'QUOTE_DOUBLE' | 'QUOTE_SINGLE' | null
+  comment: string
+  range: Range
+} {
+  const { offset, type, source, end } = scalar
+  let _type: 'PLAIN' | 'QUOTE_DOUBLE' | 'QUOTE_SINGLE'
+  let value: string
+  const _onError: FlowScalarErrorHandler = (rel, code, msg) =>
+    onError(offset + rel, code, msg)
+  switch (type) {
+    case 'scalar':
+      _type = 'PLAIN'
+      value = plainValue(source, _onError)
+      break
+
+    case 'single-quoted-scalar':
+      _type = 'QUOTE_SINGLE'
+      value = singleQuotedValue(source, _onError)
+      break
+
+    case 'double-quoted-scalar':
+      _type = 'QUOTE_DOUBLE'
+      value = doubleQuotedValue(source, _onError)
+      break
+
+    /* istanbul ignore next should not happen */
+    default:
+      onError(
+        scalar,
+        'UNEXPECTED_TOKEN',
+        `Expected a flow scalar value, but found: ${type}`
+      )
+      return {
+        value: '',
+        type: null,
+        comment: '',
+        range: [offset, offset + source.length, offset + source.length]
+      }
+  }
+
+  const valueEnd = offset + source.length
+  const re = resolveEnd(end, valueEnd, strict, onError)
+  return {
+    value,
+    type: _type,
+    comment: re.comment,
+    range: [offset, valueEnd, re.offset]
+  }
+}
+
+function plainValue(source: string, onError: FlowScalarErrorHandler) {
+  let badChar = ''
+  switch (source[0]) {
+    /* istanbul ignore next should not happen */
+    case '\t':
+      badChar = 'a tab character'
+      break
+    case ',':
+      badChar = 'flow indicator character ,'
+      break
+    case '%':
+      badChar = 'directive indicator character %'
+      break
+    case '|':
+    case '>': {
+      badChar = `block scalar indicator ${source[0]}`
+      break
+    }
+    case '@':
+    case '`': {
+      badChar = `reserved character ${source[0]}`
+      break
+    }
+  }
+  if (badChar)
+    onError(0, 'BAD_SCALAR_START', `Plain value cannot start with ${badChar}`)
+  return foldLines(source)
+}
+
+function singleQuotedValue(source: string, onError: FlowScalarErrorHandler) {
+  if (source[source.length - 1] !== "'" || source.length === 1)
+    onError(source.length, 'MISSING_CHAR', "Missing closing 'quote")
+  return foldLines(source.slice(1, -1)).replace(/''/g, "'")
+}
+
+function foldLines(source: string) {
+  const firstNewline = source.indexOf('\n')
+  if (firstNewline < 0) return source
+
+  const parts: string[] = []
+  let firstLineEnd = firstNewline
+  if (source[firstLineEnd - 1] === '\r') firstLineEnd -= 1
+  while (firstLineEnd > 0 && isFlowWhitespace(source[firstLineEnd - 1]))
+    firstLineEnd -= 1
+  parts.push(source.slice(0, firstLineEnd))
+
+  let separator = ' '
+  let lineStart = firstNewline + 1
+  let newline = source.indexOf('\n', lineStart)
+  // Each newline advances the cursor, so folding remains linear in source length.
+  while (newline >= 0) {
+    let lineEnd = newline
+    if (source[lineEnd - 1] === '\r') lineEnd -= 1
+    let contentStart = lineStart
+    while (contentStart < lineEnd && isFlowWhitespace(source[contentStart]))
+      contentStart += 1
+    while (lineEnd > contentStart && isFlowWhitespace(source[lineEnd - 1]))
+      lineEnd -= 1
+
+    if (contentStart === lineEnd) {
+      if (separator === '\n') parts.push(separator)
+      else separator = '\n'
+    } else {
+      parts.push(separator, source.slice(contentStart, lineEnd))
+      separator = ' '
+    }
+    lineStart = newline + 1
+    newline = source.indexOf('\n', lineStart)
+  }
+
+  while (lineStart < source.length && isFlowWhitespace(source[lineStart]))
+    lineStart += 1
+  parts.push(separator, source.slice(lineStart))
+  return parts.join('')
+}
+
+function isFlowWhitespace(ch: string) {
+  return ch === ' ' || ch === '\t'
+}
+
+function doubleQuotedValue(source: string, onError: FlowScalarErrorHandler) {
+  let res = ''
+  for (let i = 1; i < source.length - 1; ++i) {
+    const ch = source[i]
+    if (ch === '\r' && source[i + 1] === '\n') continue
+    if (ch === '\n') {
+      const { fold, offset } = foldNewline(source, i)
+      res += fold
+      i = offset
+    } else if (ch === '\\') {
+      let next = source[++i]
+      const cc = escapeCodes[next]
+      if (cc) res += cc
+      else if (next === '\n') {
+        // skip escaped newlines, but still trim the following line
+        next = source[i + 1]
+        while (next === ' ' || next === '\t') next = source[++i + 1]
+      } else if (next === '\r' && source[i + 1] === '\n') {
+        // skip escaped CRLF newlines, but still trim the following line
+        next = source[++i + 1]
+        while (next === ' ' || next === '\t') next = source[++i + 1]
+      } else if (next === 'x' || next === 'u' || next === 'U') {
+        const length = next === 'x' ? 2 : next === 'u' ? 4 : 8
+        res += parseCharCode(source, i + 1, length, onError)
+        i += length
+      } else {
+        const raw = source.substr(i - 1, 2)
+        onError(i - 1, 'BAD_DQ_ESCAPE', `Invalid escape sequence ${raw}`)
+        res += raw
+      }
+    } else if (ch === ' ' || ch === '\t') {
+      // trim trailing whitespace
+      const wsStart = i
+      let next = source[i + 1]
+      while (next === ' ' || next === '\t') next = source[++i + 1]
+      if (next !== '\n' && !(next === '\r' && source[i + 2] === '\n'))
+        res += i > wsStart ? source.slice(wsStart, i + 1) : ch
+    } else {
+      res += ch
+    }
+  }
+  if (source[source.length - 1] !== '"' || source.length === 1)
+    onError(source.length, 'MISSING_CHAR', 'Missing closing "quote')
+  return res
+}
+
+/**
+ * Fold a single newline into a space, multiple newlines to N - 1 newlines.
+ * Presumes `source[offset] === '\n'`
+ */
+function foldNewline(source: string, offset: number) {
+  let fold = ''
+  let ch = source[offset + 1]
+  while (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
+    if (ch === '\r' && source[offset + 2] !== '\n') break
+    if (ch === '\n') fold += '\n'
+    offset += 1
+    ch = source[offset + 1]
+  }
+  if (!fold) fold = ' '
+  return { fold, offset }
+}
+
+const escapeCodes: Record<string, string> = {
+  '0': '\0',
+  a: '\x07',
+  b: '\b',
+  e: '\x1b',
+  f: '\f',
+  n: '\n',
+  r: '\r',
+  t: '\t',
+  v: '\v',
+  N: '\u0085',
+  _: '\u00a0',
+  L: '\u2028',
+  P: '\u2029',
+  ' ': ' ',
+  '"': '"',
+  '/': '/',
+  '\\': '\\',
+  '\t': '\t'
+}
+
+function parseCharCode(
+  source: string,
+  offset: number,
+  length: number,
+  onError: FlowScalarErrorHandler
+) {
+  const cc = source.substr(offset, length)
+  const ok = cc.length === length && /^[0-9a-fA-F]+$/.test(cc)
+  const code = ok ? parseInt(cc, 16) : NaN
+  try {
+    return String.fromCodePoint(code)
+  } catch {
+    const raw = source.substr(offset - 2, length + 2)
+    onError(offset - 2, 'BAD_DQ_ESCAPE', `Invalid escape sequence ${raw}`)
+    return raw
+  }
+}

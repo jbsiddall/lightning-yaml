@@ -82,10 +82,10 @@ const TILDE = 126; // ~
 const BOM = 0xfeff;
 
 /**
- * Backing flag for the `skipStrictValidation` parse optimization — an umbrella
- * opt-out for STRICT-COMPLIANCE validations: spec checks that only REJECT
- * malformed input and never shape how a VALID document is interpreted. Today it
- * gates the space-then-tab block-collection indentation guards (spec 6.1:
+ * Backing flag for the lenient-by-default parse behaviour — an umbrella opt-out
+ * for STRICT-COMPLIANCE validations: spec checks that only REJECT malformed
+ * input and never shape how a VALID document is interpreted. Today it gates the
+ * space-then-tab block-collection indentation guards (spec 6.1:
  * `rejectBlockCollectionTabIndent` + the per-entry `checkNoTabIndent(col-1)` in
  * the block seq/map loops); future strict-only checks join it under this one flag.
  *
@@ -95,10 +95,11 @@ const BOM = 0xfeff;
  * are dropped), trading strictness for speed/memory and incidentally tolerating
  * some malformed input. A check that would alter a VALID parse does not belong here.
  *
- * Default `false` (fully strict). `parse`/`parseAll` set it per call from
- * `options.optimizations.skipStrictValidation` and restore it in `finally`.
+ * Default `true` (lenient — these guards are OFF by default). `parse`/`parseAll`
+ * set it per call from `options.strict` (`SKIP_STRICT_VALIDATION = options?.strict
+ * !== true`) and restore it to `true` in `finally`.
  */
-let SKIP_STRICT_VALIDATION = false;
+let SKIP_STRICT_VALIDATION = true;
 
 /**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
@@ -371,13 +372,11 @@ let lastRecordKeys: string[] | null = null;
 
 /**
  * `%TAG <handle> <prefix>` is per-document state (doc 07 §4) — never
- * inherited across documents in a stream. Created lazily (pay-on-first-use,
- * like `anchorMap`) and stored only so a later milestone can resolve
- * `!handle!suffix` tags against it; nothing reads it yet, but storing it must
- * not require tags to be implemented (design recipe). Reset at the start of
- * every document's `parseDirectives` call, not just per-stream. (`%YAML
- * <version>` is validated the same way but not retained — we stay 1.2-core
- * throughout this milestone and nothing yet branches on the declared version.)
+ * inherited across documents in a stream. Created lazily and read by `scanTag`
+ * when resolving `!handle!suffix` tags. Reset at the start of every document's
+ * `parseDirectives` call, not just per-stream. (`%YAML <version>` is validated
+ * the same way but not retained — we stay 1.2-core and don't branch on the
+ * declared version.)
  */
 let tagHandles: Map<string, string> | null = null;
 
@@ -528,11 +527,9 @@ function fail(message: string): never {
 // ---------------------------------------------------------------------------
 
 /**
- * Reset all per-stream parser state. Shared by `parse`/`parseAll` — the two
- * differ only in how many documents they read off the same document loop
- * (`parseNextDocument`). A leading BOM is one of the stream's document-prefix
- * positions and is skipped by `skipDocumentPrefix`, called from
- * `parseNextDocument` itself — not here.
+ * Reset all per-stream parser state and position `pos` past a leading BOM, if
+ * any. Shared by `parse`/`parseAll` — the two differ only in how many
+ * documents they read off the same document loop (`parseNextDocument`).
  */
 function resetForStream(text: string): void {
   src = text;
@@ -553,6 +550,12 @@ function resetForStream(text: string): void {
   colOverride = -1;
   bareDocAllowed = true;
   flowIndentFloor = -1;
+
+  // Skip a leading BOM without copying the input.
+  if (len > 0 && src.charCodeAt(0) === BOM) {
+    pos = 1;
+    lineStart = 1; // so the first line's content column is measured from here
+  }
 }
 
 /**
@@ -576,18 +579,6 @@ export interface ParseOptimizations {
   internStrings?: boolean;
 
   /**
-   * Umbrella opt-out for strict-compliance validations that only REJECT malformed
-   * input (today: the space-then-tab block-collection indentation guards, spec
-   * 6.1; more may be added behind this one flag). Skipping them is ~4-8% faster on
-   * medium/large block-YAML (more on deep, many-entry input) and does less work.
-   * It NEVER changes how a valid document is interpreted — VALID input parses
-   * identically either way; only rejection of malformed input is relaxed, so a
-   * parse with this ON tolerates some spec-invalid YAML the default REJECTS.
-   * Default: `false` (spec-strict).
-   */
-  skipStrictValidation?: boolean;
-
-  /**
    * Memory/CPU tradeoff for the per-parse key-intern cache (`keyCache`), in KB
    * of cumulative distinct-key bytes. Raising it keeps more interned keys
    * around, so more mapping keys across the document share one heap string
@@ -603,9 +594,30 @@ export interface ParseOptimizations {
 
 /** Options for {@link parse} / {@link parseAll}. Every field is optional; an omitted or `undefined` value leaves the parse behaviour byte-for-byte the default. */
 export interface ParseOptions {
+  /**
+   * By default (`false`, or omitted) lightning-yaml is LENIENT: it tolerates
+   * some spec-invalid block indentation — today, a tab used to indent a block
+   * sequence/mapping (spec [§6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces))
+   * — rather than rejecting it. Pass `true` to restore full YAML 1.2.2
+   * rejection of that input. Lenient parsing never changes how a *valid*
+   * document is interpreted — it only accepts some malformed input the spec
+   * calls an error; `strict: true` never accepts anything the default rejects.
+   * Default: `false` (lenient).
+   */
+  strict?: boolean;
   /** Opt-in performance tradeoffs — see {@link ParseOptimizations}. */
   optimizations?: ParseOptimizations;
 }
+
+/** @internal
+ * The js-yaml shim uses this identity to require a document without adding a public parse option.
+ */
+export const requiredDocumentOptions: ParseOptions = Object.freeze({});
+
+/** @internal
+ * yaml wrappers retain yaml@2.9 document counting without changing native parse options.
+ */
+export const yamlDocumentOptions: ParseOptions = Object.freeze({});
 
 /**
  * Parse a single YAML document into a JavaScript value.
@@ -633,17 +645,18 @@ export interface ParseOptions {
  */
 export function parse(text: string, options?: ParseOptions): unknown {
   resetForStream(text);
+  const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
+  SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
-    const value = parseNextDocument();
-    if (value === NO_DOCUMENT) return null; // empty stream → null (YAML), unlike JSON
-
-    // A trailing document prefix — comments and/or a re-declared BOM after a final
-    // `...` — is a well-formed stream with no further document ([211]); skip it so it
-    // isn't reported as a second document. A real second document still fails below.
-    skipDocumentPrefix();
+    const value = parseNextDocument(preserveSuffixDocuments);
+    if (value === NO_DOCUMENT) {
+      if (options === requiredDocumentOptions) {
+        throw new YAMLParseError("expected a document, but the input is empty");
+      }
+      return null; // empty stream → null (YAML), unlike JSON
+    }
 
     // Single-document contract (like js-yaml's `load`): a second document —
     // another marker, more directives, or any other trailing content — is an
@@ -654,7 +667,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     return value;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
-    SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
+    SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -682,20 +695,21 @@ export function parse(text: string, options?: ParseOptions): unknown {
  */
 export function parseAll(text: string, options?: ParseOptions): unknown[] {
   resetForStream(text);
+  const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  SKIP_STRICT_VALIDATION = options?.optimizations?.skipStrictValidation === true;
+  SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   try {
     const docs: unknown[] = [];
     for (;;) {
-      const value = parseNextDocument();
+      const value = parseNextDocument(preserveSuffixDocuments);
       if (value === NO_DOCUMENT) break;
       docs.push(value);
     }
     return docs;
   } finally {
     valueCache = null; // don't let the intern cache outlive the call
-    SKIP_STRICT_VALIDATION = false; // restore the spec-compliant default
+    SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -712,11 +726,6 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
  *
  * @param value - The value to serialize.
  * @returns The YAML document text.
- * @throws {@link YAMLParseError} if the value contains something this serializer
- * won't write: a `Date`, `RegExp`, function or symbol (YAML 1.2 core has no type
- * for them), a `Map` or `Set` (`!!omap`/`!!set` exist and `parse` reads them, but
- * emitting one isn't built yet), or a `bigint` (its decimal is legal YAML, but
- * `parse` reads integers back as `number`, so large values would return rounded).
  *
  * @example
  * ```ts
@@ -835,14 +844,8 @@ function skipFlowWsSlow(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Anchors (`&name`) and aliases (`*name`) — M5. Node properties are a seam for
-// F4 (tags): a `!tag` may precede OR follow an anchor (both orders are legal
-// YAML — spec `c-ns-properties`), but tags aren't implemented yet, so no `!`
-// handling is added here; a future `parseNodeProperties`-style merge just
-// needs to also try a leading/trailing `!tag` around the `&name` scan below,
-// in both the flow and block property-dispatch functions. For now a bare `!`
-// falls through to whatever `parseFlowValue`/`parseBlockNode` already did with
-// it pre-F4 (plain-scalar text — no special casing, per the design recipe).
+// Anchors (`&name`) and aliases (`*name`). Tags are parsed by the separate
+// flow and block node-property dispatch paths.
 // ---------------------------------------------------------------------------
 
 /**
@@ -1955,25 +1958,21 @@ function internValue(s: string): string {
 }
 
 /**
- * FastKeyMatch (M7) — flow context. Try to recognise the upcoming flow mapping
- * key as the previous sibling's canonical key `ek` WITHOUT slicing/hashing.
- * Only the hot shape is fast-pathed: a double-quoted JSON key `"…"`. `c` is the
- * already-read char at `pos`. On a full byte match + closing quote it advances
- * `pos` past the close quote and returns `true` (caller reuses `ek`); on ANY
- * mismatch it returns `false` and leaves `pos` untouched for the slow
- * `parseFlowKey`. The byte-for-byte compare against the *canonical* string
- * inherently excludes escapes and folds (a `\`/newline in the source can't
- * equal the decoded key), so the closing-quote check guarantees the slow path
- * would have produced exactly `ek` — and skipping `parseDoubleQuoted` is safe
- * for the `nextBackslash`/`nextNewline` memos precisely because the matched
- * span is provably escape- and break-free.
+ * FastKeyMatch (M7) — flow context.
+ * Canonical keys can contain a backslash, quote, or line break produced by
+ * decoding or folding. Decline these source characters so parseFlowKey stays
+ * responsible for validation; every mismatch leaves pos untouched.
  */
 function fastMatchFlowKey(c: number, ek: string): boolean {
   if (c !== DQUOTE) return false;
   const n = ek.length;
   const q = pos + 1;
   let i = 0;
-  while (i < n && src.charCodeAt(q + i) === ek.charCodeAt(i)) i++;
+  while (i < n) {
+    const raw = src.charCodeAt(q + i);
+    if (raw === BACKSLASH || raw === DQUOTE || raw === LF || raw === CR || raw !== ek.charCodeAt(i)) break;
+    i++;
+  }
   if (i !== n || src.charCodeAt(q + n) !== DQUOTE) return false;
   pos = q + n + 1;
   return true;
@@ -2076,6 +2075,10 @@ function trimTrailingWs(from: number, end: number): number {
  * `flowFolded` up front, so a single-line scalar (the hot path) leaves it null.
  */
 function scanFlowPlainEnd(): number {
+  const c = src.charCodeAt(pos);
+  if (c === PERCENT || c === AT || c === BACKTICK || c === PIPE || c === GT) {
+    fail("a plain scalar cannot start with '%', '@', '`', '|', or '>'");
+  }
   flowFolded = null;
   const start = pos;
   const p = scanFlowPlainLine(start);
@@ -2617,8 +2620,7 @@ function parseDoubleQuoted(): string {
 /**
  * Cold path: the string contains at least one escape, so the first `indexOf('"')`
  * may have landed on an escaped quote. Walk it, copying spans between escapes and
- * decoding each escape. JSON escape set for now; YAML's extra escapes and
- * line-folding land in a later milestone.
+ * decoding each YAML escape and folding any multiline content.
  */
 function parseDoubleQuotedSlow(start: number): string {
   let result = "";
@@ -2773,8 +2775,7 @@ function hexVal(c: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Single-quoted scalar — indexOf hop; `''` is an escaped quote. (Single-line
-// for now; multi-line single-quoted folding is a later milestone.)
+// Single-quoted scalar — indexOf hop; `''` is an escaped quote.
 // ---------------------------------------------------------------------------
 
 function parseSingleQuoted(): string {
@@ -4378,12 +4379,10 @@ function parseYamlDirectiveArgs(): void {
 }
 
 /**
- * `%TAG <handle> <prefix>` — stores the handle → prefix mapping in the
- * per-document `tagHandles` map (created lazily), for a later milestone to
- * resolve `!handle!suffix` tags against. Tags themselves are not implemented
- * yet; storing directives must not require them to be (design recipe). Per
- * spec §6.8.2 (Example 6.17), redefining the same handle within one document
- * is an error, not last-wins — checked before the map is populated.
+ * `%TAG <handle> <prefix>` — stores the handle → prefix mapping consumed by
+ * `scanTag` for this document. Per spec §6.8.2 (Example 6.17), redefining the
+ * same handle within one document is an error, not last-wins — checked before
+ * the map is populated.
  */
 function parseTagDirectiveArgs(): void {
   skipInlineSpaces();
@@ -4441,38 +4440,26 @@ function parseDirectives(): boolean {
 }
 
 /**
- * Skip a document PREFIX: byte order mark(s) sitting at the start of a line, plus
- * blank/comment lines. Per [202] `l-document-prefix` (`c-byte-order-mark? l-comment*`,
- * repeatable) and the standalone `c-byte-order-mark` alternative of [211]
- * `l-yaml-stream`, a BOM may re-declare the encoding at the start of ANY document
- * (§9.1.1) — not only the stream's first — so it is legal before a `---`, after a
- * `...`, and interleaved with comment lines, and must be skipped rather than read as
- * content (`nb-char` [27] excludes it, so it can never belong to a node).
- *
- * Cold: called once per document boundary. Deliberately NOT folded into
- * `skipBlankLines`, which every `nextLine` goes through — the hot line-advance path
- * must stay BOM-free.
- */
-function skipDocumentPrefix(): void {
-  skipBlankLines();
-  while (pos < len && pos === lineStart && src.charCodeAt(pos) === BOM) {
-    pos++;
-    lineStart = pos; // a BOM is an encoding artifact, not content: the next char is column 0
-    skipBlankLines();
-  }
-}
-
-/**
  * Parse one document from the current stream position: an optional
  * directives block (which then requires an explicit `---`), an optional
- * `---`/`...` marker, the document's root node (or `null` for an empty
- * document), and a trailing `...` if present. Leaves `pos` positioned for the
+ * `---` marker, the root node (or `null` for an explicit empty document), and
+ * trailing `...` markers if present. Leaves `pos` positioned for the
  * next call: at a following marker, at genuine trailing content (the caller
- * decides how to report that), or at EOF. Shared by `parse` and `parseAll` so
- * every rule above is enforced identically for single- and multi-document use.
+ * decides how to report that), or at EOF. The yaml shim can preserve suffixes
+ * as empty documents; native parsing follows the default stream rules.
  */
-function parseNextDocument(): unknown {
-  skipDocumentPrefix();
+function parseNextDocument(preserveSuffixDocuments: boolean): unknown {
+  skipBlankLines();
+  while (
+    pos < len &&
+    src.charCodeAt(pos) === DOT &&
+    isDocMarkerAt(pos) &&
+    !preserveSuffixDocuments
+  ) {
+    consumeDocEndMarker();
+    bareDocAllowed = true;
+    skipBlankLines();
+  }
   if (pos >= len) return NO_DOCUMENT;
 
   const sawDirectives = parseDirectives();
@@ -4499,18 +4486,13 @@ function parseNextDocument(): unknown {
   let value: unknown;
   if (isDash) {
     const inline = consumeDocStartMarker();
-    // §5.2: "A BOM must not appear inside a document" (Example 5.2). A prefix BOM
-    // belongs BEFORE the `---`; `nb-char` [27] excludes it from node content, so one
-    // here is an error rather than something to strip. Cold: once per document.
-    if (pos < len && src.charCodeAt(pos) === BOM) fail("a byte order mark must not appear inside a document");
     // A bare '---' immediately followed by EOF or another marker is an empty
     // document; otherwise the node begins right where the marker left `pos`
     // (same line if there was inline content — collections forbidden there —
     // else the following content line, where they're perfectly ordinary).
     value = pos >= len || isDocMarkerAt(pos) ? null : inline ? parseBlockNode(ROOT_AFTER_INLINE_MARKER) : parseRootBlockNode();
   } else if (marker) {
-    // A bare '...' at a document's start position (no preceding content): an
-    // empty document. The shared end-marker handling below consumes it.
+    // The yaml shim counts a standalone suffix at document start as empty.
     value = null;
   } else {
     // No marker at all: a bare document. Only legal at stream start or right
@@ -4526,8 +4508,13 @@ function parseNextDocument(): unknown {
   // other ending (EOF, or landing right on a '---') keeps `bareDocAllowed`
   // false: only '...' unlocks a following bare document (grammar: bare
   // documents are the stream's first, or immediately after a doc-suffix).
-  if (pos < len && isDocMarkerAt(pos) && src.charCodeAt(pos) === DOT) {
+  let consumedFooter = false;
+  while (pos < len && src.charCodeAt(pos) === DOT && isDocMarkerAt(pos)) {
     consumeDocEndMarker();
+    consumedFooter = true;
+    if (preserveSuffixDocuments) break;
+  }
+  if (consumedFooter) {
     bareDocAllowed = true;
   } else {
     bareDocAllowed = false;
@@ -4900,6 +4887,14 @@ function writeStringScalar(s: string): string {
   return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
 }
 
+/** Root-only quoting for strings that would be read as a document end marker. */
+function writeRootStringScalar(s: string): string {
+  if (s === "..." || s.startsWith("... ")) {
+    return needsDoubleQuoting(s) ? encodeDoubleQuoted(s) : encodeSingleQuoted(s);
+  }
+  return writeStringScalar(s);
+}
+
 // ---------------------------------------------------------------------------
 // Numbers.
 // ---------------------------------------------------------------------------
@@ -5154,7 +5149,7 @@ function writeEntryValue(value: unknown, indent: number): void {
  */
 function writeDocumentValue(value: unknown): void {
   if (value === null || typeof value !== "object") {
-    out += writeScalar(value) + "\n";
+    out += (typeof value === "string" ? writeRootStringScalar(value) : writeScalar(value)) + "\n";
     return;
   }
   const obj = value as object;

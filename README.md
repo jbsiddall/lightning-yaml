@@ -11,10 +11,12 @@
 
 lightning-yaml is a pure-JS YAML 1.2 parser and stringifier that parses and
 writes at speeds approaching native `JSON.parse`/`JSON.stringify` — while faithfully
-implementing YAML 1.2, passing ~97.6% (364/373) of the official
-[yaml-test-suite](https://github.com/yaml/yaml-test-suite). It's an API-level drop-in for either —
-same exports and call signatures, ESM + CJS + full TypeScript types, and **zero
-runtime dependencies**. No more trading YAML's readability for JSON's performance.
+implementing YAML 1.2, passing ~98.4% (367/373) of the official
+[yaml-test-suite](https://github.com/yaml/yaml-test-suite). It includes partial
+compatibility shims for common `yaml` and `js-yaml` calls, ESM + CJS,
+TypeScript types, and **zero runtime dependencies**. See the module references
+for the supported calls and current gaps.
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:fc982a72 -->
 
 **Two goals, in priority order:** (1) full YAML 1.2 spec compliance, then
 (2) speed and memory within reach of native `JSON.parse`/`JSON.stringify`.
@@ -24,16 +26,18 @@ Everything else is secondary to those two.
   `JSON.parse`/`JSON.stringify` — **~4× faster than js-yaml** on parse across our
   benchmark workloads.
   <!-- bench:4ca6140 js-yaml:5.2.1 -->
-- **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~97.6% (364/373) of
+- **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~98.4% (367/373) of
   the official yaml-test-suite.
-- **Drop-in (API-level).** Same exports and signatures as `yaml` and `js-yaml` —
-  swap the import and your code runs. An option we don't yet honour (`schema`,
-  `sortKeys`, `indent`, …) **throws a clear error** rather than silently changing
-  your output; see [Drop-in](#drop-in-for-js-yaml-or-yaml).
-- **Lean.** Zero runtime dependencies, small bundle; ships ESM + CJS + full
-  TypeScript types.
-- **Complete.** Full YAML 1.2 core — flow & block syntax, anchors/aliases, tags
-  incl. `!!binary`, multi-document streams, and more.
+  <!-- ly:fc982a72 -->
+- **Compatibility shims.** Common calls are available through `lightning-yaml/yaml`
+  and `lightning-yaml/js-yaml`. The shims support selected calls and options;
+  unsupported options throw instead of being silently ignored. See
+  [Compatibility](#compatibility-with-js-yaml-or-yaml) for details.
+- **Lean.** Zero runtime dependencies, small bundle; ships ESM + CJS + TypeScript
+  types.
+- **Broad YAML 1.2 support.** Handles flow and block syntax, anchors/aliases,
+  tags including `!!binary`, and multi-document streams. The official suite
+  tracks remaining spec edge cases.
 
 ## Benchmarks at a glance
 
@@ -92,12 +96,12 @@ import { parse, parseAll, stringify } from 'lightning-yaml';
 parse(`
 name: lightning-yaml
 version: 0.1.0
-features: [fast, spec-compliant, drop-in]
+features: [fast, spec-compliant, compat-shims]
 `);
 // → {
 //     name: 'lightning-yaml',
 //     version: '0.1.0',
-//     features: ['fast', 'spec-compliant', 'drop-in'],
+//     features: ['fast', 'spec-compliant', 'compat-shims'],
 //   }
 
 stringify({ hello: 'world', list: [1, 2, 3] });
@@ -119,30 +123,31 @@ b: 2
 **Full API reference and function signatures →
 [lightning-yaml.dev](https://lightning-yaml.dev)**
 
-### Drop-in for `js-yaml` or `yaml`
+<a id="drop-in-for-js-yaml-or-yaml"></a>
 
-Already using another YAML library? Swap one import, keep your code.
+### Compatibility with `js-yaml` or `yaml`
+
+The shims expose selected entry points under separate subpaths; check their
+supported calls and options before switching.
 
 ```ts
 // Coming from js-yaml — comment out the old import:
 // import { load, dump } from 'js-yaml';
 import { load, dump } from 'lightning-yaml/js-yaml';
 
-// Using the `yaml` library — same idea:
+// Using the `yaml` package:
 // import { parse, stringify } from 'yaml';
 import { parse, stringify } from 'lightning-yaml/yaml';
 ```
 
-> **Status — surface-level today.** The shims are a TypeScript drop-in (same
-> exports and signatures), so your code compiles and runs — but an option we
-> don't yet honour (`schema`, `sortKeys`, `indent`, …) **throws** instead of
-> silently leaving your output unchanged, so you find out at the call site (a
-> boolean flag left at the value lightning-yaml already produces — usually
-> `false` — still works).
-> Full option compatibility is the goal; each shim's **option-support matrix**
+> **Status — partial compatibility.** The subpaths provide selected functions,
+> not the full `yaml` or `js-yaml` export surfaces or every call signature.
+> Unsupported options throw instead of being silently ignored. Each shim's
+> **option-support matrix**
 > ([js-yaml](https://lightning-yaml.dev/api/js-yaml-compat/readme/#option-support-matrix),
 > [yaml](https://lightning-yaml.dev/api/yaml-compat/readme/#option-support-matrix))
 > lists which options are easy or hard to support next.
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:6598b78 -->
 
 ## Project priorities
 
@@ -152,7 +157,10 @@ In order:
    always — a fast parser that mis-reads your config is worthless. Where the spec
    itself is unclear, the [yaml-test-suite](https://github.com/yaml/yaml-test-suite)
    is our north star; where even that is ambiguous, we fall back to matching the
-   behaviour of the `yaml` and js-yaml libraries.
+   behaviour of the `yaml` and js-yaml libraries. By default `parse` is lenient
+   about a handful of spec-invalid inputs real-world YAML sometimes contains (see
+   [Decisions and deviations](#decisions-and-deviations)); pass `{ strict: true }`
+   for full YAML 1.2.2 rejection of those inputs too.
 2. **Speed and memory within reach of native `JSON.parse` / `JSON.stringify`.**
    We'll never match native byte-for-byte, and we know it — but we treat that gap
    as a bug to shrink, chasing every last nanosecond so there's no performance
@@ -194,16 +202,50 @@ quickly on whatever you find.
 if you change anything under `src/`, run `pnpm changeset` to declare the version
 bump; CI checks for it.
 
+### Compatibility testing
+
+Install once with `pnpm install --frozen-lockfile --strict-peer-dependencies`.
+`pnpm test` runs the deterministic compatibility and project tests without
+network access or candidate preparation. `pnpm test:properties` runs the focused
+compatibility checks; `pnpm test:coverage` adds the node assertions, an HTML
+Vitest report, and V8 coverage of every production `src/**/*.ts` file. Reports
+are written to `results/compatibility/`; CI uploads them as an artifact.
+
+Run `pnpm gen:suite` and `pnpm audit:js-yaml:full` for the deterministic
+js-yaml 5.4.3 comparison campaign. It compares parsed JavaScript values, types
+and reference sharing, and reports stringify byte equality separately from
+semantic round-trip equality. The finite boolean/quote-style matrix is enumerated;
+other options, callbacks and YAML inputs are sampled. The audit records existing
+compatibility gaps; `pnpm audit:js-yaml:strict` makes gaps fail the command.
+<!-- js-yaml:5.4.3 ly:5caa2c8 -->
+Run `pnpm audit:yaml:full` for the separate yaml 2.9.0 campaign, including
+`parse`, `stringify`, document conversions, callbacks and option witnesses.
+Document AST and API differences are reported separately from converted values.
+The main package includes the yaml-compatible `Lexer`, `Parser`, and `CST`
+helper namespace for source token inspection and editing. The historical
+`pnpm gen:yaml-cst-candidate` / `pnpm test:yaml-cst` campaign still targets the
+pinned, unmerged [PR #184](https://github.com/jbsiddall/lightning-yaml/pull/184)
+candidate and its broader Document/node work; it does not describe the current
+main package. Composer, AST nodes, source-aware Document integration,
+`keepSourceTokens` parse-option support, and complete language-server
+compatibility remain absent.
+See [the compatibility guide](docs/compatibility-testing.md) for scope,
+replay and report interpretation. Neither sampled compatibility percentages nor
+line coverage establish equivalence for every possible input.
+
 ## Status & scope
 
-YAML 1.2 core, feature-complete but for one deliberate gap — **merge keys
-(`<<`)**. Today a `<<` key is read as an ordinary string key rather than being
-merged (it's neither expanded nor rejected); everything else in the 1.2 core is
-implemented.
+The parser supports YAML 1.2 core features including block scalars,
+anchors/aliases, and tags such as `!!binary`. Merge keys (`<<`) are currently
+read as ordinary string keys: they are neither expanded nor rejected.
+Remaining YAML 1.2 spec edge cases are tracked through the official suite and
+follow-up issues.
 
-lightning-yaml passes **~97.6% of the official yaml-test-suite** (364/373) — a
-faithful implementation of YAML 1.2 core. The handful of remaining failures
-are unrelated spec edge cases, not merge keys (the suite doesn't exercise `<<`).
+On the pinned official yaml-test-suite snapshot (`data-2022-01-17`), source
+`fc982a72` scored **367/373 (98.4%)**, with comparison runs against js-yaml
+5.4.3 and yaml 2.9.0. The remaining suite failures are YAML 1.2 spec edge
+cases; the suite does not exercise merge keys (`<<`).
+<!-- ly:fc982a72 -->
 
 ## Decisions and deviations
 
@@ -214,12 +256,26 @@ lightning-yaml differs from the spec or another library in a way **not** listed
 here, treat it as a bug and
 [open an issue](https://github.com/jbsiddall/lightning-yaml/issues).
 
+- **Lenient by default: a tab used as block indentation is tolerated, not
+  rejected.** [YAML 1.2.2 §6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces)
+  forbids tabs in a block collection's indentation, but real-world YAML sometimes
+  has them, so `parse`/`parseAll` accept it by default. Pass `{ strict: true }`
+  to reject that input instead, matching the spec (and the `yaml`/js-yaml
+  libraries) exactly:
+  ```ts
+  const withTab = "a:\n\tb: 1\n"; // a tab indenting "b"
+
+  parse(withTab); // { a: { b: 1 } } — accepted by default
+  parse(withTab, { strict: true }); // throws: spec-invalid indentation
+  ```
 - **Duplicate mapping keys: last one wins.** The spec makes a duplicate key an
   error; we keep the last instead, matching `JSON.parse` — `{a: 1, a: 2}` parses
   to `{a: 2}`.
 - **Merge keys (`<<`) are read as an ordinary key, not merged.** `<<: *anchor`
-  gives you a literal `"<<"` string key rather than merging the aliased map in
-  (js-yaml and `yaml` merge it). It's neither expanded nor rejected today.
+  gives you a literal `"<<"` string key rather than merging the aliased map in.
+  The installed js-yaml 5.4.3 and `yaml` 2.9.0 defaults also leave it literal.
+  It's neither expanded nor rejected today.
+  <!-- js-yaml:5.4.3 yaml:2.9.0 ly:67d2e0b -->
 - **Compat options that aren't implemented yet throw.** The
   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options
   (`schema`, `sortKeys`, `indent`, …) so your code compiles, but an option we
@@ -243,37 +299,6 @@ here, treat it as a bug and
   [§6.8.1](https://yaml.org/spec/1.2.2/#681-yaml-directives)) and js-yaml. The
   `yaml` library instead keeps the last `%TAG` and only warns on the version
   (still parsing); we deliberately reject both.
-- **`stringify` throws on values YAML 1.2 core can't represent, instead of
-  silently emitting `{}`.** `Date`, `RegExp`, a function, or a symbol have no
-  YAML 1.2 core type at all, so serializing one throws rather than writing an
-  empty mapping or bare, often-invalid text and quietly losing the data.
-  `Map`/`Set` throw too, but for a narrower reason: YAML *can* represent them
-  (`!!omap`/`!!set`), and lightning-yaml's own `parse` already reads those tags
-  back into a `Map`/`Set` — writing one back out just isn't built yet. A
-  `bigint` throws for a third reason: its decimal is legal YAML, but `parse`
-  reads integers back as `number`, so a value past 2^53 would come back
-  rounded — writing it waits for a `bigint`-aware read side.
-
-  The first of those reasons — no core type — also covers anything else keeping
-  its payload outside ordinary properties: a typed array other than `Uint8Array`
-  (`Int32Array`, …) and a boxed primitive (`new String("ab")`) throw rather than
-  emitting the indexed-property mapping (`'0': 1`) they used to. `Uint8Array`
-  itself dumps as `!!binary` — but only one created in the same realm; a copy
-  from an iframe or `vm` context isn't recognised as bytes and throws too. The
-  `yaml` library serializes all of these (a typed array as a sequence whatever
-  realm it came from, a boxed primitive unwrapped), so each is a deliberate
-  divergence: an indexed mapping isn't what you passed in.
-
-  Neither library we track matches this cleanly. js-yaml's `dump()` throws by
-  default for `Map`/`RegExp`/function/symbol/`bigint`, same as us — but not for
-  `Set`/`Date`: its real default schema is YAML-1.1-flavoured, not core, so it
-  emits `!!set`/an ISO string for those without complaint (only an explicit
-  core/JSON schema makes it throw there too). The `yaml` library goes the other
-  way on several of these — `Map`, `Set`, `Date`, and `bigint` (as a bare
-  decimal, which reads back rounded — the exact risk we're refusing to take)
-  all serialize without error. One of these is a bug rather than a design choice,
-  and it's still open on their side: `yaml` collapses a `RegExp` to the same
-  silent, data-losing `{}` that lightning-yaml used to write before this change.
 
 ## Built with Claude Code
 

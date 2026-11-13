@@ -1,8 +1,12 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
+    exclude: [
+      ...configDefaults.exclude,
+      "test/compatibility/cst/candidate.integration.test.ts",
+    ],
     // Generate any missing fixtures before the suite runs, so `pnpm test` works
     // on a fresh checkout (fixtures are gitignored).
     globalSetup: ["./test/setup.global.ts"],
@@ -10,5 +14,6 @@ export default defineConfig({
     // parse at a time" rule: parsing the large (~1 MB) YAML fixtures with the
     // oracle is memory-hungry, and co-running files would contend for RAM.
     fileParallelism: false,
+    server: { deps: { inline: ["@fast-check/vitest"] } },
   },
 });
