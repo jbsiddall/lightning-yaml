@@ -218,6 +218,14 @@ function canonicalizeCoreParseError(
       prettyErrors,
     });
     diagnostic = doc.errors[0];
+    if (!diagnostic && offset >= 0) {
+      const strictDoc = parseDocument(source, {
+        uniqueKeys: false,
+        strict: true,
+        prettyErrors,
+      });
+      diagnostic = strictDoc.errors.find(({ pos }) => pos[0] <= offset && (offset < pos[1] || (pos[0] === pos[1] && offset === pos[0])));
+    }
   } catch {
     // The original core error remains authoritative if diagnostic parsing fails.
   }

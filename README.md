@@ -293,8 +293,7 @@ here, treat it as a bug and
   string throws even for a width real `yaml` would quietly clamp to its own
   default rather than honour — e.g. a negative number.
 - **YAML 1.2 core schema, not 1.1.** Plain `yes`/`no`/`on`/`off` stay strings (not
-  booleans) and there are no base-60 numbers, so results can differ from js-yaml's
-  1.1-flavoured default. YAML 1.1 is a non-goal.
+  booleans) and there are no base-60 numbers. YAML 1.1 is a non-goal.
 - **Implicit flow-collection keys are rejected.** Input like `{[1, 2]: v}` — a
   sequence used as a mapping key — is an error here, matching the spec; the `yaml`
   library accepts it, and we deliberately don't.

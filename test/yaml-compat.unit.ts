@@ -184,32 +184,55 @@ test("yaml-compat.parse canonicalizes depth errors and preserves reviver throws"
   strictEqual(coreThrown, coreSentinel);
 });
 
-test("source-clean diagnostics never turn a core parse failure into success", () => {
-  const source = "---\n[ a, b, c, ]#invalid\n";
-  strictEqual(parseDocument(source, {
-    strict: false,
-    uniqueKeys: false,
-    prettyErrors: false,
-  }).errors.length, 0);
-  let coreError: unknown;
-  try {
-    coreParse(source, yamlDocumentOptions);
-  } catch (error) {
-    coreError = error;
+test("strict diagnostics identify core-rejected comment separation errors", () => {
+  const sources = [
+    "---\n[ a, b, c, ]#invalid\n",
+    "a: |#bad\n x\n",
+    'a: "value"#bad\n',
+  ];
+  for (const source of sources) {
+    strictEqual(parseDocument(source, { strict: false, uniqueKeys: false }).errors.length, 0);
+    for (const prettyErrors of [true, false]) {
+      const capture = (fn: () => unknown): YAMLParseError => {
+        try { fn(); } catch (error) { return error as YAMLParseError; }
+        throw new Error("expected parse failure");
+      };
+      const actual = capture(() => parse(source, { prettyErrors }));
+      const expected = capture(() => yamlReal.parse(source, { prettyErrors, uniqueKeys: false }));
+      ok(actual instanceof YAMLParseError);
+      strictEqual(actual.code, expected.code);
+      deepStrictEqual(actual.pos, expected.pos);
+      strictEqual(actual.message, expected.message);
+      deepStrictEqual(actual.linePos, expected.linePos);
+    }
   }
-  ok(coreError instanceof CoreYAMLParseError);
-  let compatError: unknown;
-  try {
-    parse(source);
-  } catch (error) {
-    compatError = error;
-  }
-  ok(compatError instanceof YAMLParseError);
-  strictEqual((compatError as YAMLParseError).code, "UNEXPECTED_TOKEN");
-  strictEqual((compatError as YAMLParseError).message, (coreError as Error).message);
-  strictEqual((compatError as YAMLParseError).pos[0], source.indexOf("#"));
-  strictEqual((compatError as YAMLParseError).pos[1], source.indexOf("#"));
-  strictEqual((compatError as YAMLParseError).linePos, undefined);
+});
+
+test("source-clean core errors retain a truthful fallback", () => {
+  const source = "{\n  ? foo :,\n  : bar,\n}\n";
+  for (const strict of [false, true])
+    strictEqual(parseDocument(source, { strict, uniqueKeys: false }).errors.length, 0);
+  let original: unknown;
+  try { coreParse(source, yamlDocumentOptions); } catch (error) { original = error; }
+  ok(original instanceof CoreYAMLParseError);
+  let actual: unknown;
+  try { parse(source); } catch (error) { actual = error; }
+  ok(actual instanceof YAMLParseError);
+  strictEqual(actual.code, "UNEXPECTED_TOKEN");
+  strictEqual(actual.message, original.message);
+  deepStrictEqual(actual.pos, [source.indexOf(": bar"), source.indexOf(": bar")]);
+});
+
+test("diagnostic retry does not mask an earlier indentation error", () => {
+  const source = "a:\n\tb: 1\nc: [x]#bad\n";
+  const lenient = parseDocument(source, { strict: false, uniqueKeys: false });
+  strictEqual(lenient.errors[0]?.code, "TAB_AS_INDENT");
+  let actual: unknown;
+  try { parse(source); } catch (error) { actual = error; }
+  ok(actual instanceof YAMLParseError);
+  strictEqual(actual.code, lenient.errors[0]?.code);
+  deepStrictEqual(actual.pos, lenient.errors[0]?.pos);
+  deepStrictEqual(parse('key: "a\tb"\n'), { key: "a\tb" });
 });
 
 test("public source documents retain native diagnostics, offsets, and editable nodes", () => {
