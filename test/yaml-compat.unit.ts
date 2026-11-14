@@ -315,3 +315,50 @@ test("yaml-compat accepts no-op default option values, rejects the active value"
   throws(() => parse("a: 1\n", { mapAsMap: true }));
   throws(() => parse("a: 1\n", { merge: true }));
 });
+
+test("yaml reviver walks and updates tagged sets and ordered maps", () => {
+  const source = "!!omap [ { first: !!set { a: null, b: null } }, { second: 2 } ]";
+  function revive(this: unknown, key: unknown, value: unknown): unknown {
+    if (key === "a") return "renamed";
+    if (key === "b" || key === "second") return undefined;
+    return value;
+  }
+  deepStrictEqual(parse(source, revive), yamlReal.parse(source, revive));
+  deepStrictEqual(parse(source, revive), new Map([["first", new Set(["renamed"])]]));
+});
+
+test("yaml reviver receives actual collection keys and holders", () => {
+  const source = "!!omap [ { first: !!set { a: null } }, { second: 2 } ]";
+  function calls(parser: (source: string, reviver: (this: unknown, key: unknown, value: unknown) => unknown) => unknown): unknown[] {
+    const seen: unknown[] = [];
+    parser(source, function (key, value) {
+      seen.push([key, this instanceof Map ? "map" : this instanceof Set ? "set" : "object"]);
+      return value;
+    });
+    return seen;
+  }
+  deepStrictEqual(calls(parse), calls(yamlReal.parse));
+});
+
+test("yaml reviver passes non-string members added to a later set", () => {
+  const source = "before: 1\nitems: !!set { a: null }\n";
+  function calls(parser: (source: string, reviver: (this: unknown, key: unknown, value: unknown) => unknown) => unknown): unknown[] {
+    const seen: unknown[] = [];
+    parser(source, function (this: unknown, key, value) {
+      if (key === "before") ((this as { items: Set<unknown> }).items).add(7);
+      seen.push(key);
+      return value;
+    });
+    return seen;
+  }
+  deepStrictEqual(calls(parse), calls(yamlReal.parse));
+  ok(calls(parse).includes(7));
+});
+
+test("yaml reviver does not reinsert a map member deleted by the callback", () => {
+  const result = parse("!!omap [ { first: 1 }, { second: 2 } ]", function (key, value) {
+    if (key === "first") (this as Map<unknown, unknown>).delete(key);
+    return value;
+  });
+  deepStrictEqual(result, new Map([["second", 2]]));
+});
