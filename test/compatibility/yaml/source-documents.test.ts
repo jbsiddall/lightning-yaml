@@ -180,7 +180,6 @@ test('binary documents write only the visible bytes of each view', async () => {
     if (encoded) ok(text.includes(encoded))
   }
   for (const { value, encoded, bytes } of cases) verify(value, encoded, bytes, 'binary')
-  // Pin's Node writer encodes the backing store; this is an intentional proposed difference.
   const pinned = new reference.Document(storage.subarray(1, 3), { customTags: ['binary'] }).toString()
   ok(pinned.includes('AAECAw=='))
   deepStrictEqual(Array.from(reference.parseDocument(pinned).toJS() as Uint8Array), [0, 1, 2, 3])
