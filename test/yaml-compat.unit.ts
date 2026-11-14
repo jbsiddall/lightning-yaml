@@ -6,8 +6,8 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import * as yamlReal from "yaml";
-import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify } from "../src/yaml-compat.ts";
-import { parse as coreParse, parseAll as coreParseAll, requiredDocumentOptions, yamlDocumentOptions } from "../src/core.ts";
+import yamlCompatDefault, { parse, parseAllDocuments, parseDocument, stringify, Composer, Document, YAMLMap, Scalar, Schema, isDocument, isMap, visit, YAMLParseError, YAMLWarning, YAMLError } from "../src/yaml-compat.ts";
+import { parse as coreParse, parseAll as coreParseAll, requiredDocumentOptions, yamlDocumentOptions, YAMLParseError as CoreYAMLParseError } from "../src/core.ts";
 import { load, YAMLException } from "../src/js-yaml-compat.ts";
 
 const basicDocs = [
@@ -27,7 +27,6 @@ const MULTI_DOC = "---\na: 1\n---\nb: 2\n---\nc: 3\n";
 const DUMP_VALUE = { name: "svc", replicas: 3, enabled: true, tags: ["a", "b"] };
 const PARSE_THROWS: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
   ["mapAsMap", { mapAsMap: true }],
-  ["intAsBigInt", { intAsBigInt: true }],
   ["maxAliasCount", { maxAliasCount: 10 }],
   ["merge", { merge: true }],
   ["schema:json", { schema: "json" }],
@@ -53,6 +52,14 @@ test("yaml-compat: named exports exist with the right shapes", () => {
   strictEqual(typeof parseAllDocuments, "function");
   strictEqual(typeof parseDocument, "function");
   strictEqual(typeof stringify, "function");
+  strictEqual(typeof Composer, "function");
+  strictEqual(typeof Document, "function");
+  strictEqual(typeof YAMLMap, "function");
+  strictEqual(typeof Scalar, "function");
+  strictEqual(typeof Schema, "function");
+  strictEqual(typeof visit, "function");
+  strictEqual(typeof YAMLParseError, "function");
+  strictEqual(typeof YAMLWarning, "function");
 });
 
 test("yaml-compat: default export object mirrors the named exports", () => {
@@ -73,9 +80,303 @@ test("yaml-compat.parseDocument wraps a single document like parseAllDocuments' 
   const doc = parseDocument("a: 1\nb: 2\n");
   deepStrictEqual(doc.toJS(), { a: 1, b: 2 });
   deepStrictEqual(doc.toJSON(), { a: 1, b: 2 });
-  deepStrictEqual(doc.contents, { a: 1, b: 2 });
+  ok(doc instanceof Document);
+  ok(isDocument(doc));
+  ok(doc.contents instanceof YAMLMap);
+  ok(isMap(doc.contents));
+  deepStrictEqual(doc.contents.toJS(doc), { a: 1, b: 2 });
   deepStrictEqual(doc.errors, []);
   deepStrictEqual(doc.warnings, []);
+});
+
+test("yaml-compat.parse syntax errors use the shared canonical YAMLParseError class", () => {
+  const source = "a: [1,";
+  const documentError = parseDocument(source).errors[0]!;
+  const capture = (run: () => unknown) => {
+    try {
+      run();
+      throw new Error("expected parse to fail");
+    } catch (error) {
+      return error as YAMLParseError;
+    }
+  };
+  const error = capture(() => parse(source));
+  strictEqual(yamlCompatDefault.YAMLParseError, YAMLParseError);
+  ok(error instanceof YAMLParseError);
+  ok(error instanceof YAMLError);
+  ok(error instanceof Error);
+  strictEqual(error.constructor, YAMLParseError);
+  strictEqual(error.code, documentError.code);
+  deepStrictEqual(error.pos, documentError.pos);
+  strictEqual(error.message, documentError.message);
+  deepStrictEqual(error.linePos, documentError.linePos);
+
+  const noPrettyDocumentError = parseDocument(source, { prettyErrors: false }).errors[0]!;
+  const noPrettyError = capture(() => parse(source, { prettyErrors: false }));
+  strictEqual(noPrettyError.code, noPrettyDocumentError.code);
+  deepStrictEqual(noPrettyError.pos, noPrettyDocumentError.pos);
+  strictEqual(noPrettyError.message, noPrettyDocumentError.message);
+  strictEqual(noPrettyError.linePos, undefined);
+
+  const unicodeSource = 'title: "😀"\r\nitems: [1,';
+  const unicodeDocumentError = parseDocument(unicodeSource).errors[0]!;
+  const unicodeError = capture(() => parse(unicodeSource));
+  strictEqual(unicodeError.code, unicodeDocumentError.code);
+  deepStrictEqual(unicodeError.pos, unicodeDocumentError.pos);
+  strictEqual(unicodeError.message, unicodeDocumentError.message);
+  deepStrictEqual(unicodeError.linePos, unicodeDocumentError.linePos);
+
+  const constructed = new YAMLParseError([2, 3], "MISSING_CHAR", "message");
+  ok(constructed instanceof YAMLError);
+  deepStrictEqual(constructed.pos, [2, 3]);
+  strictEqual(constructed.code, "MISSING_CHAR");
+  strictEqual(constructed.message, "message");
+  const raw = [...new Composer().compose(
+    new yamlCompatDefault.Parser().parse(source), true, source.length
+  )][0]!;
+  strictEqual(raw.errors[0]?.constructor, YAMLParseError);
+  strictEqual(documentError.constructor, YAMLParseError);
+});
+
+test("successful yaml-compat.parse does not enter the source diagnostic pipeline", () => {
+  const parserPrototype = yamlCompatDefault.Parser.prototype;
+  const originalParse = parserPrototype.parse;
+  let sourceParserCalls = 0;
+  Reflect.set(parserPrototype, "parse", function (this: unknown, ...args: Parameters<typeof originalParse>) {
+    sourceParserCalls++;
+    return Reflect.apply(originalParse, this, args);
+  });
+  try {
+    deepStrictEqual(parse("answer: 42\n"), { answer: 42 });
+  } finally {
+    Reflect.set(parserPrototype, "parse", originalParse);
+  }
+  strictEqual(sourceParserCalls, 0);
+});
+
+test("yaml-compat.parse canonicalizes depth errors and preserves reviver throws", () => {
+  const nested = "[".repeat(1100) + "0" + "]".repeat(1100);
+  let depthError: unknown;
+  try {
+    parse(nested);
+  } catch (error) {
+    depthError = error;
+  }
+  ok(depthError instanceof YAMLParseError);
+  strictEqual((depthError as YAMLParseError).code, "RESOURCE_EXHAUSTION");
+
+  const ordinarySentinel = new Error("reviver failed");
+  let ordinaryThrown: unknown;
+  try {
+    parse("a: 1", (_key, _value) => { throw ordinarySentinel; });
+  } catch (error) {
+    ordinaryThrown = error;
+  }
+  strictEqual(ordinaryThrown, ordinarySentinel);
+
+  const coreSentinel = new CoreYAMLParseError("reviver core sentinel");
+  let coreThrown: unknown;
+  try {
+    parse("a: 1", (_key, _value) => { throw coreSentinel; });
+  } catch (error) {
+    coreThrown = error;
+  }
+  strictEqual(coreThrown, coreSentinel);
+});
+
+test("strict diagnostics identify core-rejected comment separation errors", () => {
+  const sources = [
+    "---\n[ a, b, c, ]#invalid\n",
+    "a: |#bad\n x\n",
+    'a: "value"#bad\n',
+  ];
+  for (const source of sources) {
+    strictEqual(parseDocument(source, { strict: false, uniqueKeys: false }).errors.length, 0);
+    for (const prettyErrors of [true, false]) {
+      const capture = (fn: () => unknown): YAMLParseError => {
+        try { fn(); } catch (error) { return error as YAMLParseError; }
+        throw new Error("expected parse failure");
+      };
+      const actual = capture(() => parse(source, { prettyErrors }));
+      const expected = capture(() => yamlReal.parse(source, { prettyErrors, uniqueKeys: false }));
+      ok(actual instanceof YAMLParseError);
+      strictEqual(actual.code, expected.code);
+      deepStrictEqual(actual.pos, expected.pos);
+      strictEqual(actual.message, expected.message);
+      deepStrictEqual(actual.linePos, expected.linePos);
+    }
+  }
+});
+
+test("source-clean core errors retain a truthful fallback", () => {
+  const source = "{\n  ? foo :,\n  : bar,\n}\n";
+  for (const strict of [false, true])
+    strictEqual(parseDocument(source, { strict, uniqueKeys: false }).errors.length, 0);
+  let original: unknown;
+  try { coreParse(source, yamlDocumentOptions); } catch (error) { original = error; }
+  ok(original instanceof CoreYAMLParseError);
+  let actual: unknown;
+  try { parse(source); } catch (error) { actual = error; }
+  ok(actual instanceof YAMLParseError);
+  strictEqual(actual.code, "UNEXPECTED_TOKEN");
+  strictEqual(actual.message, original.message);
+  deepStrictEqual(actual.pos, [source.indexOf(": bar"), source.indexOf(": bar")]);
+});
+
+test("diagnostic retry does not mask an earlier indentation error", () => {
+  const source = "a:\n\tb: 1\nc: [x]#bad\n";
+  const lenient = parseDocument(source, { strict: false, uniqueKeys: false });
+  strictEqual(lenient.errors[0]?.code, "TAB_AS_INDENT");
+  let actual: unknown;
+  try { parse(source); } catch (error) { actual = error; }
+  ok(actual instanceof YAMLParseError);
+  strictEqual(actual.code, lenient.errors[0]?.code);
+  deepStrictEqual(actual.pos, lenient.errors[0]?.pos);
+  deepStrictEqual(parse('key: "a\tb"\n'), { key: "a\tb" });
+});
+
+test("public source documents retain native diagnostics, offsets, and editable nodes", () => {
+  const source = "# heading\r\n---\r\nvalue: [1, 2]\r\n";
+  const doc = parseDocument(source, { keepSourceTokens: true });
+  ok(doc.contents instanceof YAMLMap);
+  strictEqual(doc.range[0], source.indexOf("---"));
+  ok(doc.contents.srcToken);
+  const tokens = [...new yamlCompatDefault.Parser().parse(source)];
+  const streamed = [...new Composer({ keepSourceTokens: true }).compose(tokens)];
+  const sourceDocument = tokens.find((token) => token.type === "document");
+  ok(sourceDocument?.type === "document");
+  strictEqual(streamed[0]?.contents?.srcToken, sourceDocument.value);
+  doc.setIn(["value", 0], 9);
+  deepStrictEqual(doc.toJS(), { value: [9, 2] });
+  strictEqual(isDocument(doc), true);
+  let visited = 0;
+  visit(doc, () => { visited++; });
+  ok(visited > 0);
+});
+
+test("source-only options are forwarded, while conversion options stay on toJS", () => {
+  const conversionOptions = { mapAsMap: true };
+  throws(() => Reflect.apply(parseDocument, undefined, ["a: 1\n", conversionOptions]));
+  const source = "a: [1, 2]\n";
+  deepStrictEqual(parseDocument(source, { strict: false }).toJS(), { a: [1, 2] });
+  const counter = new yamlCompatDefault.LineCounter();
+  const doc = parseDocument("a: [1,\n", { lineCounter: counter, prettyErrors: false });
+  ok(doc.errors.length > 0);
+  strictEqual(counter.lineStarts.length, 2);
+  strictEqual(doc.errors[0]?.linePos, undefined);
+  const pretty = parseDocument("a: [1,\n");
+  ok(pretty.errors[0]?.message.includes(" at line "));
+  deepStrictEqual(pretty.errors[0]?.linePos?.[0], { line: 2, col: 1 });
+  const warning = parseDocument("value: !unknown text\n");
+  ok(warning.warnings[0]?.linePos?.[0]);
+  ok(warning.warnings[0]?.message.includes(" at line 1, column 8"));
+  const empty = parseAllDocuments("# stream comment\n");
+  ok("empty" in empty && empty.empty);
+  strictEqual(empty.comment, " stream comment");
+  deepStrictEqual(parseDocument("integer: 9007199254740993\n", { intAsBigInt: true }).toJS(), { integer: 9007199254740993n });
+});
+
+test("native custom scalar and collection tags are explicit and usable", () => {
+  const include = {
+    tag: "!include",
+    resolve: (value: string) => ({ include: value }),
+    identify: (value: unknown) => !!value && typeof value === "object" && "include" in value,
+    createNode: (_schema: unknown, value: unknown) => new Scalar(value),
+  };
+  const docs = parseAllDocuments("entry: !include ./part.yaml\n", { customTags: [include] });
+  deepStrictEqual(docs[0]?.toJS(), { entry: { include: "./part.yaml" } });
+  const mapping = {
+    collection: "map" as const,
+    tag: "!dict",
+    nodeClass: YAMLMap,
+    identify: (value: unknown) => value instanceof Map,
+  };
+  const collectionDoc = parseDocument("settings: !dict {mode: safe}\n", { customTags: [mapping] });
+  deepStrictEqual(collectionDoc.toJS(), { settings: { mode: "safe" } });
+  const direct = new Document(undefined, { customTags: (tags) => [...tags, include] });
+  const node = direct.createNode({ include: "x" }, { tag: "!include" });
+  ok(node instanceof Scalar);
+  const mapDoc = new Document(new Map([["mode", "safe"]]), { customTags: [mapping], tag: "!dict" });
+  ok(mapDoc.contents instanceof YAMLMap);
+  deepStrictEqual(parseDocument(mapDoc.toString(), { customTags: [mapping] }).toJS(), { mode: "safe" });
+  ok(new Schema({ customTags: [include] }) instanceof Schema);
+  throws(() => new Composer({ version: "1.1" }));
+  throws(() => new Schema({ schema: "yaml-1.1" }));
+  throws(() => new Document(undefined, { merge: false }));
+});
+
+test("default native schema rejects automatic timestamp and merge typing but keeps binary", () => {
+  const timestampSource = "value: !!timestamp 2020-01-01\n";
+  const timestamp = parseDocument(timestampSource);
+  ok(timestamp.errors.some((error) => error.code === "TAG_RESOLVE_FAILED"));
+  ok(!((timestamp.toJS() as { value: unknown }).value instanceof Date));
+  const directTimestamp = [...new Composer().compose(
+    new yamlCompatDefault.Parser().parse(timestampSource), true, timestampSource.length
+  )][0]!;
+  ok(directTimestamp.errors.some((error) => error.code === "TAG_RESOLVE_FAILED"));
+  ok(!((directTimestamp.toJS() as { value: unknown }).value instanceof Date));
+
+  const mergeSource = "base: &base {x: 1}\n!!merge <<: *base\n";
+  const merge = parseDocument(mergeSource);
+  ok(merge.errors.some((error) => error.code === "TAG_RESOLVE_FAILED"));
+  deepStrictEqual(merge.toJS(), { base: { x: 1 }, "<<": { x: 1 } });
+  const directMerge = [...new Composer().compose(
+    new yamlCompatDefault.Parser().parse(mergeSource), true, mergeSource.length
+  )][0]!;
+  ok(directMerge.errors.some((error) => error.code === "TAG_RESOLVE_FAILED"));
+  deepStrictEqual(directMerge.toJS(), { base: { x: 1 }, "<<": { x: 1 } });
+  const binary = parseDocument("value: !!binary AQID\n");
+  ok((binary.toJS() as { value: unknown }).value instanceof Uint8Array);
+  ok("tag:yaml.org,2002:binary" in new Schema({}).knownTags);
+  ok(!("tag:yaml.org,2002:timestamp" in new Schema({}).knownTags));
+  ok(!("tag:yaml.org,2002:merge" in new Schema({}).knownTags));
+  throws(() => new Schema({ customTags: ["timestamp"] }));
+  throws(() => new Document(undefined, { schema: "yaml-1.1" }));
+});
+
+test("legacy numeric tag shorthands cannot bypass core source typing", () => {
+  const rejected = (run: () => unknown) => {
+    try {
+      run();
+      return false;
+    } catch {
+      return true;
+    }
+  };
+  deepStrictEqual([
+    rejected(() => parseDocument("x: 1:20\n", { customTags: ["intTime"] })),
+    rejected(() => parseAllDocuments("# comment only\n", { customTags: ["intTime"] })),
+    rejected(() => new Composer({ customTags: ["intTime"] })),
+    rejected(() => new Schema({ schema: "core", customTags: ["intTime"] })),
+    rejected(() => parseDocument("x: 1:20.5\n", { customTags: ["floatTime"] })),
+    rejected(() => new Schema({ schema: "core", customTags: ["floatTime"] })),
+  ], [true, true, true, true, true, true]);
+  for (const tag of ["merge", "omap", "pairs", "set", "timestamp"] as const) {
+    ok(rejected(() => new Schema({ schema: "core", customTags: [tag] })));
+  }
+  ok(new Schema({ schema: "core", customTags: ["binary", "int"] }) instanceof Schema);
+  ok(new Schema({
+    schema: "core",
+    customTags: tags => [...tags, "binary"],
+  }) instanceof Schema);
+  let callbackCalls = 0;
+  throws(() => parseDocument("x: 1:20\n", {
+    customTags: tags => {
+      callbackCalls++;
+      return [...tags, "intTime"];
+    },
+  }));
+  strictEqual(callbackCalls, 1);
+});
+
+test("single-document diagnostics identify extra documents and honor silent log level", () => {
+  const source = "first: 1\n---\nsecond: 2\n";
+  const doc = parseDocument(source);
+  const error = doc.errors.find(item => item.code === "MULTIPLE_DOCS");
+  ok(error instanceof YAMLParseError);
+  strictEqual(error.pos[0], source.indexOf("---"));
+  ok(error.message.includes(" at line 2, column 1"));
+  strictEqual(parseDocument(source, { logLevel: "silent" }).errors.length, 0);
 });
 
 test("yaml compatibility preserves yaml 2.9 suffix document counting", () => {
@@ -125,12 +426,13 @@ test("yaml compatibility retains invalid marker and late-document recovery behav
 
   for (const input of ["...\n[", "---\nnull\n...\n...\n["]) {
     const docs = parseAllDocuments(input);
-    strictEqual(docs.length, 1);
-    strictEqual(docs[0].contents, undefined);
-    strictEqual(docs[0].errors.length, 1);
+    const referenceDocs = yamlReal.parseAllDocuments(input);
+    strictEqual(docs.length, referenceDocs.length);
+    deepStrictEqual(docs.map(doc => doc.toJS()), referenceDocs.map(doc => doc.toJS()));
+    ok(docs.some(doc => doc.errors.length > 0));
     const document = parseDocument(input);
-    strictEqual(document.contents, undefined);
-    strictEqual(document.errors.length, 1);
+    deepStrictEqual(document.toJS(), yamlReal.parseDocument(input).toJS());
+    strictEqual(document.errors[0]?.code, "MULTIPLE_DOCS");
   }
 });
 

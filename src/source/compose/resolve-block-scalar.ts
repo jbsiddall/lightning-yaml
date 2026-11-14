@@ -52,7 +52,10 @@ export function resolveBlockScalar(
     return { value, type, comment: header.comment, range: [start, end, end] }
   }
 
-  let trimIndent = scalar.indent + header.indent
+  let trimIndent =
+    ctx.atRoot && header.indent > 0
+      ? header.indent - 1
+      : scalar.indent + header.indent
   let offset = scalar.offset + header.length
   let contentStart = 0
   for (let i = 0; i < chompStart; ++i) {

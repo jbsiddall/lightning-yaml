@@ -91,6 +91,42 @@ describe("yaml compatibility differential properties", () => {
       expect(result.semantic?.equal).toBe(true);
     }
   });
+  test("public source pipeline preserves generated aliases through edit and reparse", () => {
+    const graphArb = fc.record({
+      name: fc.constantFrom("alpha", "beta", "gamma", "delta"),
+      count: fc.integer({ min: -1000, max: 1000 }),
+      items: fc.array(fc.integer({ min: -20, max: 20 }), { minLength: 1, maxLength: 8 }),
+      sharedItems: fc.array(fc.constantFrom("one", "two", "three"), { maxLength: 5 }),
+      enabled: fc.boolean(),
+    }).map(({ name, count, items, sharedItems, enabled }) => {
+      const shared = { enabled, items: sharedItems };
+      return { name, count, items, first: shared, second: shared };
+    });
+
+    fc.assert(fc.property(graphArb, (graph) => {
+      const source = yamlReference.stringify(graph);
+      expect(typeof source).toBe("string");
+      const referenceDoc = yamlReference.parseDocument(source, { uniqueKeys: false });
+      const doc = parseDocument(source, { keepSourceTokens: true, uniqueKeys: false });
+      const expected = referenceDoc.toJS({ maxAliasCount: 10 });
+      const actual = doc.toJS({ maxAliasCount: 10 });
+      expect(actual).toEqual(expected);
+      expect((actual as typeof graph).first).toBe((actual as typeof graph).second);
+      expect(doc.contents).toBeTruthy();
+      expect(doc.range).toHaveLength(3);
+      expect(doc.range[0]).toBeGreaterThanOrEqual(0);
+      expect(doc.range[2]).toBeLessThanOrEqual(source.length);
+
+      const replacement = graph.items[0]! + 1;
+      doc.setIn(["items", 0], replacement);
+      const written = doc.toString();
+      const reparsed = parseDocument(written, { keepSourceTokens: true });
+      const roundTrip = reparsed.toJS({ maxAliasCount: 10 }) as typeof graph;
+      expect(roundTrip.items[0]).toBe(replacement);
+      expect(roundTrip.first).toBe(roundTrip.second);
+      expect(reparsed.contents).toBeTruthy();
+    }), { seed: 20261113, numRuns: 60 });
+  });
   test("records a known unsupported option gap", () => {
     const row = evaluate({
       id: "known-gap",
@@ -104,7 +140,7 @@ describe("yaml compatibility differential properties", () => {
     expect(row.candidate.status).toBe("error");
     expect(row.differences.map((d) => d.category)).toContain("acceptance");
   });
-  test("keeps document AST mismatch separate from converted-value agreement", () => {
+  test("public source documents match the reference AST and converted value", () => {
     const row = evaluate({
       id: "ast-gap",
       operation: "parseDocument",
@@ -113,12 +149,12 @@ describe("yaml compatibility differential properties", () => {
       source: "sentinel",
       categories: ["document"],
     });
-    expect(row.differences.map((d) => d.category)).toContain("document-ast");
-    expect(row.differences.map((d) => d.category)).toContain(
-      "document-semantic",
-    );
+    expect(row.differences).toEqual([]);
     expect((row.reference.docs?.[0] as { toJS: unknown }).toJS).toEqual(
       (row.candidate.docs?.[0] as { toJS: unknown }).toJS,
+    );
+    expect((row.reference.docs?.[0] as { contents: unknown }).contents).toEqual(
+      (row.candidate.docs?.[0] as { contents: unknown }).contents,
     );
   });
   test("retains partial stream recovery and diagnostics as observable differences", () => {
@@ -129,11 +165,10 @@ describe("yaml compatibility differential properties", () => {
     );
     expect(row.reference.status).toBe("success");
     expect(row.candidate.status).toBe("success");
-    expect(
-      row.differences.some((d) =>
-        ["diagnostic", "document-semantic"].includes(d.category),
-      ),
-    ).toBe(true);
+    expect(row.differences).toEqual([]);
+    expect((row.candidate.docs as Array<{ errors: unknown[] }> | undefined)?.map((doc) => doc.errors)).toEqual(
+      (row.reference.docs as Array<{ errors: unknown[] }> | undefined)?.map((doc) => doc.errors),
+    );
   });
   test("preserves undefined stringify return as a successful call result", () => {
     const row = evaluate({
@@ -260,11 +295,11 @@ describe("yaml compatibility differential properties", () => {
     expect((row.reference.trace as unknown[][]).map((event) => event[2])).toEqual([2, 2]);
     const candidateObservation = (row.candidate.docs?.[0] as Record<string, unknown>)
       .toJSONAnchorObservation as Observation;
-    expect(candidateObservation.calls).toEqual([]);
+    expect(candidateObservation.calls).toHaveLength(2);
+    expect(candidateObservation.calls[0]?.[0]).toBe(candidateObservation.result.first);
+    expect(candidateObservation.calls[1]?.[0]).toBe(candidateObservation.result.first.left);
     expect(compareGraph(result, candidateObservation.result).equal).toBe(true);
-    expect(row.differences.map(({ category }) => category)).toContain(
-      "document-semantic",
-    );
+    expect(row.differences).toEqual([]);
     const persisted = decodeGraph(encodeGraph(observation)) as Observation;
     expect(persisted.result.first).toBe(persisted.result.second);
     expect(persisted.calls[0]?.[0]).toBe(persisted.result.first);
@@ -313,7 +348,8 @@ describe("yaml compatibility differential properties", () => {
     expect((row.reference.trace as unknown[][]).map((event) => event[2])).toEqual(
       [2, 2, 2, 2, 2, 2],
     );
-    expect(row.candidate.trace).toEqual([]);
+    expect(row.candidate.trace).toHaveLength(6);
+    expect(row.candidate.trace).toEqual(row.reference.trace);
     expect(row.reference.docs?.[0]).not.toHaveProperty(
       "toJSONAnchorObservation",
     );

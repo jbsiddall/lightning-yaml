@@ -4,5 +4,5 @@
     "allowImportingTsExtensions": false,
     "noEmit": true
   },
-  "include": ["./cst-consumer.mts", "./cst-consumer.cts"]
+  "include": ["./cst-consumer.mts", "./cst-consumer.cts", "./document-consumer.mts", "./document-consumer.cts"]
 }

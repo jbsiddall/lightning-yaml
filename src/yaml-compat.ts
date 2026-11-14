@@ -1,130 +1,73 @@
 /**
  * @packageDocumentation
  *
- * yaml-compat.ts — a partial compatibility shim for selected `yaml` v2 calls
- * (github.com/eemeli/yaml — also this repo's own correctness reference /
- * oracle, see bench/oracle.ts), backed by lightning-yaml's own parser
- * (./core.ts).
+ * The fast value parse and stringify functions keep their existing core
+ * implementation. Source parsing returns editable native documents and nodes
+ * through parseDocument and parseAllDocuments, with CST tokens available from
+ * Parser and CST for source-aware tools.
  *
- * This module doc block is the MASTER SOURCE for `yaml` compatibility: it is
- * published verbatim to the website's API reference (site/astro.config.mjs
- * wires this file through starlight-typedoc), so keep it accurate and up to date.
+ * Source documents support YAML 1.2 core plus explicitly registered application
+ * tags. The default known explicit tag is !!binary; YAML 1.1, merge expansion,
+ * and non-core schemas are rejected. An untagged `<<` stays an ordinary key.
+ * Parsing and conversion options are separate:
+ * pass source options to a document parser, and pass alias/map/reviver options to
+ * doc.toJS(). Unsupported option keys or values throw.
  *
- * ## Compatibility level TODAY
- *
- * **Partial API compatibility, not a drop-in replacement.** This module
- * exports `parse`, `parseAllDocuments`, `parseDocument`, `stringify`, the
- * standalone `LineCounter`, and the complete upstream `Lexer` and `Parser`
- * token APIs, the source-preserving `CST` helper namespace, plus the
- * `CompatDocument` and `Reviver` types and a convenience default object.
- * CST supports token inspection and editing, without Composer, AST nodes, or
- * source-aware Document integration.
- * It does not mirror the full `yaml` export surface or every call signature;
- * Composer, AST nodes, public error classes, and the top-level AST visitor are
- * not provided. The visitor inside `CST` walks source collection items.
- * `LineCounter`
- * maps caller-supplied UTF-16 offsets to line and
- * column positions; it does not scan source text or populate the rejected
- * `lineCounter` parse option. Options are honoured on a growing allowlist, and
- * anything not yet honoured **throws** rather than silently diverging. Today
- * only the `parse` reviver runs, plus `schema` / `version` accepted *as the
- * 1.2-core defaults* (`"core"` / `"1.2"`), and any
- * boolean flag left at the value lightning-yaml already produces (usually
- * `false`, e.g. `mapAsMap: false`) — e.g. `parse(text, { mapAsMap: true })` or
- * `stringify(value, { indent: 4 })` throws until that option's sub-task lands. A
- * relied-upon option fails loud instead
- * of producing silently-wrong output (walking `.contents` as an AST — see the
- * Document note below — remains a documented gap).
- *
- * ## Goal
- *
- * Improve compatibility for these entry points **without ever compromising
- * the two things that outrank it: YAML-1.2-spec correctness and core
- * (./core.ts) speed.**
- * Per-option cost is paid either in this shim (pre-/post-processing the
- * plain-JS value, as the reviver already does — proof a hook here costs the
- * core nothing) or behind a gated core seam that leaves the options-free fast
- * path byte-identical. An option we can't yet honour **fails loud** (throws)
- * rather than being silently ignored; each option sub-task moves its key onto
- * the honoured allowlist.
+ * This is a selected compatibility surface, not a complete yaml replacement or
+ * an end-to-end yaml-language-server acceptance claim. Source diagnostic classes
+ * are shared by Document diagnostics and parse failures; successful value
+ * parsing still uses the existing fast parser.
  *
  * ## Option support matrix
  *
- * `path` — `done`: already honoured · `compat`: addable in THIS shim, no core
- * change and no core perf cost · `core`: gated core change, options-free fast
- * path stays byte-identical · `feature`: needs a parser/dumper capability that
- * does not exist yet.
+ * | Option family | Fast `parse` / `stringify` | Source parse | Native `Document` |
+ * | --- | --- | --- | --- |
+ * | Core schema and version 1.2 | Accepted | Accepted | Accepted |
+ * | YAML 1.1, other schemas, merge expansion | Throws | Throws | Throws |
+ * | `customTags` | Throws | Explicit scalar/collection tags and callbacks | Explicit scalar/collection tags |
+ * | `keepSourceTokens`, `lineCounter`, `prettyErrors`, `strict`, `intAsBigInt` | Throws where unsupported by the fast value path | Applied by Parser/Composer | Applied by Document/Schema where relevant |
+ * | Value conversion (`mapAsMap`, `maxAliasCount`, `onAnchor`, `reviver`) | `reviver` is supported; other active options throw | Conversion options throw here | Pass supported conversion options to `doc.toJS()` |
+ * | Creation and writer options (`toStringDefaults`, `sortMapEntries`, `flow`, `tag`) | Active top-level options throw | Schema writer options are passed through | Applied by `Document` and its writer |
  *
- * ```text
- * parse / parseDocument / parseAllDocuments (ParseOptions·DocumentOptions·SchemaOptions·ToJSOptions)
- *   reviver           JSON.parse-style revive walk               done
- *   prettyErrors      line/col in errors                         done         (our errors carry them)
- *   mapAsMap          mappings as Map, not Object                compat       [1] (deep Object->Map post-parse)
- *   intAsBigInt       big ints as exact BigInt                   core         (cold >15-digit fallback fork)
- *   uniqueKeys        dup-key throw/comparator vs keep           core         [2]
- *   stringKeys        require scalar string keys                 core
- *   maxAliasCount     cap alias expansions                       compat/core
- *   version           1.1 | 1.2 | next scalar typing             core         [3]
- *   schema            failsafe / core / json / yaml-1.1          core         [3]
- *   customTags        plug in custom tag resolvers               core         (needs a tag registry)
- *   resolveKnownTags  !!omap/!!set/!!timestamp under core        core         (we resolve !!binary only)
- *   merge             enable `<<` merge keys                     feature      (merge keys unimplemented)
- *   keepSourceTokens · onAnchor                                  feature      (no document Composer integration)
- *   lineCounter option                                           feature      (standalone class exported; parse integration remains unsupported)
+ * Example editing a parsed source document:
  *
- * stringify (ToStringOptions·CreateNodeOptions·SchemaOptions)
- *   replacer          JSON.stringify-style replacer              compat       (pre-process the value)
- *   sortMapEntries    sort map keys on output                    compat       <- easy win (pre-sort the graph)
- *   indent            block indent width (we hardcode 2)         core
- *   nullStr/trueStr/falseStr  spelling of null/true/false        core
- *   singleQuote       prefer single quotes                       core
- *   indentSeq         indent block sequences                     core
- *   directives        emit `---` / %YAML markers                 core
- *   lineWidth · minContentWidth · blockQuote (folding)           feature      (no line folding exists)
- *   collectionStyle:flow · flowCollectionPadding · trailingComma feature      (no flow-collection writer)
- *   aliasDuplicateObjects / noRefs · anchorPrefix                core/feature (see js-yaml-compat noRefs note)
+ * ```ts
+ * const doc = parseDocument('name: example\nitems: [one, two]\n')
+ * doc.setIn(['items', 1], 'three')
+ * const yaml = doc.toString()
+ * const value = doc.toJS()
  * ```
  *
- * [1] Our core already coerces non-scalar keys to strings, so `mapAsMap` keys
- *     come back as strings — partial fidelity vs real `yaml`.
- * [2] Our core is last-wins by default (= `uniqueKeys: false`). Throw-on-dup is
- *     a `yaml`-parity knob, NOT a spec/suite win — the yaml-test-suite treats
- *     duplicate keys as VALID (see js-yaml-compat.ts note [1]).
- * [3] Default 1.2-core already matches `yaml`'s own default; only `version: 1.1`
- *     / a non-core schema changes typing (yes->true, sexagesimal, legacy octal).
- *
- * The remaining known simplifications, called out where they matter below:
- *
- *   - The public `Parser` produces source-preserving CST tokens; it does not
- *     compose documents or validate YAML. Document wrappers
- *     (`parseDocument`/`parseAllDocuments`) still return a MINIMAL
- *     stand-in: `{ toJS(), toJSON(), contents, errors, warnings }` where
- *     `contents` is already the plain JS value (real `yaml` gives you an AST
- *     `Node` there — Map/Seq/Scalar — and only `.toJS()` converts it). That's
- *     a deliberate, documented simplification (per the task brief) — fine for
- *     the overwhelmingly common `doc.toJS()` / `doc.toJSON()` call pattern,
- *     not fine for code that walks `.contents` as a CST/AST.
- *   - `stringify` delegates to our `stringify` (implemented: block-style
- *     output with 1.2-core-safe quoting).
- *   - We don't wrap thrown errors in `yaml`'s own `YAMLParseError`/`YAMLWarning`
- *     classes (unlike js-yaml-compat.ts, which IS required to rethrow as its
- *     own `YAMLException` — see that file). Confusingly, our own error class
- *     (./core.ts) is ALSO named `YAMLParseError`, purely by coincidence — a
- *     different class with a different prototype chain, so
- *     `e instanceof (real yaml's) YAMLParseError` will not match ours. Not
- *     chased further for this milestone.
  */
 
-import { parse as ourParse, parseAll as ourParseAll, stringify as ourStringify, yamlDocumentOptions } from "./core.ts";
+import { parse as ourParse, stringify as ourStringify, yamlDocumentOptions, YAMLParseError as CoreYAMLParseError } from "./core.ts";
 import { validateOptions, notYetSupported, activatesFeature, type OptionRule } from "./compat-options.ts";
 import { LineCounter } from "./line-counter.ts";
-export { LineCounter } from "./line-counter.ts";
+import { Composer } from "./source/compose/composer.ts";
+import { Document } from "./source/doc/Document.ts";
+import { Alias } from "./source/nodes/Alias.ts";
+import { Pair } from "./source/nodes/Pair.ts";
+import { Scalar } from "./source/nodes/Scalar.ts";
+import { YAMLMap } from "./source/nodes/YAMLMap.ts";
+import { YAMLSeq } from "./source/nodes/YAMLSeq.ts";
+import { isAlias, isCollection, isDocument, isMap, isNode, isPair, isScalar, isSeq } from "./source/nodes/identity.ts";
+import { Schema } from "./source/schema/Schema.ts";
+import { YAMLParseError, YAMLWarning, YAMLError, prettifyError } from "./source/errors.ts";
+import { visit } from "./source/visit.ts";
 import { Lexer } from "./source/lexer.ts";
 import { Parser } from "./source/parser.ts";
 import * as CST from "./source/cst.ts";
-export { Lexer, Parser };
-export { CST };
-export type { Token as CSTToken, SourceToken as CSTSourceToken } from "./source/cst.ts";
+import type { Token as CSTToken, SourceToken as CSTSourceToken } from "./source/cst.ts";
+import type { Node, NodeType, ParsedNode, Range } from "./source/nodes/Node.ts";
+import type { ParseOptions, DocumentOptions, SchemaOptions, CreateNodeOptions, ToJSOptions, ToStringOptions } from "./source/options.ts";
+import type { CollectionTag, ScalarTag } from "./source/schema/types.ts";
+import type { TagId, Tags } from "./source/schema/tags.ts";
+import type { visitor, visitorFn, asyncVisitor, asyncVisitorFn } from "./source/visit.ts";
+import type { ErrorCode, LinePos } from "./source/errors.ts";
+import type { ComposeErrorHandler } from "./source/compose/composer.ts";
+
+export { LineCounter, Composer, Document, Alias, Pair, Scalar, YAMLMap, YAMLSeq, Schema, isAlias, isCollection, isDocument, isMap, isNode, isPair, isScalar, isSeq, visit, YAMLParseError, YAMLWarning, YAMLError, Lexer, Parser, CST };
+export type { CSTToken, CSTSourceToken, Node, NodeType, ParsedNode, Range, ParseOptions, DocumentOptions, SchemaOptions, CreateNodeOptions, ToJSOptions, ToStringOptions, CollectionTag, ScalarTag, Tags, TagId, visitor, visitorFn, asyncVisitor, asyncVisitorFn, ErrorCode, LinePos, ComposeErrorHandler };
 
 // ---------------------------------------------------------------------------
 // Options-dispatch rules. Unsupported options throw a `YAMLCompatError` rather
@@ -171,6 +114,45 @@ const PARSE_OPTION_RULES: Record<string, OptionRule> = {
   onAnchor: notYetSupported,
 };
 
+const booleanOption: OptionRule = value =>
+  typeof value === "boolean" ? null : "must be a boolean";
+
+const SOURCE_DOCUMENT_OPTION_RULES: Record<string, OptionRule> = {
+  schema: schemaCoreOnly,
+  version: version12Only,
+  intAsBigInt: booleanOption,
+  keepSourceTokens: booleanOption,
+  prettyErrors: booleanOption,
+  strict: booleanOption,
+  stringKeys: booleanOption,
+  uniqueKeys: value =>
+    typeof value === "boolean" || typeof value === "function"
+      ? null
+      : "must be a boolean or comparison function",
+  lineCounter: value =>
+    value instanceof LineCounter ? null : "must be a LineCounter instance",
+  logLevel: value =>
+    value === "silent" || value === "error" || value === "warn" || value === "debug"
+      ? null
+      : "must be one of silent, error, warn, or debug",
+  customTags: value =>
+    value === null || Array.isArray(value) || typeof value === "function"
+      ? null
+      : "must be a tag array or tag-list callback",
+  resolveKnownTags: value =>
+    value === true ? null : "only the supported core tags can be resolved",
+  merge: notYetSupported,
+  compat: notYetSupported,
+  sortMapEntries: value =>
+    typeof value === "boolean" || typeof value === "function"
+      ? null
+      : "must be a boolean or comparison function",
+  toStringDefaults: value =>
+    value !== null && typeof value === "object" && !Array.isArray(value)
+      ? null
+      : "must be an object",
+};
+
 const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
   schema: schemaCoreOnly,
   version: version12Only,
@@ -197,6 +179,59 @@ const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
 // ---------------------------------------------------------------------------
 // parse — calibrated against the REAL `yaml` v2 library, not assumed.
 // ---------------------------------------------------------------------------
+
+function coreErrorOffset(source: string, message: string): number {
+  if (message.endsWith(": unexpected end of input")) return source.length;
+  const match = / \(line ([1-9]\d*), column ([1-9]\d*)\)$/.exec(message);
+  if (!match) return -1;
+  const line = Number(match[1]);
+  const column = Number(match[2]);
+  let start = 0;
+  for (let currentLine = 1; currentLine < line; currentLine++) {
+    const newline = source.indexOf("\n", start);
+    if (newline < 0) return -1;
+    start = newline + 1;
+  }
+  const lineEnd = source.indexOf("\n", start);
+  const end = lineEnd < 0 ? source.length : lineEnd;
+  const offset = start + column - 1;
+  return offset <= end ? offset : -1;
+}
+
+function canonicalizeCoreParseError(
+  source: string,
+  error: InstanceType<typeof CoreYAMLParseError>,
+  prettyErrors: boolean
+): never {
+  const offset = coreErrorOffset(source, error.message);
+  const pos: [number, number] = offset < 0 ? [-1, -1] : [offset, offset];
+  const fallback = (code: ErrorCode) => new YAMLParseError(pos, code, error.message);
+
+  if (error.message.startsWith("maximum nesting depth exceeded"))
+    throw fallback("RESOURCE_EXHAUSTION");
+
+  let diagnostic: YAMLParseError | undefined;
+  try {
+    const doc = parseDocument(source, {
+      uniqueKeys: false,
+      strict: false,
+      prettyErrors,
+    });
+    diagnostic = doc.errors[0];
+    if (!diagnostic && offset >= 0) {
+      const strictDoc = parseDocument(source, {
+        uniqueKeys: false,
+        strict: true,
+        prettyErrors,
+      });
+      diagnostic = strictDoc.errors.find(({ pos }) => pos[0] <= offset && (offset < pos[1] || (pos[0] === pos[1] && offset === pos[0])));
+    }
+  } catch {
+    // The original core error remains authoritative if diagnostic parsing fails.
+  }
+  if (diagnostic) throw diagnostic;
+  throw fallback("UNEXPECTED_TOKEN");
+}
 
 /** A bottom-up reviver; Map keys and Set items retain their original type. */
 export type Reviver = (this: unknown, key: unknown, value: unknown) => unknown;
@@ -267,80 +302,90 @@ export function parse(src: string, reviverOrOpts?: Reviver | Record<string, unkn
   // as stringify below.)
   const optionBag = opts === undefined && typeof reviverOrOpts !== "function" && reviverOrOpts ? reviverOrOpts : opts;
   validateOptions(optionBag, PARSE_OPTION_RULES, failOption);
-  const value = ourParse(src, yamlDocumentOptions);
+  let value: unknown;
+  try {
+    value = ourParse(src, yamlDocumentOptions);
+  } catch (error) {
+    if (!(error instanceof CoreYAMLParseError)) throw error;
+    const prettyErrors =
+      !(optionBag && typeof optionBag === "object" && "prettyErrors" in optionBag) ||
+      Reflect.get(optionBag, "prettyErrors") !== false;
+    canonicalizeCoreParseError(src, error, prettyErrors);
+  }
   if (!reviver) return value;
   const holder: Record<string, unknown> = { "": value };
   return applyReviver(holder, "", reviver);
 }
 
 // ---------------------------------------------------------------------------
-// Document wrappers — minimal, per the task brief (see module doc comment).
-// ---------------------------------------------------------------------------
 
-export interface CompatDocument {
-  contents: unknown;
-  errors: Error[];
-  warnings: Error[];
-  toJS(): unknown;
-  toJSON(): unknown;
+export type CompatDocument = Document.Parsed;
+
+export interface EmptyStream
+  extends Array<CompatDocument>, ReturnType<Composer["streamInfo"]> {
+  empty: true;
 }
 
-function toError(err: unknown): Error {
-  return err instanceof Error ? err : new Error(String(err));
+type SourceParseOptions = ParseOptions & DocumentOptions & SchemaOptions;
+
+function sourceParseState(source: string, options: SourceParseOptions) {
+  validateOptions(options, SOURCE_DOCUMENT_OPTION_RULES, failOption);
+  const prettyErrors = options.prettyErrors !== false;
+  const lineCounter = options.lineCounter ?? (prettyErrors ? new LineCounter() : null);
+  const parser = new Parser(lineCounter?.addNewLine);
+  const composer = new Composer(options);
+  const tokens = parser.parse(source);
+  return { composer, tokens, lineCounter, prettyErrors };
 }
 
-function makeDocument(contents: unknown, errors: Error[] = []): CompatDocument {
-  return {
-    contents,
-    errors,
-    warnings: [],
-    toJS: () => contents,
-    toJSON: () => contents,
-  };
-}
-
-/**
- * Real `yaml`'s `parseAllDocuments` never throws — a malformed document's
- * error is captured in THAT document's `.errors`, and documents before/after
- * it still parse independently. Our `parseAll` (./core.ts) is single-shot
- * and throws on the FIRST error anywhere in the stream, so on failure we
- * can't recover whichever documents parsed fine before it. Best-effort
- * approximation: report ONE Document carrying the error. Partial fidelity —
- * documented gap, not chased further this milestone. (An unsupported option,
- * unlike a parse error, throws up front — see the option rules above.)
- */
-export function parseAllDocuments(src: string, opts?: Record<string, unknown>): CompatDocument[] {
-  validateOptions(opts, PARSE_OPTION_RULES, failOption);
-  try {
-    return ourParseAll(src, yamlDocumentOptions).map((v) => makeDocument(v));
-  } catch (err) {
-    return [makeDocument(undefined, [toError(err)])];
+function formatDocumentDiagnostics(
+  source: string,
+  docs: Iterable<CompatDocument>,
+  lineCounter: LineCounter | null,
+  prettyErrors: boolean
+) {
+  if (!prettyErrors || !lineCounter) return;
+  for (const doc of docs) {
+    doc.errors.forEach(prettifyError(source, lineCounter));
+    doc.warnings.forEach(prettifyError(source, lineCounter));
   }
 }
 
-/**
- * Real `yaml.parseDocument` on multi-document input specifically: it returns
- * the FIRST document's contents with a "multiple documents" error captured in
- * `.errors` (non-throwing), rather than rejecting outright. We approximate
- * that one case by falling back to `parseAll(src)[0]`; any other parse
- * failure yields an empty-contents Document with the error captured — either
- * way `parseDocument` never throws on a *parse* error, matching the real
- * contract. (Like every entry point it still throws up front on an unsupported
- * option — see the option rules above.)
- */
-export function parseDocument(src: string, opts?: Record<string, unknown>): CompatDocument {
-  validateOptions(opts, PARSE_OPTION_RULES, failOption);
-  try {
-    return makeDocument(ourParse(src, yamlDocumentOptions));
-  } catch (err) {
-    let contents: unknown;
-    try {
-      contents = ourParseAll(src, yamlDocumentOptions)[0];
-    } catch {
-      contents = undefined;
+export function parseAllDocuments(
+  src: string,
+  opts: SourceParseOptions = {}
+): CompatDocument[] | EmptyStream {
+  const { composer, tokens, lineCounter, prettyErrors } = sourceParseState(src, opts);
+  const docs = [...composer.compose(tokens)];
+  if (docs.length > 0) {
+    formatDocumentDiagnostics(src, docs, lineCounter, prettyErrors);
+    return docs;
+  }
+  const empty = Object.assign([], { empty: true }, composer.streamInfo()) as EmptyStream;
+  formatDocumentDiagnostics(src, [empty as unknown as CompatDocument], lineCounter, prettyErrors);
+  return empty;
+}
+
+export function parseDocument(
+  src: string,
+  opts: SourceParseOptions = {}
+): CompatDocument {
+  const { composer, tokens, lineCounter, prettyErrors } = sourceParseState(src, opts);
+  let doc: CompatDocument | undefined;
+  for (const next of composer.compose(tokens, true, src.length)) {
+    if (!doc) doc = next;
+    else if (doc.options.logLevel !== "silent") {
+      doc.errors.push(new YAMLParseError(
+        [next.range[0], next.range[1]],
+        "MULTIPLE_DOCS",
+        "Source contains multiple documents; please use YAML.parseAllDocuments()"
+      ));
+      break;
     }
-    return makeDocument(contents, [toError(err)]);
   }
+  if (!doc) throw new Error("Composer did not emit the forced source document");
+  formatDocumentDiagnostics(src, [doc], lineCounter, prettyErrors);
+  return doc;
 }
 
 // ---------------------------------------------------------------------------
@@ -377,6 +422,35 @@ export function stringify(value: unknown, replacerOrOptions?: unknown, options?:
   return ourStringify(value);
 }
 
-const yamlCompat = { parse, parseAllDocuments, parseDocument, stringify, LineCounter, Lexer, Parser, CST };
+const yamlCompat = {
+  parse,
+  parseAllDocuments,
+  parseDocument,
+  stringify,
+  LineCounter,
+  Composer,
+  Document,
+  Alias,
+  Pair,
+  Scalar,
+  YAMLMap,
+  YAMLSeq,
+  Schema,
+  isAlias,
+  isCollection,
+  isDocument,
+  isMap,
+  isNode,
+  isPair,
+  isScalar,
+  isSeq,
+  visit,
+  YAMLParseError,
+  YAMLWarning,
+  YAMLError,
+  Lexer,
+  Parser,
+  CST,
+};
 
 export default yamlCompat;

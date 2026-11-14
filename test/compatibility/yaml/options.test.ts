@@ -22,7 +22,8 @@ describe("yaml option inventory", () => {
         (x) => !inventories.shimRegistered.stringify.includes(x),
       ),
     ).toHaveLength(25);
-    expect(inventory.missingExports).toContain("Document");
+    expect(inventory.missingExports).not.toContain("Document");
+    expect(inventory.missingExports).not.toContain("Composer");
   });
   test("option witness inventory schedules every declared key including unsupported fields", () => {
     const covered = new Set(

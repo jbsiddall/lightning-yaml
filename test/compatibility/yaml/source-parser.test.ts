@@ -76,7 +76,8 @@ test("yaml shim exposes the complete source lexer and parser constructors", () =
   strictEqual((compat.default as Record<string, unknown>).Lexer, compat.Lexer);
   strictEqual((compat.default as Record<string, unknown>).Parser, compat.Parser);
   strictEqual(compat.default.CST, compat.CST);
-  strictEqual("Composer" in compat, false);
+  strictEqual("Composer" in compat, true);
+  strictEqual("Document" in compat, true);
 });
 
 test("public parser preserves nested source tokens, trivia, and absolute offsets", () => {
