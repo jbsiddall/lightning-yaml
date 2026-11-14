@@ -14,7 +14,7 @@
     "@astrojs/starlight": "0.42.9",
     "@fontsource/ibm-plex-mono": "5.3.0",
     "@fontsource/inter": "5.3.0",
-    "astro": "7.4.7",
+    "astro": "7.4.12",
     "js-yaml": "5.5.0",
     "lightning-yaml": "^0.1.1",
     "starlight-typedoc": "0.23.2",
