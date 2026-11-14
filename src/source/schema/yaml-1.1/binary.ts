@@ -67,7 +67,7 @@ export const binary: ScalarTag = {
       str =
         buf instanceof hostBuffer
           ? buf.toString('base64')
-          : hostBuffer.from(buf.buffer).toString('base64')
+          : hostBuffer.from(buf.buffer, buf.byteOffset, buf.byteLength).toString('base64')
     } else if (typeof base64.btoa === 'function') {
       let s = ''
       for (let i = 0; i < buf.length; ++i) s += String.fromCharCode(buf[i])

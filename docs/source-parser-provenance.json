@@ -706,9 +706,9 @@
       "localPath": "src/source/schema/yaml-1.1/binary.ts",
       "adaptations": [
         "Added the complete retained ISC notice and changed relative imports to the private local source graph.",
-        "Retained optional global Buffer/atob/btoa support and restored pinned Buffer instanceof plus whole-backing-ArrayBuffer writer behavior for Uint8Array views."
+        "Retained optional global Buffer/atob/btoa support and serialize only the visible bytes of Uint8Array views."
       ],
-      "localSha256": "421614ca10fdef8862f911597cf0eba549e14ff27a22538cddcbf493e436993f"
+      "localSha256": "cb959a1a747d671c609f901fa9e6afd5603c4f955870eca5460f1281f2293a37"
     },
     {
       "upstreamPath": "src/schema/yaml-1.1/bool.ts",

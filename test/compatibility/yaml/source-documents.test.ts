@@ -9,7 +9,7 @@ import { Scalar } from '../../../src/source/nodes/Scalar.ts'
 import { Alias } from '../../../src/source/nodes/Alias.ts'
 import { YAMLMap } from '../../../src/source/nodes/YAMLMap.ts'
 import { YAMLSeq } from '../../../src/source/nodes/YAMLSeq.ts'
-import { binary } from '../../../src/source/schema/yaml-1.1/binary.ts'
+import { Document as PublicDocument, parseDocument } from '../../../src/yaml-compat.ts'
 
 function parse(source: string, options: ConstructorParameters<typeof Composer>[0] = {}) {
   const tokens = [...new Parser().parse(source)]
@@ -162,33 +162,36 @@ test('direct document construction preserves node identity and writer options', 
   strictEqual(parse(multilineDoc.toString()).docs[0]?.toJS(), multiline)
 })
 
-test('binary writer follows pinned Node semantics and has a browser-like no-Buffer path', async () => {
-  const scalar = (value: Uint8Array) => {
-    const node = new Scalar(value)
-    node.tag = binary.tag
-    const doc = new Document()
-    doc.schema.tags.push(binary)
-    doc.contents = node
-    return doc.toString()
+test('binary documents write only the visible bytes of each view', async () => {
+  const storage = new Uint8Array([0, 1, 2, 3])
+  const bufferStorage = Buffer.alloc(4)
+  bufferStorage.set(storage)
+  const cases = [
+    { value: storage, encoded: 'AAECAw==', bytes: [0, 1, 2, 3] },
+    { value: storage.subarray(1, 3), encoded: 'AQI=', bytes: [1, 2] },
+    { value: storage.subarray(2, 2), encoded: '', bytes: [] },
+    { value: bufferStorage.subarray(1, 3), encoded: 'AQI=', bytes: [1, 2] },
+  ]
+  const verify = (value: Uint8Array, encoded: string, bytes: number[], tag: 'binary' | typeof import('../../../src/source/schema/yaml-1.1/binary.ts').binary) => {
+    const text = new PublicDocument(value, { customTags: [tag] }).toString()
+    const decoded = parseDocument(text).toJS()
+    ok(decoded instanceof Uint8Array)
+    deepStrictEqual(Array.from(decoded), bytes)
+    if (encoded) ok(text.includes(encoded))
   }
-  strictEqual(scalar(new Uint8Array([1, 2, 3])).includes('AQID'), true)
-  strictEqual(scalar(Buffer.from([1, 2, 3])).includes('AQID'), true)
-  const backing = new Uint8Array([9, 1, 2, 3, 8])
-  const subview = backing.subarray(1, 4)
-  ok(binary.identify?.(subview))
-  strictEqual(scalar(subview).includes('CQECAwg='), true)
+  for (const { value, encoded, bytes } of cases) verify(value, encoded, bytes, 'binary')
+  // Pin's Node writer encodes the backing store; this is an intentional proposed difference.
+  const pinned = new reference.Document(storage.subarray(1, 3), { customTags: ['binary'] }).toString()
+  ok(pinned.includes('AAECAw=='))
+  deepStrictEqual(Array.from(reference.parseDocument(pinned).toJS() as Uint8Array), [0, 1, 2, 3])
+
   const originalBuffer = globalThis.Buffer
   Reflect.set(globalThis, 'Buffer', undefined)
   try {
-    const browserModule = await import(
+    const browser = await import(
       new URL('../../../src/source/schema/yaml-1.1/binary.ts?browser-like', import.meta.url).href
     )
-    const browserNode = new Scalar(subview)
-    browserNode.tag = browserModule.binary.tag
-    const browserDoc = new Document()
-    browserDoc.schema.tags.push(browserModule.binary)
-    browserDoc.contents = browserNode
-    strictEqual(browserDoc.toString().includes('AQID'), true)
+    for (const { value, encoded, bytes } of cases) verify(value, encoded, bytes, browser.binary)
   } finally {
     Reflect.set(globalThis, 'Buffer', originalBuffer)
   }
