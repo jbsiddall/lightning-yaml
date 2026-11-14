@@ -15,8 +15,10 @@
       "localPath": "src/source/lexer.ts",
       "adaptations": [
         "Added retained ISC legal comment; updated relative CST import to local module path/style.",
-        "Removed redundant comments that restated the buffer, indentation, line-end, saved-state, and position member names."
-      ]
+        "Removed redundant comments that restated the buffer, indentation, line-end, saved-state, and position member names.",
+        "Adjusted the explicit block-scalar threshold so the root parent column of -1 sets minimum content indentation to digit minus one; nested thresholds remain parent-relative."
+      ],
+      "localSha256": "24809a4deb6f8a07b868968498852868e9c83c04c24098fdf4f5661336a0c6d6"
     },
     {
       "upstreamPath": "src/parse/parser.ts",
@@ -73,9 +75,10 @@
       "upstreamPath": "src/compose/resolve-block-scalar.ts",
       "sha256": "51a9c85a5dd88d3ee45d41c88d76b9cfd24d457f06a0915295463d84e32dff40",
       "localPath": "src/source/compose/resolve-block-scalar.ts",
-      "localSha256": "55558865dedc5d8cfb071f5999d5042de4785dcba41401407099a8182bf9c6b6",
+      "localSha256": "797c5ddb42b22b71f110bc4daa25a2314956167dd420a8ba5dc664ac618133bd",
       "adaptations": [
-        "Retained ISC notice and pinned resolver behavior; replaced runtime Scalar constants and Composer/context imports with private style literals and structural helper types."
+        "Retained ISC notice and pinned resolver behavior; replaced runtime Scalar constants and Composer/context imports with private style literals and structural helper types.",
+        "For explicit root block scalars, trims digit minus one spaces from the parent column -1; nested scalar indentation remains unchanged."
       ]
     },
     {
@@ -100,10 +103,11 @@
       "upstreamPath": "src/stringify/stringifyString.ts",
       "sha256": "badac28dac2f8df4cff74c9ad15a11a942f3312510efcf50dd1444959e26cd02",
       "localPath": "src/source/stringify/stringifyString.ts",
-      "localSha256": "347e4546ab0dd782773a31f6a3b750b27bc14451a21912d53d8b1ea2385ae869",
+      "localSha256": "231ba51f9144925c77bfef29ff082fd87a09c0b920625c46935e0be1427c8ca1",
       "adaptations": [
         "Reused current main implementation and retained ISC notice.",
-        "Widened only internal helper type annotations to accept the AST stringifier context; runtime behavior is unchanged."
+        "Widened only internal helper type annotations to accept the AST stringifier context; runtime behavior is unchanged.",
+        "For forced indentation on a root block scalar, emits an indicator one greater than the forced prefix width so the root parent column -1 preserves the value."
       ]
     },
     {

@@ -9,13 +9,150 @@ import { Scalar } from '../../../src/source/nodes/Scalar.ts'
 import { Alias } from '../../../src/source/nodes/Alias.ts'
 import { YAMLMap } from '../../../src/source/nodes/YAMLMap.ts'
 import { YAMLSeq } from '../../../src/source/nodes/YAMLSeq.ts'
-import { Document as PublicDocument, parseDocument } from '../../../src/yaml-compat.ts'
+import { Document as PublicDocument, parseAllDocuments, parseDocument } from '../../../src/yaml-compat.ts'
 
 function parse(source: string, options: ConstructorParameters<typeof Composer>[0] = {}) {
   const tokens = [...new Parser().parse(source)]
   const docs = [...new Composer(options).compose(tokens, true, source.length)]
   return { tokens, docs }
 }
+
+test('root explicit block indentation uses the root parent column for parsing', () => {
+  const cases: Array<[string, string]> = [
+    ['|2\n  hello\n', ' hello\n'],
+    ['>2\n  a\n  b\n', ' a\n b\n'],
+    ['|2\n  a\n b\n', ' a\nb\n'],
+    ['|1\na\nb\n', 'a\nb\n'],
+    ['|1\n  a\n', '  a\n'],
+    ['|2-\n  x\n', ' x'],
+    ['|-2\n  x\n', ' x'],
+    ['|2\n  x\n', ' x\n'],
+    ['|2 #head\n  hi\n', ' hi\n'],
+    ['|2+\n  x\n\n\n', ' x\n\n\n'],
+    ['|2\r\n  a\r\n  b\r\n', ' a\n b\n'],
+  ]
+  for (const [source, expected] of cases) {
+    const doc = parseDocument(source)
+    strictEqual(doc.errors.length, 0, source)
+    strictEqual(doc.toJS(), expected, source)
+    if (source.includes('#head')) {
+      ok(doc.contents instanceof Scalar)
+      strictEqual(doc.contents.comment, 'head')
+    }
+    if (source.startsWith('# 😀')) strictEqual(doc.commentBefore, ' 😀')
+  }
+
+  for (let digit = 1; digit <= 9; digit++) {
+    const minimum = ' '.repeat(digit - 1)
+    const extra = ' '.repeat(digit)
+    for (const [prefix, expected] of [[minimum, 'x\n'], [extra, ' x\n']] as const) {
+      const source = `|${digit}\n${prefix}x\n`
+      const doc = parseDocument(source)
+      strictEqual(doc.errors.length, 0, source)
+      strictEqual(doc.toJS(), expected, source)
+    }
+  }
+})
+
+test('root explicit block indentation is preserved through markers, properties, documents, and source tokens', () => {
+  const cases: Array<[string, string]> = [
+    ['--- |2\n  hi\n', ' hi\n'],
+    ['---\n|2\n  hi\n', ' hi\n'],
+    ['&a !!str |2\n  hi\n', ' hi\n'],
+    ['--- &a !!str |2\n  hi\n', ' hi\n'],
+    ['&a\n!!str\n|2\n  hi\n', ' hi\n'],
+    ['# 😀\n|2\n  hi\n', ' hi\n'],
+    ['  |2\n    hi\n', '   hi\n'],
+  ]
+  for (const [source, expected] of cases) {
+    const doc = parseDocument(source, { keepSourceTokens: true })
+    strictEqual(doc.errors.length, 0, source)
+    strictEqual(doc.toJS(), expected, source)
+    if (source.includes('&a')) {
+      ok(doc.contents instanceof Scalar)
+      strictEqual(doc.contents.anchor, 'a')
+      strictEqual(doc.contents.tag, 'tag:yaml.org,2002:str')
+    }
+  }
+
+  const source = '# 😀\n|2\n  😀a\n b\n'
+  const tokens = [...new Parser().parse(source)]
+  const sourceDocument = tokens.find(token => token.type === 'document')
+  ok(sourceDocument?.type === 'document' && sourceDocument.value?.type === 'block-scalar')
+  const sourceToken = sourceDocument.value
+  const tokenBefore = JSON.stringify(sourceToken)
+  const [composed] = [...new Composer({ keepSourceTokens: true }).compose(tokens, true, source.length)]
+  ok(composed?.contents instanceof Scalar)
+  strictEqual(composed.errors.length, 0)
+  strictEqual(composed.toJS(), ' 😀a\nb\n')
+  strictEqual(composed.contents.srcToken, sourceToken)
+  strictEqual(JSON.stringify(sourceToken), tokenBefore)
+  strictEqual(source.slice(composed.contents.range[0], composed.contents.range[1]), '|2\n  😀a\n b\n')
+  strictEqual(composed.contents.range[0], source.indexOf('|2'))
+  strictEqual(composed.contents.range[1], source.length)
+
+  const all = parseAllDocuments('|2\n  first\n---\n|2\n  second\n')
+  deepStrictEqual(all.map(doc => doc.toJS()), [' first\n', ' second\n'])
+  deepStrictEqual(all.map(doc => doc.errors.length), [0, 0])
+})
+
+test('root explicit block indentation leaves nested and implicit indentation rules intact', () => {
+  deepStrictEqual(parseDocument('k: |2\n  x\n').toJS(), { k: 'x\n' })
+  deepStrictEqual(parseDocument('- |2\n  x\n').toJS(), ['x\n'])
+  deepStrictEqual(parseDocument('outer:\n  inner: |2\n    x\n').toJS(), { outer: { inner: 'x\n' } })
+  deepStrictEqual(parseDocument('outer:\n  - |2\n    x\n').toJS(), { outer: ['x\n'] })
+  strictEqual(parseDocument('|\n  x\n').toJS(), 'x\n')
+  ok(parseDocument('k: |2\n x\n').errors.some(error => error.code === 'BAD_INDENT'))
+})
+
+test('root block-scalar writer indicators preserve leading spaces and reparse through Document', () => {
+  const cases: Array<{ value: string; type: Scalar.Type; comment?: string; anchor?: string; tag?: string; docStart?: boolean; indent?: number; expectedHeader: RegExp }> = [
+    { value: ' a\n', type: Scalar.BLOCK_LITERAL, expectedHeader: /^\|1\n/ },
+    { value: ' a\n', type: Scalar.BLOCK_LITERAL, comment: 'tail', expectedHeader: /^\|3\n/ },
+    { value: ' ---\n', type: Scalar.BLOCK_LITERAL, comment: 'tail', expectedHeader: /^\|3\n/ },
+    { value: ' a\n', type: Scalar.BLOCK_LITERAL, indent: 2, comment: 'tail', expectedHeader: /^\|3\n/ },
+    { value: ' a\n', type: Scalar.BLOCK_LITERAL, anchor: 'a', tag: 'tag:yaml.org,2002:str', expectedHeader: /^&a !!str \|1\n/ },
+    { value: ' a\n', type: Scalar.BLOCK_LITERAL, docStart: true, comment: 'tail', expectedHeader: /^--- \|3\n/ },
+    { value: ' a\n', type: Scalar.BLOCK_LITERAL, indent: 4, comment: 'tail', expectedHeader: /^\|3\n/ },
+    { value: 'first\n second\n', type: Scalar.BLOCK_FOLDED, comment: 'tail', expectedHeader: /^>\n/ },
+  ]
+  for (const { value, type, comment, anchor, tag, docStart, indent, expectedHeader } of cases) {
+    const doc = new PublicDocument(value)
+    ok(doc.contents instanceof Scalar)
+    doc.contents.type = type
+    if (anchor) doc.contents.anchor = anchor
+    if (tag) doc.contents.tag = tag
+    if (comment) doc.comment = comment
+    if (docStart) doc.directives!.docStart = true
+    const source = doc.toString(indent ? { indent } : undefined)
+    ok(expectedHeader.test(source), source)
+    if (comment) ok(source.endsWith('\n#tail\n'), source)
+    const reparsed = parseDocument(source)
+    strictEqual(reparsed.errors.length, 0, source)
+    strictEqual(reparsed.toJS(), value, source)
+  }
+
+  for (const indent of [2, 4]) {
+    const doc = new PublicDocument({ literal: 'literal\n', folded: 'first\nsecond\n' })
+    ok(doc.contents instanceof YAMLMap)
+    const literal = doc.contents.items.find(pair => pair.key?.toString() === 'literal')?.value
+    const folded = doc.contents.items.find(pair => pair.key?.toString() === 'folded')?.value
+    ok(literal instanceof Scalar)
+    ok(folded instanceof Scalar)
+    literal.type = Scalar.BLOCK_LITERAL
+    folded.type = Scalar.BLOCK_FOLDED
+    const source = doc.toString({ indent })
+    strictEqual(parseDocument(source).errors.length, 0, source)
+    deepStrictEqual(parseDocument(source).toJS(), { literal: 'literal\n', folded: 'first\nsecond\n' }, source)
+  }
+  const nested = new PublicDocument({ literal: ' a\n' })
+  ok(nested.contents instanceof YAMLMap)
+  const nestedLiteral = nested.contents.items[0]?.value
+  ok(nestedLiteral instanceof Scalar)
+  nestedLiteral.type = Scalar.BLOCK_LITERAL
+  const nestedSource = nested.toString()
+  deepStrictEqual(parseDocument(nestedSource).toJS(), { literal: ' a\n' }, nestedSource)
+})
 
 test('local parser and composer produce source-aware native documents', () => {
   const source = '# lead\r\n---\r\nname: "😀"\r\nitems: &items [one, two]\r\ncopy: *items\r\n'
