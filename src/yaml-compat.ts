@@ -180,9 +180,6 @@ const STRINGIFY_OPTION_RULES: Record<string, OptionRule> = {
 // parse — calibrated against the REAL `yaml` v2 library, not assumed.
 // ---------------------------------------------------------------------------
 
-/** A `JSON.parse`-style reviver: `function (this, key, value) { ... return value }`. */
-export type Reviver = (this: unknown, key: string, value: unknown) => unknown;
-
 function coreErrorOffset(source: string, message: string): number {
   if (message.endsWith(": unexpected end of input")) return source.length;
   const match = / \(line ([1-9]\d*), column ([1-9]\d*)\)$/.exec(message);
@@ -228,17 +225,43 @@ function canonicalizeCoreParseError(
   throw fallback("UNEXPECTED_TOKEN");
 }
 
-/**
- * Bottom-up walk matching `JSON.parse`'s own reviver algorithm (ECMA-262
- * `InternalizeJSONProperty`) — verified empirically that the real `yaml`
- * library's reviver support behaves the same way (called once per array
- * element / object property, deepest first, with string keys for array
- * indices, then once more for the synthetic root holder).
- */
-function applyReviver(holder: Record<string, unknown>, key: string, reviver: Reviver): unknown {
-  const value = holder[key];
+/** A bottom-up reviver; Map keys and Set items retain their original type. */
+export type Reviver = (this: unknown, key: unknown, value: unknown) => unknown;
+
+function applyReviver(holder: Record<string, unknown> | Map<unknown, unknown> | Set<unknown>, key: unknown, reviver: Reviver): unknown {
+  let value: unknown;
+  if (holder instanceof Map) {
+    value = holder.get(key);
+  } else if (holder instanceof Set) {
+    value = key;
+  } else {
+    value = holder[key as string];
+  }
+
   if (value !== null && typeof value === "object") {
-    if (Array.isArray(value)) {
+    if (value instanceof Map) {
+      const keys = Array.from(value.keys());
+      for (const k of keys) {
+        const previous = value.get(k);
+        const revived = applyReviver(value, k, reviver);
+        if (revived === undefined) {
+          value.delete(k);
+        } else if (revived !== previous) {
+          value.set(k, revived);
+        }
+      }
+    } else if (value instanceof Set) {
+      const items = Array.from(value);
+      for (const item of items) {
+        const revived = applyReviver(value, item, reviver);
+        if (revived === undefined) {
+          value.delete(item);
+        } else if (revived !== item) {
+          value.delete(item);
+          value.add(revived);
+        }
+      }
+    } else if (Array.isArray(value)) {
       for (let i = 0; i < value.length; i++) {
         const revived = applyReviver(value as unknown as Record<string, unknown>, String(i), reviver);
         if (revived === undefined) delete value[i];

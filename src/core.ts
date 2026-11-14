@@ -101,6 +101,9 @@ const BOM = 0xfeff;
  */
 let SKIP_STRICT_VALIDATION = true;
 
+// The js-yaml shim rejects collection-valued keys before they become strings.
+let rejectCollectionKeys = false;
+
 /**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
  * `RangeError` on deeply nested input (an attack, not a use case) where
@@ -610,7 +613,7 @@ export interface ParseOptions {
 }
 
 /** @internal
- * The js-yaml shim uses this identity to require a document without adding a public parse option.
+ * The js-yaml shim uses this identity for its document and mapping-key rules.
  */
 export const requiredDocumentOptions: ParseOptions = Object.freeze({});
 
@@ -649,7 +652,9 @@ export function parse(text: string, options?: ParseOptions): unknown {
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
+  const previousRejectCollectionKeys = rejectCollectionKeys;
   try {
+    rejectCollectionKeys = options === requiredDocumentOptions;
     const value = parseNextDocument(preserveSuffixDocuments);
     if (value === NO_DOCUMENT) {
       if (options === requiredDocumentOptions) {
@@ -666,6 +671,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     }
     return value;
   } finally {
+    rejectCollectionKeys = previousRejectCollectionKeys;
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
@@ -699,7 +705,9 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
+  const previousRejectCollectionKeys = rejectCollectionKeys;
   try {
+    rejectCollectionKeys = options === requiredDocumentOptions;
     const docs: unknown[] = [];
     for (;;) {
       const value = parseNextDocument(preserveSuffixDocuments);
@@ -708,6 +716,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     }
     return docs;
   } finally {
+    rejectCollectionKeys = previousRejectCollectionKeys;
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
@@ -1738,7 +1747,10 @@ function storeKey(obj: Record<string, unknown>, key: string, value: unknown): vo
 function keyToString(node: unknown): string {
   if (typeof node === "string") return node;
   if (node === null) return "";
-  if (typeof node === "object") return stringifyKeyNode(node);
+  if (typeof node === "object") {
+    if (rejectCollectionKeys) fail("object-based map does not support complex keys");
+    return stringifyKeyNode(node);
+  }
   return String(node);
 }
 
@@ -3803,7 +3815,7 @@ function parseExplicitValue(col: number): unknown {
     nextLine();
     return parseDeferredBlockNode(col, true);
   }
-  const value = parseBlockNode(col, false); // inline: NOT gated by the implicit-value inline-seq restriction
+  const value = parseBlockNode(col, true); // inline: NOT gated by the implicit-value inline-seq restriction
   if (tabRightAfterIndicator && isTabRestrictedCollection(value)) fail("a tab cannot separate ':' from a value that opens a new collection");
   return value;
 }
@@ -3814,10 +3826,9 @@ function parseExplicitValue(col: number): unknown {
  * its value counterpart (`s-l+block-indented(n)`), so a DEFERRED key accepts a
  * same-column ("zero-indented") compact sequence just as the value does
  * (`?\n- a\n- b` — yaml-test-suite 6PBE), hence `mapValue=true` to
- * `parseDeferredBlockNode`. INLINE key content stays `mapValue=false` so a
- * nested inline map is still a legal key (`? a: 1\n  b: 2`, which would set
- * `inlineMapValue` and wrongly reject under `true`); the tab-before-a-new-
- * collection restriction, like the value's, applies to that inline case only.
+ * `parseDeferredBlockNode`. Inline properties can also precede a same-column
+ * sequence on a later line, so the inline path passes the same flag. The
+ * separate `inlineMapValue` restriction does not apply to explicit keys.
  * `pos` is already past the `?`.
  */
 function parseExplicitKey(col: number): unknown {
@@ -3828,7 +3839,7 @@ function parseExplicitKey(col: number): unknown {
     nextLine();
     return parseDeferredBlockNode(col, true);
   }
-  const keyNode = parseBlockNode(col, false); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
+  const keyNode = parseBlockNode(col, true); // inline: NOT gated by inlineMapValue — a nested inline map is a legal key
   if (tabRightAfterIndicator && isTabRestrictedCollection(keyNode)) fail("a tab cannot separate '?' from a key that opens a new collection");
   return keyNode;
 }

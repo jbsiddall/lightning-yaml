@@ -363,7 +363,7 @@ export function loadAll(input: string, iteratorOrOpts?: ((doc: unknown) => void)
   validateOptions(options, LOAD_OPTION_RULES, failOption);
   let docs: unknown[];
   try {
-    docs = ourParseAll(input);
+    docs = ourParseAll(input, requiredDocumentOptions);
   } catch (err) {
     if (err instanceof NotImplementedError) throw err;
     throw toYAMLException(err, options?.filename);

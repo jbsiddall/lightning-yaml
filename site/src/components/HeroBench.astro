@@ -41,13 +41,14 @@ import {
   BundleSizeDocSchema,
 } from '../lib/queries';
 import type { LibraryId } from '../lib/queries';
+import { publishableMemoryRatios } from '../../../bench/browser/memory/publication.ts';
 import { buildChart, ratioBarRows, libraryLabel } from '../lib/charts';
 import type { RatioRow } from '../lib/charts';
 
 const speedRuns = parseRuns(speedRaw, SpeedDocSchema);
 const speed = canonicalRun(speedRuns);
 const memoryRuns = parseRuns(memoryRaw, MemoryDocSchema);
-const memoryRatiosRuns = parseRuns(memoryRatiosRaw, MemoryRatiosDocSchema);
+const memoryRatiosRuns = publishableMemoryRatios(parseRuns(memoryRatiosRaw, MemoryRatiosDocSchema));
 const memSource = heroMemorySource(memoryRuns);
 const bundle = newestRun(bundleSizeRaw, BundleSizeDocSchema);
 
