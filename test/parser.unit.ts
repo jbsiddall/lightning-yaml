@@ -468,6 +468,27 @@ test("block scalar: explicit indentation indicator in either order (|2- vs |-2)"
   ]);
 });
 
+// yaml-spec #290 clarifies that root indicators retain the -1 parent-column offset.
+test("block scalar: explicit root indentation preserves the parent-relative offset", () => {
+  deepStrictEqual(parse("|2\n  hello\n"), " hello\n");
+  deepStrictEqual(parse(">2\n  a\n  b\n"), " a\n b\n");
+  deepStrictEqual(parse("|1\n  a\n"), "  a\n");
+  deepStrictEqual(parse("|9\n         nine\n"), " nine\n");
+});
+
+test("block scalar: explicit root indentation with a document marker and each chomping mode", () => {
+  const cases: [string, string][] = [
+    ["--- |2-\n  strip\n", " strip"],
+    ["--- |-2\n  strip\n", " strip"],
+    ["--- |2\n  clip\n", " clip\n"],
+    ["--- |2+\n  keep\n", " keep\n"],
+  ];
+  for (const [input, expected] of cases) {
+    deepStrictEqual(parse(input), expected);
+    deepStrictEqual(parseAll(input), [expected]);
+  }
+});
+
 test("block scalar: a more-indented folded line is kept literally and its surrounding breaks are not folded", () => {
   deepStrictEqual(parse("key: >\n  a\n   more\n  b\n"), { key: "a\n more\nb\n" });
 });
