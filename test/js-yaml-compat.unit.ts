@@ -10,7 +10,8 @@ import jsYamlCompatDefault, {
   load, loadAll, dump, YAMLException, defineScalarTag, Schema, YAML11_SCHEMA, CORE_SCHEMA, JSON_SCHEMA, FAILSAFE_SCHEMA,
   type LoadOptions, type DumpOptions,
 } from "../src/js-yaml-compat.ts";
-import { parse as coreParse } from "../src/core.ts";
+import { parse as coreParse, parseAll as coreParseAll, stringify as coreStringify } from "../src/core.ts";
+import { parse as yamlCompatParse } from "../src/yaml-compat.ts";
 
 const basicDocs = [
   ["plain map", "a: 1\nb: two\nc: true\n"],
@@ -305,4 +306,70 @@ test("js-yaml-compat.dump throws on skipInvalid at either value (we neither drop
   // silently serialize it — so `false` is NOT a genuine no-op. Both values fail loud.
   throws(() => dump(DUMP_VALUE, { skipInvalid: false }), (err: unknown) => err instanceof YAMLException);
   throws(() => dump(DUMP_VALUE, { skipInvalid: true }), (err: unknown) => err instanceof YAMLException);
+});
+
+test("explicit tagged and anchored collection values reach js-yaml compatibility APIs", () => {
+  for (const source of ["? key\n: !!seq\n- entry\n", "? key\n: &a\n- entry\n"]) {
+    deepStrictEqual(load(source), { key: ["entry"] });
+    deepStrictEqual(loadAll(source), [{ key: ["entry"] }]);
+  }
+});
+
+test("js-yaml rejects resolved collection keys across mapping forms", () => {
+  const sources = [
+    "? [a, b]\n: value\n",
+    "? {a: b}\n: value\n",
+    "? !!seq\n- entry\n: value\n",
+    "? &key\n- entry\n: value\n",
+    "first: &key [entry]\n? *key\n: value\n",
+    "first: &key {a: b}\n? *key\n: value\n",
+    "{ ? [a, b] : value }",
+    "[? [a, b]: value]",
+    "? !!set {a: null}\n: value\n",
+    "? !!omap [{a: b}]\n: value\n",
+    "? !!binary SGVsbG8=\n: value\n",
+  ];
+  for (const source of sources) {
+    throws(() => jsyamlReal.load(source), jsyamlReal.YAMLException, source);
+    throws(() => jsyamlReal.loadAll(source), jsyamlReal.YAMLException, source);
+    throws(() => load(source), YAMLException, source);
+    throws(() => loadAll(source), YAMLException, source);
+  }
+});
+
+test("js-yaml allows scalar-looking keys and aliases to collection values", () => {
+  const source = '"[entry]": &a [entry]\ncopy: *a\n';
+  for (const result of [load(source), ...(loadAll(source) as unknown[])]) {
+    const obj = result as Record<string, unknown>;
+    deepStrictEqual(obj["[entry]"], ["entry"]);
+    strictEqual(obj["[entry]"], obj.copy);
+  }
+});
+
+test("js-yaml key policy is isolated across errors and iterator callbacks", () => {
+  const complex = "? !!seq\n- entry\n: value\n";
+  throws(() => load(complex), YAMLException);
+  deepStrictEqual(coreParse(complex), { "[ entry ]": "value" });
+  deepStrictEqual(coreParseAll(complex), [{ "[ entry ]": "value" }]);
+  deepStrictEqual(yamlCompatParse(complex), { "[ entry ]": "value" });
+  strictEqual(coreStringify({ good: true }), "good: true\n");
+  const observed: unknown[] = [];
+  loadAll("---\na: 1\n---\nb: 2\n", (doc) => {
+    observed.push(doc, coreParse(complex));
+    throws(() => load(complex), YAMLException);
+  });
+  deepStrictEqual(observed, [{ a: 1 }, { "[ entry ]": "value" }, { b: 2 }, { "[ entry ]": "value" }]);
+  deepStrictEqual(coreParse(complex), { "[ entry ]": "value" });
+});
+
+test("js-yaml key policy is restored after an option getter throws", () => {
+  const complex = "? !!seq\n- entry\n: value\n";
+  throws(() => coreParse("ignored", {
+    get strict(): boolean {
+      throws(() => load(complex), YAMLException);
+      throw new Error("option getter failed");
+    },
+  }), /option getter failed/);
+  deepStrictEqual(coreParse(complex), { "[ entry ]": "value" });
+  throws(() => load(complex), YAMLException);
 });
