@@ -78,8 +78,9 @@
  * Parser behavior notes (a `NotImplementedError` means "can't read this yet",
  * not "malformed"):
  *
- *   - Supported constructs include block scalars, anchors/aliases, and tags
- *     (including `!!binary`); `load`/`loadAll` return values for them. Other
+ *   - Supported constructs include block scalars, anchors/aliases, and core
+ *     tags. The js-yaml default CORE profile rejects `!!binary`, while the
+ *     native and `yaml` parsers retain binary decoding. Other
  *     YAML 1.2 spec edge cases are tracked through the official suite and
  *     follow-up issues. Merge keys (`<<`) are currently neither merged nor
  *     rejected: they come back as ordinary keys (e.g. `{ "<<": {...}, y: 2 }`),
@@ -93,10 +94,10 @@
  *     honoured yet and throw (see the matrix).
  *   - Custom schemas/tags (`defineScalarTag`/`defineSequenceTag`/
  *     `defineMappingTag`, `Schema`, the `*_SCHEMA` constants, and the `schema`
- *     option) are cheap stubs: they exist so imports resolve and
- *     `{ schema: CORE_SCHEMA }`-style options don't crash the call, but our
- *     parser is hardwired to YAML 1.2 core (see ./core.ts) and never
- *     branches on them.
+ *     option) are cheap stubs: they exist so imports resolve and the unmodified
+ *     `{ schema: CORE_SCHEMA }` option is accepted. Nonempty schema/tag
+ *     composition and other schema constants fail as unsupported because our
+ *     parser is hardwired to YAML 1.2 core (see ./core.ts).
  *
  * `load` rejects empty streams and streams with multiple documents, while
  * `loadAll` returns every document in order (see ./core.ts).
@@ -187,9 +188,10 @@ function toYAMLException(err: unknown, filename: string | undefined): YAMLExcept
 
 // ---------------------------------------------------------------------------
 // Schema / tag-definition stubs — they exist so imports resolve, and our parser
-// is fixed to YAML 1.2 core (./core.ts), so tag composition is a no-op. Passing
-// one as the `schema` option is validated by load/dump: only the default
-// CORE_SCHEMA is a no-op, others throw (see the option rules below).
+// is fixed to YAML 1.2 core (./core.ts), so custom tags are not implemented.
+// Passing a schema as an option is validated by load/dump: only the unmodified
+// CORE_SCHEMA is accepted, while nonempty composition returns another identity
+// that is rejected as unsupported (see the option rules below).
 //
 // v5 REWRITE (vs. v4, which this shim used to mirror): js-yaml dropped the
 // `Type` class and `Schema.extend()` entirely — custom tags are now defined
@@ -222,12 +224,12 @@ export function defineMappingTag(tagName: string, _opts: Record<string, unknown>
   return { tagName, nodeKind: "mapping" };
 }
 
-/** Stub mirroring js-yaml v5's `Schema` (composition via `.withTags(...)`). A no-op. */
+/** Stub mirroring js-yaml v5's `Schema`; custom tag composition is unsupported. */
 export class Schema {
   constructor(_tags?: readonly TagDefinition[]) {}
 
   withTags(..._tags: unknown[]): Schema {
-    return this;
+    return _tags.every((tag) => Array.isArray(tag) && tag.length === 0) ? this : new Schema();
   }
 }
 

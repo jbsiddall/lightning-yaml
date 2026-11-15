@@ -221,6 +221,119 @@ test("YAMLException carries name/reason/message/mark like js-yaml's", () => {
   }
 });
 
+const BINARY_TAG = "tag:yaml.org,2002:binary";
+const BINARY_CASES = [
+  ["root", "!!binary aGk=\n"],
+  ["map value", "value: !!binary aGk=\n"],
+  ["flow value", "value: [!!binary aGk=]\n"],
+  ["anchored value and alias", "value: &bytes !!binary aGk=\ncopy: *bytes\n"],
+  ["verbatim tag", `!<${BINARY_TAG}> aGk=\n`],
+  ["named TAG handle", "%TAG !e! tag:yaml.org,2002:\n--- !e!binary aGk=\n"],
+  ["quoted payload", `!!binary "aGk="\n`],
+  ["literal payload", "!!binary |\n  aGk=\n"],
+  ["explicit key", "? !!binary aGk=\n: value\n"],
+] as const;
+
+function assertUnknownBinaryTag(action: () => unknown, filename?: string): void {
+  throws(action, (err: unknown) => {
+    ok(err instanceof YAMLException);
+    ok((err as YAMLException).reason.startsWith(`unknown scalar tag !<${BINARY_TAG}>`));
+    if (filename) strictEqual((err as YAMLException).mark.name, filename);
+    return true;
+  });
+}
+
+test("js-yaml profile rejects explicitly resolved binary scalar tags through load/loadAll", () => {
+  for (const [label, input] of BINARY_CASES) {
+    throws(() => jsyamlReal.load(input), (err: unknown) => err instanceof jsyamlReal.YAMLException);
+    assertUnknownBinaryTag(
+      () => load(input, label === "root" ? { filename: "binary.yml" } : undefined),
+      label === "root" ? "binary.yml" : undefined,
+    );
+    assertUnknownBinaryTag(() => load(input, { schema: CORE_SCHEMA }));
+    assertUnknownBinaryTag(() => load(input, { json: true }));
+    assertUnknownBinaryTag(() => loadAll(input));
+    assertUnknownBinaryTag(() => loadAll(input, { schema: CORE_SCHEMA }));
+    assertUnknownBinaryTag(() => loadAll(input, null, { filename: "binary.yml" }), "binary.yml");
+  }
+  assertUnknownBinaryTag(() => load("!!binary not base64!\n"));
+  deepStrictEqual(load("plain: text mentioning !!binary is not a tag\n"), { plain: "text mentioning !!binary is not a tag" });
+  strictEqual(load("%TAG !! tag:example.com,2020:\n--- !!binary ordinary\n"), "ordinary");
+
+  const seen: unknown[] = [];
+  assertUnknownBinaryTag(() => loadAll("--- ok\n--- !!binary aGk=\n", (doc) => seen.push(doc)));
+  deepStrictEqual(seen, []);
+  const seenSecondSlot: unknown[] = [];
+  assertUnknownBinaryTag(() => loadAll("--- ok\n--- !!binary aGk=\n", (doc) => seenSecondSlot.push(doc), { filename: "late.yml" }));
+  deepStrictEqual(seenSecondSlot, []);
+});
+
+test("js-yaml binary guard is scoped and preserves native/yaml parsing", () => {
+  const native = coreParse("value: &bytes !!binary aGk=\ncopy: *bytes\n") as Record<string, unknown>;
+  ok(native.value instanceof Uint8Array);
+  deepStrictEqual([...native.value], [104, 105]);
+  strictEqual(native.copy, native.value);
+  const yaml = yamlCompatParse("value: &bytes !!binary aGk=\ncopy: *bytes\n") as Record<string, unknown>;
+  ok(yaml.value instanceof Uint8Array);
+  deepStrictEqual([...yaml.value], [104, 105]);
+  strictEqual(yaml.copy, yaml.value);
+
+  assertUnknownBinaryTag(() => load("!!binary aGk=\n"));
+  const seen: unknown[] = [];
+  loadAll("--- first\n--- second\n", (doc) => {
+    seen.push(doc);
+    const nestedNative = coreParse("!!binary aGk=\n") as Uint8Array;
+    deepStrictEqual([...nestedNative], [104, 105]);
+    assertUnknownBinaryTag(() => load("!!binary aGk=\n"));
+  });
+  deepStrictEqual(seen, ["first", "second"]);
+
+  const sentinel = new Error("iterator sentinel");
+  try {
+    loadAll("--- first\n--- second\n", () => { throw sentinel; });
+    throw new Error("expected iterator to throw");
+  } catch (err) {
+    strictEqual(err, sentinel);
+  }
+  const after = coreParse("value: !!binary aGk=\n") as { value: Uint8Array };
+  deepStrictEqual([...after.value], [104, 105]);
+  assertUnknownBinaryTag(() => load("!!binary aGk=\n"));
+
+  const getterSentinel = new Error("option getter sentinel");
+  const getterOptions = {
+    get json(): boolean {
+      deepStrictEqual([...(coreParse("!!binary aGk=\n") as Uint8Array)], [104, 105]);
+      throw getterSentinel;
+    },
+  };
+  throws(() => load("a: 1\n", getterOptions), (err: unknown) => err === getterSentinel);
+  deepStrictEqual([...(coreParse("!!binary aGk=\n") as Uint8Array)], [104, 105]);
+  assertUnknownBinaryTag(() => load("!!binary aGk=\n"));
+});
+
+test("js-yaml custom schema composition remains explicitly unsupported", () => {
+  let resolverCalls = 0;
+  const customBinary = defineScalarTag(BINARY_TAG, {
+    resolve: () => {
+      resolverCalls++;
+      return new Uint8Array([104, 105]);
+    },
+  });
+  const composed = [CORE_SCHEMA.withTags(customBinary), CORE_SCHEMA.withTags([customBinary])];
+  strictEqual(CORE_SCHEMA.withTags(), CORE_SCHEMA);
+  strictEqual(CORE_SCHEMA.withTags([]), CORE_SCHEMA);
+  for (const schema of composed) {
+    ok(schema !== CORE_SCHEMA);
+    for (const call of [
+      () => load("a: 1\n", { schema }),
+      () => loadAll("a: 1\n", null, { schema }),
+    ]) throws(call, (err: unknown) => err instanceof YAMLException && /default CORE schema/.test(err.message));
+  }
+  strictEqual(resolverCalls, 0);
+  deepStrictEqual(load("plain: text mentioning !!binary is not a tag\n"), { plain: "text mentioning !!binary is not a tag" });
+  strictEqual(CORE_SCHEMA.withTags(), CORE_SCHEMA);
+});
+
 test("js-yaml-compat.dump emits YAML the real js-yaml reads back", () => {
   const text = dump(DUMP_VALUE);
   strictEqual(typeof text, "string");

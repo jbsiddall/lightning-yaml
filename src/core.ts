@@ -101,8 +101,8 @@ const BOM = 0xfeff;
  */
 let SKIP_STRICT_VALIDATION = true;
 
-// The js-yaml shim rejects collection-valued keys before they become strings.
-let rejectCollectionKeys = false;
+// Private js-yaml document profile: reject collection-valued keys and binary scalars.
+let jsYamlProfile = false;
 
 /**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
@@ -613,7 +613,7 @@ export interface ParseOptions {
 }
 
 /** @internal
- * The js-yaml shim uses this identity for its document and mapping-key rules.
+ * The js-yaml shim uses this identity for its document, mapping-key, and tag rules.
  */
 export const requiredDocumentOptions: ParseOptions = Object.freeze({});
 
@@ -652,9 +652,9 @@ export function parse(text: string, options?: ParseOptions): unknown {
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
-  const previousRejectCollectionKeys = rejectCollectionKeys;
+  const previousJsYamlProfile = jsYamlProfile;
   try {
-    rejectCollectionKeys = options === requiredDocumentOptions;
+    jsYamlProfile = options === requiredDocumentOptions;
     const value = parseNextDocument(preserveSuffixDocuments);
     if (value === NO_DOCUMENT) {
       if (options === requiredDocumentOptions) {
@@ -671,7 +671,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     }
     return value;
   } finally {
-    rejectCollectionKeys = previousRejectCollectionKeys;
+    jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
@@ -705,9 +705,9 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   valueCache = options?.optimizations?.internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = options?.strict !== true;
   keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
-  const previousRejectCollectionKeys = rejectCollectionKeys;
+  const previousJsYamlProfile = jsYamlProfile;
   try {
-    rejectCollectionKeys = options === requiredDocumentOptions;
+    jsYamlProfile = options === requiredDocumentOptions;
     const docs: unknown[] = [];
     for (;;) {
       const value = parseNextDocument(preserveSuffixDocuments);
@@ -716,7 +716,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     }
     return docs;
   } finally {
-    rejectCollectionKeys = previousRejectCollectionKeys;
+    jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
@@ -1146,6 +1146,7 @@ function applyScalarTag(tag: string, raw: string): unknown {
     case TAG_NULL:
       return forceNull(raw);
     case TAG_BINARY:
+      if (jsYamlProfile) fail(`unknown scalar tag !<${tag}>`);
       return decodeBinary(raw);
     case TAG_MAP:
     case TAG_SEQ:
@@ -1748,7 +1749,7 @@ function keyToString(node: unknown): string {
   if (typeof node === "string") return node;
   if (node === null) return "";
   if (typeof node === "object") {
-    if (rejectCollectionKeys) fail("object-based map does not support complex keys");
+    if (jsYamlProfile) fail("object-based map does not support complex keys");
     return stringifyKeyNode(node);
   }
   return String(node);
