@@ -184,8 +184,8 @@ export class YAMLParseError extends Error {
 }
 
 // ---------------------------------------------------------------------------
-// Parser state (module-level, monomorphic scalars; reset per parse). The parser
-// is non-reentrant by design — the v1 API is fully sync with no user callbacks.
+// Parser state is shared module-level state. Public option getters are
+// evaluated before each entrypoint resets it; scanning then runs synchronously.
 // ---------------------------------------------------------------------------
 
 let src = "";
@@ -647,11 +647,14 @@ export const yamlDocumentOptions: ParseOptions = Object.freeze({});
  * ```
  */
 export function parse(text: string, options?: ParseOptions): unknown {
+  const internStrings = !!options?.optimizations?.internStrings;
+  const skipStrictValidation = options?.strict !== true;
+  const maxKeyCacheBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   resetForStream(text);
   const preserveSuffixDocuments = options === yamlDocumentOptions;
-  valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  SKIP_STRICT_VALIDATION = options?.strict !== true;
-  keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
+  valueCache = internStrings ? new Map() : null;
+  SKIP_STRICT_VALIDATION = skipStrictValidation;
+  keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
     jsYamlProfile = options === requiredDocumentOptions;
@@ -700,11 +703,14 @@ export function parse(text: string, options?: ParseOptions): unknown {
  * ```
  */
 export function parseAll(text: string, options?: ParseOptions): unknown[] {
+  const internStrings = !!options?.optimizations?.internStrings;
+  const skipStrictValidation = options?.strict !== true;
+  const maxKeyCacheBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
   resetForStream(text);
   const preserveSuffixDocuments = options === yamlDocumentOptions;
-  valueCache = options?.optimizations?.internStrings ? new Map() : null;
-  SKIP_STRICT_VALIDATION = options?.strict !== true;
-  keyCacheMaxBytes = (options?.optimizations?.keyCacheMaxKb ?? DEFAULT_KEY_CACHE_MAX_KB) * 1024;
+  valueCache = internStrings ? new Map() : null;
+  SKIP_STRICT_VALIDATION = skipStrictValidation;
+  keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
     jsYamlProfile = options === requiredDocumentOptions;

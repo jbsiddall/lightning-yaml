@@ -16,6 +16,8 @@ import { deepStrictEqual, strictEqual, throws, ok } from "node:assert";
 import { load as jsYamlLoad, dump as jsYamlDump } from "js-yaml";
 import { parse, parseAll, stringify, YAMLParseError } from "../src/index.ts";
 import { requiredDocumentOptions } from "../src/core.ts";
+import { load as jsYamlCompatLoad, loadAll as jsYamlCompatLoadAll, YAMLException as JsYamlCompatException } from "../src/js-yaml-compat.ts";
+import { parse as yamlCompatParse } from "../src/yaml-compat.ts";
 import { datasets, loadFixtureText } from "../bench/fixtures/datasets.ts";
 import { oracleParse } from "../bench/oracle.ts";
 import { makeRng, type Rng } from "../bench/util/prng.ts";
@@ -796,6 +798,168 @@ test("suffix and parse errors leave core parser options reset for the next call"
   deepStrictEqual(parseAll("a: shared\nb: shared\n", { optimizations: { internStrings: true } }), [
     { a: "shared", b: "shared" },
   ]);
+});
+
+test("native option getters may reenter parse and parseAll without replacing the outer input", () => {
+  type NativeOptions = NonNullable<Parameters<typeof parse>[1]>;
+  const run = (entry: "parse" | "parseAll", input: string, options: NativeOptions): unknown =>
+    entry === "parse" ? parse(input, options) : parseAll(input, options);
+
+  for (const entry of ["parse", "parseAll"] as const) {
+    const events: string[] = [];
+    let optimizationReads = 0;
+    let firstOptimizations: unknown;
+    let secondOptimizations: unknown;
+    const reenter = (index: number): void => {
+      if (index === 1) deepStrictEqual(parse("inner: nested\n"), { inner: "nested" });
+      else if (index === 2) deepStrictEqual(parseAll("--- first\n--- second\n"), ["first", "second"]);
+      else deepStrictEqual(parse("inner: final\n"), { inner: "final" });
+    };
+    const options: NativeOptions = {
+      get optimizations() {
+        optimizationReads++;
+        events.push(`optimizations:${optimizationReads}`);
+        const value = optimizationReads === 1
+          ? { get internStrings() { events.push("internStrings"); reenter(1); return true; } }
+          : { get keyCacheMaxKb() { events.push("keyCacheMaxKb"); reenter(3); return 8; } };
+        if (optimizationReads === 1) firstOptimizations = value;
+        else secondOptimizations = value;
+        return value;
+      },
+      get strict() {
+        events.push("strict");
+        reenter(2);
+        return false;
+      },
+    };
+
+    const input = entry === "parse"
+      ? "value: &bytes !!binary aGk=\ncopy: *bytes\n"
+      : "---\nvalue: &bytes !!binary aGk=\ncopy: *bytes\n---\nother: !!binary aGk=\n";
+    const result = run(entry, input, options) as Record<string, unknown> | Array<Record<string, unknown>>;
+    strictEqual(optimizationReads, 2);
+    ok(firstOptimizations !== secondOptimizations);
+    deepStrictEqual(events, ["optimizations:1", "internStrings", "strict", "optimizations:2", "keyCacheMaxKb"]);
+    if (entry === "parse") {
+      const doc = result as Record<string, unknown>;
+      deepStrictEqual([...doc.value as Uint8Array], [104, 105]);
+      strictEqual(doc.copy, doc.value);
+    } else {
+      const docs = result as Array<Record<string, unknown>>;
+      strictEqual(docs.length, 2);
+      deepStrictEqual([...docs[0].value as Uint8Array], [104, 105]);
+      strictEqual(docs[0].copy, docs[0].value);
+      deepStrictEqual([...docs[1].other as Uint8Array], [104, 105]);
+    }
+  }
+
+  const emptyOptions: NativeOptions = { get strict() { parseAll("--- inner\n--- other\n"); return false; } };
+  deepStrictEqual(parseAll("", emptyOptions), []);
+  const jsonOptions: NativeOptions = { get strict() { parse("inner"); return false; } };
+  deepStrictEqual(parse("{\"outer\":1}", jsonOptions), { outer: 1 });
+});
+
+test("native option getter initialization restores the outer strict and cache settings", () => {
+  type NativeOptions = NonNullable<Parameters<typeof parse>[1]>;
+  for (const entry of ["parse", "parseAll"] as const) {
+    const options: NativeOptions = {
+      strict: true,
+      optimizations: {
+        internStrings: false,
+        get keyCacheMaxKb() {
+          // The nested call is lenient. The outer strict flag must be installed
+          // after this final option getter and still reject its own tab indent.
+          deepStrictEqual(parse("\tinner: accepted\n"), { inner: "accepted" });
+          return undefined;
+        },
+      },
+    };
+    throws(
+      () => entry === "parse" ? parse("\touter: rejected\n", options) : parseAll("\touter: rejected\n", options),
+      YAMLParseError,
+    );
+    deepStrictEqual(parse("after: recovery\n"), { after: "recovery" });
+  }
+});
+
+test("caught nested parse errors from option getters do not replace either outer input", () => {
+  type NativeOptions = NonNullable<Parameters<typeof parse>[1]>;
+  for (const entry of ["parse", "parseAll"] as const) {
+    const options: NativeOptions = {
+      get strict() {
+        throws(() => parseAll("--- [\n"), YAMLParseError);
+        return false;
+      },
+    };
+    if (entry === "parse") deepStrictEqual(parse("outer: survived\n", options), { outer: "survived" });
+    else deepStrictEqual(parseAll("--- outer\n--- survived\n", options), ["outer", "survived"]);
+  }
+});
+
+test("outer option getter exceptions preserve identity, short-circuit later options, and recover", () => {
+  type NativeOptions = NonNullable<Parameters<typeof parse>[1]>;
+  for (const entry of ["parse", "parseAll"] as const) {
+    const sentinel = new Error("outer option getter sentinel");
+    let laterGetterCalls = 0;
+    const options: NativeOptions = {
+      get optimizations(): NonNullable<NativeOptions["optimizations"]> {
+        return {
+          get internStrings(): boolean {
+            deepStrictEqual(parse("inner: completed\n"), { inner: "completed" });
+            throw sentinel;
+          },
+        };
+      },
+      get strict() { laterGetterCalls++; return false; },
+    };
+    throws(
+      () => entry === "parse" ? parse("outer: discarded\n", options) : parseAll("--- outer\n--- discarded\n", options),
+      (err: unknown) => err === sentinel,
+    );
+    strictEqual(laterGetterCalls, 0);
+    deepStrictEqual(parse("after: recovery\n"), { after: "recovery" });
+  }
+});
+
+test("option getters preserve the distinct js-yaml, native, and yaml parser profiles", () => {
+  type NativeOptions = NonNullable<Parameters<typeof parse>[1]>;
+  const assertProfiles = (): void => {
+    const source = "value: &bytes !!binary aGk=\ncopy: *bytes\n";
+    const native = parse(source) as Record<string, unknown>;
+    deepStrictEqual([...native.value as Uint8Array], [104, 105]);
+    strictEqual(native.copy, native.value);
+    const nativeDocs = parseAll(`---\n${source}---\nnext: !!binary aGk=\n`);
+    deepStrictEqual([...((nativeDocs[0] as Record<string, Uint8Array>).value)], [104, 105]);
+    strictEqual((nativeDocs[0] as Record<string, unknown>).copy, (nativeDocs[0] as Record<string, unknown>).value);
+    const yaml = yamlCompatParse(source) as Record<string, unknown>;
+    deepStrictEqual([...yaml.value as Uint8Array], [104, 105]);
+    strictEqual(yaml.copy, yaml.value);
+
+    throws(() => jsYamlCompatLoad("!!binary aGk=\n"), JsYamlCompatException);
+    const seen: unknown[] = [];
+    throws(() => jsYamlCompatLoadAll("--- ok\n--- !!binary aGk=\n", (doc) => seen.push(doc)), JsYamlCompatException);
+    deepStrictEqual(seen, []);
+    throws(() => jsYamlCompatLoad("? [a, b]\n: value\n"), JsYamlCompatException);
+  };
+
+  const returningOptions: NativeOptions = {
+    get strict(): boolean {
+      assertProfiles();
+      return false;
+    },
+  };
+  deepStrictEqual(parse("outer: returned\n", returningOptions), { outer: "returned" });
+  assertProfiles();
+
+  const sentinel = new Error("profile-checking getter sentinel");
+  const throwingOptions: NativeOptions = {
+    get strict(): boolean {
+      assertProfiles();
+      throw sentinel;
+    },
+  };
+  throws(() => parse("outer: throws\n", throwingOptions), (err: unknown) => err === sentinel);
+  assertProfiles();
 });
 
 test("the internal required-document option preserves single-document values", () => {
