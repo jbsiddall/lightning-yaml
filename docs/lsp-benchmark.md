@@ -151,9 +151,13 @@ real `--measure` CLI launch failed in report finalization because
 `preflightComplete` was out of scope, and emitted no usable measurement report.
 Whether any scheduled phase worker executed is unknown; treat this launch as
 unscored and do not use it as performance evidence. The failure is tracked in
-[#326](https://github.com/jbsiddall/lightning-yaml/issues/326). No graph census,
-CPU profile, or heap snapshot has been run.
-<!-- yaml:2.9.0 ly:fd10d8e1fa5cf89d09f7acf074ea603b2be0f707 -->
+[#326](https://github.com/jbsiddall/lightning-yaml/issues/326). A separately
+reviewed recovery later completed the three original explicit-false cells;
+the 30-document derived cell completed, and the 312-document derived cell
+timed out with phases pending. See the [dated report](compatibility/reports/2026-11-16/lsp.md)
+for exact factors and execution status. The recovery is a distinct attempt and
+does not replace or backdate the failed launch.
+<!-- yaml:2.9.0 ly:eb4b3adcd5f3cf9a97a6f8430c468f84b652347c data:883aaeb39b9196e3345146e82534951278e1b67d9a24179bd29ad13cebdcc19c -->
 
 ## Non-scored diagnostics
 
@@ -202,7 +206,9 @@ The diagnostic campaign clock starts at CLI entry and allows at most 60 seconds
 overall; its worker has a separate 49-second inner limit, clamped to the
 remaining outer time after participant and fixture preparation.
 Diagnostics are not scored observations and establish no performance result.
-No profile or heap snapshot was collected for this harness change.
+The completed non-scored profile, census and snapshot observations, including
+their coverage limits and unknown byte floor, are summarized in the
+[2026-11-16 report](compatibility/reports/2026-11-16/lsp.md).
 
 Example non-scored census invocation (use the reviewed roots and hashes above):
 
@@ -221,3 +227,13 @@ For a declared CPU profile or heap snapshot, add `--artifact` with a private
 destination outside the repository. Each command runs one fresh diagnostic worker; repeated cases are
 separate explicit invocations so their identities and raw files stay distinct.
 <!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:fd10d8e1fa5cf89d09f7acf074ea603b2be0f707 -->
+
+## Latest bounded evidence
+
+The 2026-11-16 report records the two-repeat original corpus measurements, the
+separate 30-document result, the incomplete 312-document run, and non-scored
+diagnostics. It retains the failed first launch as execution-unknown and
+unscored. The evidence does not establish same-behavior actual-server
+performance or a mandatory-output byte floor. See the [report and compact
+observations](compatibility/reports/2026-11-16/lsp.md).
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:eb4b3adcd5f3cf9a97a6f8430c468f84b652347c data:883aaeb39b9196e3345146e82534951278e1b67d9a24179bd29ad13cebdcc19c -->

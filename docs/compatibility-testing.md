@@ -415,6 +415,16 @@ The workflow uploads all report directories in the existing
 `compatibility-test-reports` artifact. Code coverage measures executed
 production code; compatibility metrics measure the bounded schedule of observations.
 
+## YAML language-server feasibility
+
+The separate [2026-11-16 LSP report](compatibility/reports/2026-11-16/lsp.md)
+records bounded parser-path measurements and diagnostics for the pinned
+language-server consumer. It is a feasibility report, not part of the
+js-yaml compatibility audit. Its compact [observation export](compatibility/reports/2026-11-16/lsp-observations.json)
+preserves the recorded phase rows and incomplete statuses; the actual-server
+default-policy diagnostics do not establish matched-policy performance.
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:eb4b3adcd5f3cf9a97a6f8430c468f84b652347c data:883aaeb39b9196e3345146e82534951278e1b67d9a24179bd29ad13cebdcc19c -->
+
 ## Latest measured run
 
 See [the measured results](compatibility/reports/2026-10-11/yaml.md) for main-wrapper and draft CST
