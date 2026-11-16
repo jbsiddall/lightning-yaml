@@ -5,6 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync,
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import * as yaml from "yaml";
+import * as ts from "typescript";
 import * as sourceYaml from "../../../src/yaml-compat.ts";
 import {
   assertCstLossless,
@@ -129,7 +130,7 @@ describe("maintained LSP compatibility contract", () => {
   it("finalizes an incomplete measurement report when semantic preflight fails", () => {
     const schedule = [{ cellId: "cell-a", observationId: "cell-a:repeat:1:candidate:cpu-wall" }];
     const phaseLedger = finalizeScheduleLedger(schedule, schedule);
-    const report = finalizeMeasurementReport({
+    const reportInputs = {
       preflightComplete: false,
       batch: "bare-matched-corpus",
       participants: ["candidate", "reference"],
@@ -150,7 +151,8 @@ describe("maintained LSP compatibility contract", () => {
       rawObservations: [],
       semanticPreflight: [],
       elapsedMs: 5
-    });
+    };
+    const report = finalizeMeasurementReport(reportInputs);
     expect(report).toMatchObject({
       kind: "lsp-measurement",
       status: "incomplete",
@@ -164,6 +166,42 @@ describe("maintained LSP compatibility contract", () => {
       semanticPreflight: [],
       measurementClaim: null
     });
+    const completeReport = finalizeMeasurementReport({
+      ...reportInputs,
+      preflightComplete: true,
+      plannedCellIds: ["cell-a"],
+      phaseLedger: finalizeScheduleLedger(schedule, schedule, [schedule[0]!.observationId]),
+      failedPhases: [],
+      completedPhaseIds: [schedule[0]!.observationId]
+    });
+    expect(completeReport).toMatchObject({
+      status: "completed",
+      cells: { completed: ["cell-a"], failed: [], pending: [] },
+      measurementClaim: "raw observations only; no optimization conclusion is made by the harness"
+    });
+  });
+
+  it("binds report-return shorthand references in the actual measurement orchestrator", () => {
+    const script = resolve(root, "scripts/compatibility/bench-lsp.mjs");
+    const program = ts.createProgram({
+      rootNames: [script],
+      options: {
+        allowJs: true,
+        checkJs: true,
+        noEmit: true,
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.NodeNext,
+        moduleResolution: ts.ModuleResolutionKind.NodeNext,
+        types: ["node"],
+        skipLibCheck: true,
+      },
+    });
+    const unboundReferences = ts.getPreEmitDiagnostics(program).filter((diagnostic) =>
+      diagnostic.file?.fileName === script && [2304, 2552, 18004].includes(diagnostic.code));
+    expect(unboundReferences.map((diagnostic) => ({
+      code: diagnostic.code,
+      message: ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+    }))).toEqual([]);
   });
 
   it("asserts the direct parser/composer operation and independent UTF-16 source witness", () => {
