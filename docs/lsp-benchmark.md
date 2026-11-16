@@ -112,9 +112,11 @@ Switch `--plan` to `--measure` to execute the selected cells. Use `--cells` to
 limit a named batch; cells omitted from that selection stay visible as
 `notSelected`.
 
-Named batches are `bare-corpus`, `bare-scale`, `bare-policy`, and
-`lsp-consumer`. They contain 3, 2, 6, and 12 logical comparison cells,
-respectively. A cell ID is provider-independent and identifies its batch,
+Named batches are `bare-corpus`, `bare-scale`, `bare-matched-corpus`,
+`bare-matched-scale`, `bare-policy`, and `lsp-consumer`. They contain 3, 2, 6,
+4, 6, and 12 logical comparison cells, respectively. The matched batches
+declare both explicit `uniqueKeys: false` and `uniqueKeys: true` policies. A
+cell ID is provider-independent and identifies its batch,
 fixture, declared policy, and document mode. `--cells` selects logical cell IDs
 from the named batch, so selecting one case still schedules its candidate and
 reference pair.
@@ -125,7 +127,7 @@ second reverses the cell order and runs reference then candidate. Each scored
 phase worker has a unique observation ID containing its cell, repeat, participant,
 and phase. Semantic-preflight workers use separate check IDs outside this paired
 schedule. `--plan` prints the scored schedule. The full batches declare 36,
-24, 72, and 144 phase observations respectively; selecting one cell declares
+24, 72, 48, 72, and 144 phase observations respectively; selecting one cell declares
 12. Results retain planned, selected, completed, failed, pending, and
 not-selected observation IDs as well as the logical cell ledger.
 
@@ -144,6 +146,94 @@ reference semantic preflight agree on document values and types, alias
 reference identity, ranges, diagnostics, and line starts. A mismatch keeps both
 preflight outcomes and marks that cell failed and performance-ineligible.
 These phases report raw observations and do not make an optimization
-conclusion. Their mechanics are covered with injected fake operations; no real
-provider timing campaign was run for this contract change.
-<!-- yaml:2.9.0 ly:99db15ad2004af03bab230f4b6728359a277cc47 -->
+conclusion. Their mechanics are covered with injected fake operations. The first
+real `--measure` CLI launch failed in report finalization because
+`preflightComplete` was out of scope, and emitted no usable measurement report.
+Whether any scheduled phase worker executed is unknown; treat this launch as
+unscored and do not use it as performance evidence. The failure is tracked in
+[#326](https://github.com/jbsiddall/lightning-yaml/issues/326). A separately
+reviewed recovery later completed the three original explicit-false cells;
+the 30-document derived cell completed, and the 312-document derived cell
+timed out with phases pending. See the [dated report](compatibility/reports/2026-11-16/lsp.md)
+for exact factors and execution status. The recovery is a distinct attempt and
+does not replace or backdate the failed launch.
+<!-- yaml:2.9.0 ly:eb4b3adcd5f3cf9a97a6f8430c468f84b652347c data:883aaeb39b9196e3345146e82534951278e1b67d9a24179bd29ad13cebdcc19c -->
+
+## Non-scored diagnostics
+
+`--diagnose` runs one bounded diagnostic child through the same provider import,
+resolver hook, and parser operation used by measurement workers. It requires the
+reviewed candidate and server roots/heads, a corpus fixture, and an explicit
+participant (`candidate`, `reference`, `server-candidate`, or `server-reference`).
+The default bare policy is `uniqueKeys-false`; actual-server runs preserve the
+server's literal defaults. `--diagnostic graph-census` is limited to all three
+original fixtures through each actual-server provider (six distinct cases). It
+reports own-property reachable graph counts, selected string-field occurrences,
+and their code units without invoking accessors. Those string counts describe
+property occurrences, not unique physical string storage, and are never bytes.
+The census skips own `schema` reference edges and separately reports their field
+occurrences, per-owner graph-local identity links, and distinct schema
+identities. This makes per-document references and schema reuse visible without
+including schema contents in the operation graph counts; schemas may be
+per-document or shared. These graph-local IDs are not V8 heap-node IDs. This is a
+partial graph census: excluded schema memory remains unknown, so these counts
+do not establish a complete retained graph or a byte floor. Prototype and
+module roots are not traversed, and the alias-resolution cache is reported as
+an untraversed root that may retain the latest AST. `--diagnostic cpu-profile` is limited to
+the declared GitHub Actions bare matched-false and actual-server cases; it uses
+three warmups, 250 operations, and a 1 ms sample interval. `--diagnostic
+heap-snapshot` is limited to actual-server GitHub Actions cases and captures a
+raw snapshot for offline inspection; the harness does not parse snapshots or
+infer object bytes from counts. Server-wrapper frames are distinct from the
+actual `ast-converter.js` conversion functions. A profile is insufficient for
+fine attribution unless it has at least 200 useful samples and at least 80%
+classified coverage; reports include total, useful, assigned, and unassigned
+counts. Snapshot capture keeps the operation result
+live, but emits no object-identity-to-heap-node mapping. Offline exact mapping is
+required before attributing bytes or deriving a floor; if mapping is not
+established, byte attribution and the floor remain unknown. CPU profiles and snapshots require a private
+`--artifact` destination outside the repository; the JSON result reports only
+the artifact basename. Existing parent symlinks are resolved before the
+outside-repository check, and workers receive the canonical destination.
+`graph-census` does not accept `--artifact`. Snapshot
+chunks use a synchronous file sink so writes apply backpressure directly to
+Inspector event delivery. Sink refusal or write errors return an incomplete
+status with cleanup reported as removed, retained, or unknown. The report only
+claims removal when the sink verifies it; the coordinator does not infer cleanup
+from the final artifact path.
+
+The diagnostic campaign clock starts at CLI entry and allows at most 60 seconds
+overall; its worker has a separate 49-second inner limit, clamped to the
+remaining outer time after participant and fixture preparation.
+Diagnostics are not scored observations and establish no performance result.
+The completed non-scored profile, census and snapshot observations, including
+their coverage limits and unknown byte floor, are summarized in the
+[2026-11-16 report](compatibility/reports/2026-11-16/lsp.md).
+
+Example non-scored census invocation (use the reviewed roots and hashes above):
+
+```sh
+pnpm bench:lsp -- --diagnose --diagnostic graph-census \
+  --participant server-candidate \
+  --fixture github-actions-cmake-multi-platform \
+  --candidate-root /path/to/candidate-checkout \
+  --candidate-entry /path/to/candidate-checkout/dist/yaml-compat.js \
+  --candidate-head <reviewed-candidate-commit> \
+  --server-root /path/to/yaml-language-server \
+  --server-head <reviewed-server-commit>
+```
+
+For a declared CPU profile or heap snapshot, add `--artifact` with a private
+destination outside the repository. Each command runs one fresh diagnostic worker; repeated cases are
+separate explicit invocations so their identities and raw files stay distinct.
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:fd10d8e1fa5cf89d09f7acf074ea603b2be0f707 -->
+
+## Latest bounded evidence
+
+The 2026-11-16 report records the two-repeat original corpus measurements, the
+separate 30-document result, the incomplete 312-document run, and non-scored
+diagnostics. It retains the failed first launch as execution-unknown and
+unscored. The evidence does not establish same-behavior actual-server
+performance or a mandatory-output byte floor. See the [report and compact
+observations](compatibility/reports/2026-11-16/lsp.md).
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:eb4b3adcd5f3cf9a97a6f8430c468f84b652347c data:883aaeb39b9196e3345146e82534951278e1b67d9a24179bd29ad13cebdcc19c -->

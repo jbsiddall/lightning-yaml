@@ -124,6 +124,68 @@ export function finalizeScheduleLedger(plannedSchedule, selectedSchedule, comple
   }
 }
 
+export function finalizeMeasurementReport({
+  preflightComplete,
+  batch,
+  participants,
+  protocol,
+  plannedCellIds,
+  selectedCellIds,
+  plannedSchedule,
+  selectedSchedule,
+  phaseLedger,
+  failedPhases,
+  completedPhaseIds,
+  candidateArtifactsBefore,
+  candidateArtifactsAfter,
+  serverArtifactsBefore,
+  serverArtifactsAfter,
+  eligibility,
+  semanticComparisons,
+  rawObservations,
+  semanticPreflight,
+  elapsedMs
+}) {
+  const allPhases = preflightComplete && phaseLedger.pending.length === 0 && phaseLedger.failed.length === 0
+  const completedPhaseSet = new Set(completedPhaseIds)
+  const completedCells = selectedCellIds.filter((id) => selectedSchedule.filter((item) => item.cellId === id)
+    .every((item) => completedPhaseSet.has(item.observationId)))
+  const failedCells = selectedCellIds.filter((id) => failedPhases.some(({ id: failedId }) => failedId.startsWith(`${id}:`)))
+  const cellLedger = {
+    planned: plannedCellIds,
+    selected: selectedCellIds,
+    completed: completedCells,
+    failed: failedCells,
+    pending: selectedCellIds.filter((id) => !completedCells.includes(id) && !failedCells.includes(id)),
+    notSelected: plannedCellIds.filter((id) => !selectedCellIds.includes(id))
+  }
+  return {
+    kind: 'lsp-measurement',
+    status: allPhases ? 'completed' : 'incomplete',
+    scoredMeasurement: true,
+    batch,
+    participants,
+    candidateArtifactsBefore,
+    candidateArtifactsAfter,
+    serverArtifactsBefore,
+    serverArtifactsAfter,
+    protocol,
+    plannedCellCount: plannedCellIds.length,
+    planned: plannedCellIds,
+    selected: selectedCellIds,
+    notSelected: cellLedger.notSelected,
+    eligibility,
+    cells: cellLedger,
+    semanticComparisons,
+    phases: { ...phaseLedger, schedule: plannedSchedule, selectedSchedule },
+    failedPhases,
+    rawObservations,
+    semanticPreflight,
+    elapsedMs,
+    measurementClaim: allPhases ? 'raw observations only; no optimization conclusion is made by the harness' : null
+  }
+}
+
 export function runMeasurementPhase({
   phase,
   operation,
