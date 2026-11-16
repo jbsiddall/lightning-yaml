@@ -1,4 +1,4 @@
-import { closeSync, linkSync, openSync, unlinkSync, writeSync } from 'node:fs'
+import { closeSync, linkSync, openSync, statSync, unlinkSync, writeSync } from 'node:fs'
 import inspector from 'node:inspector'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -55,6 +55,17 @@ export function createDiagnosticBudget({ startedAt, now, outerBudgetMs = 60_000,
   }
 }
 
+export function redactPrivatePaths(value) {
+  if (typeof value === 'string') {
+    return isAbsolute(value) || /^[a-zA-Z]:[\\/]/.test(value) || /^file:\/\//i.test(value)
+      ? '<private-path>'
+      : value
+  }
+  if (Array.isArray(value)) return value.map(redactPrivatePaths)
+  if (!value || typeof value !== 'object') return value
+  return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, redactPrivatePaths(child)]))
+}
+
 export function validateDiagnosticWorker(result, expected) {
   for (const key of ['kind', 'workerId', 'diagnostic', 'head', 'participant', 'fixture', 'policy', 'inputSha256']) {
     if (result[key] !== expected[key]) throw new Error(`diagnostic worker ${key} mismatch`)
@@ -62,8 +73,9 @@ export function validateDiagnosticWorker(result, expected) {
   if (result.kind !== 'lsp-diagnostic' || result.scoredMeasurement !== false) throw new Error('diagnostic worker returned the wrong result kind')
   if (!['completed', 'incomplete'].includes(result.status)) throw new Error('diagnostic worker status is invalid')
   if (result.status === 'incomplete' && (expected.diagnostic !== 'heap-snapshot'
-    || result.diagnosticResult?.status !== 'incomplete' || result.diagnosticResult?.fileRetained !== false)) {
-    throw new Error('incomplete diagnostic worker did not report a removed partial snapshot')
+    || result.diagnosticResult?.status !== 'incomplete'
+    || !['removed', 'retained', 'unknown'].includes(result.diagnosticResult?.cleanupStatus))) {
+    throw new Error('incomplete diagnostic worker cleanup status is invalid')
   }
   if (!/^[a-f0-9]{64}$/.test(result.inputSha256)) throw new Error('diagnostic worker input hash is invalid')
   if (result.diagnosticResult?.diagnostic !== expected.diagnostic) throw new Error('diagnostic result mode mismatch')
@@ -250,7 +262,7 @@ export async function collectCpuProfile({ session = new inspector.Session(), ope
   }
 }
 
-function createFileSink(filePath) {
+export function createFileSink(filePath, { unlink = unlinkSync, stat = statSync } = {}) {
   const partialPath = `${filePath}.${process.pid}.${randomUUID()}.partial`
   let descriptor = openSync(partialPath, 'wx')
   let published = false
@@ -270,13 +282,21 @@ function createFileSink(filePath) {
       descriptor = undefined
       linkSync(partialPath, filePath)
       published = true
-      unlinkSync(partialPath)
+      unlink(partialPath)
     },
     async abort() {
       if (descriptor !== undefined) try { closeSync(descriptor) } catch {}
       descriptor = undefined
-      try { unlinkSync(partialPath) } catch {}
-      if (published) try { unlinkSync(filePath) } catch {}
+      try { unlink(partialPath) } catch {}
+      if (published) try { unlink(filePath) } catch {}
+      const paths = published ? [partialPath, filePath] : [partialPath]
+      const states = paths.map((path) => {
+        try { stat(path); return true }
+        catch (error) { return error.code === 'ENOENT' ? false : null }
+      })
+      if (states.includes(true)) return 'retained'
+      if (states.every((state) => state === false)) return 'removed'
+      return 'unknown'
     }
   }
 }
@@ -311,9 +331,13 @@ export async function writeHeapSnapshot(filePath, { session = new inspector.Sess
     await sink.close()
     return { bytes: bytesWritten, chunks: chunksReceived }
   } catch (error) {
-    try { await sink?.abort?.() } catch {}
+    let cleanupStatus = 'unknown'
+    try {
+      const status = await sink?.abort?.()
+      if (['removed', 'retained', 'unknown'].includes(status)) cleanupStatus = status
+    } catch {}
     const incomplete = new Error(`heap snapshot incomplete: ${error.message}`)
-    incomplete.artifactState = { status: 'incomplete', bytesWritten, chunksReceived, fileRetained: false }
+    incomplete.artifactState = { status: 'incomplete', bytesWritten, chunksReceived, cleanupStatus }
     throw incomplete
   } finally {
     try { session.disconnect?.() } catch {}

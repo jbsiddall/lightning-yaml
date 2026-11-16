@@ -22,7 +22,7 @@ import {
 import { enumerateCells, expandDocumentStream, loadPinnedCorpus, semanticSources } from './lsp-fixtures.mjs'
 import {
   censusOwnGraph, classifyCpuSamples, collectCpuProfile, createDiagnosticBudget, validateDiagnosticRequest,
-  validateDiagnosticWorker, writeHeapSnapshot
+  redactPrivatePaths, validateDiagnosticWorker, writeHeapSnapshot
 } from './lsp-diagnostics.mjs'
 
 const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), '../..')
@@ -1300,14 +1300,6 @@ function spawnDiagnostic(config, timeoutMs) {
   catch (error) { fail(`diagnostic worker returned invalid JSON: ${error.message}`) }
 }
 
-function redactPaths(value) {
-  if (Array.isArray(value)) return value.map(redactPaths)
-  if (!value || typeof value !== 'object') return value
-  return Object.fromEntries(Object.entries(value)
-    .filter(([key]) => !['path', 'root', 'files', 'parentURL', 'target', 'entryUrl'].includes(key))
-    .map(([key, child]) => [key, redactPaths(child)]))
-}
-
 function diagnosticHarnessProvenance() {
   const files = ['bench-lsp.mjs', 'lsp-diagnostics.mjs', 'lsp-diagnostics.d.mts', 'lsp-fixtures.mjs', 'lsp-measure.mjs', 'lsp-contract.mjs']
   return Object.fromEntries(files.map((name) => {
@@ -1327,7 +1319,8 @@ function diagnosticProviderIdentity(provider) {
     root: resolve(provider.root), name: provider.name, version: provider.version,
     packageJsonSha256: provider.packageJsonSha256,
     lockSha256: provider.lock?.sha256 ?? null,
-    entryPath: resolve(provider.entry.path), entryBytes: provider.entry.bytes, entrySha256: provider.entry.sha256,
+    entryPath: resolve(provider.entry.path), entryBasename: basename(provider.entry.path),
+    entryBytes: provider.entry.bytes, entrySha256: provider.entry.sha256,
     closureCount: provider.closure.count,
     closureSha256: provider.closure.sha256
   }
@@ -1392,10 +1385,6 @@ async function diagnose(args, startedAt) {
     const candidatePackageAfter = packageProvenance(candidateEntry, 'lightning-yaml')
     const referencePackageAfter = packageProvenance(referenceEntry, 'yaml')
     const harnessAfter = diagnosticHarnessIdentity()
-    if (diagnosticResult.status === 'incomplete' && values.artifact) {
-      try { statSync(resolve(values.artifact)); fail('incomplete snapshot left its final artifact path in place') }
-      catch (error) { if (error.code !== 'ENOENT') throw error }
-    }
     if (JSON.stringify(candidateArtifactsBefore) !== JSON.stringify(candidateArtifacts)) fail('candidate artifacts changed during diagnostic')
     if (JSON.stringify(serverArtifactsBefore) !== JSON.stringify(serverArtifacts)) fail('server artifacts or installed yaml alias changed during diagnostic')
     if (JSON.stringify(diagnosticProviderIdentity(candidatePackage)) !== JSON.stringify(diagnosticProviderIdentity(candidatePackageAfter))) fail('candidate package provenance changed during diagnostic')
@@ -1406,15 +1395,15 @@ async function diagnose(args, startedAt) {
       kind: 'lsp-diagnostic-result', status: diagnosticResult.status, scoredMeasurement: false,
       diagnostic: values.diagnostic, participant: values.participant, policy,
       fixture: { id: fixture.id, bytes: fixture.bytes, utf16Length: fixture.utf16Length, sha256: fixture.sha256, expectedDocuments: fixture.expectedDocuments },
-      candidate: { head: candidate.head, artifacts: redactPaths(candidateArtifacts) },
-      server: { head: server.head, artifacts: redactPaths(serverArtifacts), declaredYamlDependency: '2.8.3' },
-      reference: redactPaths(diagnosticProviderIdentity(referencePackage)),
+      candidate: { head: candidate.head, artifacts: redactPrivatePaths(candidateArtifacts) },
+      server: { head: server.head, artifacts: redactPrivatePaths(serverArtifacts), declaredYamlDependency: '2.8.3' },
+      reference: redactPrivatePaths(diagnosticProviderIdentity(referencePackage)),
       harness: harnessBefore,
       worker: {
         kind: diagnosticResult.kind, status: diagnosticResult.status, scoredMeasurement: false, diagnostic: diagnosticResult.diagnostic,
         head: diagnosticResult.head, participant: diagnosticResult.participant, fixture: diagnosticResult.fixture,
         policy: diagnosticResult.policy, inputSha256: diagnosticResult.inputSha256,
-        provider: redactPaths(diagnosticResult.provenance), diagnosticResult: diagnosticResult.diagnosticResult,
+        provider: redactPrivatePaths(diagnosticResult.provenance), diagnosticResult: diagnosticResult.diagnosticResult,
         resolution: resolutionEvidence
       }, elapsedMs: performance.now() - startedAt,
       budget: { outerLimitMs: 60_000, innerLimitMs: 49_000, workerTimeoutMs: Math.floor(remaining),

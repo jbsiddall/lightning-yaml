@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import * as yaml from "yaml";
@@ -47,6 +47,8 @@ import {
   classifyCpuSamples,
   collectCpuProfile,
   createDiagnosticBudget,
+  createFileSink,
+  redactPrivatePaths,
   validateDiagnosticRequest,
   validateDiagnosticWorker,
   writeHeapSnapshot,
@@ -499,10 +501,24 @@ describe("maintained LSP compatibility contract", () => {
     expect(() => validateDiagnosticWorker({ ...valid, resolutions: [{ ...valid.resolutions[0], parentURL: "file:///outside/parser.js" }] }, expected)).toThrow(/parent escaped/);
     const incompleteExpected = { ...expected, diagnostic: "heap-snapshot" };
     const incomplete = { ...valid, status: "incomplete", diagnostic: "heap-snapshot",
-      diagnosticResult: { diagnostic: "heap-snapshot", status: "incomplete", fileRetained: false } };
+      diagnosticResult: { diagnostic: "heap-snapshot", status: "incomplete", cleanupStatus: "unknown" } };
     expect(validateDiagnosticWorker(incomplete, incompleteExpected).targetsValidated).toBe(true);
-    expect(() => validateDiagnosticWorker({ ...incomplete, diagnosticResult: { ...incomplete.diagnosticResult, fileRetained: true } }, incompleteExpected))
-      .toThrow(/removed partial snapshot/);
+    expect(validateDiagnosticWorker({ ...incomplete, diagnosticResult: { ...incomplete.diagnosticResult, cleanupStatus: "retained" } }, incompleteExpected).targetsValidated).toBe(true);
+    expect(() => validateDiagnosticWorker({ ...incomplete, diagnosticResult: { diagnostic: "heap-snapshot", status: "incomplete" } }, incompleteExpected))
+      .toThrow(/cleanup status/);
+  });
+
+  it("redacts nested provider paths while keeping safe entry identity fields", () => {
+    const entrySha256 = "a".repeat(64);
+    const result = redactPrivatePaths({
+      reference: { entryPath: "/private/install/node_modules/yaml/index.js", entryBasename: "index.js", entrySha256 },
+      nested: ["file:///private/server/parser.js", "relative/name.js"],
+    });
+    expect(result).toEqual({
+      reference: { entryPath: "<private-path>", entryBasename: "index.js", entrySha256 },
+      nested: ["<private-path>", "relative/name.js"],
+    });
+    expect(JSON.stringify(result)).not.toMatch(/\/private\/|file:\/\//);
   });
 
   it("runs the fixed CPU-profile loop through an injected inspector session", async () => {
@@ -585,13 +601,46 @@ describe("maintained LSP compatibility contract", () => {
     let slowWrites = 0;
     let slowAborts = 0;
     const slow = await run({ write() { slowWrites++; return false; }, close() {}, abort() { slowAborts++; } });
-    expect(slow?.artifactState).toEqual({ status: "incomplete", bytesWritten: 0, chunksReceived: 2, fileRetained: false });
+    expect(slow?.artifactState).toEqual({ status: "incomplete", bytesWritten: 0, chunksReceived: 2, cleanupStatus: "unknown" });
     expect(slowWrites).toBe(1);
     expect(slowAborts).toBe(1);
 
     let errorAborts = 0;
     const failed = await run({ write() { throw new Error("disk failure"); }, close() {}, abort() { errorAborts++; } });
-    expect(failed?.artifactState).toEqual({ status: "incomplete", bytesWritten: 0, chunksReceived: 2, fileRetained: false });
+    expect(failed?.artifactState).toEqual({ status: "incomplete", bytesWritten: 0, chunksReceived: 2, cleanupStatus: "unknown" });
     expect(errorAborts).toBe(1);
+  });
+
+  it("reports retained partial snapshots when unlink fails", async () => {
+    const directory = mkdtempSync(resolve(tmpdir(), "lsp-unlink-failure-"));
+    const file = resolve(directory, "snapshot.heapsnapshot");
+    const listeners = new Map<string, (event: { params: { chunk: string } }) => void>();
+    const session = {
+      on(name: string, listener: (event: { params: { chunk: string } }) => void) { listeners.set(name, listener); },
+      post(method: string, _params: unknown, callback: (error: Error | null, result?: unknown) => void) {
+        if (method === "HeapProfiler.takeHeapSnapshot") {
+          listeners.get("HeapProfiler.addHeapSnapshotChunk")?.({ params: { chunk: "snapshot chunk" } });
+        }
+        queueMicrotask(() => callback(null, {}));
+      },
+    };
+    try {
+      const failure = await writeHeapSnapshot(file, {
+        session: session as never,
+        createSink: (path) => createFileSink(path, {
+          unlink(target) {
+            if (target.endsWith(".partial")) throw new Error("injected unlink failure");
+            unlinkSync(target);
+          },
+        }),
+      }).then(() => null, (error: Error & { artifactState?: unknown }) => error);
+      expect(failure?.artifactState).toEqual({
+        status: "incomplete", bytesWritten: "snapshot chunk".length,
+        chunksReceived: 1, cleanupStatus: "retained",
+      });
+      expect(readdirSync(directory).some((name) => name.endsWith(".partial"))).toBe(true);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 });

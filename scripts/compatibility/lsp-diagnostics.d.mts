@@ -58,5 +58,18 @@ export function collectCpuProfile(options: {
 }): Promise<{ warmups: number; iterations: number; sampleIntervalUs: number; profile: any }>;
 export function writeHeapSnapshot(filePath: string, options?: {
   session?: any;
-  createSink?: (filePath: string) => { write(chunk: string): boolean | void; close(): void | Promise<void>; abort(): void | Promise<void> };
+  createSink?: (filePath: string) => {
+    write(chunk: string): boolean | void;
+    close(): void | Promise<void>;
+    abort(): 'removed' | 'retained' | 'unknown' | void | Promise<'removed' | 'retained' | 'unknown' | void>;
+  };
 }): Promise<{ bytes: number; chunks: number }>;
+export function createFileSink(filePath: string, options?: {
+  unlink?: (path: string) => void;
+  stat?: (path: string) => unknown;
+}): {
+  write(chunk: string): boolean;
+  close(): Promise<void>;
+  abort(): Promise<'removed' | 'retained' | 'unknown'>;
+};
+export function redactPrivatePaths(value: any): any;

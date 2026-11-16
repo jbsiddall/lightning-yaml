@@ -187,7 +187,9 @@ established, byte attribution and the floor remain unknown. CPU profiles and sna
 the artifact basename. `graph-census` does not accept `--artifact`. Snapshot
 chunks use a synchronous file sink so writes apply backpressure directly to
 Inspector event delivery. Sink refusal or write errors return an incomplete
-status and remove partial files.
+status with cleanup reported as removed, retained, or unknown. The report only
+claims removal when the sink verifies it; the coordinator does not infer cleanup
+from the final artifact path.
 
 The diagnostic campaign clock starts at CLI entry and allows at most 60 seconds
 overall; its worker has a separate 49-second inner limit, clamped to the
