@@ -146,8 +146,13 @@ reference semantic preflight agree on document values and types, alias
 reference identity, ranges, diagnostics, and line starts. A mismatch keeps both
 preflight outcomes and marks that cell failed and performance-ineligible.
 These phases report raw observations and do not make an optimization
-conclusion. Their mechanics are covered with injected fake operations; no real
-provider timing campaign was run for this contract change.
+conclusion. Their mechanics are covered with injected fake operations. The first
+real `--measure` CLI launch failed in report finalization because
+`preflightComplete` was out of scope, and emitted no usable measurement report.
+Whether any scheduled phase worker executed is unknown; treat this launch as
+unscored and do not use it as performance evidence. The failure is tracked in
+[#326](https://github.com/jbsiddall/lightning-yaml/issues/326). No graph census,
+CPU profile, or heap snapshot has been run.
 <!-- yaml:2.9.0 ly:d1c55cfbc89cc11c0d2267d44b18f8bcec459ce7 -->
 
 ## Non-scored diagnostics

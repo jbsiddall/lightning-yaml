@@ -16,7 +16,8 @@ import {
 } from './lsp-contract.mjs'
 import {
   createCampaignBudget, createPairedSchedule, evaluateSemanticPair, expectedPhaseCounts,
-  finalizeScheduleLedger, isMatchedPolicySemanticMismatch, runMeasurementPhase, selectPairedSchedule, snapshotPublicValue,
+  finalizeMeasurementReport, finalizeScheduleLedger, isMatchedPolicySemanticMismatch, runMeasurementPhase,
+  selectPairedSchedule, snapshotPublicValue,
   validatePhaseResult, verifyInputBytes
 } from './lsp-measure.mjs'
 import { enumerateCells, expandDocumentStream, loadPinnedCorpus, semanticSources } from './lsp-fixtures.mjs'
@@ -1043,10 +1044,10 @@ async function measurePlan(args, campaignStartedAt) {
   const ineligibleMatchedCells = new Set()
   const completedPhases = new Set()
   const failedPhases = []
+  let preflightComplete = true
   const scratch = mkdtempSync(join(tmpdir(), 'lightning-yaml-lsp-measure-'))
   try {
     const fixtures = loadPinnedCorpus(repoRoot)
-    let preflightComplete = true
     if (budget.remainingOuterMs() <= 0) {
       failedPhases.push({ id: 'semantic-preflight', error: 'campaign budget expired during participant preparation' })
       preflightComplete = false
@@ -1237,52 +1238,32 @@ async function measurePlan(args, campaignStartedAt) {
 
   const failedObservationIds = failedPhases.filter((item) => item.observationId).map((item) => item.observationId)
   const phaseLedger = finalizeScheduleLedger(plannedSchedule, selectedSchedule, [...completedPhases], failedObservationIds)
-  const allPhases = preflightComplete && phaseLedger.pending.length === 0 && phaseLedger.failed.length === 0
-  const selectedIds = selectedCells.map((cell) => cell.id)
-  const completedCells = selectedCells.filter((cell) => selectedSchedule.filter((item) => item.cellId === cell.id)
-    .every((item) => completedPhases.has(item.observationId))).map((cell) => cell.id)
-  const failedCells = selectedCells.filter((cell) => failedPhases.some(({ id }) => id.startsWith(`${cell.id}:`))).map((cell) => cell.id)
-  const cellLedger = {
-    planned: cells.map((cell) => cell.id),
-    selected: selectedIds,
-    completed: completedCells,
-    failed: failedCells,
-    pending: selectedIds.filter((id) => !completedCells.includes(id) && !failedCells.includes(id)),
-    notSelected: cells.filter((cell) => !selectedCells.some((selected) => selected.id === cell.id)).map((cell) => cell.id)
-  }
   const candidateArtifactsAfter = candidateArtifactHashes(resolve(values['candidate-entry']))
   const serverArtifactsAfter = serverArtifactHashes(resolve(values['server-root']))
   if (JSON.stringify(candidateArtifactsBefore) !== JSON.stringify(candidateArtifactsAfter)) fail('candidate artifacts changed during measurement')
   if (JSON.stringify(serverArtifactsBefore) !== JSON.stringify(serverArtifactsAfter)) fail('server artifacts or installed yaml alias changed during measurement')
-  return {
-    kind: 'lsp-measurement',
-    status: allPhases ? 'completed' : 'incomplete',
-    scoredMeasurement: true,
+  return finalizeMeasurementReport({
+    preflightComplete,
     batch: values.batch,
     participants,
+    protocol: MEASUREMENT_PROTOCOL,
+    plannedCellIds: cells.map((cell) => cell.id),
+    selectedCellIds: selectedCells.map((cell) => cell.id),
+    plannedSchedule,
+    selectedSchedule,
+    phaseLedger,
+    failedPhases,
+    completedPhaseIds: [...completedPhases],
     candidateArtifactsBefore,
     candidateArtifactsAfter,
     serverArtifactsBefore,
     serverArtifactsAfter,
-    protocol: MEASUREMENT_PROTOCOL,
-    plannedCellCount: cells.length,
-    planned: cells.map((cell) => cell.id),
-    selected: selectedIds,
-    notSelected: cellLedger.notSelected,
     eligibility: selectedCells.map((cell) => ({ id: cell.id, ...measurementEligibility(cell), ...semanticComparisons.find((item) => item.cellId === cell.id) })),
-    cells: cellLedger,
     semanticComparisons,
-    phases: {
-      ...phaseLedger,
-      schedule: plannedSchedule,
-      selectedSchedule
-    },
-    failedPhases,
     rawObservations,
     semanticPreflight,
-    elapsedMs: performance.now() - started,
-    measurementClaim: allPhases ? 'raw observations only; no optimization conclusion is made by the harness' : null
-  }
+    elapsedMs: performance.now() - started
+  })
 }
 
 function spawnDiagnostic(config, timeoutMs) {

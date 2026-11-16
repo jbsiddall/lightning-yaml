@@ -33,6 +33,7 @@ import {
   createPairedSchedule,
   evaluateSemanticPair,
   expectedPhaseCounts,
+  finalizeMeasurementReport,
   finalizeScheduleLedger,
   isMatchedPolicySemanticMismatch,
   runMeasurementPhase,
@@ -123,6 +124,46 @@ describe("maintained LSP compatibility contract", () => {
       expect(failedLedger.pending).toEqual(selectedSchedule.slice(2).map((item) => item.observationId));
       expect(ledger.notSelected).toHaveLength((cells.length - 1) * 2 * 2 * phases.length);
     }
+  });
+
+  it("finalizes an incomplete measurement report when semantic preflight fails", () => {
+    const schedule = [{ cellId: "cell-a", observationId: "cell-a:repeat:1:candidate:cpu-wall" }];
+    const phaseLedger = finalizeScheduleLedger(schedule, schedule);
+    const report = finalizeMeasurementReport({
+      preflightComplete: false,
+      batch: "bare-matched-corpus",
+      participants: ["candidate", "reference"],
+      protocol: { repeats: 2 },
+      plannedCellIds: ["cell-a", "cell-b"],
+      selectedCellIds: ["cell-a"],
+      plannedSchedule: schedule,
+      selectedSchedule: schedule,
+      phaseLedger,
+      failedPhases: [{ id: "cell-a:semantic-preflight:candidate", error: "preflight failed" }],
+      completedPhaseIds: [],
+      candidateArtifactsBefore: {},
+      candidateArtifactsAfter: {},
+      serverArtifactsBefore: {},
+      serverArtifactsAfter: {},
+      eligibility: [{ id: "cell-a", performanceEligible: false }],
+      semanticComparisons: [],
+      rawObservations: [],
+      semanticPreflight: [],
+      elapsedMs: 5
+    });
+    expect(report).toMatchObject({
+      kind: "lsp-measurement",
+      status: "incomplete",
+      scoredMeasurement: true,
+      planned: ["cell-a", "cell-b"],
+      selected: ["cell-a"],
+      notSelected: ["cell-b"],
+      cells: { failed: ["cell-a"], pending: [] },
+      phases: { pending: ["cell-a:repeat:1:candidate:cpu-wall"] },
+      rawObservations: [],
+      semanticPreflight: [],
+      measurementClaim: null
+    });
   });
 
   it("asserts the direct parser/composer operation and independent UTF-16 source witness", () => {

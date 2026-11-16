@@ -26,6 +26,7 @@ export function finalizeScheduleLedger(plannedSchedule: any[], selectedSchedule:
   pending: string[];
   notSelected: string[];
 };
+export function finalizeMeasurementReport(options: any): any;
 export function runMeasurementPhase(options: any): any;
 export function validatePhaseResult(result: any, expected: any): any;
 export function createCampaignBudget(options: { startedAt: number; now: () => number; outerBudgetMs: number }): {
