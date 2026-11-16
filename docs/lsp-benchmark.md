@@ -121,9 +121,10 @@ reference pair.
 
 Every selected cell uses two declared paired repeats. The first repeat follows
 the batch's cell order and runs candidate then reference for each phase; the
-second reverses the cell order and runs reference then candidate. Each fresh
-worker has a unique observation ID containing its cell, repeat, participant,
-and phase. `--plan` prints this exact schedule. The full batches declare 36,
+second reverses the cell order and runs reference then candidate. Each scored
+phase worker has a unique observation ID containing its cell, repeat, participant,
+and phase. Semantic-preflight workers use separate check IDs outside this paired
+schedule. `--plan` prints the scored schedule. The full batches declare 36,
 24, 72, and 144 phase observations respectively; selecting one cell declares
 12. Results retain planned, selected, completed, failed, pending, and
 not-selected observation IDs as well as the logical cell ledger.
