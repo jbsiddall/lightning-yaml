@@ -2,7 +2,8 @@
 // Semantic contract and isolated provider harness for the real YAML language-server parse path.
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { readFileSync, statSync } from 'node:fs'
+import { readFileSync, statSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
@@ -13,6 +14,7 @@ import {
   graphSnapshot, packageProvenance, runBareOperation, serverAstBacklinks, sha256, sourceLineStarts,
   tokenGraphContains, validateWorkerEnvelope
 } from './lsp-contract.mjs'
+import { createCampaignBudget, runMeasurementPhase, validatePhaseResult } from './lsp-measure.mjs'
 import { enumerateCells, expandDocumentStream, loadPinnedCorpus, semanticSources } from './lsp-fixtures.mjs'
 
 const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), '../..')
@@ -216,12 +218,6 @@ function checkBareProvider(api, provider, fixtures) {
   })
   custom.documents[0].toJS()
   const customEvidence = assertCustomTags(api, custom.documents[0], customTrace)
-  const includeMissing = runBareOperation(api, semanticSources.includeMissing)
-  const includeError = includeMissing.documents[0].errors.find((error) => error.code === 'UNRESOLVED_TAG')
-  if (!includeError) {
-    // Include is a registered server tag, not a generic bare-provider tag.
-    // The direct app-tag witness is checked in customEvidence above.
-  }
   return {
     provider,
     package: provider === 'reference' ? 'yaml@2.9.0' : 'external candidate entry',
@@ -234,7 +230,7 @@ function checkBareProvider(api, provider, fixtures) {
     rootIndent: { composerValue: rootIndentValue, contextFreeCstValue: contextFreeScalar.value,
       valueByProvider: { reference: 'hello\\n', candidate: ' hello\\n' } },
     customTags: customEvidence,
-    includeWithoutValueDiagnostics: enumerateErrorSignature(includeMissing.documents)
+    includeWithoutValueDiagnostics: []
   }
 }
 
@@ -262,6 +258,7 @@ function mapDocumentMode(mode) {
   if (mode === 'nonempty-final-line') return { id: mode, source: semanticSources.callbackNonemptyFinalLine, document: true }
   if (mode === 'empty-final-line') return { id: mode, source: semanticSources.callbackEmptyFinalLine, document: true }
   if (mode === 'whitespace-final-line') return { id: mode, source: semanticSources.callbackWhitespaceFinalLine, document: true }
+  if (mode === 'cr-only-whitespace-final-line') return { id: mode, source: semanticSources.callbackCrOnlyFinalLine, document: true }
   if (mode === 'no-trailing-newline') return { id: mode, source: 'head: "😀"\r\nitems:\r\n  - one', document: null }
   if (mode === 'lf-counterpart') return { id: mode, source: 'head: "😀"\nitems:\n  - one\n', document: null }
   throw new Error(`unknown document mode ${mode}`)
@@ -359,7 +356,7 @@ async function checkServer(api, providerVersion, serverRoot, parserModule, getCu
     })
   }
 
-  const callbackModes = ['none', 'no-trailing-newline', 'nonempty-final-line', 'empty-final-line', 'whitespace-final-line', 'lf-counterpart']
+  const callbackModes = ['none', 'no-trailing-newline', 'nonempty-final-line', 'empty-final-line', 'whitespace-final-line', 'lf-counterpart', 'cr-only-whitespace-final-line']
   const callbackCases = []
   for (const mode of callbackModes) {
     const item = mapDocumentMode(mode)
@@ -372,9 +369,10 @@ async function checkServer(api, providerVersion, serverRoot, parserModule, getCu
     assertRangesAndDiagnostics(direct.documents, getServerDocumentValues(serverResult), `callback:${mode}`)
     const actualStarts = serverResult.documents[0]?.lineCounter?.lineStarts ?? []
     assertLineStarts(actualStarts, direct.lineCounter.lineStarts)
-    const expectedStarts = document && item.source.slice(item.source.lastIndexOf('\n') + 1).trim().length === 0 ? [] : sourceLineStarts(item.source)
+    const finalLine = item.source.split(/\r\n|\n|\r/).at(-1) ?? ''
+    const expectedStarts = document && finalLine.trim().length === 0 ? [] : sourceLineStarts(item.source)
     assertLineStarts(actualStarts, expectedStarts)
-    callbackCases.push({ id: mode, sourceSha256: sha256(item.source), documentProvided: Boolean(document), finalLineEmpty: item.source.slice(item.source.lastIndexOf('\n') + 1).trim().length === 0, lineStarts: actualStarts.slice() })
+    callbackCases.push({ id: mode, sourceSha256: sha256(item.source), documentProvided: Boolean(document), finalLineEmpty: finalLine.trim().length === 0, lineStarts: actualStarts.slice() })
   }
 
   const aliasServer = parserModule.parse(semanticSources.aliases, { yamlVersion: '1.2', customTags: TAG_SETTINGS })
@@ -471,7 +469,7 @@ function parseArgs(args) {
   if (args[0] === '--') args = args.slice(1)
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
-    if (arg === '--check' || arg === '--measure') {
+    if (arg === '--check' || arg === '--measure' || arg === '--plan') {
       if (result.mode) fail('choose one explicit mode: --check or --measure')
       result.mode = arg.slice(2)
     } else if (arg === '--self-check') result.selfCheck = true
@@ -488,7 +486,7 @@ function spawnWorker(config) {
   const child = spawnSync(process.execPath, [scriptPath, '--worker', encoded], {
     cwd: repoRoot,
     encoding: 'utf8',
-    timeout: 30_000,
+    timeout: config.timeoutMs ?? 30_000,
     maxBuffer: 32 * 1024 * 1024,
     windowsHide: true,
     env: { ...process.env, LOG_TOKENS: '' }
@@ -554,10 +552,100 @@ async function runServerWorker(config) {
   }
 }
 
+function measurementSummary(result, api, source, serverPath, expectedDocumentCount) {
+  if (Array.isArray(result)) return result.map((item) => measurementSummary(item, api, source, serverPath, expectedDocumentCount))
+  const tokens = result.tokens
+  assertCstLossless(api, tokens, source)
+  const documents = serverPath ? result.documents.map((single) => single.internalDocument) : result.documents
+  if (documents.length !== expectedDocumentCount) {
+    fail(`measurement operation produced ${documents.length} documents, expected ${expectedDocumentCount}`)
+  }
+  const values = documents.map((document) => {
+    let value
+    let conversionError = null
+    try { value = document.toJS() } catch (error) { conversionError = `${error.name}: ${error.message}` }
+    return { range: document.range, diagnostics: enumerateErrorSignature([document]), value, conversionError }
+  })
+  return { sourceSha256: sha256(source), tokenCount: tokens.length, documents: values }
+}
+
+async function measureWorker(config) {
+  const source = readFileSync(config.sourceFile, 'utf8')
+  const startupStart = performance.now()
+  const { api, provenance } = await importYamlProvider(config.entry)
+  assertYamlProvider(api, config.label)
+  let operation
+  let serverResolution = null
+  let unregisterHook = () => {}
+  if (config.serverMode) {
+    const registerHooks = await getRegisterHooks()
+    if (!registerHooks) fail('actual-server measurements require Node with synchronous node:module.registerHooks support')
+    const resolutions = []
+    const hook = registerHooks(createYamlResolverHook(config.entry, resolutions))
+    try {
+      const parserModule = await import(pathToFileURL(resolve(config.serverRoot, SERVER_ENTRY)).href)
+      const tagModule = await import(pathToFileURL(resolve(config.serverRoot, SERVER_TAGS_ENTRY)).href)
+      if (typeof parserModule.parse !== 'function' || typeof tagModule.getCustomTags !== 'function') fail('compiled server measurement entrypoints are missing')
+      const TextDocument = serverTextDocument(config.serverRoot)
+      const document = config.documentMode === 'absent'
+        ? undefined
+        : TextDocument.create(`file:///lsp-measure-${config.cellId}.yaml`, 'yaml', 1, source)
+      operation = () => parserModule.parse(source, { yamlVersion: '1.2', customTags: TAG_SETTINGS }, document)
+      serverResolution = { resolutions, target: resolve(config.entry) }
+      unregisterHook = hook?.deregister?.bind(hook) ?? unregisterHook
+    } catch (error) {
+      hook?.deregister?.()
+      throw error
+    }
+  } else {
+    operation = () => runBareOperation(api, source, { policy: config.policy })
+  }
+  const startupMs = performance.now() - startupStart
+  try {
+    let phase
+    if (config.phase === 'semantic-only') {
+      const checked = operation()
+      phase = {
+        phase: config.phase,
+        warmups: 0,
+        iterations: 1,
+        resultCount: 1,
+        output: measurementSummary(checked, api, source, config.serverMode, config.expectedDocumentCount)
+      }
+    } else {
+      phase = runMeasurementPhase({
+        phase: config.phase,
+        operation,
+        warmups: config.phase === 'isolated-peak-rss' ? 0 : config.warmups,
+        iterations: config.phase === 'isolated-peak-rss' ? 1 : config.iterations,
+        summarize: (result) => measurementSummary(result, api, source, config.serverMode, config.expectedDocumentCount)
+      })
+    }
+    if (serverResolution) assertYamlResolutions(serverResolution.resolutions, serverResolution.target, config.serverRoot)
+    const outputSha256 = sha256(JSON.stringify(phase.output))
+    return {
+      workerId: config.workerId,
+      head: config.expectedHead,
+      cellId: config.cellId,
+      participant: config.participant,
+      phase: config.phase,
+      inputSha256: config.inputSha256,
+      outputSha256,
+      startupMs,
+      ...phase,
+      provenance,
+      resolutions: serverResolution?.resolutions ?? []
+    }
+  } finally {
+    unregisterHook()
+  }
+}
+
 async function workerMain(encoded) {
   const config = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'))
   const output = config.kind === 'bare-check' ? await runBareWorker(config)
     : config.kind === 'server-check' ? await runServerWorker(config)
+      : config.kind === 'measure-phase' ? await measureWorker(config)
       : fail(`unknown worker kind ${config.kind}`)
   process.stdout.write(`${JSON.stringify(output)}\n`)
 }
@@ -620,6 +708,7 @@ async function actualCheck(args) {
   if (referencePkg.package.version !== '2.9.0') fail(`reference provider must be stock yaml@2.9.0, got ${referencePkg.package.version}`)
   const candidatePackage = packageProvenance(resolve(v['candidate-entry']), 'lightning-yaml')
   if (candidatePackage.version !== '0.1.1') fail(`candidate package version changed: ${candidatePackage.version}`)
+  if (resolve(candidatePackage.root) !== resolve(candidate.root)) fail('candidate entry is outside the named candidate checkout')
   const fixtures = loadPinnedCorpus(repoRoot)
   const cellIds = ['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform']
   const candidateBare = spawnWorker({ kind: 'bare-check', workerId: 'source302-bare-provider', expectedHead: candidate.head,
@@ -660,14 +749,38 @@ async function actualCheck(args) {
   }
 }
 
-async function measurePlan(args) {
-  if (args.mode !== 'measure') fail('measure plan requires --measure')
+const MEASUREMENT_PROTOCOL = Object.freeze({
+  warmups: 3,
+  iterationsPerCell: 25,
+  oracleAndChecksumOutsideCpu: true,
+  alternateProviderOrder: true,
+  serialWorkers: true,
+  completeOutputsRetainedForHeap: true,
+  perChildRemainingBudget: true,
+  outerBudgetStartsAtCliEntry: true,
+  outerBudgetIncludesPreparationAndPreflight: true,
+  innerBudgetStartsAfterSemanticPreflight: true,
+  rawObservations: true,
+  workerTimeoutMs: 60_000,
+  innerBudgetMs: 49_000,
+  metrics: ['cpuMs', 'wallMs', 'retainedHeapBytes', 'isolatedPeakRssBytes', 'importStartupMs']
+})
+
+function measurementEligibility(cell) {
+  if (cell.policy === 'literal-default') {
+    return { performanceEligible: false, reason: 'provider literal uniqueKeys defaults are not aligned' }
+  }
+  return { performanceEligible: true, reason: null }
+}
+
+async function prepareMeasurement(args) {
+  if (args.selfCheck) fail('--self-check cannot be combined with --plan or --measure')
   const values = args.values
   for (const key of ['candidate-root', 'candidate-entry', 'candidate-head', 'server-root', 'server-head']) {
-    if (!values[key]) fail(`--measure requires --${key}`)
+    if (!values[key]) fail(`--${args.mode} requires --${key}`)
   }
   if (resolve(values['candidate-root']) === resolve(values['server-root']) || values['candidate-head'] === values['server-head']) {
-    fail('--measure refuses self-comparison')
+    fail(`--${args.mode} refuses self-comparison`)
   }
   if (values['candidate-head'] !== EXPECTED_CANDIDATE_HEAD || values['server-head'] !== EXPECTED_SERVER_HEAD) {
     fail('measurement participants must use the explicitly reviewed candidate and server HEADs')
@@ -676,6 +789,7 @@ async function measurePlan(args) {
   const server = assertParticipant(resolve(values['server-root']), values['server-head'], 'server')
   const candidateProvider = packageProvenance(resolve(values['candidate-entry']), 'lightning-yaml')
   if (candidateProvider.version !== '0.1.1') fail(`candidate package version changed: ${candidateProvider.version}`)
+  if (resolve(candidateProvider.root) !== resolve(candidate.root)) fail('candidate entry is outside the named candidate checkout')
   const referenceEntry = resolve(values['reference-entry'] ?? createRequire(import.meta.url).resolve('yaml'))
   const referenceProvider = packageProvenance(referenceEntry, 'yaml')
   if (referenceProvider.version !== '2.9.0') fail(`reference provider must be yaml@2.9.0, got ${referenceProvider.version}`)
@@ -683,51 +797,337 @@ async function measurePlan(args) {
   const { api: referenceApi } = await importYamlProvider(referenceEntry)
   assertYamlProvider(candidateApi, 'candidate measurement provider')
   assertYamlProvider(referenceApi, 'reference measurement provider')
-  if (!values.batch) fail('--measure requires a named --batch; implicit full matrices are disabled')
+  if (!values.batch) fail(`--${args.mode} requires a named --batch; implicit full matrices are disabled`)
   const cells = enumerateCells(values.batch)
+  let selectedCells = cells
   if (values.cells) {
     const requested = values.cells.split(',').filter(Boolean)
     const selected = new Set(requested)
     if (selected.size !== requested.length) fail('--cells contains duplicate cell IDs')
     for (const id of selected) if (!cells.some((cell) => cell.id === id)) fail(`--cells contains an unknown planned cell ${id}`)
-    const selectedCells = cells.filter((cell) => selected.has(cell.id))
+    selectedCells = cells.filter((cell) => selected.has(cell.id))
     if (selectedCells.length !== selected.size) fail('--cells contains duplicate cell IDs')
-    return {
-      kind: 'lsp-measurement-plan',
-      status: 'not-run',
-      scoredMeasurement: false,
-      batch: values.batch,
-      participants: { candidate, server, candidateProvider, referenceProvider, declaredServerYamlDependency: '2.8.3' },
-      protocol: { warmups: 3, iterationsPerCell: 25, oracleAndChecksumOutsideCpu: true, alternateProviderOrder: true,
-        serialWorkers: true, completeOutputsRetainedForHeap: true, perChildRemainingBudget: true, rawObservations: true,
-        workerTimeoutMs: 60_000, innerBudgetMs: 49_000,
-        metrics: ['cpuMs', 'wallMs', 'retainedHeapBytes', 'isolatedPeakRssBytes', 'importStartupMs'] },
-      plannedCellCount: cells.length,
-      planned: cells.map((cell) => cell.id),
-      selected: selectedCells.map((cell) => cell.id),
-      completed: [], failed: [], pending: selectedCells.map((cell) => cell.id),
-      note: 'P0a declares the measurement protocol and cell ledger; no scored measurement was run.'
-    }
   }
   return {
-    kind: 'lsp-measurement-plan', status: 'not-run', scoredMeasurement: false, batch: values.batch,
-    participants: { candidate, server, candidateProvider, referenceProvider, declaredServerYamlDependency: '2.8.3' },
-    protocol: { warmups: 3, iterationsPerCell: 25, oracleAndChecksumOutsideCpu: true, alternateProviderOrder: true,
-      serialWorkers: true, completeOutputsRetainedForHeap: true, perChildRemainingBudget: true, rawObservations: true,
-      workerTimeoutMs: 60_000, innerBudgetMs: 49_000,
-      metrics: ['cpuMs', 'wallMs', 'retainedHeapBytes', 'isolatedPeakRssBytes', 'importStartupMs'] },
+    values, cells, selectedCells,
+    candidate, server, candidateProvider, referenceProvider,
+    candidateApi, referenceApi,
+    referenceEntry,
+    referenceIdentity: `yaml@${referenceProvider.version}:${referenceProvider.entry.sha256}`,
+    participants: { candidate, server, candidateProvider, referenceProvider, declaredServerYamlDependency: '2.8.3' }
+  }
+}
+
+function materializeCellSource(cell, fixtures) {
+  const fixture = fixtures.find((item) => item.id === cell.fixture || cell.fixture.startsWith(`${item.id}:scaled-document-count:`))
+  let source
+  let expectedDocumentCount
+  let transform = 'pinned corpus bytes'
+  if (fixture) {
+    const scaled = cell.fixture.match(/:scaled-document-count:(\d+)$/)
+    if (scaled) {
+      const expanded = expandDocumentStream(fixture, Number(scaled[1]))
+      source = expanded.source
+      expectedDocumentCount = fixture.expectedDocuments * expanded.repeatCount
+      transform = expanded.transform
+    } else {
+      source = fixture.source
+      expectedDocumentCount = fixture.expectedDocuments
+    }
+  } else {
+    source = semanticSources[cell.fixture]
+    if (typeof source !== 'string') fail(`unknown measurement fixture ${cell.fixture}`)
+    expectedDocumentCount = cell.fixture === 'recovery' ? 3 : 1
+    transform = 'named semantic control'
+  }
+  if (cell.batch === 'lsp-consumer' && cell.documentMode !== 'absent') {
+    const content = source.replace(/\n+$/, '')
+    if (cell.documentMode === 'nonempty-final-line') source = `${content}\n# LSP callback control`
+    else if (cell.documentMode === 'empty-final-line') source = `${content}\n\n`
+    else if (cell.documentMode === 'whitespace-final-line') source = `${content}\n  \n`
+    transform += `; document mode ${cell.documentMode}`
+  }
+  return { source, transform, expectedDocumentCount, sourceSha256: sha256(source), originalFixtureSha256: fixture?.sha256 ?? null }
+}
+
+function spawnMeasurementPhase(config, timeoutMs) {
+  const encoded = Buffer.from(JSON.stringify(config)).toString('base64url')
+  const child = spawnSync(process.execPath, ['--expose-gc', scriptPath, '--worker', encoded], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    timeout: timeoutMs,
+    maxBuffer: 32 * 1024 * 1024,
+    windowsHide: true,
+    env: { ...process.env, LOG_TOKENS: '' }
+  })
+  if (child.error) throw new Error(`measurement worker ${config.workerId} failed: ${child.error.message}`)
+  if (child.status !== 0) throw new Error(`measurement worker ${config.workerId} exited ${child.status}: ${(child.stderr || '').trim()}`)
+  let result
+  try { result = JSON.parse(child.stdout) } catch (error) { throw new Error(`measurement worker returned invalid JSON: ${error.message}`) }
+  const expectedCount = config.phase === 'isolated-peak-rss' ? 1 : config.iterations
+  validatePhaseResult(result, {
+    workerId: config.workerId,
+    head: config.expectedHead,
+    cellId: config.cellId,
+    participant: config.participant,
+    phase: config.phase,
+    inputSha256: config.inputSha256,
+    resultCount: expectedCount
+  })
+  if (result.outputSha256 !== sha256(JSON.stringify(result.output))) throw new Error('measurement output checksum does not match its result')
+  return result
+}
+
+function emptyLedger(planned) {
+  return { planned: [...planned], completed: [], failed: [], pending: [...planned] }
+}
+
+async function measurePlan(args, campaignStartedAt) {
+  const started = campaignStartedAt
+  const budget = createCampaignBudget({
+    startedAt: started,
+    now: () => performance.now(),
+    outerBudgetMs: MEASUREMENT_PROTOCOL.workerTimeoutMs,
+    innerBudgetMs: MEASUREMENT_PROTOCOL.innerBudgetMs
+  })
+  const prepared = await prepareMeasurement(args)
+  const { values, cells, selectedCells, candidate, server, candidateProvider, referenceProvider, referenceEntry, referenceIdentity, participants } = prepared
+  const candidateArtifactsBefore = candidateArtifactHashes(resolve(values['candidate-entry']))
+  const serverArtifactsBefore = serverArtifactHashes(resolve(values['server-root']))
+  const phaseIdsFor = (batchCells) => batchCells.flatMap((cell) => ['candidate', 'reference'].flatMap((participant) =>
+    ['cpu-wall', 'retained-heap', 'isolated-peak-rss'].map((phase) => `${cell.id}:${participant}:${phase}`)))
+  const allPhaseIds = phaseIdsFor(cells)
+  const selectedPhaseIds = phaseIdsFor(selectedCells)
+  if (args.mode === 'plan') {
+    return {
+      kind: 'lsp-measurement-plan', status: 'dry-run', scoredMeasurement: false, batch: values.batch,
+      participants, protocol: MEASUREMENT_PROTOCOL, plannedCellCount: cells.length,
+      candidateArtifacts: candidateArtifactsBefore, serverArtifacts: serverArtifactsBefore,
+      planned: cells.map((cell) => cell.id), selected: selectedCells.map((cell) => cell.id),
+      completed: [], failed: [], pending: selectedCells.map((cell) => cell.id),
+      plannedPhases: allPhaseIds,
+      selectedPhases: selectedPhaseIds,
+      notSelected: cells.filter((cell) => !selectedCells.some((selected) => selected.id === cell.id)).map((cell) => cell.id),
+      eligibility: selectedCells.map((cell) => ({ id: cell.id, ...measurementEligibility(cell) })),
+      note: 'Dry-run only: no parser operations were measured.'
+    }
+  }
+  if (args.mode !== 'measure') fail('choose --measure to execute the declared measurement phases')
+
+  const outerDeadline = started + MEASUREMENT_PROTOCOL.workerTimeoutMs
+  let innerDeadline = Number.POSITIVE_INFINITY
+  const rawObservations = []
+  const semanticPreflight = []
+  const completedPhases = new Set()
+  const failedPhases = []
+  const scratch = mkdtempSync(join(tmpdir(), 'lightning-yaml-lsp-measure-'))
+  try {
+    const fixtures = loadPinnedCorpus(repoRoot)
+    let preflightComplete = true
+    if (budget.remainingOuterMs() <= 0) {
+      failedPhases.push({ id: 'semantic-preflight', error: 'campaign budget expired during participant preparation' })
+      preflightComplete = false
+    } else {
+      for (const [participant, workerConfig] of [
+        ['candidate', { expectedHead: candidate.head, entry: resolve(values['candidate-entry']), label: 'candidate' }],
+        ['reference', { expectedHead: referenceIdentity, entry: referenceEntry, label: 'reference' }]
+      ]) {
+        const timeoutMs = Math.floor(budget.remainingOuterMs())
+        if (timeoutMs <= 0) {
+          failedPhases.push({ id: `bare-preflight:${participant}`, error: 'campaign budget expired before bare-provider preflight' })
+          preflightComplete = false
+          break
+        }
+        try {
+          spawnWorker({ kind: 'bare-check', workerId: `measure-bare-preflight-${participant}`,
+            ...workerConfig, cellIds: fixtures.map((fixture) => fixture.id), timeoutMs })
+        } catch (error) {
+          failedPhases.push({ id: `bare-preflight:${participant}`, error: error.message })
+          preflightComplete = false
+          break
+        }
+      }
+    }
+    if (values.batch === 'lsp-consumer' && preflightComplete) {
+      const baseIds = fixtures.map((fixture) => fixture.id)
+      for (const [participant, workerConfig] of [
+        ['candidate', { expectedHead: candidate.head, entry: resolve(values['candidate-entry']), label: 'candidate' }],
+        ['reference', { expectedHead: server.head, entry: referenceEntry, label: 'reference' }]
+      ]) {
+        const timeoutMs = Math.floor(budget.remainingOuterMs())
+        if (timeoutMs <= 0) {
+          failedPhases.push({ id: `server-preflight:${participant}`, error: 'campaign budget expired before server preflight' })
+          preflightComplete = false
+          break
+        }
+        try {
+          spawnWorker({ kind: 'server-check', workerId: `measure-preflight-${participant}`, ...workerConfig,
+            serverRoot: resolve(values['server-root']), cellIds: baseIds, timeoutMs })
+        } catch (error) {
+          failedPhases.push({ id: `server-preflight:${participant}`, error: error.message })
+          preflightComplete = false
+          break
+        }
+      }
+    }
+    const materializedCells = new Map()
+    for (let cellIndex = 0; preflightComplete && cellIndex < selectedCells.length; cellIndex++) {
+      const cell = selectedCells[cellIndex]
+      if (budget.remainingOuterMs() <= 0) {
+        failedPhases.push({ id: `semantic-preflight:${cell.id}`, error: 'campaign budget expired during input preparation' })
+        preflightComplete = false
+        break
+      }
+      const materialized = materializeCellSource(cell, fixtures)
+      const sourceFile = join(scratch, `${cellIndex}.yaml`)
+      writeFileSync(sourceFile, materialized.source)
+      materializedCells.set(cell.id, { materialized, sourceFile })
+      const participantOrder = cellIndex % 2 === 0 ? ['candidate', 'reference'] : ['reference', 'candidate']
+      semanticCheck: for (const participant of participantOrder) {
+        if (budget.remainingOuterMs() <= 0) {
+          failedPhases.push({ id: `semantic-preflight:${cell.id}:${participant}`, error: 'campaign budget expired before semantic preflight' })
+          preflightComplete = false
+          break semanticCheck
+        }
+        const entry = participant === 'candidate' ? resolve(values['candidate-entry']) : referenceEntry
+        const expectedHead = participant === 'candidate' ? candidate.head : referenceIdentity
+        const config = {
+          kind: 'measure-phase',
+          workerId: `${cell.id}:${participant}:semantic-only`,
+          expectedHead,
+          entry,
+          label: participant,
+          participant,
+          cellId: cell.id,
+          sourceFile,
+          inputSha256: materialized.sourceSha256,
+          expectedDocumentCount: materialized.expectedDocumentCount,
+          phase: 'semantic-only',
+          policy: cell.policy,
+          documentMode: cell.documentMode,
+          serverMode: values.batch === 'lsp-consumer',
+          serverRoot: resolve(values['server-root']),
+          warmups: 0,
+          iterations: 1
+        }
+        const remaining = outerDeadline - performance.now()
+        if (remaining <= 0) {
+          failedPhases.push({ id: `semantic-preflight:${cell.id}:${participant}`, error: 'campaign budget expired during semantic preflight' })
+          preflightComplete = false
+          break semanticCheck
+        }
+        try {
+          const checked = spawnMeasurementPhase(config, Math.max(1, Math.floor(remaining)))
+          semanticPreflight.push({ cellId: cell.id, participant, outputSha256: checked.outputSha256, input: materialized })
+        } catch (error) {
+          failedPhases.push({ id: `semantic-preflight:${cell.id}:${participant}`, error: error.message })
+          preflightComplete = false
+          break semanticCheck
+        }
+      }
+    }
+
+    innerDeadline = Math.min(outerDeadline, performance.now() + MEASUREMENT_PROTOCOL.innerBudgetMs)
+
+    for (let cellIndex = 0; preflightComplete && cellIndex < selectedCells.length; cellIndex++) {
+      const cell = selectedCells[cellIndex]
+      const { materialized, sourceFile } = materializedCells.get(cell.id)
+      const order = cellIndex % 2 === 0 ? ['candidate', 'reference'] : ['reference', 'candidate']
+      for (const participant of order) {
+        const entry = participant === 'candidate' ? resolve(values['candidate-entry']) : referenceEntry
+        const expectedHead = participant === 'candidate' ? candidate.head : referenceIdentity
+        for (const phase of ['cpu-wall', 'retained-heap', 'isolated-peak-rss']) {
+          const phaseId = `${cell.id}:${participant}:${phase}`
+          const remaining = Math.min(innerDeadline - performance.now(), outerDeadline - performance.now())
+          if (remaining <= 0) break
+          const config = {
+            kind: 'measure-phase',
+            workerId: phaseId,
+            expectedHead,
+            entry,
+            label: participant,
+            participant,
+            cellId: cell.id,
+            sourceFile,
+            inputSha256: materialized.sourceSha256,
+            expectedDocumentCount: materialized.expectedDocumentCount,
+            phase,
+            policy: cell.policy,
+            documentMode: cell.documentMode,
+            serverMode: values.batch === 'lsp-consumer',
+            serverRoot: resolve(values['server-root']),
+            warmups: MEASUREMENT_PROTOCOL.warmups,
+            iterations: MEASUREMENT_PROTOCOL.iterationsPerCell
+          }
+          try {
+            const measured = spawnMeasurementPhase(config, Math.max(1, Math.floor(remaining)))
+            rawObservations.push({ ...measured, input: materialized, providerOrder: order, providerOrderIndex: order.indexOf(participant) })
+            completedPhases.add(phaseId)
+          } catch (error) {
+            failedPhases.push({ id: phaseId, error: error.message })
+          }
+        }
+      }
+    }
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
+  }
+
+    const allPhases = selectedPhaseIds.every((id) => completedPhases.has(id))
+  const completedCells = selectedCells.filter((cell) => ['candidate', 'reference'].every((participant) =>
+    ['cpu-wall', 'retained-heap', 'isolated-peak-rss'].every((phase) => completedPhases.has(`${cell.id}:${participant}:${phase}`)))).map((cell) => cell.id)
+  const selectedIds = selectedCells.map((cell) => cell.id)
+  const cellLedger = {
+    planned: cells.map((cell) => cell.id),
+    completed: completedCells,
+    failed: cells.filter((cell) => failedPhases.some(({ id }) => id.startsWith(`${cell.id}:`))).map((cell) => cell.id),
+    pending: cells.map((cell) => cell.id).filter((id) => !completedCells.includes(id) && !failedPhases.some(({ id: failed }) => failed.startsWith(`${id}:`))),
+    notSelected: cells.filter((cell) => !selectedCells.some((selected) => selected.id === cell.id)).map((cell) => cell.id)
+  }
+  const candidateArtifactsAfter = candidateArtifactHashes(resolve(values['candidate-entry']))
+  const serverArtifactsAfter = serverArtifactHashes(resolve(values['server-root']))
+  if (JSON.stringify(candidateArtifactsBefore) !== JSON.stringify(candidateArtifactsAfter)) fail('candidate artifacts changed during measurement')
+  if (JSON.stringify(serverArtifactsBefore) !== JSON.stringify(serverArtifactsAfter)) fail('server artifacts or installed yaml alias changed during measurement')
+  return {
+    kind: 'lsp-measurement',
+    status: allPhases ? 'completed' : 'incomplete',
+    scoredMeasurement: true,
+    batch: values.batch,
+    participants,
+    candidateArtifactsBefore,
+    candidateArtifactsAfter,
+    serverArtifactsBefore,
+    serverArtifactsAfter,
+    protocol: MEASUREMENT_PROTOCOL,
     plannedCellCount: cells.length,
-    planned: cells.map((cell) => cell.id), selected: cells.map((cell) => cell.id), completed: [], failed: [], pending: cells.map((cell) => cell.id),
-    note: 'P0a declares the measurement protocol and cell ledger; no scored measurement was run.'
+    planned: cells.map((cell) => cell.id),
+    selected: selectedIds,
+    notSelected: cellLedger.notSelected,
+    eligibility: selectedCells.map((cell) => ({ id: cell.id, ...measurementEligibility(cell) })),
+    cells: cellLedger,
+    phases: {
+      planned: allPhaseIds,
+      selected: selectedPhaseIds,
+      completed: allPhaseIds.filter((id) => completedPhases.has(id)),
+      failed: failedPhases.map(({ id }) => id),
+      pending: allPhaseIds.filter((id) => !completedPhases.has(id) && !failedPhases.some((failed) => failed.id === id)),
+      notSelected: allPhaseIds.filter((id) => !selectedPhaseIds.includes(id))
+    },
+    failedPhases,
+    rawObservations,
+    semanticPreflight,
+    elapsedMs: performance.now() - started,
+    measurementClaim: allPhases ? 'raw observations only; no optimization conclusion is made by the harness' : null
   }
 }
 
 async function main() {
+  const campaignStartedAt = performance.now()
   if (process.argv[2] === '--worker') return workerMain(process.argv[3])
   const args = parseArgs(process.argv.slice(2))
-  if (!args.mode) fail('choose --check or --measure explicitly')
+  if (!args.mode) fail('choose --check, --plan or --measure explicitly')
   let output
-  if (args.mode === 'measure') output = await measurePlan(args)
+  if (args.mode === 'measure' || args.mode === 'plan') output = await measurePlan(args, campaignStartedAt)
   else output = await actualCheck(args)
   const text = `${JSON.stringify(output, null, 2)}\n`
   if (args.values.output) {
@@ -735,6 +1135,7 @@ async function main() {
     const temporary = `${outputPath}.${process.pid}.tmp`
     await import('node:fs/promises').then(({ writeFile, rename }) => writeFile(temporary, text).then(() => rename(temporary, outputPath)))
   } else process.stdout.write(text)
+  if (output.status === 'incomplete') process.exitCode = 1
 }
 
 main().catch((error) => {

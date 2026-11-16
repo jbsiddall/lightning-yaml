@@ -21,6 +21,7 @@ when one is present, and sets `candidateCompatibility: false`. The ordinary
 test suite also asserts directly that the main source shim lacks the
 `Composer`/`Document` API required by this server path. This is not evidence
 that a candidate is compatible and does not report timings.
+<!-- yaml:2.9.0 ly:183287b0af74629615fbd6234575a0b1c7a176b5 -->
 
 To exercise the real compiled server with both providers, pass explicit clean
 checkouts and built artifact entry points:
@@ -48,6 +49,7 @@ Documents and nodes are checked against that exact imported namespace, and
 server AST nodes must point back to those same provider nodes. Build artifact
 hashes identify the files that ran; they do not prove that ignored build output
 was produced from a particular source tree.
+<!-- yaml:2.9.0 ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
 
 ## Contract coverage
 
@@ -58,9 +60,11 @@ count and SHA-256. Derived streams repeat complete CMake documents with a
 five-byte `\n---\n` separator. Thirty copies are 100,825 bytes; 312 copies are
 1,048,627 bytes. These are scaled document-count inputs, not claims about the
 size or document count of the upstream originals.
+<!-- ly:5147c874308655cb19923222c108d4fe7253144a -->
 
 Semantic controls cover CRLF and non-BMP UTF-16 offsets, line callbacks with
 and without a `TextDocument`, trailing empty and whitespace-only lines,
+including a final line ending in a standalone carriage return,
 comments, custom tags and their return-type metadata, aliases, duplicate-key
 policies, malformed-document recovery, clone/edit behavior, structured-cloned
 CST tokens, and root block scalar indentation. CST reconstruction checks the
@@ -73,6 +77,7 @@ the LSP's internal `Document`, and the server AST. This is an explicit
 provider-specific status row. The context-free `CST.resolveAsScalar()` helper
 does not know whether a scalar is at the document root, so its result is not
 used as the Composer or server oracle.
+<!-- yaml:2.9.0 ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
 
 The server does not pass a `uniqueKeys` override. Its actual literal defaults
 are recorded separately: stock `yaml` uses `true`, while the candidate uses
@@ -80,14 +85,32 @@ are recorded separately: stock `yaml` uses `true`, while the candidate uses
 performance claim. Bare Composer policy controls cover literal defaults,
 explicit `false`, explicit `true`, and a traced comparator; they do not change
 the server's options.
+<!-- yaml:2.9.0 ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
 
-## Measurement protocol declaration
+## Measurement runs
 
-`--measure` only validates participants and prints a pending-cell plan in this
-contract release. It performs no scored run. It requires explicit distinct
-candidate and server checkouts, validates both providers' Composer APIs, and
-rejects a missing external Composer instead of silently falling back to the
-main shim or the server's installed alias.
+`--plan` validates participants and prints the selected pending cells without
+running parser operations. `--measure` runs the selected cells. Both modes
+require explicit distinct candidate and server checkouts, validate both
+providers' Composer APIs, and reject a missing external Composer instead of
+falling back to the main shim or server's installed alias.
+
+Review a selected batch before starting its phases by using the same explicit
+participants with `--plan`:
+
+```sh
+pnpm bench:lsp -- --plan \
+  --candidate-root /path/to/candidate-checkout \
+  --candidate-entry /path/to/candidate-checkout/dist/yaml-compat.js \
+  --candidate-head <reviewed-candidate-commit> \
+  --server-root /path/to/yaml-language-server \
+  --server-head <reviewed-server-commit> \
+  --batch bare-corpus
+```
+
+Switch `--plan` to `--measure` to execute the selected cells. Use `--cells` to
+limit a named batch; cells omitted from that selection stay visible as
+`notSelected`.
 
 Named batches are `bare-corpus`, `bare-scale`, `bare-policy`, and
 `lsp-consumer`. Each cell is identified by batch, provider, fixture, declared
@@ -95,8 +118,17 @@ policy, and document mode. `--cells` selects only identities from the named
 batch. Results retain planned, completed, failed, and pending identities; an
 unrun cell stays pending.
 
-The protocol declares three warmups and 25 iterations per cell, checksums and
-semantic oracles outside CPU timing, a 49-second inner budget, and a 60-second
-worker timeout. Future measured output must keep CPU time, wall time, retained
-heap, isolated-process peak RSS, and import/startup snapshots as separate
-metrics. P0a has no performance result or optimization conclusion.
+Each participant/cell/phase runs in a fresh sequential worker. The CPU/wall
+phase performs three warmups and 25 measured operations; output checksums are
+computed after the timed loop. The retained-heap phase retains all 25 complete
+results, collects garbage before and after, and reports the heap delta. The
+isolated peak-RSS phase performs one operation in a fresh process and reports
+the process high-water mark alongside before/after RSS. Import/startup time is
+recorded separately. The 60-second outer campaign clock starts at CLI entry and
+includes provider loading, fixture preparation, and semantic preflight children.
+After preflight, scored workers share a 49-second inner budget clamped to the
+remaining outer time. Incomplete identities stay failed or pending in the
+ledger. These phases report raw observations and do not make an optimization
+conclusion. Their mechanics are covered with injected fake operations; no real
+provider timing campaign was run for this contract change.
+<!-- yaml:2.9.0 ly:183287b0af74629615fbd6234575a0b1c7a176b5 -->

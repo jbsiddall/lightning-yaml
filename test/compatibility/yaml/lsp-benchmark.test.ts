@@ -25,6 +25,7 @@ import {
   enumerateCells,
   semanticSources,
 } from "../../../scripts/compatibility/lsp-fixtures.mjs";
+import { createCampaignBudget, runMeasurementPhase, validatePhaseResult } from "../../../scripts/compatibility/lsp-measure.mjs";
 
 const root = process.cwd();
 
@@ -55,6 +56,11 @@ describe("maintained LSP compatibility contract", () => {
     expect(result.callbacks).toEqual(result.lineCounter.lineStarts);
     expect(assertCstLossless(yaml, result.tokens, source).utf16Length).toBe(source.length);
     expect(() => assertCstLossless(yaml, result.tokens, `${source}x`)).toThrow(/lost or changed/);
+    const crOnly = semanticSources.callbackCrOnlyFinalLine;
+    const crOnlyResult = runBareOperation(yaml, crOnly, { captureLineCallbacks: true, document: {} });
+    expect(crOnlyResult.finalLineEmpty).toBe(true);
+    expect(crOnlyResult.callbacks).toEqual([]);
+    expect(crOnlyResult.lineCounter.lineStarts).toEqual([]);
   });
 
   it("checks root scalar semantics independently of unchanged CST source tokens", () => {
@@ -189,5 +195,74 @@ describe("maintained LSP compatibility contract", () => {
     expect(() => assertYamlResolutions(resolutions as never, "/tmp/provider-entry.mjs")).not.toThrow();
     expect(() => assertYamlResolutions([], "/tmp/provider-entry.mjs")).toThrow(/no mapped/);
     await expect(getRegisterHooks(async () => ({} as never))).resolves.toBeNull();
+  });
+
+  it("exercises measurement phases with injected operation, clock, CPU, heap, and RSS probes", () => {
+    let operations = 0;
+    const cpuSamples = [{ user: 1000, system: 500 }, { user: 6000, system: 2500 }];
+    const clockSamples = [10, 14];
+    const cpu = runMeasurementPhase({
+      phase: "cpu-wall",
+      warmups: 3,
+      iterations: 2,
+      operation: () => ({ ordinal: ++operations }),
+      cpuUsage: () => cpuSamples.shift()!,
+      now: () => clockSamples.shift()!,
+      summarize: (result: { ordinal: number }) => ({ ordinal: result.ordinal }),
+    });
+    expect(operations).toBe(5);
+    expect(cpu.cpuMs).toBe(7);
+    expect(cpu.wallMs).toBe(4);
+    expect(cpu.resultCount).toBe(2);
+
+    let gcCalls = 0;
+    const heapSamples = [{ heapUsed: 100 }, { heapUsed: 180 }];
+    const heap = runMeasurementPhase({
+      phase: "retained-heap",
+      warmups: 0,
+      iterations: 3,
+      operation: () => ({ retained: true }),
+      collectGarbage: () => { gcCalls++; },
+      memoryUsage: () => heapSamples.shift()!,
+      summarize: (results: unknown[]) => ({ retainedResults: results.length }),
+    });
+    expect(gcCalls).toBe(2);
+    expect(heap.retainedHeapBytes).toBe(80);
+    expect(heap.output.retainedResults).toBe(3);
+
+    const rssSamples = [{ rss: 1200 }, { rss: 1800 }];
+    const rss = runMeasurementPhase({
+      phase: "isolated-peak-rss",
+      operation: () => ({ parsed: true }),
+      collectGarbage: () => {},
+      memoryUsage: () => rssSamples.shift()!,
+      resourceUsage: () => ({ maxRSS: 4 }),
+      peakRssBytes: (maxRss: number) => maxRss * 1024,
+      summarize: (result: { parsed: boolean }) => result,
+    });
+    expect(rss.resultCount).toBe(1);
+    expect(rss.beforeRssBytes).toBe(1200);
+    expect(rss.afterRssBytes).toBe(1800);
+    expect(rss.processMaxRssBytes).toBe(4096);
+
+    const envelope = { workerId: "w", head: "h", cellId: "c", participant: "ref", phase: "cpu-wall", inputSha256: "a".repeat(64), outputSha256: "b".repeat(64), resultCount: 2 };
+    expect(validatePhaseResult(envelope, { ...envelope }).resultCount).toBe(2);
+    expect(() => validatePhaseResult({ ...envelope, resultCount: 1 }, envelope)).toThrow(/result count/);
+  });
+
+  it("charges provider and semantic preparation against the outer campaign deadline", () => {
+    let clock = 0;
+    const budget = createCampaignBudget({
+      startedAt: 0,
+      now: () => clock,
+      outerBudgetMs: 60_000,
+      innerBudgetMs: 49_000,
+    });
+    clock = 12_000; // participant loading and preflight consumed twelve seconds
+    expect(budget.remainingOuterMs()).toBe(48_000);
+    expect(budget.remainingInnerMs()).toBe(37_000);
+    clock = 60_000;
+    expect(budget.expired()).toBe(true);
+    expect(budget.remainingOuterMs()).toBe(0);
   });
 });

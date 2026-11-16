@@ -118,6 +118,7 @@ export const semanticSources = Object.freeze({
   callbackNonemptyFinalLine: 'head: 😀\r\nitems:\r\n  - one\r\nlast: yes',
   callbackEmptyFinalLine: 'head: 😀\r\nitems:\r\n  - one\r\n\r\n',
   callbackWhitespaceFinalLine: 'head: 😀\r\nitems:\r\n  - one\r\n  \r\n',
+  callbackCrOnlyFinalLine: 'head: 😀\ritems:\r  - one\r  \r',
   customTags: '# head\n---\ninclude: !include value.yaml\nscalar: !count 12\nobject: !record {name: hi}\n',
   includeMissing: 'include: !include\n',
   aliases: 'anchor: &a {k: [x, y]}\ncopy: *a\n',

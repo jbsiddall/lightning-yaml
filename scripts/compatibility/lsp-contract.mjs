@@ -107,11 +107,12 @@ export function assertYamlProvider(api, label = 'provider') {
   if (typeof api.CST.resolveAsScalar !== 'function') throw new Error(`${label}: CST.resolveAsScalar is missing`)
 }
 
-export function resolveUniqueKeys(policy, trace = []) {
+export function resolveUniqueKeys(policy, trace) {
   if (policy === 'literal-default') return { name: policy, value: undefined }
   if (policy === 'uniqueKeys-false') return { name: policy, value: false }
   if (policy === 'uniqueKeys-true') return { name: policy, value: true }
   if (policy === 'uniqueKeys-comparator') {
+    if (!Array.isArray(trace)) throw new TypeError('comparator policy requires a trace array')
     return {
       name: policy,
       value: (left, right) => {
@@ -124,16 +125,14 @@ export function resolveUniqueKeys(policy, trace = []) {
 }
 
 export function runBareOperation(api, source, { customTags = [], customTagsFactory, policy = 'literal-default', captureLineCallbacks = false, document = null } = {}) {
-  assertYamlProvider(api)
   const lineCounter = new api.LineCounter()
-  const callbacks = []
+  const callbacks = captureLineCallbacks ? [] : null
   const callback = captureLineCallbacks
     ? (offset) => { callbacks.push(offset); lineCounter.addNewLine(offset) }
     : lineCounter.addNewLine
-  const finalLine = source.slice(source.lastIndexOf('\n') + 1)
-  const finalLineEmpty = document !== null && finalLine.trim().length === 0
+  const finalLineEmpty = document !== null && (source.split(/\r\n|\n|\r/).at(-1) ?? '').trim().length === 0
   const parser = finalLineEmpty ? new api.Parser() : new api.Parser(callback)
-  const uniqueKeysTrace = []
+  const uniqueKeysTrace = policy === 'uniqueKeys-comparator' ? [] : null
   const uniqueKeys = resolveUniqueKeys(policy, uniqueKeysTrace)
   const actualCustomTags = customTagsFactory ? customTagsFactory() : customTags
   const composerOptions = {
@@ -146,7 +145,11 @@ export function runBareOperation(api, source, { customTags = [], customTagsFacto
   const composer = new api.Composer(composerOptions)
   const tokens = Array.from(parser.parse(source))
   const documents = Array.from(composer.compose(tokens, true, source.length))
-  return { tokens, documents, lineCounter, callbacks, parser, composer, policy: uniqueKeys.name, uniqueKeysTrace, finalLineEmpty }
+  const result = { tokens, documents, lineCounter }
+  if (captureLineCallbacks) result.callbacks = callbacks
+  if (uniqueKeysTrace) result.uniqueKeysTrace = uniqueKeysTrace
+  if (document !== null) result.finalLineEmpty = finalLineEmpty
+  return result
 }
 
 export function tokenGraphContains(root, target) {
@@ -174,7 +177,11 @@ export function assertCstLossless(api, tokens, source) {
 
 export function sourceLineStarts(source) {
   const offsets = [0]
-  for (let i = 0; i < source.length; i++) if (source.charCodeAt(i) === 10) offsets.push(i + 1)
+  for (let i = 0; i < source.length; i++) {
+    const char = source.charCodeAt(i)
+    if (char === 13 && source.charCodeAt(i + 1) === 10) { offsets.push(i + 2); i++ }
+    else if (char === 13 || char === 10) offsets.push(i + 1)
+  }
   return offsets
 }
 
