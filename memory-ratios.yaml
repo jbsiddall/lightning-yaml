@@ -4730,3 +4730,117 @@ workloads:
       js-yaml: 1.91
       yaml: 3.286
       lightning-yaml: 1
+---
+suite: memory-ratios
+scope: competition
+method: heap-delta
+unit: ratio
+lower_is_better: true
+schema_version: 1
+generated: 2026-11-16
+generated_at: 2026-11-16T04:01:07.865Z
+source: 4484ce525b34c8e83e7cd7b9c01ffdccdbe96943
+env:
+  clk: unknown
+  cpu: unknown
+  runtime: chromium 141.0.7390.37 (x64-linux)
+iterations: 60
+libraries:
+  - id: js-yaml
+    label: js-yaml
+    version: 5.4.3
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    version: 0.1.1
+workloads:
+  - workload: yaml-plain-small-records
+    values:
+      js-yaml: 0.968
+      yaml: 0.877
+      lightning-yaml: 1
+  - workload: yaml-rich-small
+    values:
+      js-yaml: 0.886
+      yaml: 1.836
+      lightning-yaml: 1
+  - workload: yaml-plain-medium-records
+    values:
+      js-yaml: 0.993
+      yaml: 0.998
+      lightning-yaml: 1
+  - workload: yaml-rich-medium
+    values:
+      js-yaml: 0.992
+      yaml: 0.994
+      lightning-yaml: 1
+  - workload: yaml-plain-large-records
+    values:
+      js-yaml: 1.001
+      yaml: 1.001
+      lightning-yaml: 1
+  - workload: yaml-rich-large
+    values:
+      js-yaml: 1
+      yaml: 1
+      lightning-yaml: 1
+---
+suite: memory-ratios
+scope: competition
+method: peak-rss
+unit: ratio
+lower_is_better: true
+schema_version: 1
+generated: 2026-11-16
+generated_at: 2026-11-16T04:02:30.650Z
+source: 4484ce525b34c8e83e7cd7b9c01ffdccdbe96943
+env:
+  clk: unknown
+  cpu: unknown
+  runtime: webkit 26.0 (x64-linux)
+iterations: 60
+libraries:
+  - id: js-yaml
+    label: js-yaml
+    version: 5.4.3
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    version: 0.1.1
+workloads:
+  - workload: yaml-plain-small-records
+    values:
+      js-yaml: 1.625
+      yaml: 8.917
+      lightning-yaml: 1
+  - workload: yaml-rich-small
+    values:
+      js-yaml: 1.745
+      yaml: 6.627
+      lightning-yaml: 1
+  - workload: yaml-plain-medium-records
+    values:
+      js-yaml: 2.141
+      yaml: 2.985
+      lightning-yaml: 1
+  - workload: yaml-rich-medium
+    values:
+      js-yaml: 1.543
+      yaml: 2.837
+      lightning-yaml: 1
+  - workload: yaml-plain-large-records
+    values:
+      js-yaml: 2.965
+      yaml: 4.25
+      lightning-yaml: 1
+  - workload: yaml-rich-large
+    values:
+      js-yaml: 1.916
+      yaml: 3.267
+      lightning-yaml: 1
