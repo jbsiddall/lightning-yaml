@@ -211,4 +211,4 @@ pnpm bench:lsp -- --diagnose --diagnostic graph-census \
 For a declared CPU profile or heap snapshot, add `--artifact` with a private
 destination outside the repository. Each command runs one fresh diagnostic worker; repeated cases are
 separate explicit invocations so their identities and raw files stay distinct.
-<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:98695e5ed59400ae31b9e4db710b7fa3cce0f1d4 -->
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:c851834946e5775ba447e40d0b113f2c6ed3c0bc -->
