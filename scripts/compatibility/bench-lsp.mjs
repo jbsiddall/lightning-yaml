@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { readFileSync, statSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
   SERVER_ENTRY, SERVER_TAGS_ENTRY, assertCstLossless, assertProviderDocument, assertYamlProvider,
@@ -20,6 +20,7 @@ import {
   validatePhaseResult, verifyInputBytes
 } from './lsp-measure.mjs'
 import { enumerateCells, expandDocumentStream, loadPinnedCorpus, semanticSources } from './lsp-fixtures.mjs'
+import { censusOwnGraph, classifyCpuSamples, collectCpuProfile, validateDiagnosticRequest, writeHeapSnapshot } from './lsp-diagnostics.mjs'
 
 const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), '../..')
 const scriptPath = resolve(process.argv[1])
@@ -473,11 +474,11 @@ function parseArgs(args) {
   if (args[0] === '--') args = args.slice(1)
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
-    if (arg === '--check' || arg === '--measure' || arg === '--plan') {
-      if (result.mode) fail('choose one explicit mode: --check, --plan or --measure')
+    if (arg === '--check' || arg === '--measure' || arg === '--plan' || arg === '--diagnose') {
+      if (result.mode) fail('choose one explicit mode: --check, --plan, --measure or --diagnose')
       result.mode = arg.slice(2)
     } else if (arg === '--self-check') result.selfCheck = true
-    else if (['--candidate-root', '--candidate-entry', '--candidate-head', '--server-root', '--server-head', '--reference-entry', '--output', '--batch', '--cells'].includes(arg)) {
+    else if (['--candidate-root', '--candidate-entry', '--candidate-head', '--server-root', '--server-head', '--reference-entry', '--output', '--artifact', '--batch', '--cells', '--diagnostic', '--participant', '--fixture', '--policy'].includes(arg)) {
       if (!args[i + 1]) fail(`${arg} requires a value`)
       result.values[arg.slice(2)] = args[++i]
     } else fail(`unknown argument ${arg}`)
@@ -576,12 +577,11 @@ function measurementSummary(result, api, source, serverPath, expectedDocumentCou
   return { sourceSha256: sha256(source), tokenCount: tokens.length, documents: values, lineStarts }
 }
 
-async function measureWorker(config) {
-  const { inputSha256, source } = verifyInputBytes(readFileSync(config.sourceFile), config.inputSha256)
-  const startupStart = performance.now()
+async function openMeasurementOperation(config, source) {
   const { api, provenance } = await importYamlProvider(config.entry)
   assertYamlProvider(api, config.label)
   let operation
+  let document = null
   let serverResolution = null
   let unregisterHook = () => {}
   if (config.serverMode) {
@@ -594,7 +594,7 @@ async function measureWorker(config) {
       const tagModule = await import(pathToFileURL(resolve(config.serverRoot, SERVER_TAGS_ENTRY)).href)
       if (typeof parserModule.parse !== 'function' || typeof tagModule.getCustomTags !== 'function') fail('compiled server measurement entrypoints are missing')
       const TextDocument = serverTextDocument(config.serverRoot)
-      const document = config.documentMode === 'absent'
+      document = config.documentMode === 'absent'
         ? undefined
         : TextDocument.create(`file:///lsp-measure-${config.cellId}.yaml`, 'yaml', 1, source)
       operation = () => parserModule.parse(source, { yamlVersion: '1.2', customTags: TAG_SETTINGS }, document)
@@ -607,6 +607,14 @@ async function measureWorker(config) {
   } else {
     operation = () => runBareOperation(api, source, { policy: config.policy })
   }
+  return { api, provenance, operation, document, serverResolution, unregisterHook }
+}
+
+async function measureWorker(config) {
+  const { inputSha256, source } = verifyInputBytes(readFileSync(config.sourceFile), config.inputSha256)
+  const startupStart = performance.now()
+  const opened = await openMeasurementOperation(config, source)
+  const { api, provenance, operation, serverResolution, unregisterHook } = opened
   const startupMs = performance.now() - startupStart
   try {
     let phase
@@ -650,11 +658,81 @@ async function measureWorker(config) {
   }
 }
 
+async function diagnosticWorker(config) {
+  const { inputSha256, source } = verifyInputBytes(readFileSync(config.sourceFile), config.inputSha256)
+  const opened = await openMeasurementOperation(config, source)
+  const { api, provenance, operation, document, serverResolution, unregisterHook } = opened
+  try {
+    let result
+    let diagnostic
+    if (config.diagnostic === 'cpu-profile') {
+      let lastResult
+      diagnostic = await collectCpuProfile({ operation: () => { lastResult = operation() } })
+      result = lastResult
+      const profile = diagnostic.profile
+      assertDiagnosticGraph(api, result, source, config.serverMode, config.expectedDocumentCount)
+      await import('node:fs/promises').then(({ writeFile }) => writeFile(config.artifactPath, JSON.stringify(profile), { flag: 'wx' }))
+      const sampleSummary = classifyCpuSamples(profile)
+      diagnostic = { warmups: diagnostic.warmups, iterations: diagnostic.iterations,
+        sampleIntervalUs: diagnostic.sampleIntervalUs, ...sampleSummary,
+        artifact: basename(config.artifactPath) }
+    } else {
+      result = operation()
+      assertDiagnosticGraph(api, result, source, config.serverMode, config.expectedDocumentCount)
+      if (config.diagnostic === 'heap-snapshot') {
+        diagnostic = await writeHeapSnapshot(config.artifactPath)
+        diagnostic.artifact = basename(config.artifactPath)
+      }
+      const internalDocuments = config.serverMode
+        ? result.documents.map((single) => single.internalDocument)
+        : result.documents
+      const roots = [{ name: 'operation-result', value: result }, { name: 'source', value: source },
+        ...internalDocuments.map((value, index) => ({ name: `provider-document-${index}`, value }))]
+      if (document) roots.push({ name: 'caller-text-document', value: document })
+      const is = (value, constructor) => typeof constructor === 'function' && value instanceof constructor
+      const classify = (value) => Object.hasOwn(value, 'internalNode') ? 'server-ast'
+        : is(value, api.Document) ? 'yaml-document'
+          : is(value, api.Scalar) ? 'yaml-scalar'
+            : is(value, api.Pair) ? 'yaml-pair'
+              : is(value, api.YAMLMap) ? 'yaml-map'
+                : is(value, api.YAMLSeq) ? 'yaml-seq'
+                  : is(value, api.Alias) ? 'yaml-alias'
+                    : Array.isArray(Object.getOwnPropertyDescriptor(value, 'items')?.value) ? 'array-owner'
+                      : 'other'
+      const graph = censusOwnGraph(roots, { classify, stringFields: ['source', 'rawValue', 'value', 'tag'] })
+      diagnostic = { ...(diagnostic ?? {}), graph, documentCount: internalDocuments.length,
+        serverAstRoots: config.serverMode ? result.documents.map((single) => single.root ? 'present' : 'absent') : [],
+        callerTextDocument: document ? 'included' : 'absent',
+        moduleAndSchemaRoots: 'excluded/shared; aliasResolutionCache may retain the latest AST' }
+    }
+    if (serverResolution) assertYamlResolutions(serverResolution.resolutions, serverResolution.target, config.serverRoot)
+    return { kind: 'lsp-diagnostic', scoredMeasurement: false, diagnostic: config.diagnostic,
+      workerId: config.workerId, head: config.expectedHead, participant: config.participant, fixture: config.fixture,
+      policy: config.policy, inputSha256, provenance, diagnosticResult: diagnostic,
+      resolutions: serverResolution?.resolutions ?? [] }
+  } finally {
+    unregisterHook()
+  }
+}
+
+function assertDiagnosticGraph(api, result, source, serverMode, expectedDocumentCount) {
+  assertCstLossless(api, result.tokens, source)
+  const internalDocuments = serverMode ? result.documents.map((single) => single.internalDocument) : result.documents
+  if (internalDocuments.length !== expectedDocumentCount) fail('diagnostic operation document count changed')
+  for (const document of internalDocuments) assertProviderDocument(api, document, result.tokens)
+  if (serverMode) {
+    for (const single of result.documents) {
+      serverAstBacklinks(single.internalDocument, single.root, api, result.tokens)
+    }
+  }
+}
+
 async function workerMain(encoded) {
   const config = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'))
   const output = config.kind === 'bare-check' ? await runBareWorker(config)
     : config.kind === 'server-check' ? await runServerWorker(config)
       : config.kind === 'measure-phase' ? await measureWorker(config)
+        : config.kind === 'diagnostic' ? await diagnosticWorker(config)
       : fail(`unknown worker kind ${config.kind}`)
   process.stdout.write(`${JSON.stringify(output)}\n`)
 }
@@ -1187,13 +1265,117 @@ async function measurePlan(args, campaignStartedAt) {
   }
 }
 
+function spawnDiagnostic(config, timeoutMs) {
+  const encoded = Buffer.from(JSON.stringify(config)).toString('base64url')
+  const child = spawnSync(process.execPath, [scriptPath, '--worker', encoded], {
+    cwd: repoRoot, encoding: 'utf8', timeout: timeoutMs,
+    maxBuffer: 32 * 1024 * 1024, windowsHide: true, env: { ...process.env, LOG_TOKENS: '' }
+  })
+  if (child.error) fail(`diagnostic worker failed: ${child.error.message}`)
+  if (child.status !== 0) fail(`diagnostic worker exited ${child.status}: ${(child.stderr || '').trim()}`)
+  try { return JSON.parse(child.stdout) }
+  catch (error) { fail(`diagnostic worker returned invalid JSON: ${error.message}`) }
+}
+
+function redactPaths(value) {
+  if (Array.isArray(value)) return value.map(redactPaths)
+  if (!value || typeof value !== 'object') return value
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !['path', 'root', 'files', 'parentURL', 'target', 'entryUrl'].includes(key))
+    .map(([key, child]) => [key, redactPaths(child)]))
+}
+
+function diagnosticHarnessProvenance() {
+  const files = ['bench-lsp.mjs', 'lsp-diagnostics.mjs', 'lsp-fixtures.mjs', 'lsp-measure.mjs', 'lsp-contract.mjs']
+  return Object.fromEntries(files.map((name) => {
+    const entry = hashFile(resolve(repoRoot, 'scripts/compatibility', name))
+    return [name, { bytes: entry.bytes, sha256: entry.sha256 }]
+  }))
+}
+
+async function diagnose(args, startedAt) {
+  const values = args.values
+  const required = ['candidate-root', 'candidate-entry', 'candidate-head', 'server-root', 'server-head', 'diagnostic', 'participant', 'fixture']
+  for (const key of required) if (!values[key]) fail(`--diagnose requires --${key}`)
+  const request = validateDiagnosticRequest({ diagnostic: values.diagnostic, participant: values.participant,
+    fixture: values.fixture, policy: values.policy, artifact: values.artifact })
+  const { serverMode, policy } = request
+  if (values.artifact) {
+    const artifactPath = resolve(values.artifact)
+    if (artifactPath === repoRoot || artifactPath.startsWith(`${repoRoot}/`)) fail('raw diagnostic artifacts must be written outside the repository')
+      try { statSync(artifactPath); fail('diagnostic artifact already exists; use a fresh private path') }
+      catch (error) { if (error.code !== 'ENOENT') throw error }
+  }
+  if (values['candidate-head'] !== EXPECTED_CANDIDATE_HEAD || values['server-head'] !== EXPECTED_SERVER_HEAD) fail('diagnostic participants must use the reviewed candidate and server HEADs')
+  const candidate = assertParticipant(resolve(values['candidate-root']), values['candidate-head'], 'candidate')
+  const server = assertParticipant(resolve(values['server-root']), values['server-head'], 'server')
+  const candidateEntry = resolve(values['candidate-entry'])
+  const candidatePackage = packageProvenance(candidateEntry, 'lightning-yaml')
+  if (candidatePackage.version !== '0.1.1' || resolve(candidatePackage.root) !== resolve(candidate.root)) fail('candidate package identity does not match its checkout')
+  const referenceEntry = resolve(values['reference-entry'] ?? createRequire(import.meta.url).resolve('yaml'))
+  const referencePackage = packageProvenance(referenceEntry, 'yaml')
+  if (referencePackage.version !== '2.9.0') fail('diagnostic reference provider must be yaml@2.9.0')
+  const fixtures = loadPinnedCorpus(repoRoot)
+  const fixture = fixtures.find((item) => item.id === values.fixture)
+  if (!fixture) fail(`unknown diagnostic fixture ${values.fixture}`)
+  const participant = request.provider
+  const entry = participant === 'candidate' ? candidateEntry : referenceEntry
+  const expectedHead = participant === 'candidate' ? candidate.head : `yaml@${referencePackage.version}:${referencePackage.entry.sha256}`
+  const candidateArtifactsBefore = candidateArtifactHashes(candidateEntry)
+  const serverArtifactsBefore = serverArtifactHashes(server.root)
+  const scratch = mkdtempSync(join(tmpdir(), 'lightning-yaml-lsp-diagnostic-'))
+  try {
+    const sourceFile = join(scratch, 'input.yaml')
+    writeFileSync(sourceFile, fixture.source)
+    const config = {
+      kind: 'diagnostic', diagnostic: values.diagnostic, workerId: `${values.diagnostic}:${values.participant}:${fixture.id}`,
+      participant: values.participant, fixture: fixture.id, policy, serverMode, documentMode: 'absent',
+      entry, label: participant, expectedHead, serverRoot: resolve(values['server-root']), sourceFile,
+      inputSha256: fixture.sha256, expectedDocumentCount: fixture.expectedDocuments,
+      artifactPath: values.artifact ? resolve(values.artifact) : undefined
+    }
+    const remaining = 60_000 - (performance.now() - startedAt)
+    if (remaining <= 0) fail('diagnostic outer budget expired during participant preparation')
+    const diagnosticResult = spawnDiagnostic(config, Math.max(1, Math.floor(remaining)))
+    if (diagnosticResult.inputSha256 !== fixture.sha256) fail('diagnostic worker observed an unexpected input hash')
+    if (serverMode && diagnosticResult.resolutions.length === 0) fail('diagnostic server worker did not prove provider hook mappings')
+    const candidateArtifacts = candidateArtifactHashes(candidateEntry)
+    const serverArtifacts = serverArtifactHashes(server.root)
+    if (JSON.stringify(candidateArtifactsBefore) !== JSON.stringify(candidateArtifacts)) fail('candidate artifacts changed during diagnostic')
+    if (JSON.stringify(serverArtifactsBefore) !== JSON.stringify(serverArtifacts)) fail('server artifacts or installed yaml alias changed during diagnostic')
+    return {
+      kind: 'lsp-diagnostic-result', status: 'completed', scoredMeasurement: false,
+      diagnostic: values.diagnostic, participant: values.participant, policy,
+      fixture: { id: fixture.id, bytes: fixture.bytes, utf16Length: fixture.utf16Length, sha256: fixture.sha256, expectedDocuments: fixture.expectedDocuments },
+      candidate: { head: candidate.head, artifacts: redactPaths(candidateArtifacts) },
+      server: { head: server.head, artifacts: redactPaths(serverArtifacts), declaredYamlDependency: '2.8.3' },
+      reference: { version: referencePackage.version, packageJsonSha256: referencePackage.packageJsonSha256,
+        entrySha256: referencePackage.entry.sha256, closure: { count: referencePackage.closure.count, sha256: referencePackage.closure.sha256 } },
+      harness: { head: gitProvenance(repoRoot).head, files: diagnosticHarnessProvenance() },
+      worker: {
+        kind: diagnosticResult.kind, scoredMeasurement: false, diagnostic: diagnosticResult.diagnostic,
+        head: diagnosticResult.head, participant: diagnosticResult.participant, fixture: diagnosticResult.fixture,
+        policy: diagnosticResult.policy, inputSha256: diagnosticResult.inputSha256,
+        provider: redactPaths(diagnosticResult.provenance), diagnosticResult: diagnosticResult.diagnosticResult,
+        resolution: { mappedImportCount: diagnosticResult.resolutions.length, allMappedToSelectedProvider: true }
+      }, elapsedMs: performance.now() - startedAt,
+      artifact: values.artifact ? { basename: basename(resolve(values.artifact)), bytes: statSync(resolve(values.artifact)).size,
+        sha256: hashFile(resolve(values.artifact)).sha256 } : null,
+      note: 'Non-scored diagnostic operation; raw artifact path is intentionally omitted.'
+    }
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
+  }
+}
+
 async function main() {
   const campaignStartedAt = performance.now()
   if (process.argv[2] === '--worker') return workerMain(process.argv[3])
   const args = parseArgs(process.argv.slice(2))
-  if (!args.mode) fail('choose --check, --plan or --measure explicitly')
+  if (!args.mode) fail('choose --check, --plan, --measure or --diagnose explicitly')
   let output
   if (args.mode === 'measure' || args.mode === 'plan') output = await measurePlan(args, campaignStartedAt)
+  else if (args.mode === 'diagnose') output = await diagnose(args, campaignStartedAt)
   else output = await actualCheck(args)
   const text = `${JSON.stringify(output, null, 2)}\n`
   if (args.values.output) {

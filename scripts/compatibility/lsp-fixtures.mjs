@@ -132,6 +132,8 @@ export const semanticSources = Object.freeze({
 export const plannedBatches = Object.freeze({
   'bare-corpus': Object.freeze({ fixtures: ['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform'], policies: ['literal-default'] }),
   'bare-scale': Object.freeze({ fixtures: ['github-actions-cmake-multi-platform:scaled-document-count:30', 'github-actions-cmake-multi-platform:scaled-document-count:312'], policies: ['literal-default'] }),
+  'bare-matched-corpus': Object.freeze({ fixtures: ['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform'], policies: ['uniqueKeys-false', 'uniqueKeys-true'] }),
+  'bare-matched-scale': Object.freeze({ fixtures: ['github-actions-cmake-multi-platform:scaled-document-count:30', 'github-actions-cmake-multi-platform:scaled-document-count:312'], policies: ['uniqueKeys-false', 'uniqueKeys-true'] }),
   'bare-policy': Object.freeze({ fixtures: ['duplicateKeys', 'comparatorKeys'], policies: ['uniqueKeys-false', 'uniqueKeys-true', 'uniqueKeys-comparator'] }),
   'lsp-consumer': Object.freeze({ fixtures: ['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform'], documentModes: ['absent', 'nonempty-final-line', 'empty-final-line', 'whitespace-final-line'], policies: ['literal-default'] })
 })

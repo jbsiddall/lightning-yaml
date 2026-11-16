@@ -112,9 +112,11 @@ Switch `--plan` to `--measure` to execute the selected cells. Use `--cells` to
 limit a named batch; cells omitted from that selection stay visible as
 `notSelected`.
 
-Named batches are `bare-corpus`, `bare-scale`, `bare-policy`, and
-`lsp-consumer`. They contain 3, 2, 6, and 12 logical comparison cells,
-respectively. A cell ID is provider-independent and identifies its batch,
+Named batches are `bare-corpus`, `bare-scale`, `bare-matched-corpus`,
+`bare-matched-scale`, `bare-policy`, and `lsp-consumer`. They contain 3, 2, 6,
+4, 6, and 12 logical comparison cells, respectively. The matched batches
+declare both explicit `uniqueKeys: false` and `uniqueKeys: true` policies. A
+cell ID is provider-independent and identifies its batch,
 fixture, declared policy, and document mode. `--cells` selects logical cell IDs
 from the named batch, so selecting one case still schedules its candidate and
 reference pair.
@@ -125,7 +127,7 @@ second reverses the cell order and runs reference then candidate. Each scored
 phase worker has a unique observation ID containing its cell, repeat, participant,
 and phase. Semantic-preflight workers use separate check IDs outside this paired
 schedule. `--plan` prints the scored schedule. The full batches declare 36,
-24, 72, and 144 phase observations respectively; selecting one cell declares
+24, 72, 48, 72, and 144 phase observations respectively; selecting one cell declares
 12. Results retain planned, selected, completed, failed, pending, and
 not-selected observation IDs as well as the logical cell ledger.
 
@@ -147,3 +149,42 @@ These phases report raw observations and do not make an optimization
 conclusion. Their mechanics are covered with injected fake operations; no real
 provider timing campaign was run for this contract change.
 <!-- yaml:2.9.0 ly:99db15ad2004af03bab230f4b6728359a277cc47 -->
+
+## Non-scored diagnostics
+
+`--diagnose` runs one bounded diagnostic child through the same provider import,
+resolver hook, and parser operation used by measurement workers. It requires the
+reviewed candidate and server roots/heads, a corpus fixture, and an explicit
+participant (`candidate`, `reference`, `server-candidate`, or `server-reference`).
+The default bare policy is `uniqueKeys-false`; actual-server runs preserve the
+server's literal defaults. `--diagnostic graph-census` reports own-property
+reachable graph counts and string code units without invoking accessors or
+traversing shared module/schema roots. `--diagnostic cpu-profile` is limited to
+the declared GitHub Actions bare matched-false and actual-server cases; it uses
+three warmups, 250 operations, and a 1 ms sample interval. `--diagnostic
+heap-snapshot` is limited to actual-server GitHub Actions cases and captures a
+raw snapshot for offline inspection; the harness does not parse snapshots or
+infer object bytes from counts. Profiles with fewer than 200 samples are marked
+insufficient for fine attribution. CPU profiles and snapshots require a private
+`--artifact` destination outside the repository; the JSON result reports only
+the artifact basename.
+Diagnostics are not scored observations and establish no performance result.
+No profile or heap snapshot was collected for this harness change.
+
+Example non-scored census invocation (use the reviewed roots and hashes above):
+
+```sh
+pnpm bench:lsp -- --diagnose --diagnostic graph-census \
+  --participant server-candidate \
+  --fixture github-actions-cmake-multi-platform \
+  --candidate-root /path/to/candidate-checkout \
+  --candidate-entry /path/to/candidate-checkout/dist/yaml-compat.js \
+  --candidate-head <reviewed-candidate-commit> \
+  --server-root /path/to/yaml-language-server \
+  --server-head <reviewed-server-commit>
+```
+
+For a declared CPU profile or heap snapshot, add `--artifact` with a private
+destination outside the repository. Each command runs one fresh diagnostic worker; repeated cases are
+separate explicit invocations so their identities and raw files stay distinct.
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:4484ce525b34c8e83e7cd7b9c01ffdccdbe96943 -->

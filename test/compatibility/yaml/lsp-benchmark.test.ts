@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import * as yaml from "yaml";
 import * as sourceYaml from "../../../src/yaml-compat.ts";
@@ -40,6 +42,7 @@ import {
   validatePhaseResult,
   verifyInputBytes,
 } from "../../../scripts/compatibility/lsp-measure.mjs";
+import { censusOwnGraph, classifyCpuSamples, collectCpuProfile, validateDiagnosticRequest, writeHeapSnapshot } from "../../../scripts/compatibility/lsp-diagnostics.mjs";
 
 const root = process.cwd();
 
@@ -61,6 +64,8 @@ describe("maintained LSP compatibility contract", () => {
     expect(() => expandDocumentStream(fixtures[2]!, 1001)).toThrow(/copies/);
     expect(enumerateCells("bare-corpus")).toHaveLength(3);
     expect(enumerateCells("bare-scale")).toHaveLength(2);
+    expect(enumerateCells("bare-matched-corpus")).toHaveLength(6);
+    expect(enumerateCells("bare-matched-scale")).toHaveLength(4);
     expect(enumerateCells("bare-policy")).toHaveLength(6);
     expect(enumerateCells("lsp-consumer")).toHaveLength(12);
     expect(enumerateCells("lsp-consumer").every((cell) => !("provider" in cell))).toBe(true);
@@ -71,7 +76,7 @@ describe("maintained LSP compatibility contract", () => {
     const phases = ["cpu-wall", "retained-heap", "isolated-peak-rss"];
     expect(() => createPairedSchedule([], { repeatCount: 1, participants, phases })).toThrow(/between 2 and 5/);
     expect(() => createPairedSchedule([], { repeatCount: 6, participants, phases })).toThrow(/between 2 and 5/);
-    for (const batch of ["bare-scale", "bare-policy", "lsp-consumer"]) {
+    for (const batch of ["bare-scale", "bare-matched-corpus", "bare-matched-scale", "bare-policy", "lsp-consumer"]) {
       const cells = enumerateCells(batch);
       const schedule = createPairedSchedule(cells, { repeatCount: 2, participants, phases });
       expect(schedule).toHaveLength(cells.length * 2 * 2 * phases.length);
@@ -370,5 +375,83 @@ describe("maintained LSP compatibility contract", () => {
     clock = 60_000;
     expect(budget.expired()).toBe(true);
     expect(budget.remainingOuterMs()).toBe(0);
+  });
+
+  it("censuses own data properties without invoking accessors and deduplicates cycles", () => {
+    const shared: Record<string, unknown> = { value: "yaml" };
+    const root: Record<string, unknown> = { left: shared, right: shared };
+    root.self = root;
+    let getterCalls = 0;
+    Object.defineProperty(root, "unsafe", { enumerable: true, get() { getterCalls++; throw new Error("getter ran"); } });
+    const census = censusOwnGraph([
+      { name: "result", value: root },
+      { name: "source", value: "a\n" },
+    ], { classify: (value) => Array.isArray(value) ? "array" : "object", stringFields: ["value"] });
+    expect(getterCalls).toBe(0);
+    expect(census.uniqueReferences).toBe(2);
+    expect(census.objects).toBe(2);
+    expect(census.strings).toBe(2);
+    expect(census.stringCodeUnits).toBe(6);
+  });
+
+  it("keeps diagnostic requests inside their predeclared provider, policy, and fixture scope", () => {
+    const gha = "github-actions-cmake-multi-platform";
+    expect(validateDiagnosticRequest({ diagnostic: "cpu-profile", participant: "candidate", fixture: gha, artifact: "/private/candidate.cpuprofile" }))
+      .toEqual({ serverMode: false, policy: "uniqueKeys-false", provider: "candidate" });
+    expect(validateDiagnosticRequest({ diagnostic: "heap-snapshot", participant: "server-reference", fixture: gha, artifact: "/private/reference.heapsnapshot" }))
+      .toEqual({ serverMode: true, policy: "literal-default", provider: "reference" });
+    expect(() => validateDiagnosticRequest({ diagnostic: "cpu-profile", participant: "candidate", fixture: gha, policy: "uniqueKeys-true", artifact: "x" }))
+      .toThrow(/predeclared/);
+    expect(() => validateDiagnosticRequest({ diagnostic: "heap-snapshot", participant: "candidate", fixture: gha, artifact: "x" }))
+      .toThrow(/actual-server/);
+    expect(() => validateDiagnosticRequest({ diagnostic: "graph-census", participant: "server-candidate", fixture: "unknown" }))
+      .toThrow(/original corpus/);
+  });
+
+  it("runs the fixed CPU-profile loop through an injected inspector session", async () => {
+    const calls: string[] = [];
+    const session = {
+      post(method: string, _params: unknown, callback: (error: Error | null, result?: unknown) => void) {
+        calls.push(method);
+        queueMicrotask(() => callback(null, method === "Profiler.stop" ? { profile: { samples: [1, 2, 3] } } : {}));
+      },
+    };
+    let operations = 0;
+    const result = await collectCpuProfile({
+      session: session as never,
+      operation: () => { operations++; },
+    });
+    expect(operations).toBe(253);
+    expect(result).toMatchObject({ warmups: 3, iterations: 250, sampleIntervalUs: 1000, profile: { samples: [1, 2, 3] } });
+    expect(calls).toEqual(["Profiler.enable", "Profiler.setSamplingInterval", "Profiler.start", "Profiler.stop", "Profiler.disable"]);
+    expect(classifyCpuSamples({
+      nodes: [
+        { id: 1, callFrame: { functionName: "root", url: "" }, children: [2] },
+        { id: 2, callFrame: { functionName: "parseDocument", url: "file:///parser.mjs" } },
+      ],
+      samples: [2, 2, 1],
+    })).toEqual({ sampleCount: 3, categories: { lexerParser: 2, composition: 0, customCallbacks: 0, runtimeGc: 0, serverAst: 0, unassigned: 1 }, attributionAssessment: "insufficient-samples-for-fine-attribution" });
+  });
+
+  it("streams an injected heap snapshot without interpreting it", async () => {
+    const directory = mkdtempSync(`${tmpdir()}/lsp-snapshot-test-`);
+    const file = resolve(directory, "sample.heapsnapshot");
+    const events = new Map<string, (event: { params: { chunk: string } }) => void>();
+    const session = {
+      on(name: string, listener: (event: { params: { chunk: string } }) => void) { events.set(name, listener); },
+      post(method: string, _params: unknown, callback: (error: Error | null, result?: unknown) => void) {
+        if (method === "HeapProfiler.takeHeapSnapshot") {
+          events.get("HeapProfiler.addHeapSnapshotChunk")?.({ params: { chunk: "{\"snapshot\":" } });
+          events.get("HeapProfiler.addHeapSnapshotChunk")?.({ params: { chunk: "true}" } });
+        }
+        queueMicrotask(() => callback(null, {}));
+      },
+    };
+    try {
+      await expect(writeHeapSnapshot(file, { session: session as never })).resolves.toEqual({ bytes: 17, chunks: 2 });
+      expect(readFileSync(file, "utf8")).toBe("{\"snapshot\":true}");
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 });
