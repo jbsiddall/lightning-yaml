@@ -20,7 +20,10 @@ import {
   validatePhaseResult, verifyInputBytes
 } from './lsp-measure.mjs'
 import { enumerateCells, expandDocumentStream, loadPinnedCorpus, semanticSources } from './lsp-fixtures.mjs'
-import { censusOwnGraph, classifyCpuSamples, collectCpuProfile, validateDiagnosticRequest, writeHeapSnapshot } from './lsp-diagnostics.mjs'
+import {
+  censusOwnGraph, classifyCpuSamples, collectCpuProfile, createDiagnosticBudget, validateDiagnosticRequest,
+  validateDiagnosticWorker, writeHeapSnapshot
+} from './lsp-diagnostics.mjs'
 
 const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), '../..')
 const scriptPath = resolve(process.argv[1])
@@ -662,6 +665,7 @@ async function diagnosticWorker(config) {
   const { inputSha256, source } = verifyInputBytes(readFileSync(config.sourceFile), config.inputSha256)
   const opened = await openMeasurementOperation(config, source)
   const { api, provenance, operation, document, serverResolution, unregisterHook } = opened
+  let status = 'completed'
   try {
     let result
     let diagnostic
@@ -680,10 +684,21 @@ async function diagnosticWorker(config) {
       result = operation()
       assertDiagnosticGraph(api, result, source, config.serverMode, config.expectedDocumentCount)
       if (config.diagnostic === 'heap-snapshot') {
-        diagnostic = await writeHeapSnapshot(config.artifactPath)
-        diagnostic.artifact = basename(config.artifactPath)
-        diagnostic.rootLiveness = 'operation result remains referenced through snapshot capture'
-        diagnostic.identityMapping = 'not emitted; exact offline heap-node mapping is required before attributing bytes or deriving a floor'
+        try {
+          diagnostic = await writeHeapSnapshot(config.artifactPath)
+          diagnostic.artifact = basename(config.artifactPath)
+          diagnostic.rootLiveness = 'operation result remains referenced through snapshot capture'
+          diagnostic.identityMapping = 'not emitted; exact offline heap-node mapping is required before attributing bytes or deriving a floor'
+        } catch (error) {
+          if (!error.artifactState) throw error
+          status = 'incomplete'
+          const reason = error.message === 'heap snapshot incomplete: snapshot sink refused an inspector chunk'
+            ? 'snapshot sink refused an Inspector chunk'
+            : 'snapshot capture or artifact sink failed'
+          diagnostic = { ...error.artifactState, artifact: basename(config.artifactPath), reason,
+            rootLiveness: 'operation result remained referenced during the incomplete capture',
+            identityMapping: 'not emitted; byte attribution and any floor remain unknown' }
+        }
       }
       const internalDocuments = config.serverMode
         ? result.documents.map((single) => single.internalDocument)
@@ -710,7 +725,8 @@ async function diagnosticWorker(config) {
         aliasResolutionCache: 'not traversed; may retain the latest AST' }
     }
     if (serverResolution) assertYamlResolutions(serverResolution.resolutions, serverResolution.target, config.serverRoot)
-    return { kind: 'lsp-diagnostic', scoredMeasurement: false, diagnostic: config.diagnostic,
+    diagnostic.diagnostic = config.diagnostic
+    return { kind: 'lsp-diagnostic', status, scoredMeasurement: false, diagnostic: config.diagnostic,
       workerId: config.workerId, head: config.expectedHead, participant: config.participant, fixture: config.fixture,
       policy: config.policy, inputSha256, provenance, diagnosticResult: diagnostic,
       resolutions: serverResolution?.resolutions ?? [] }
@@ -1276,7 +1292,10 @@ function spawnDiagnostic(config, timeoutMs) {
     maxBuffer: 32 * 1024 * 1024, windowsHide: true, env: { ...process.env, LOG_TOKENS: '' }
   })
   if (child.error) fail(`diagnostic worker failed: ${child.error.message}`)
-  if (child.status !== 0) fail(`diagnostic worker exited ${child.status}: ${(child.stderr || '').trim()}`)
+  if (child.status !== 0) {
+    const stderr = config.artifactPath ? (child.stderr || '').replaceAll(config.artifactPath, '<private-artifact>') : (child.stderr || '')
+    fail(`diagnostic worker exited ${child.status}: ${stderr.trim()}`)
+  }
   try { return JSON.parse(child.stdout) }
   catch (error) { fail(`diagnostic worker returned invalid JSON: ${error.message}`) }
 }
@@ -1290,14 +1309,33 @@ function redactPaths(value) {
 }
 
 function diagnosticHarnessProvenance() {
-  const files = ['bench-lsp.mjs', 'lsp-diagnostics.mjs', 'lsp-fixtures.mjs', 'lsp-measure.mjs', 'lsp-contract.mjs']
+  const files = ['bench-lsp.mjs', 'lsp-diagnostics.mjs', 'lsp-diagnostics.d.mts', 'lsp-fixtures.mjs', 'lsp-measure.mjs', 'lsp-contract.mjs']
   return Object.fromEntries(files.map((name) => {
     const entry = hashFile(resolve(repoRoot, 'scripts/compatibility', name))
     return [name, { bytes: entry.bytes, sha256: entry.sha256 }]
   }))
 }
 
+function diagnosticHarnessIdentity() {
+  const source = gitProvenance(repoRoot)
+  if (source.dirty) fail('diagnostic harness checkout must be clean')
+  return { head: source.head, tree: source.tree, files: diagnosticHarnessProvenance() }
+}
+
+function diagnosticProviderIdentity(provider) {
+  return {
+    root: resolve(provider.root), name: provider.name, version: provider.version,
+    packageJsonSha256: provider.packageJsonSha256,
+    lockSha256: provider.lock?.sha256 ?? null,
+    entryPath: resolve(provider.entry.path), entryBytes: provider.entry.bytes, entrySha256: provider.entry.sha256,
+    closureCount: provider.closure.count,
+    closureSha256: provider.closure.sha256
+  }
+}
+
 async function diagnose(args, startedAt) {
+  const budget = createDiagnosticBudget({ startedAt, now: () => performance.now() })
+  const harnessBefore = diagnosticHarnessIdentity()
   const values = args.values
   const required = ['candidate-root', 'candidate-entry', 'candidate-head', 'server-root', 'server-head', 'diagnostic', 'participant', 'fixture']
   for (const key of required) if (!values[key]) fail(`--diagnose requires --${key}`)
@@ -1324,6 +1362,8 @@ async function diagnose(args, startedAt) {
   if (!fixture) fail(`unknown diagnostic fixture ${values.fixture}`)
   const participant = request.provider
   const entry = participant === 'candidate' ? candidateEntry : referenceEntry
+  const providerPackage = participant === 'candidate' ? candidatePackage : referencePackage
+  const providerIdentity = diagnosticProviderIdentity(providerPackage)
   const expectedHead = participant === 'candidate' ? candidate.head : `yaml@${referencePackage.version}:${referencePackage.entry.sha256}`
   const candidateArtifactsBefore = candidateArtifactHashes(candidateEntry)
   const serverArtifactsBefore = serverArtifactHashes(server.root)
@@ -1338,33 +1378,52 @@ async function diagnose(args, startedAt) {
       inputSha256: fixture.sha256, expectedDocumentCount: fixture.expectedDocuments,
       artifactPath: values.artifact ? resolve(values.artifact) : undefined
     }
-    const remaining = 60_000 - (performance.now() - startedAt)
+    budget.startInner()
+    const remaining = budget.remainingWorkerMs()
     if (remaining <= 0) fail('diagnostic outer budget expired during participant preparation')
     const diagnosticResult = spawnDiagnostic(config, Math.max(1, Math.floor(remaining)))
-    if (diagnosticResult.inputSha256 !== fixture.sha256) fail('diagnostic worker observed an unexpected input hash')
-    if (serverMode && diagnosticResult.resolutions.length === 0) fail('diagnostic server worker did not prove provider hook mappings')
+    const resolutionEvidence = validateDiagnosticWorker(diagnosticResult, {
+      kind: 'lsp-diagnostic', workerId: config.workerId, diagnostic: config.diagnostic,
+      head: expectedHead, participant: values.participant, fixture: fixture.id, policy,
+      inputSha256: fixture.sha256, provider: providerIdentity, entry, serverRoot: server.root, serverMode
+    })
     const candidateArtifacts = candidateArtifactHashes(candidateEntry)
     const serverArtifacts = serverArtifactHashes(server.root)
+    const candidatePackageAfter = packageProvenance(candidateEntry, 'lightning-yaml')
+    const referencePackageAfter = packageProvenance(referenceEntry, 'yaml')
+    const harnessAfter = diagnosticHarnessIdentity()
+    if (diagnosticResult.status === 'incomplete' && values.artifact) {
+      try { statSync(resolve(values.artifact)); fail('incomplete snapshot left its final artifact path in place') }
+      catch (error) { if (error.code !== 'ENOENT') throw error }
+    }
     if (JSON.stringify(candidateArtifactsBefore) !== JSON.stringify(candidateArtifacts)) fail('candidate artifacts changed during diagnostic')
     if (JSON.stringify(serverArtifactsBefore) !== JSON.stringify(serverArtifacts)) fail('server artifacts or installed yaml alias changed during diagnostic')
+    if (JSON.stringify(diagnosticProviderIdentity(candidatePackage)) !== JSON.stringify(diagnosticProviderIdentity(candidatePackageAfter))) fail('candidate package provenance changed during diagnostic')
+    if (JSON.stringify(diagnosticProviderIdentity(referencePackage)) !== JSON.stringify(diagnosticProviderIdentity(referencePackageAfter))) fail('reference package provenance changed during diagnostic')
+    if (JSON.stringify(harnessBefore) !== JSON.stringify(harnessAfter)) fail('diagnostic harness head or source hashes changed during diagnostic')
+    if (budget.remainingOuterMs() <= 0) fail('diagnostic outer budget expired during postflight')
     return {
-      kind: 'lsp-diagnostic-result', status: 'completed', scoredMeasurement: false,
+      kind: 'lsp-diagnostic-result', status: diagnosticResult.status, scoredMeasurement: false,
       diagnostic: values.diagnostic, participant: values.participant, policy,
       fixture: { id: fixture.id, bytes: fixture.bytes, utf16Length: fixture.utf16Length, sha256: fixture.sha256, expectedDocuments: fixture.expectedDocuments },
       candidate: { head: candidate.head, artifacts: redactPaths(candidateArtifacts) },
       server: { head: server.head, artifacts: redactPaths(serverArtifacts), declaredYamlDependency: '2.8.3' },
-      reference: { version: referencePackage.version, packageJsonSha256: referencePackage.packageJsonSha256,
-        entrySha256: referencePackage.entry.sha256, closure: { count: referencePackage.closure.count, sha256: referencePackage.closure.sha256 } },
-      harness: { head: gitProvenance(repoRoot).head, files: diagnosticHarnessProvenance() },
+      reference: redactPaths(diagnosticProviderIdentity(referencePackage)),
+      harness: harnessBefore,
       worker: {
-        kind: diagnosticResult.kind, scoredMeasurement: false, diagnostic: diagnosticResult.diagnostic,
+        kind: diagnosticResult.kind, status: diagnosticResult.status, scoredMeasurement: false, diagnostic: diagnosticResult.diagnostic,
         head: diagnosticResult.head, participant: diagnosticResult.participant, fixture: diagnosticResult.fixture,
         policy: diagnosticResult.policy, inputSha256: diagnosticResult.inputSha256,
         provider: redactPaths(diagnosticResult.provenance), diagnosticResult: diagnosticResult.diagnosticResult,
-        resolution: { mappedImportCount: diagnosticResult.resolutions.length, allMappedToSelectedProvider: true }
+        resolution: resolutionEvidence
       }, elapsedMs: performance.now() - startedAt,
-      artifact: values.artifact ? { basename: basename(resolve(values.artifact)), bytes: statSync(resolve(values.artifact)).size,
-        sha256: hashFile(resolve(values.artifact)).sha256 } : null,
+      budget: { outerLimitMs: 60_000, innerLimitMs: 49_000, workerTimeoutMs: Math.floor(remaining),
+        outerRemainingMs: budget.remainingOuterMs(), innerRemainingMs: budget.remainingInnerMs() },
+      artifact: values.artifact ? diagnosticResult.status === 'completed'
+        ? { status: 'completed', basename: basename(resolve(values.artifact)), bytes: statSync(resolve(values.artifact)).size,
+          sha256: hashFile(resolve(values.artifact)).sha256 }
+        : { ...diagnosticResult.diagnosticResult, status: 'incomplete' }
+        : null,
       note: 'Non-scored diagnostic operation; raw artifact path is intentionally omitted.'
     }
   } finally {

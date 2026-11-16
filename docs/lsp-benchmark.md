@@ -157,11 +157,16 @@ resolver hook, and parser operation used by measurement workers. It requires the
 reviewed candidate and server roots/heads, a corpus fixture, and an explicit
 participant (`candidate`, `reference`, `server-candidate`, or `server-reference`).
 The default bare policy is `uniqueKeys-false`; actual-server runs preserve the
-server's literal defaults. `--diagnostic graph-census` reports own-property
-reachable graph counts and string code units without invoking accessors. It
-skips own `schema` reference edges and separately reports their field
-occurrences and distinct identities; schemas may be per-document or shared,
-and their contents are not included in the operation graph counts. This is a
+server's literal defaults. `--diagnostic graph-census` is limited to all three
+original fixtures through each actual-server provider (six distinct cases). It
+reports own-property reachable graph counts, selected string-field occurrences,
+and their code units without invoking accessors. Those string counts describe
+property occurrences, not unique physical string storage, and are never bytes.
+The census skips own `schema` reference edges and separately reports their field
+occurrences, per-owner graph-local identity links, and distinct schema
+identities. This makes per-document references and schema reuse visible without
+including schema contents in the operation graph counts; schemas may be
+per-document or shared. These graph-local IDs are not V8 heap-node IDs. This is a
 partial graph census: excluded schema memory remains unknown, so these counts
 do not establish a complete retained graph or a byte floor. Prototype and
 module roots are not traversed, and the alias-resolution cache is reported as
@@ -170,13 +175,23 @@ the declared GitHub Actions bare matched-false and actual-server cases; it uses
 three warmups, 250 operations, and a 1 ms sample interval. `--diagnostic
 heap-snapshot` is limited to actual-server GitHub Actions cases and captures a
 raw snapshot for offline inspection; the harness does not parse snapshots or
-infer object bytes from counts. Profiles with fewer than 200 samples are marked
-insufficient for fine attribution. Snapshot capture keeps the operation result
+infer object bytes from counts. Server-wrapper frames are distinct from the
+actual `ast-converter.js` conversion functions. A profile is insufficient for
+fine attribution unless it has at least 200 useful samples and at least 80%
+classified coverage; reports include total, useful, assigned, and unassigned
+counts. Snapshot capture keeps the operation result
 live, but emits no object-identity-to-heap-node mapping. Offline exact mapping is
 required before attributing bytes or deriving a floor; if mapping is not
 established, byte attribution and the floor remain unknown. CPU profiles and snapshots require a private
 `--artifact` destination outside the repository; the JSON result reports only
-the artifact basename.
+the artifact basename. `graph-census` does not accept `--artifact`. Snapshot
+chunks use a synchronous file sink so writes apply backpressure directly to
+Inspector event delivery. Sink refusal or write errors return an incomplete
+status and remove partial files.
+
+The diagnostic campaign clock starts at CLI entry and allows at most 60 seconds
+overall; its worker has a separate 49-second inner limit, clamped to the
+remaining outer time after participant and fixture preparation.
 Diagnostics are not scored observations and establish no performance result.
 No profile or heap snapshot was collected for this harness change.
 

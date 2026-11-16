@@ -42,7 +42,15 @@ import {
   validatePhaseResult,
   verifyInputBytes,
 } from "../../../scripts/compatibility/lsp-measure.mjs";
-import { censusOwnGraph, classifyCpuSamples, collectCpuProfile, validateDiagnosticRequest, writeHeapSnapshot } from "../../../scripts/compatibility/lsp-diagnostics.mjs";
+import {
+  censusOwnGraph,
+  classifyCpuSamples,
+  collectCpuProfile,
+  createDiagnosticBudget,
+  validateDiagnosticRequest,
+  validateDiagnosticWorker,
+  writeHeapSnapshot,
+} from "../../../scripts/compatibility/lsp-diagnostics.mjs";
 
 const root = process.cwd();
 
@@ -390,13 +398,13 @@ describe("maintained LSP compatibility contract", () => {
     expect(getterCalls).toBe(0);
     expect(census.uniqueReferences).toBe(2);
     expect(census.objects).toBe(2);
-    expect(census.strings).toBe(2);
-    expect(census.stringCodeUnits).toBe(6);
+    expect(census.stringFieldOccurrences).toBe(2);
+    expect(census.stringFieldCodeUnits).toBe(6);
   });
 
   it("excludes own schema links while reporting occurrences and distinct identities", () => {
     const sharedSchema = { rules: [{ tag: "shared" }] };
-    const first = { schema: sharedSchema };
+    const first = { schema: sharedSchema, extraReference: sharedSchema };
     const second = { schema: sharedSchema };
     const third = { schema: { rules: [{ tag: "per-document" }] } };
     const census = censusOwnGraph([
@@ -406,7 +414,13 @@ describe("maintained LSP compatibility contract", () => {
     ], { excludedReferenceFields: ["schema"] });
     expect(census.objects).toBe(3);
     expect(census.uniqueReferences).toBe(3);
-    expect(census.excludedReferences.schema).toEqual({ occurrences: 3, uniqueReferences: 2 });
+    expect(census.excludedReferences.schema).toMatchObject({ occurrences: 3, uniqueReferences: 2,
+      identities: [{ id: "excluded-0", occurrences: 2 }, { id: "excluded-1", occurrences: 1 }],
+      links: [
+        { ownerReferenceId: "graph-0", ownerCategory: "other", referencedIdentityId: "excluded-0" },
+        { ownerReferenceId: "graph-1", ownerCategory: "other", referencedIdentityId: "excluded-0" },
+        { ownerReferenceId: "graph-2", ownerCategory: "other", referencedIdentityId: "excluded-1" },
+      ] });
   });
 
   it("keeps diagnostic requests inside their predeclared provider, policy, and fixture scope", () => {
@@ -421,6 +435,74 @@ describe("maintained LSP compatibility contract", () => {
       .toThrow(/actual-server/);
     expect(() => validateDiagnosticRequest({ diagnostic: "graph-census", participant: "server-candidate", fixture: "unknown" }))
       .toThrow(/original corpus/);
+    expect(() => validateDiagnosticRequest({ diagnostic: "graph-census", participant: "candidate", fixture: gha }))
+      .toThrow(/actual-server/);
+    expect(() => validateDiagnosticRequest({ diagnostic: "graph-census", participant: "server-candidate", fixture: gha, artifact: "unused" }))
+      .toThrow(/does not create/);
+  });
+
+  it("clamps the diagnostic inner worker budget to the CLI outer deadline", () => {
+    let noPrepClock = 0;
+    const noPrepBudget = createDiagnosticBudget({ startedAt: 0, now: () => noPrepClock });
+    noPrepBudget.startInner();
+    noPrepClock = 49_000;
+    expect(noPrepBudget.remainingOuterMs()).toBe(11_000);
+    expect(noPrepBudget.remainingWorkerMs()).toBe(0);
+
+    let clock = 0;
+    const budget = createDiagnosticBudget({ startedAt: 0, now: () => clock });
+    clock = 15_000;
+    budget.startInner();
+    expect(budget.remainingWorkerMs()).toBe(45_000);
+    clock = 44_000;
+    expect(budget.remainingWorkerMs()).toBe(16_000);
+    clock = 60_000;
+    expect(budget.expired()).toBe(true);
+    expect(budget.remainingWorkerMs()).toBe(0);
+  });
+
+  it("does not accept a low-coverage profile just because it contains 300 samples", () => {
+    const profile = classifyCpuSamples({
+      nodes: [{ id: 1, callFrame: { functionName: "anonymous", url: "" } }],
+      samples: Array(300).fill(1),
+    });
+    expect(profile).toMatchObject({ sampleCount: 300, assignedSamples: 0, usefulSamples: 0, classifiedCoverage: 0,
+      attributionAssessment: "insufficient-samples-or-coverage-for-fine-attribution" });
+  });
+
+  it("rejects diagnostic worker identity, provenance, and resolver target drift", () => {
+    const expected = {
+      kind: "lsp-diagnostic", workerId: "graph-census:server-candidate:fixture", diagnostic: "graph-census",
+      head: "candidate-head", participant: "server-candidate", fixture: "fixture", policy: "literal-default",
+      inputSha256: "a".repeat(64), serverMode: true, entry: "/providers/candidate/yaml-compat.js", serverRoot: "/server",
+      provider: { root: "/providers/candidate", name: "lightning-yaml", version: "0.1.1", packageJsonSha256: "b".repeat(64),
+        lockSha256: null, entryPath: "/providers/candidate/yaml-compat.js", entryBytes: 123, entrySha256: "c".repeat(64), closureCount: 3, closureSha256: "d".repeat(64) },
+    };
+    const valid = {
+      kind: "lsp-diagnostic", status: "completed", scoredMeasurement: false,
+      workerId: expected.workerId, diagnostic: expected.diagnostic, head: expected.head, participant: expected.participant,
+      fixture: expected.fixture, policy: expected.policy, inputSha256: expected.inputSha256,
+      provenance: { root: expected.provider.root, name: expected.provider.name, version: expected.provider.version,
+        packageJsonSha256: expected.provider.packageJsonSha256,
+        entry: { path: expected.provider.entryPath, bytes: expected.provider.entryBytes, sha256: expected.provider.entrySha256 },
+        closure: { count: expected.provider.closureCount, sha256: expected.provider.closureSha256 } },
+      diagnosticResult: { diagnostic: expected.diagnostic },
+      resolutions: [{ specifier: "yaml", target: "file:///providers/candidate/yaml-compat.js", parentURL: "file:///server/out/parser.js" }],
+    };
+    expect(validateDiagnosticWorker(valid, expected)).toMatchObject({ resolutionCount: 1, targetsValidated: true, parentRootsValidated: true });
+    for (const key of ["kind", "workerId", "diagnostic", "head", "participant", "fixture", "policy", "inputSha256"]) {
+      expect(() => validateDiagnosticWorker({ ...valid, [key]: "wrong" }, expected)).toThrow(new RegExp(key));
+    }
+    expect(() => validateDiagnosticWorker({ ...valid, provenance: { ...valid.provenance, entry: { sha256: "f".repeat(64) } } }, expected)).toThrow(/provenance/);
+    expect(() => validateDiagnosticWorker({ ...valid, provenance: { ...valid.provenance, entry: { ...valid.provenance.entry, path: "/providers/other.js" } } }, expected)).toThrow(/provenance/);
+    expect(() => validateDiagnosticWorker({ ...valid, resolutions: [{ ...valid.resolutions[0], target: "file:///other/yaml.js" }] }, expected)).toThrow(/target/);
+    expect(() => validateDiagnosticWorker({ ...valid, resolutions: [{ ...valid.resolutions[0], parentURL: "file:///outside/parser.js" }] }, expected)).toThrow(/parent escaped/);
+    const incompleteExpected = { ...expected, diagnostic: "heap-snapshot" };
+    const incomplete = { ...valid, status: "incomplete", diagnostic: "heap-snapshot",
+      diagnosticResult: { diagnostic: "heap-snapshot", status: "incomplete", fileRetained: false } };
+    expect(validateDiagnosticWorker(incomplete, incompleteExpected).targetsValidated).toBe(true);
+    expect(() => validateDiagnosticWorker({ ...incomplete, diagnosticResult: { ...incomplete.diagnosticResult, fileRetained: true } }, incompleteExpected))
+      .toThrow(/removed partial snapshot/);
   });
 
   it("runs the fixed CPU-profile loop through an injected inspector session", async () => {
@@ -441,11 +523,24 @@ describe("maintained LSP compatibility contract", () => {
     expect(calls).toEqual(["Profiler.enable", "Profiler.setSamplingInterval", "Profiler.start", "Profiler.stop", "Profiler.disable"]);
     expect(classifyCpuSamples({
       nodes: [
-        { id: 1, callFrame: { functionName: "root", url: "" }, children: [2] },
+        { id: 1, callFrame: { functionName: "root", url: "" }, children: [2, 3, 4] },
         { id: 2, callFrame: { functionName: "parseDocument", url: "file:///parser.mjs" } },
+        { id: 3, callFrame: { functionName: "parse", url: "file:///server/yamlParser07.js" } },
+        { id: 4, callFrame: { functionName: "convertAST", url: "file:///server/ast-converter.js" } },
       ],
-      samples: [2, 2, 1],
-    })).toEqual({ sampleCount: 3, categories: { lexerParser: 2, composition: 0, customCallbacks: 0, runtimeGc: 0, serverAst: 0, unassigned: 1 }, attributionAssessment: "insufficient-samples-for-fine-attribution" });
+      samples: [2, 1, 3, 4],
+    })).toEqual({ sampleCount: 4, assignedSamples: 3, usefulSamples: 2, classifiedCoverage: 0.75,
+      categories: { lexerParser: 1, composition: 0, customCallbacks: 0, runtimeGc: 0, serverAst: 1, serverWrapper: 1, unassigned: 1 },
+      attributionAssessment: "insufficient-samples-or-coverage-for-fine-attribution" });
+    const adequate = classifyCpuSamples({
+      nodes: [
+        { id: 1, callFrame: { functionName: "convertAST", url: "file:///server/ast-converter.js" } },
+        { id: 2, callFrame: { functionName: "anonymous", url: "" } },
+      ],
+      samples: [...Array(200).fill(1), ...Array(50).fill(2)],
+    });
+    expect(adequate).toMatchObject({ sampleCount: 250, assignedSamples: 200, usefulSamples: 200, classifiedCoverage: 0.8,
+      attributionAssessment: "sample-count-and-coverage-threshold-met" });
   });
 
   it("streams an injected heap snapshot without interpreting it", async () => {
@@ -468,5 +563,35 @@ describe("maintained LSP compatibility contract", () => {
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
+  });
+
+  it("reports slow and failing snapshot sinks as incomplete and removes partial artifacts", async () => {
+    const run = async (sink: { write(chunk: string): boolean | void; close(): void; abort(): void }) => {
+      const listeners = new Map<string, (event: { params: { chunk: string } }) => void>();
+      const session = {
+        on(name: string, listener: (event: { params: { chunk: string } }) => void) { listeners.set(name, listener); },
+        post(method: string, _params: unknown, callback: (error: Error | null, result?: unknown) => void) {
+          if (method === "HeapProfiler.takeHeapSnapshot") {
+            listeners.get("HeapProfiler.addHeapSnapshotChunk")?.({ params: { chunk: "chunk-one" } });
+            listeners.get("HeapProfiler.addHeapSnapshotChunk")?.({ params: { chunk: "chunk-two" } });
+          }
+          queueMicrotask(() => callback(null, {}));
+        },
+      };
+      const error = await writeHeapSnapshot("/tmp/not-created.heapsnapshot", { session: session as never, createSink: () => sink })
+        .then(() => null, (failure: Error & { artifactState?: unknown }) => failure);
+      return error;
+    };
+    let slowWrites = 0;
+    let slowAborts = 0;
+    const slow = await run({ write() { slowWrites++; return false; }, close() {}, abort() { slowAborts++; } });
+    expect(slow?.artifactState).toEqual({ status: "incomplete", bytesWritten: 0, chunksReceived: 2, fileRetained: false });
+    expect(slowWrites).toBe(1);
+    expect(slowAborts).toBe(1);
+
+    let errorAborts = 0;
+    const failed = await run({ write() { throw new Error("disk failure"); }, close() {}, abort() { errorAborts++; } });
+    expect(failed?.artifactState).toEqual({ status: "incomplete", bytesWritten: 0, chunksReceived: 2, fileRetained: false });
+    expect(errorAborts).toBe(1);
   });
 });

@@ -5,12 +5,17 @@ export function censusOwnGraph(roots: Array<{ name: string; value: unknown }>, o
 }): {
   objects: number;
   arrays: number;
-  strings: number;
-  stringCodeUnits: number;
+  stringFieldOccurrences: number;
+  stringFieldCodeUnits: number;
   uniqueReferences: number;
   categories: Record<string, number>;
-  roots: Array<{ name: string; kind: string }>;
-  excludedReferences: Record<string, { occurrences: number; uniqueReferences: number }>;
+  roots: Array<{ name: string; kind: string; referenceId?: string }>;
+  excludedReferences: Record<string, {
+    occurrences: number;
+    uniqueReferences: number;
+    identities: Array<{ id: string; occurrences: number }>;
+    links: Array<{ ownerReferenceId: string; ownerCategory: string; referencedIdentityId: string }>;
+  }>;
 };
 export function validateDiagnosticRequest(options: {
   diagnostic: 'cpu-profile' | 'graph-census' | 'heap-snapshot';
@@ -19,10 +24,30 @@ export function validateDiagnosticRequest(options: {
   policy?: 'literal-default' | 'uniqueKeys-false' | 'uniqueKeys-true';
   artifact?: string;
 }): { serverMode: boolean; policy: string; provider: 'candidate' | 'reference' };
+export function createDiagnosticBudget(options: {
+  startedAt: number;
+  now: () => number;
+  outerBudgetMs?: number;
+  innerBudgetMs?: number;
+}): {
+  startInner(): number;
+  remainingOuterMs(): number;
+  remainingInnerMs(): number;
+  remainingWorkerMs(): number;
+  expired(): boolean;
+};
+export function validateDiagnosticWorker(result: any, expected: any): {
+  resolutionCount: number;
+  targetsValidated: boolean;
+  parentRootsValidated: boolean;
+};
 export function classifyCpuSamples(profile: { nodes: Array<{ id: number; children?: number[]; callFrame?: { functionName?: string; url?: string } }>; samples?: number[] }): {
   sampleCount: number;
-  categories: Record<'lexerParser' | 'composition' | 'customCallbacks' | 'runtimeGc' | 'serverAst' | 'unassigned', number>;
-  attributionAssessment: 'insufficient-samples-for-fine-attribution' | 'sample-count-threshold-met';
+  categories: Record<'lexerParser' | 'composition' | 'customCallbacks' | 'runtimeGc' | 'serverAst' | 'serverWrapper' | 'unassigned', number>;
+  assignedSamples: number;
+  usefulSamples: number;
+  classifiedCoverage: number;
+  attributionAssessment: 'insufficient-samples-or-coverage-for-fine-attribution' | 'sample-count-and-coverage-threshold-met';
 };
 export function collectCpuProfile(options: {
   session?: any;
@@ -31,4 +56,7 @@ export function collectCpuProfile(options: {
   iterations?: number;
   sampleIntervalUs?: number;
 }): Promise<{ warmups: number; iterations: number; sampleIntervalUs: number; profile: any }>;
-export function writeHeapSnapshot(filePath: string, options?: { session?: any }): Promise<{ bytes: number; chunks: number }>;
+export function writeHeapSnapshot(filePath: string, options?: {
+  session?: any;
+  createSink?: (filePath: string) => { write(chunk: string): boolean | void; close(): void | Promise<void>; abort(): void | Promise<void> };
+}): Promise<{ bytes: number; chunks: number }>;
