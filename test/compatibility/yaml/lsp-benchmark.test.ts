@@ -394,6 +394,21 @@ describe("maintained LSP compatibility contract", () => {
     expect(census.stringCodeUnits).toBe(6);
   });
 
+  it("excludes own schema links while reporting occurrences and distinct identities", () => {
+    const sharedSchema = { rules: [{ tag: "shared" }] };
+    const first = { schema: sharedSchema };
+    const second = { schema: sharedSchema };
+    const third = { schema: { rules: [{ tag: "per-document" }] } };
+    const census = censusOwnGraph([
+      { name: "first-document", value: first },
+      { name: "second-document", value: second },
+      { name: "third-document", value: third },
+    ], { excludedReferenceFields: ["schema"] });
+    expect(census.objects).toBe(3);
+    expect(census.uniqueReferences).toBe(3);
+    expect(census.excludedReferences.schema).toEqual({ occurrences: 3, uniqueReferences: 2 });
+  });
+
   it("keeps diagnostic requests inside their predeclared provider, policy, and fixture scope", () => {
     const gha = "github-actions-cmake-multi-platform";
     expect(validateDiagnosticRequest({ diagnostic: "cpu-profile", participant: "candidate", fixture: gha, artifact: "/private/candidate.cpuprofile" }))

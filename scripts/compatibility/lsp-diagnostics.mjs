@@ -27,12 +27,15 @@ export function validateDiagnosticRequest({ diagnostic, participant, fixture, po
   return { serverMode, policy: selectedPolicy, provider: participant.endsWith('candidate') ? 'candidate' : 'reference' }
 }
 
-export function censusOwnGraph(roots, { classify = () => 'other', stringFields = [] } = {}) {
+export function censusOwnGraph(roots, { classify = () => 'other', stringFields = [], excludedReferenceFields = [] } = {}) {
   const seen = new WeakSet()
   const counts = { objects: 0, arrays: 0, strings: 0, stringCodeUnits: 0, categories: {} }
   const rootCounts = []
   let uniqueReferences = 0
   const strings = new Set(stringFields)
+  const excludedFields = new Set(excludedReferenceFields)
+  const excludedReferences = Object.fromEntries([...excludedFields].map((field) => [field, { occurrences: 0, uniqueReferences: 0 }]))
+  const seenExcluded = new Map([...excludedFields].map((field) => [field, new WeakSet()]))
   const stack = []
   for (const root of roots) {
     stack.push(root.value)
@@ -55,6 +58,15 @@ export function censusOwnGraph(roots, { classify = () => 'other', stringFields =
       const descriptor = Object.getOwnPropertyDescriptor(value, key)
       if (!descriptor || !Object.hasOwn(descriptor, 'value')) continue
       const child = descriptor.value
+      if (typeof key === 'string' && excludedFields.has(key)) {
+        const summary = excludedReferences[key]
+        summary.occurrences++
+        if (isReference(child) && !seenExcluded.get(key).has(child)) {
+          seenExcluded.get(key).add(child)
+          summary.uniqueReferences++
+        }
+        continue
+      }
       if (typeof key === 'string' && strings.has(key) && typeof child === 'string') {
         counts.strings++
         counts.stringCodeUnits += child.length
@@ -62,7 +74,7 @@ export function censusOwnGraph(roots, { classify = () => 'other', stringFields =
       if (isReference(child)) stack.push(child)
     }
   }
-  return { ...counts, uniqueReferences, roots: rootCounts }
+  return { ...counts, uniqueReferences, roots: rootCounts, excludedReferences }
 }
 
 export function classifyCpuSamples(profile) {

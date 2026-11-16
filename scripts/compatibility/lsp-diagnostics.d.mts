@@ -1,6 +1,7 @@
 export function censusOwnGraph(roots: Array<{ name: string; value: unknown }>, options?: {
   classify?: (value: object) => string;
   stringFields?: string[];
+  excludedReferenceFields?: string[];
 }): {
   objects: number;
   arrays: number;
@@ -9,6 +10,7 @@ export function censusOwnGraph(roots: Array<{ name: string; value: unknown }>, o
   uniqueReferences: number;
   categories: Record<string, number>;
   roots: Array<{ name: string; kind: string }>;
+  excludedReferences: Record<string, { occurrences: number; uniqueReferences: number }>;
 };
 export function validateDiagnosticRequest(options: {
   diagnostic: 'cpu-profile' | 'graph-census' | 'heap-snapshot';

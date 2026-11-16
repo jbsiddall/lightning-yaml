@@ -682,6 +682,8 @@ async function diagnosticWorker(config) {
       if (config.diagnostic === 'heap-snapshot') {
         diagnostic = await writeHeapSnapshot(config.artifactPath)
         diagnostic.artifact = basename(config.artifactPath)
+        diagnostic.rootLiveness = 'operation result remains referenced through snapshot capture'
+        diagnostic.identityMapping = 'not emitted; exact offline heap-node mapping is required before attributing bytes or deriving a floor'
       }
       const internalDocuments = config.serverMode
         ? result.documents.map((single) => single.internalDocument)
@@ -699,11 +701,13 @@ async function diagnosticWorker(config) {
                   : is(value, api.Alias) ? 'yaml-alias'
                     : Array.isArray(Object.getOwnPropertyDescriptor(value, 'items')?.value) ? 'array-owner'
                       : 'other'
-      const graph = censusOwnGraph(roots, { classify, stringFields: ['source', 'rawValue', 'value', 'tag'] })
+      const graph = censusOwnGraph(roots, { classify, stringFields: ['source', 'rawValue', 'value', 'tag'], excludedReferenceFields: ['schema'] })
       diagnostic = { ...(diagnostic ?? {}), graph, documentCount: internalDocuments.length,
         serverAstRoots: config.serverMode ? result.documents.map((single) => single.root ? 'present' : 'absent') : [],
         callerTextDocument: document ? 'included' : 'absent',
-        moduleAndSchemaRoots: 'excluded/shared; aliasResolutionCache may retain the latest AST' }
+        schemaRoots: graph.excludedReferences.schema,
+        prototypeAndModuleRoots: 'not traversed by own-property walk',
+        aliasResolutionCache: 'not traversed; may retain the latest AST' }
     }
     if (serverResolution) assertYamlResolutions(serverResolution.resolutions, serverResolution.target, config.serverRoot)
     return { kind: 'lsp-diagnostic', scoredMeasurement: false, diagnostic: config.diagnostic,
