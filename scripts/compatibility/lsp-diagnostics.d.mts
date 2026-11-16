@@ -73,3 +73,4 @@ export function createFileSink(filePath: string, options?: {
   abort(): Promise<'removed' | 'retained' | 'unknown'>;
 };
 export function redactPrivatePaths(value: any): any;
+export function canonicalFreshArtifactPath(requestedPath: string, repositoryRoot: string): string;

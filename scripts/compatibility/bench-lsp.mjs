@@ -21,8 +21,8 @@ import {
 } from './lsp-measure.mjs'
 import { enumerateCells, expandDocumentStream, loadPinnedCorpus, semanticSources } from './lsp-fixtures.mjs'
 import {
-  censusOwnGraph, classifyCpuSamples, collectCpuProfile, createDiagnosticBudget, validateDiagnosticRequest,
-  redactPrivatePaths, validateDiagnosticWorker, writeHeapSnapshot
+  canonicalFreshArtifactPath, censusOwnGraph, classifyCpuSamples, collectCpuProfile, createDiagnosticBudget,
+  validateDiagnosticRequest, redactPrivatePaths, validateDiagnosticWorker, writeHeapSnapshot
 } from './lsp-diagnostics.mjs'
 
 const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), '../..')
@@ -1335,12 +1335,7 @@ async function diagnose(args, startedAt) {
   const request = validateDiagnosticRequest({ diagnostic: values.diagnostic, participant: values.participant,
     fixture: values.fixture, policy: values.policy, artifact: values.artifact })
   const { serverMode, policy } = request
-  if (values.artifact) {
-    const artifactPath = resolve(values.artifact)
-    if (artifactPath === repoRoot || artifactPath.startsWith(`${repoRoot}/`)) fail('raw diagnostic artifacts must be written outside the repository')
-      try { statSync(artifactPath); fail('diagnostic artifact already exists; use a fresh private path') }
-      catch (error) { if (error.code !== 'ENOENT') throw error }
-  }
+  const artifactPath = values.artifact ? canonicalFreshArtifactPath(values.artifact, repoRoot) : undefined
   if (values['candidate-head'] !== EXPECTED_CANDIDATE_HEAD || values['server-head'] !== EXPECTED_SERVER_HEAD) fail('diagnostic participants must use the reviewed candidate and server HEADs')
   const candidate = assertParticipant(resolve(values['candidate-root']), values['candidate-head'], 'candidate')
   const server = assertParticipant(resolve(values['server-root']), values['server-head'], 'server')
@@ -1369,7 +1364,7 @@ async function diagnose(args, startedAt) {
       participant: values.participant, fixture: fixture.id, policy, serverMode, documentMode: 'absent',
       entry, label: participant, expectedHead, serverRoot: resolve(values['server-root']), sourceFile,
       inputSha256: fixture.sha256, expectedDocumentCount: fixture.expectedDocuments,
-      artifactPath: values.artifact ? resolve(values.artifact) : undefined
+      artifactPath
     }
     budget.startInner()
     const remaining = budget.remainingWorkerMs()
@@ -1408,9 +1403,9 @@ async function diagnose(args, startedAt) {
       }, elapsedMs: performance.now() - startedAt,
       budget: { outerLimitMs: 60_000, innerLimitMs: 49_000, workerTimeoutMs: Math.floor(remaining),
         outerRemainingMs: budget.remainingOuterMs(), innerRemainingMs: budget.remainingInnerMs() },
-      artifact: values.artifact ? diagnosticResult.status === 'completed'
-        ? { status: 'completed', basename: basename(resolve(values.artifact)), bytes: statSync(resolve(values.artifact)).size,
-          sha256: hashFile(resolve(values.artifact)).sha256 }
+      artifact: artifactPath ? diagnosticResult.status === 'completed'
+        ? { status: 'completed', basename: basename(artifactPath), bytes: statSync(artifactPath).size,
+          sha256: hashFile(artifactPath).sha256 }
         : { ...diagnosticResult.diagnosticResult, status: 'incomplete' }
         : null,
       note: 'Non-scored diagnostic operation; raw artifact path is intentionally omitted.'

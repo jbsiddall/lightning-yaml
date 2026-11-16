@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import * as yaml from "yaml";
@@ -44,6 +44,7 @@ import {
 } from "../../../scripts/compatibility/lsp-measure.mjs";
 import {
   censusOwnGraph,
+  canonicalFreshArtifactPath,
   classifyCpuSamples,
   collectCpuProfile,
   createDiagnosticBudget,
@@ -441,6 +442,24 @@ describe("maintained LSP compatibility contract", () => {
       .toThrow(/actual-server/);
     expect(() => validateDiagnosticRequest({ diagnostic: "graph-census", participant: "server-candidate", fixture: gha, artifact: "unused" }))
       .toThrow(/does not create/);
+  });
+
+  it("canonicalizes artifact parents before checking repository containment", () => {
+    const directory = mkdtempSync(resolve(tmpdir(), "lsp-artifact-parent-"));
+    const repository = resolve(directory, "repository");
+    const outside = resolve(directory, "outside");
+    const linkedParent = resolve(outside, "linked-parent");
+    mkdirSync(repository);
+    mkdirSync(outside);
+    symlinkSync(repository, linkedParent, "dir");
+    try {
+      expect(() => canonicalFreshArtifactPath(resolve(linkedParent, "cpu.cpuprofile"), repository))
+        .toThrow(/outside the repository/);
+      expect(canonicalFreshArtifactPath(resolve(outside, "cpu.cpuprofile"), repository))
+        .toBe(resolve(outside, "cpu.cpuprofile"));
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 
   it("clamps the diagnostic inner worker budget to the CLI outer deadline", () => {

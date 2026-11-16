@@ -184,7 +184,9 @@ live, but emits no object-identity-to-heap-node mapping. Offline exact mapping i
 required before attributing bytes or deriving a floor; if mapping is not
 established, byte attribution and the floor remain unknown. CPU profiles and snapshots require a private
 `--artifact` destination outside the repository; the JSON result reports only
-the artifact basename. `graph-census` does not accept `--artifact`. Snapshot
+the artifact basename. Existing parent symlinks are resolved before the
+outside-repository check, and workers receive the canonical destination.
+`graph-census` does not accept `--artifact`. Snapshot
 chunks use a synchronous file sink so writes apply backpressure directly to
 Inspector event delivery. Sink refusal or write errors return an incomplete
 status with cleanup reported as removed, retained, or unknown. The report only

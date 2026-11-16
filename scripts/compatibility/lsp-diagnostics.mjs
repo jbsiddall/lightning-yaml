@@ -1,6 +1,6 @@
-import { closeSync, linkSync, openSync, statSync, unlinkSync, writeSync } from 'node:fs'
+import { closeSync, linkSync, lstatSync, openSync, realpathSync, statSync, unlinkSync, writeSync } from 'node:fs'
 import inspector from 'node:inspector'
-import { isAbsolute, relative, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 
@@ -64,6 +64,24 @@ export function redactPrivatePaths(value) {
   if (Array.isArray(value)) return value.map(redactPrivatePaths)
   if (!value || typeof value !== 'object') return value
   return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, redactPrivatePaths(child)]))
+}
+
+export function canonicalFreshArtifactPath(requestedPath, repositoryRoot) {
+  const requestedAbsolute = resolve(requestedPath)
+  const canonicalParent = realpathSync(dirname(requestedAbsolute))
+  const destination = resolve(canonicalParent, basename(requestedAbsolute))
+  const canonicalRepository = realpathSync(repositoryRoot)
+  const fromRepository = relative(canonicalRepository, destination)
+  const insideRepository = fromRepository === '' || (!isAbsolute(fromRepository)
+    && fromRepository !== '..' && !fromRepository.startsWith(`..${sep}`))
+  if (insideRepository) throw new Error('raw diagnostic artifacts must be written outside the repository')
+  try {
+    lstatSync(destination)
+    throw new Error('diagnostic artifact already exists; use a fresh private path')
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
+  return destination
 }
 
 export function validateDiagnosticWorker(result, expected) {
