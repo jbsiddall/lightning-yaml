@@ -148,7 +148,7 @@ preflight outcomes and marks that cell failed and performance-ineligible.
 These phases report raw observations and do not make an optimization
 conclusion. Their mechanics are covered with injected fake operations; no real
 provider timing campaign was run for this contract change.
-<!-- yaml:2.9.0 ly:99db15ad2004af03bab230f4b6728359a277cc47 -->
+<!-- yaml:2.9.0 ly:d1c55cfbc89cc11c0d2267d44b18f8bcec459ce7 -->
 
 ## Non-scored diagnostics
 
@@ -158,14 +158,23 @@ reviewed candidate and server roots/heads, a corpus fixture, and an explicit
 participant (`candidate`, `reference`, `server-candidate`, or `server-reference`).
 The default bare policy is `uniqueKeys-false`; actual-server runs preserve the
 server's literal defaults. `--diagnostic graph-census` reports own-property
-reachable graph counts and string code units without invoking accessors or
-traversing shared module/schema roots. `--diagnostic cpu-profile` is limited to
+reachable graph counts and string code units without invoking accessors. It
+skips own `schema` reference edges and separately reports their field
+occurrences and distinct identities; schemas may be per-document or shared,
+and their contents are not included in the operation graph counts. This is a
+partial graph census: excluded schema memory remains unknown, so these counts
+do not establish a complete retained graph or a byte floor. Prototype and
+module roots are not traversed, and the alias-resolution cache is reported as
+an untraversed root that may retain the latest AST. `--diagnostic cpu-profile` is limited to
 the declared GitHub Actions bare matched-false and actual-server cases; it uses
 three warmups, 250 operations, and a 1 ms sample interval. `--diagnostic
 heap-snapshot` is limited to actual-server GitHub Actions cases and captures a
 raw snapshot for offline inspection; the harness does not parse snapshots or
 infer object bytes from counts. Profiles with fewer than 200 samples are marked
-insufficient for fine attribution. CPU profiles and snapshots require a private
+insufficient for fine attribution. Snapshot capture keeps the operation result
+live, but emits no object-identity-to-heap-node mapping. Offline exact mapping is
+required before attributing bytes or deriving a floor; if mapping is not
+established, byte attribution and the floor remain unknown. CPU profiles and snapshots require a private
 `--artifact` destination outside the repository; the JSON result reports only
 the artifact basename.
 Diagnostics are not scored observations and establish no performance result.
@@ -187,4 +196,4 @@ pnpm bench:lsp -- --diagnose --diagnostic graph-census \
 For a declared CPU profile or heap snapshot, add `--artifact` with a private
 destination outside the repository. Each command runs one fresh diagnostic worker; repeated cases are
 separate explicit invocations so their identities and raw files stay distinct.
-<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:4484ce525b34c8e83e7cd7b9c01ffdccdbe96943 -->
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:98695e5ed59400ae31b9e4db710b7fa3cce0f1d4 -->
