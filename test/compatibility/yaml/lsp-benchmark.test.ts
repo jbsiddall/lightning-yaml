@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import * as yaml from "yaml";
@@ -25,7 +26,17 @@ import {
   enumerateCells,
   semanticSources,
 } from "../../../scripts/compatibility/lsp-fixtures.mjs";
-import { createCampaignBudget, runMeasurementPhase, validatePhaseResult } from "../../../scripts/compatibility/lsp-measure.mjs";
+import {
+  createCampaignBudget,
+  evaluateSemanticPair,
+  expectedPhaseCounts,
+  isMatchedPolicySemanticMismatch,
+  runMeasurementPhase,
+  semanticOutcomesEqual,
+  snapshotPublicValue,
+  validatePhaseResult,
+  verifyInputBytes,
+} from "../../../scripts/compatibility/lsp-measure.mjs";
 
 const root = process.cwd();
 
@@ -198,6 +209,10 @@ describe("maintained LSP compatibility contract", () => {
   });
 
   it("exercises measurement phases with injected operation, clock, CPU, heap, and RSS probes", () => {
+    expect(expectedPhaseCounts("cpu-wall", 3, 25)).toEqual({ warmups: 3, iterations: 25, resultCount: 25 });
+    expect(expectedPhaseCounts("retained-heap", 3, 25)).toEqual({ warmups: 3, iterations: 25, resultCount: 25 });
+    expect(expectedPhaseCounts("isolated-peak-rss", 3, 25)).toEqual({ warmups: 0, iterations: 1, resultCount: 1 });
+    expect(expectedPhaseCounts("semantic-only", 3, 25)).toEqual({ warmups: 0, iterations: 1, resultCount: 1 });
     let operations = 0;
     const cpuSamples = [{ user: 1000, system: 500 }, { user: 6000, system: 2500 }];
     const clockSamples = [10, 14];
@@ -245,9 +260,50 @@ describe("maintained LSP compatibility contract", () => {
     expect(rss.afterRssBytes).toBe(1800);
     expect(rss.processMaxRssBytes).toBe(4096);
 
-    const envelope = { workerId: "w", head: "h", cellId: "c", participant: "ref", phase: "cpu-wall", inputSha256: "a".repeat(64), outputSha256: "b".repeat(64), resultCount: 2 };
+    const envelope = { workerId: "w", head: "h", cellId: "c", participant: "ref", phase: "cpu-wall", inputSha256: "a".repeat(64), outputSha256: "b".repeat(64), warmups: 3, iterations: 2, resultCount: 2 };
     expect(validatePhaseResult(envelope, { ...envelope }).resultCount).toBe(2);
     expect(() => validatePhaseResult({ ...envelope, resultCount: 1 }, envelope)).toThrow(/result count/);
+    expect(() => validatePhaseResult({ ...envelope, warmups: 2 }, envelope)).toThrow(/warmups count/);
+    expect(() => validatePhaseResult({ ...envelope, iterations: 25 }, envelope)).toThrow(/iterations count/);
+  });
+
+  it("hashes worker-read bytes and gates eligible pairs on public semantic parity", () => {
+    const actual = Buffer.from("expected bytes\n");
+    const expectedHash = "a".repeat(64);
+    expect(() => verifyInputBytes(Buffer.from("stale bytes\n"), expectedHash)).toThrow(/source input checksum mismatch/);
+    const actualHash = createHash("sha256").update(actual).digest("hex");
+    const observed = verifyInputBytes(actual, actualHash);
+    expect(observed.source).toBe("expected bytes\n");
+    expect(observed.inputSha256).toBe(actualHash);
+
+    const shared = { value: 1 };
+    const aliasSnapshot = snapshotPublicValue({ left: shared, right: shared });
+    const duplicatedSnapshot = snapshotPublicValue({ left: { value: 1 }, right: { value: 1 } });
+    expect(aliasSnapshot).not.toEqual(duplicatedSnapshot);
+
+    const candidate = {
+      sourceSha256: "candidate-input-hash",
+      tokenCount: 11,
+      documents: [{ range: [0, 1, 2], diagnostics: [], value: aliasSnapshot, conversionError: null }],
+      lineStarts: [0, 4],
+    };
+    const reference = {
+      sourceSha256: "reference-input-hash",
+      tokenCount: 99,
+      documents: [{ range: [0, 1, 2], diagnostics: [], value: aliasSnapshot, conversionError: null }],
+      lineStarts: [0, 4],
+    };
+    expect(semanticOutcomesEqual(candidate, reference)).toBe(true);
+    expect(evaluateSemanticPair("uniqueKeys-false", candidate, reference)).toMatchObject({ semanticAgreement: true, performanceEligible: true });
+    expect(semanticOutcomesEqual(candidate, { ...reference, lineStarts: [0, 5] })).toBe(false);
+    expect(semanticOutcomesEqual(candidate, { ...reference, documents: [{ ...reference.documents[0]!, value: { type: "string", value: "1" } }] })).toBe(false);
+    expect(semanticOutcomesEqual(candidate, { ...reference, documents: [{ ...reference.documents[0]!, diagnostics: [{ code: "BAD_INDENT", pos: [4, 5] }] }] })).toBe(false);
+    const mismatch = evaluateSemanticPair("uniqueKeys-true", candidate, { ...reference, documents: [{ ...reference.documents[0]!, range: [0, 1, 3] }] });
+    expect(mismatch).toMatchObject({ semanticAgreement: false, performanceEligible: false, reason: "candidate/reference semantic preflight differs" });
+    expect(isMatchedPolicySemanticMismatch("uniqueKeys-true", mismatch)).toBe(true);
+    const defaultPair = evaluateSemanticPair("literal-default", candidate, reference);
+    expect(defaultPair).toMatchObject({ semanticAgreement: true, performanceEligible: false });
+    expect(isMatchedPolicySemanticMismatch("literal-default", { semanticAgreement: false })).toBe(false);
   });
 
   it("charges provider and semantic preparation against the outer campaign deadline", () => {
@@ -256,11 +312,9 @@ describe("maintained LSP compatibility contract", () => {
       startedAt: 0,
       now: () => clock,
       outerBudgetMs: 60_000,
-      innerBudgetMs: 49_000,
     });
     clock = 12_000; // participant loading and preflight consumed twelve seconds
     expect(budget.remainingOuterMs()).toBe(48_000);
-    expect(budget.remainingInnerMs()).toBe(37_000);
     clock = 60_000;
     expect(budget.expired()).toBe(true);
     expect(budget.remainingOuterMs()).toBe(0);

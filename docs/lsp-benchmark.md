@@ -43,13 +43,13 @@ stay inside the selected compiled server tree. Node must support synchronous
 `node:module.registerHooks` for this actual-server check; the bare self-check
 does not require that capability.
 
-The result keeps the server's declared `yaml` dependency (`2.8.3`) separate
+The result keeps the server's declared `yaml` dependency range (`2.8.3`) separate
 from the injected provider's package version and artifact hashes. Provider
 Documents and nodes are checked against that exact imported namespace, and
 server AST nodes must point back to those same provider nodes. Build artifact
 hashes identify the files that ran; they do not prove that ignored build output
 was produced from a particular source tree.
-<!-- yaml:2.9.0 ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
+<!-- yaml:2.8.3 yaml:2.9.0 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
 
 ## Contract coverage
 
@@ -128,7 +128,11 @@ recorded separately. The 60-second outer campaign clock starts at CLI entry and
 includes provider loading, fixture preparation, and semantic preflight children.
 After preflight, scored workers share a 49-second inner budget clamped to the
 remaining outer time. Incomplete identities stay failed or pending in the
-ledger. These phases report raw observations and do not make an optimization
+ledger. Matched-policy cells enter scored phases only when candidate and
+reference semantic preflight agree on document values and types, alias
+reference identity, ranges, diagnostics, and line starts. A mismatch keeps both
+preflight outcomes and marks that cell failed and performance-ineligible.
+These phases report raw observations and do not make an optimization
 conclusion. Their mechanics are covered with injected fake operations; no real
 provider timing campaign was run for this contract change.
 <!-- yaml:2.9.0 ly:12bf79e145ce8ac185507d92b66cdfef843397be -->

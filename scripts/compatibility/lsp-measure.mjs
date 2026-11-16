@@ -1,3 +1,66 @@
+import { createHash } from 'node:crypto'
+
+export function verifyInputBytes(bytes, expectedInputSha256) {
+  const inputSha256 = createHash('sha256').update(bytes).digest('hex')
+  if (inputSha256 !== expectedInputSha256) throw new Error('measurement worker source input checksum mismatch')
+  return { inputSha256, source: bytes.toString('utf8') }
+}
+
+export function snapshotPublicValue(value) {
+  const seen = new Map()
+  let nextReference = 0
+  function visit(item) {
+    if (item === null) return { type: 'null' }
+    const kind = typeof item
+    if (kind === 'undefined') return { type: 'undefined' }
+    if (kind === 'string' || kind === 'boolean') return { type: kind, value: item }
+    if (kind === 'number') {
+      return { type: kind, value: Number.isNaN(item) ? 'NaN' : Object.is(item, -0) ? '-0' : String(item) }
+    }
+    if (kind === 'bigint') return { type: kind, value: item.toString() }
+    if (kind === 'symbol' || kind === 'function') return { type: kind }
+
+    if (seen.has(item)) return { type: 'reference', id: seen.get(item) }
+    const id = nextReference++
+    seen.set(item, id)
+    if (Array.isArray(item)) return { type: 'array', id, items: item.map(visit) }
+    if (item instanceof Date) return { type: 'date', id, value: Number.isNaN(item.getTime()) ? 'invalid' : item.toISOString() }
+    if (item instanceof Map) return { type: 'map', id, entries: [...item].map(([key, value]) => [visit(key), visit(value)]) }
+    if (item instanceof Set) return { type: 'set', id, values: [...item].map(visit) }
+    return { type: 'object', id, entries: Object.keys(item).map((key) => [key, visit(item[key])]) }
+  }
+  return visit(value)
+}
+
+export function semanticOutcomesEqual(left, right) {
+  if (!left || !right) return false
+  const publicFields = (outcome) => ({ documents: outcome.documents, lineStarts: outcome.lineStarts ?? [] })
+  return JSON.stringify(publicFields(left)) === JSON.stringify(publicFields(right))
+}
+
+export function evaluateSemanticPair(policy, candidate, reference) {
+  const semanticAgreement = candidate && reference ? semanticOutcomesEqual(candidate, reference) : null
+  if (policy === 'literal-default') {
+    return { semanticAgreement, performanceEligible: false, reason: 'provider literal uniqueKeys defaults are not aligned' }
+  }
+  if (semanticAgreement !== true) {
+    return { semanticAgreement, performanceEligible: false, reason: semanticAgreement === false
+      ? 'candidate/reference semantic preflight differs'
+      : 'candidate/reference semantic preflight is incomplete' }
+  }
+  return { semanticAgreement: true, performanceEligible: true, reason: null }
+}
+
+export function isMatchedPolicySemanticMismatch(policy, eligibility) {
+  return policy !== 'literal-default' && eligibility.semanticAgreement === false
+}
+
+export function expectedPhaseCounts(phase, warmups, iterations) {
+  if (phase === 'semantic-only' || phase === 'isolated-peak-rss') return { warmups: 0, iterations: 1, resultCount: 1 }
+  if (phase === 'cpu-wall' || phase === 'retained-heap') return { warmups, iterations, resultCount: iterations }
+  throw new Error(`unknown measurement phase ${phase}`)
+}
+
 export function runMeasurementPhase({
   phase,
   operation,
@@ -93,16 +156,20 @@ export function validatePhaseResult(result, expected) {
   if (!Number.isInteger(result.resultCount) || result.resultCount !== expected.resultCount) {
     throw new Error('measurement worker result count mismatch')
   }
+  for (const key of ['warmups', 'iterations']) {
+    if (!Number.isInteger(result[key]) || result[key] !== expected[key]) {
+      throw new Error(`measurement worker ${key} count mismatch`)
+    }
+  }
   return result
 }
 
-export function createCampaignBudget({ startedAt, now, outerBudgetMs, innerBudgetMs }) {
-  if (typeof now !== 'function' || !Number.isFinite(startedAt) || !Number.isFinite(outerBudgetMs) || !Number.isFinite(innerBudgetMs)) {
+export function createCampaignBudget({ startedAt, now, outerBudgetMs }) {
+  if (typeof now !== 'function' || !Number.isFinite(startedAt) || !Number.isFinite(outerBudgetMs)) {
     throw new TypeError('campaign budget requires a start time, clock, and finite limits')
   }
   return {
     remainingOuterMs: () => Math.max(0, outerBudgetMs - (now() - startedAt)),
-    remainingInnerMs: () => Math.max(0, innerBudgetMs - (now() - startedAt)),
     expired: () => now() - startedAt >= outerBudgetMs
   }
 }

@@ -14,7 +14,10 @@ import {
   graphSnapshot, packageProvenance, runBareOperation, serverAstBacklinks, sha256, sourceLineStarts,
   tokenGraphContains, validateWorkerEnvelope
 } from './lsp-contract.mjs'
-import { createCampaignBudget, runMeasurementPhase, validatePhaseResult } from './lsp-measure.mjs'
+import {
+  createCampaignBudget, evaluateSemanticPair, expectedPhaseCounts, isMatchedPolicySemanticMismatch, runMeasurementPhase, snapshotPublicValue,
+  validatePhaseResult, verifyInputBytes
+} from './lsp-measure.mjs'
 import { enumerateCells, expandDocumentStream, loadPinnedCorpus, semanticSources } from './lsp-fixtures.mjs'
 
 const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), '../..')
@@ -470,7 +473,7 @@ function parseArgs(args) {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (arg === '--check' || arg === '--measure' || arg === '--plan') {
-      if (result.mode) fail('choose one explicit mode: --check or --measure')
+      if (result.mode) fail('choose one explicit mode: --check, --plan or --measure')
       result.mode = arg.slice(2)
     } else if (arg === '--self-check') result.selfCheck = true
     else if (['--candidate-root', '--candidate-entry', '--candidate-head', '--server-root', '--server-head', '--reference-entry', '--output', '--batch', '--cells'].includes(arg)) {
@@ -564,13 +567,16 @@ function measurementSummary(result, api, source, serverPath, expectedDocumentCou
     let value
     let conversionError = null
     try { value = document.toJS() } catch (error) { conversionError = `${error.name}: ${error.message}` }
-    return { range: document.range, diagnostics: enumerateErrorSignature([document]), value, conversionError }
+    return { range: document.range, diagnostics: enumerateErrorSignature([document]), value: snapshotPublicValue(value), conversionError }
   })
-  return { sourceSha256: sha256(source), tokenCount: tokens.length, documents: values }
+  const lineStarts = serverPath
+    ? result.documents[0]?.lineCounter?.lineStarts?.slice() ?? []
+    : result.lineCounter?.lineStarts?.slice() ?? []
+  return { sourceSha256: sha256(source), tokenCount: tokens.length, documents: values, lineStarts }
 }
 
 async function measureWorker(config) {
-  const source = readFileSync(config.sourceFile, 'utf8')
+  const { inputSha256, source } = verifyInputBytes(readFileSync(config.sourceFile), config.inputSha256)
   const startupStart = performance.now()
   const { api, provenance } = await importYamlProvider(config.entry)
   assertYamlProvider(api, config.label)
@@ -629,7 +635,7 @@ async function measureWorker(config) {
       cellId: config.cellId,
       participant: config.participant,
       phase: config.phase,
-      inputSha256: config.inputSha256,
+      inputSha256,
       outputSha256,
       startupMs,
       ...phase,
@@ -767,10 +773,18 @@ const MEASUREMENT_PROTOCOL = Object.freeze({
 })
 
 function measurementEligibility(cell) {
-  if (cell.policy === 'literal-default') {
-    return { performanceEligible: false, reason: 'provider literal uniqueKeys defaults are not aligned' }
-  }
-  return { performanceEligible: true, reason: null }
+  return cell.policy === 'literal-default'
+    ? { performanceEligible: false, reason: 'provider literal uniqueKeys defaults are not aligned' }
+    : { performanceEligible: true, reason: null }
+}
+
+function pairedMeasurementEligibility(cell, candidate, reference) {
+  return evaluateSemanticPair(cell.policy, candidate, reference)
+}
+
+function cellSemanticPreflight(entries, cellId) {
+  const pair = Object.fromEntries(entries.filter((entry) => entry.cellId === cellId).map((entry) => [entry.participant, entry.output]))
+  return { candidate: pair.candidate, reference: pair.reference }
 }
 
 async function prepareMeasurement(args) {
@@ -864,7 +878,7 @@ function spawnMeasurementPhase(config, timeoutMs) {
   if (child.status !== 0) throw new Error(`measurement worker ${config.workerId} exited ${child.status}: ${(child.stderr || '').trim()}`)
   let result
   try { result = JSON.parse(child.stdout) } catch (error) { throw new Error(`measurement worker returned invalid JSON: ${error.message}`) }
-  const expectedCount = config.phase === 'isolated-peak-rss' ? 1 : config.iterations
+  const expectedCounts = expectedPhaseCounts(config.phase, config.warmups, config.iterations)
   validatePhaseResult(result, {
     workerId: config.workerId,
     head: config.expectedHead,
@@ -872,14 +886,10 @@ function spawnMeasurementPhase(config, timeoutMs) {
     participant: config.participant,
     phase: config.phase,
     inputSha256: config.inputSha256,
-    resultCount: expectedCount
+    ...expectedCounts
   })
   if (result.outputSha256 !== sha256(JSON.stringify(result.output))) throw new Error('measurement output checksum does not match its result')
   return result
-}
-
-function emptyLedger(planned) {
-  return { planned: [...planned], completed: [], failed: [], pending: [...planned] }
 }
 
 async function measurePlan(args, campaignStartedAt) {
@@ -887,8 +897,7 @@ async function measurePlan(args, campaignStartedAt) {
   const budget = createCampaignBudget({
     startedAt: started,
     now: () => performance.now(),
-    outerBudgetMs: MEASUREMENT_PROTOCOL.workerTimeoutMs,
-    innerBudgetMs: MEASUREMENT_PROTOCOL.innerBudgetMs
+    outerBudgetMs: MEASUREMENT_PROTOCOL.workerTimeoutMs
   })
   const prepared = await prepareMeasurement(args)
   const { values, cells, selectedCells, candidate, server, candidateProvider, referenceProvider, referenceEntry, referenceIdentity, participants } = prepared
@@ -918,6 +927,8 @@ async function measurePlan(args, campaignStartedAt) {
   let innerDeadline = Number.POSITIVE_INFINITY
   const rawObservations = []
   const semanticPreflight = []
+  const semanticComparisons = []
+  const ineligibleMatchedCells = new Set()
   const completedPhases = new Set()
   const failedPhases = []
   const scratch = mkdtempSync(join(tmpdir(), 'lightning-yaml-lsp-measure-'))
@@ -974,7 +985,7 @@ async function measurePlan(args, campaignStartedAt) {
     for (let cellIndex = 0; preflightComplete && cellIndex < selectedCells.length; cellIndex++) {
       const cell = selectedCells[cellIndex]
       if (budget.remainingOuterMs() <= 0) {
-        failedPhases.push({ id: `semantic-preflight:${cell.id}`, error: 'campaign budget expired during input preparation' })
+        failedPhases.push({ id: `${cell.id}:semantic-preflight:input`, error: 'campaign budget expired during input preparation' })
         preflightComplete = false
         break
       }
@@ -985,7 +996,7 @@ async function measurePlan(args, campaignStartedAt) {
       const participantOrder = cellIndex % 2 === 0 ? ['candidate', 'reference'] : ['reference', 'candidate']
       semanticCheck: for (const participant of participantOrder) {
         if (budget.remainingOuterMs() <= 0) {
-          failedPhases.push({ id: `semantic-preflight:${cell.id}:${participant}`, error: 'campaign budget expired before semantic preflight' })
+          failedPhases.push({ id: `${cell.id}:semantic-preflight:${participant}`, error: 'campaign budget expired before semantic preflight' })
           preflightComplete = false
           break semanticCheck
         }
@@ -1012,25 +1023,41 @@ async function measurePlan(args, campaignStartedAt) {
         }
         const remaining = outerDeadline - performance.now()
         if (remaining <= 0) {
-          failedPhases.push({ id: `semantic-preflight:${cell.id}:${participant}`, error: 'campaign budget expired during semantic preflight' })
+          failedPhases.push({ id: `${cell.id}:semantic-preflight:${participant}`, error: 'campaign budget expired during semantic preflight' })
           preflightComplete = false
           break semanticCheck
         }
         try {
           const checked = spawnMeasurementPhase(config, Math.max(1, Math.floor(remaining)))
-          semanticPreflight.push({ cellId: cell.id, participant, outputSha256: checked.outputSha256, input: materialized })
+          semanticPreflight.push({ cellId: cell.id, participant, outputSha256: checked.outputSha256, output: checked.output, input: materialized })
         } catch (error) {
-          failedPhases.push({ id: `semantic-preflight:${cell.id}:${participant}`, error: error.message })
+          failedPhases.push({ id: `${cell.id}:semantic-preflight:${participant}`, error: error.message })
           preflightComplete = false
           break semanticCheck
         }
       }
     }
 
+    for (const cell of selectedCells) {
+      const pair = cellSemanticPreflight(semanticPreflight, cell.id)
+      const eligibility = pairedMeasurementEligibility(cell, pair.candidate, pair.reference)
+      semanticComparisons.push({
+        cellId: cell.id,
+        policy: cell.policy,
+        semanticAgreement: eligibility.semanticAgreement,
+        performanceEligible: eligibility.performanceEligible,
+        reason: eligibility.reason,
+        candidateOutputSha256: semanticPreflight.find((entry) => entry.cellId === cell.id && entry.participant === 'candidate')?.outputSha256 ?? null,
+        referenceOutputSha256: semanticPreflight.find((entry) => entry.cellId === cell.id && entry.participant === 'reference')?.outputSha256 ?? null
+      })
+      if (isMatchedPolicySemanticMismatch(cell.policy, eligibility)) ineligibleMatchedCells.add(cell.id)
+    }
+
     innerDeadline = Math.min(outerDeadline, performance.now() + MEASUREMENT_PROTOCOL.innerBudgetMs)
 
     for (let cellIndex = 0; preflightComplete && cellIndex < selectedCells.length; cellIndex++) {
       const cell = selectedCells[cellIndex]
+      if (ineligibleMatchedCells.has(cell.id)) continue
       const { materialized, sourceFile } = materializedCells.get(cell.id)
       const order = cellIndex % 2 === 0 ? ['candidate', 'reference'] : ['reference', 'candidate']
       for (const participant of order) {
@@ -1080,8 +1107,8 @@ async function measurePlan(args, campaignStartedAt) {
   const cellLedger = {
     planned: cells.map((cell) => cell.id),
     completed: completedCells,
-    failed: cells.filter((cell) => failedPhases.some(({ id }) => id.startsWith(`${cell.id}:`))).map((cell) => cell.id),
-    pending: cells.map((cell) => cell.id).filter((id) => !completedCells.includes(id) && !failedPhases.some(({ id: failed }) => failed.startsWith(`${id}:`))),
+    failed: cells.filter((cell) => ineligibleMatchedCells.has(cell.id) || failedPhases.some(({ id }) => id.startsWith(`${cell.id}:`))).map((cell) => cell.id),
+    pending: cells.map((cell) => cell.id).filter((id) => !completedCells.includes(id) && !ineligibleMatchedCells.has(id) && !failedPhases.some(({ id: failed }) => failed.startsWith(`${id}:`))),
     notSelected: cells.filter((cell) => !selectedCells.some((selected) => selected.id === cell.id)).map((cell) => cell.id)
   }
   const candidateArtifactsAfter = candidateArtifactHashes(resolve(values['candidate-entry']))
@@ -1103,8 +1130,9 @@ async function measurePlan(args, campaignStartedAt) {
     planned: cells.map((cell) => cell.id),
     selected: selectedIds,
     notSelected: cellLedger.notSelected,
-    eligibility: selectedCells.map((cell) => ({ id: cell.id, ...measurementEligibility(cell) })),
+    eligibility: selectedCells.map((cell) => ({ id: cell.id, ...measurementEligibility(cell), ...semanticComparisons.find((item) => item.cellId === cell.id) })),
     cells: cellLedger,
+    semanticComparisons,
     phases: {
       planned: allPhaseIds,
       selected: selectedPhaseIds,
