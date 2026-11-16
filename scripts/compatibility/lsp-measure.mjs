@@ -61,6 +61,69 @@ export function expectedPhaseCounts(phase, warmups, iterations) {
   throw new Error(`unknown measurement phase ${phase}`)
 }
 
+export function createPairedSchedule(cells, { repeatCount, participants, phases }) {
+  if (!Number.isInteger(repeatCount) || repeatCount < 2 || repeatCount > 5) {
+    throw new RangeError('paired repeat count must be between 2 and 5')
+  }
+  if (!Array.isArray(participants) || participants.length !== 2 || new Set(participants).size !== 2 || participants.some((item) => typeof item !== 'string' || !item)) {
+    throw new TypeError('paired schedule requires two distinct participant names')
+  }
+  if (!Array.isArray(phases) || phases.length === 0 || new Set(phases).size !== phases.length) {
+    throw new TypeError('paired schedule requires unique phase names')
+  }
+  const cellIds = cells.map(({ id }) => id)
+  if (cellIds.some((id) => typeof id !== 'string' || !id) || new Set(cellIds).size !== cellIds.length) {
+    throw new TypeError('paired schedule requires unique logical cell IDs')
+  }
+  const schedule = []
+  for (let repeatIndex = 1; repeatIndex <= repeatCount; repeatIndex++) {
+    const cases = repeatIndex % 2 === 1 ? cells : [...cells].reverse()
+    const order = repeatIndex % 2 === 1 ? participants : [...participants].reverse()
+    for (const cell of cases) {
+      for (const phase of phases) {
+        for (const participant of order) {
+          const observationId = `${cell.id}:repeat:${repeatIndex}:${participant}:${phase}`
+          schedule.push({ cellId: cell.id, repeatIndex, participant, phase, observationId })
+        }
+      }
+    }
+  }
+  return schedule
+}
+
+export function selectPairedSchedule(plannedSchedule, selectedCellIds) {
+  const selected = new Set(selectedCellIds)
+  if (selected.size !== selectedCellIds.length) throw new Error('selected cell IDs must be unique')
+  const plannedCells = new Set(plannedSchedule.map(({ cellId }) => cellId))
+  if ([...selected].some((cellId) => !plannedCells.has(cellId))) throw new Error('selection contains an unplanned cell ID')
+  return plannedSchedule.filter((item) => selected.has(item.cellId))
+}
+
+export function finalizeScheduleLedger(plannedSchedule, selectedSchedule, completedIds = [], failedIds = []) {
+  const ids = (schedule) => schedule.map(({ observationId }) => observationId)
+  const planned = ids(plannedSchedule)
+  const selected = ids(selectedSchedule)
+  const completedSet = new Set(completedIds)
+  const failedSet = new Set(failedIds)
+  if (new Set(planned).size !== planned.length || new Set(selected).size !== selected.length) {
+    throw new Error('schedule contains duplicate observation IDs')
+  }
+  if (selected.some((id) => !planned.includes(id))) throw new Error('selected schedule contains an unplanned observation')
+  if (completedSet.size !== completedIds.length || failedSet.size !== failedIds.length) throw new Error('observation ledger contains duplicate status IDs')
+  if ([...completedSet].some((id) => !selected.includes(id)) || [...failedSet].some((id) => !selected.includes(id))) {
+    throw new Error('observation ledger contains a nonselected ID')
+  }
+  if ([...completedSet].some((id) => failedSet.has(id))) throw new Error('observation cannot be both completed and failed')
+  return {
+    planned,
+    selected,
+    completed: selected.filter((id) => completedSet.has(id)),
+    failed: selected.filter((id) => failedSet.has(id)),
+    pending: selected.filter((id) => !completedSet.has(id) && !failedSet.has(id)),
+    notSelected: planned.filter((id) => !selected.includes(id))
+  }
+}
+
 export function runMeasurementPhase({
   phase,
   operation,
@@ -146,8 +209,11 @@ export function runMeasurementPhase({
 }
 
 export function validatePhaseResult(result, expected) {
-  for (const key of ['workerId', 'head', 'cellId', 'participant', 'phase']) {
+  for (const key of ['workerId', 'observationId', 'head', 'cellId', 'participant', 'phase']) {
     if (result[key] !== expected[key]) throw new Error(`measurement worker ${key} mismatch`)
+  }
+  if (!Number.isInteger(result.repeatIndex) || result.repeatIndex !== expected.repeatIndex) {
+    throw new Error('measurement worker repeat index mismatch')
   }
   if (!/^[a-f0-9]{64}$/.test(result.inputSha256) || !/^[a-f0-9]{64}$/.test(result.outputSha256)) {
     throw new Error('measurement worker omitted valid input/output checksums')

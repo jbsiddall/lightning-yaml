@@ -28,10 +28,13 @@ import {
 } from "../../../scripts/compatibility/lsp-fixtures.mjs";
 import {
   createCampaignBudget,
+  createPairedSchedule,
   evaluateSemanticPair,
   expectedPhaseCounts,
+  finalizeScheduleLedger,
   isMatchedPolicySemanticMismatch,
   runMeasurementPhase,
+  selectPairedSchedule,
   semanticOutcomesEqual,
   snapshotPublicValue,
   validatePhaseResult,
@@ -56,7 +59,54 @@ describe("maintained LSP compatibility contract", () => {
     expect(scaled.repeatCount).toBe(312);
     expect(runBareOperation(yaml, scaled.source).documents).toHaveLength(312);
     expect(() => expandDocumentStream(fixtures[2]!, 1001)).toThrow(/copies/);
-    expect(enumerateCells("lsp-consumer")).toHaveLength(24);
+    expect(enumerateCells("bare-corpus")).toHaveLength(3);
+    expect(enumerateCells("bare-scale")).toHaveLength(2);
+    expect(enumerateCells("bare-policy")).toHaveLength(6);
+    expect(enumerateCells("lsp-consumer")).toHaveLength(12);
+    expect(enumerateCells("lsp-consumer").every((cell) => !("provider" in cell))).toBe(true);
+  });
+
+  it("uses one explicit paired repeat schedule for plans, selection, and observations", () => {
+    const participants = ["candidate", "reference"];
+    const phases = ["cpu-wall", "retained-heap", "isolated-peak-rss"];
+    expect(() => createPairedSchedule([], { repeatCount: 1, participants, phases })).toThrow(/between 2 and 5/);
+    expect(() => createPairedSchedule([], { repeatCount: 6, participants, phases })).toThrow(/between 2 and 5/);
+    for (const batch of ["bare-scale", "bare-policy", "lsp-consumer"]) {
+      const cells = enumerateCells(batch);
+      const schedule = createPairedSchedule(cells, { repeatCount: 2, participants, phases });
+      expect(schedule).toHaveLength(cells.length * 2 * 2 * phases.length);
+      expect(new Set(schedule.map((item) => item.observationId)).size).toBe(schedule.length);
+      const caseOrder = (repeatIndex: number) => [...new Set(schedule.filter((item) => item.repeatIndex === repeatIndex).map((item) => item.cellId))];
+      expect(caseOrder(1)).toEqual(cells.map((cell) => cell.id));
+      expect(caseOrder(2)).toEqual(cells.map((cell) => cell.id).reverse());
+      for (const cell of cells) {
+        for (const phase of phases) {
+          const orderFor = (repeatIndex: number) => schedule.filter((item) => item.cellId === cell.id && item.phase === phase && item.repeatIndex === repeatIndex).map((item) => item.participant);
+          expect(orderFor(1)).toEqual(participants);
+          expect(orderFor(2)).toEqual([...participants].reverse());
+        }
+        for (const repeatIndex of [1, 2]) {
+          const order = repeatIndex === 1 ? participants : [...participants].reverse();
+          const actual = schedule.filter((item) => item.cellId === cell.id && item.repeatIndex === repeatIndex).map((item) => `${item.phase}:${item.participant}`);
+          expect(actual).toEqual(phases.flatMap((phase) => order.map((participant) => `${phase}:${participant}`)));
+        }
+      }
+      const chosenCell = cells[0]!;
+      const selected = [chosenCell.id];
+      const selectedSchedule = selectPairedSchedule(schedule, selected);
+      expect(selectedSchedule).toHaveLength(2 * 2 * phases.length);
+      expect(selectedSchedule).toEqual(schedule.filter((item) => selected.includes(item.cellId)));
+      expect(() => selectPairedSchedule(schedule, ["unknown-case"])).toThrow(/unplanned cell/);
+      const first = selectedSchedule[0]!;
+      const failed = selectedSchedule[1]!;
+      const ledger = finalizeScheduleLedger(schedule, selectedSchedule, [first.observationId]);
+      expect(ledger.completed).toEqual([first.observationId]);
+      expect(ledger.pending).toEqual(selectedSchedule.slice(1).map((item) => item.observationId));
+      const failedLedger = finalizeScheduleLedger(schedule, selectedSchedule, [first.observationId], [failed.observationId]);
+      expect(failedLedger.failed).toEqual([failed.observationId]);
+      expect(failedLedger.pending).toEqual(selectedSchedule.slice(2).map((item) => item.observationId));
+      expect(ledger.notSelected).toHaveLength((cells.length - 1) * 2 * 2 * phases.length);
+    }
   });
 
   it("asserts the direct parser/composer operation and independent UTF-16 source witness", () => {
@@ -260,11 +310,13 @@ describe("maintained LSP compatibility contract", () => {
     expect(rss.afterRssBytes).toBe(1800);
     expect(rss.processMaxRssBytes).toBe(4096);
 
-    const envelope = { workerId: "w", head: "h", cellId: "c", participant: "ref", phase: "cpu-wall", inputSha256: "a".repeat(64), outputSha256: "b".repeat(64), warmups: 3, iterations: 2, resultCount: 2 };
+    const envelope = { workerId: "w", observationId: "c:repeat:1:ref:cpu-wall", repeatIndex: 1, head: "h", cellId: "c", participant: "ref", phase: "cpu-wall", inputSha256: "a".repeat(64), outputSha256: "b".repeat(64), warmups: 3, iterations: 2, resultCount: 2 };
     expect(validatePhaseResult(envelope, { ...envelope }).resultCount).toBe(2);
     expect(() => validatePhaseResult({ ...envelope, resultCount: 1 }, envelope)).toThrow(/result count/);
     expect(() => validatePhaseResult({ ...envelope, warmups: 2 }, envelope)).toThrow(/warmups count/);
     expect(() => validatePhaseResult({ ...envelope, iterations: 25 }, envelope)).toThrow(/iterations count/);
+    expect(() => validatePhaseResult({ ...envelope, repeatIndex: 2 }, envelope)).toThrow(/repeat index/);
+    expect(() => validatePhaseResult({ ...envelope, observationId: "wrong" }, envelope)).toThrow(/observationId/);
   });
 
   it("hashes worker-read bytes and gates eligible pairs on public semantic parity", () => {

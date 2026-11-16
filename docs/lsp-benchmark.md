@@ -43,7 +43,7 @@ stay inside the selected compiled server tree. Node must support synchronous
 `node:module.registerHooks` for this actual-server check; the bare self-check
 does not require that capability.
 
-The result keeps the server's declared `yaml` dependency range (`2.8.3`) separate
+The result keeps the server's declared `yaml` dependency version (`2.8.3`) separate
 from the injected provider's package version and artifact hashes. Provider
 Documents and nodes are checked against that exact imported namespace, and
 server AST nodes must point back to those same provider nodes. Build artifact
@@ -113,18 +113,28 @@ limit a named batch; cells omitted from that selection stay visible as
 `notSelected`.
 
 Named batches are `bare-corpus`, `bare-scale`, `bare-policy`, and
-`lsp-consumer`. Each cell is identified by batch, provider, fixture, declared
-policy, and document mode. `--cells` selects only identities from the named
-batch. Results retain planned, completed, failed, and pending identities; an
-unrun cell stays pending.
+`lsp-consumer`. They contain 3, 2, 6, and 12 logical comparison cells,
+respectively. A cell ID is provider-independent and identifies its batch,
+fixture, declared policy, and document mode. `--cells` selects logical cell IDs
+from the named batch, so selecting one case still schedules its candidate and
+reference pair.
 
-Each participant/cell/phase runs in a fresh sequential worker. The CPU/wall
-phase performs three warmups and 25 measured operations; output checksums are
-computed after the timed loop. The retained-heap phase retains all 25 complete
-results, collects garbage before and after, and reports the heap delta. The
-isolated peak-RSS phase performs one operation in a fresh process and reports
-the process high-water mark alongside before/after RSS. Import/startup time is
-recorded separately. The 60-second outer campaign clock starts at CLI entry and
+Every selected cell uses two declared paired repeats. The first repeat follows
+the batch's cell order and runs candidate then reference for each phase; the
+second reverses the cell order and runs reference then candidate. Each fresh
+worker has a unique observation ID containing its cell, repeat, participant,
+and phase. `--plan` prints this exact schedule. The full batches declare 36,
+24, 72, and 144 phase observations respectively; selecting one cell declares
+12. Results retain planned, selected, completed, failed, pending, and
+not-selected observation IDs as well as the logical cell ledger.
+
+Each participant/cell/repeat/phase runs in a fresh sequential worker. The
+CPU/wall phase performs three warmups and 25 measured operations; output
+checksums are computed after the timed loop. The retained-heap phase retains
+all 25 complete results, collects garbage before and after, and reports the
+heap delta. The isolated peak-RSS phase performs one operation in a fresh
+process and reports the process high-water mark alongside before/after RSS.
+Import/startup time is recorded separately. The 60-second outer campaign clock starts at CLI entry and
 includes provider loading, fixture preparation, and semantic preflight children.
 After preflight, scored workers share a 49-second inner budget clamped to the
 remaining outer time. Incomplete identities stay failed or pending in the

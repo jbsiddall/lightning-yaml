@@ -12,6 +12,20 @@ export function expectedPhaseCounts(phase: string, warmups: number, iterations: 
   iterations: number;
   resultCount: number;
 };
+export function createPairedSchedule(cells: Array<{ id: string }>, options: {
+  repeatCount: number;
+  participants: string[];
+  phases: string[];
+}): Array<{ cellId: string; repeatIndex: number; participant: string; phase: string; observationId: string }>;
+export function selectPairedSchedule(plannedSchedule: any[], selectedCellIds: string[]): any[];
+export function finalizeScheduleLedger(plannedSchedule: any[], selectedSchedule: any[], completedIds?: string[], failedIds?: string[]): {
+  planned: string[];
+  selected: string[];
+  completed: string[];
+  failed: string[];
+  pending: string[];
+  notSelected: string[];
+};
 export function runMeasurementPhase(options: any): any;
 export function validatePhaseResult(result: any, expected: any): any;
 export function createCampaignBudget(options: { startedAt: number; now: () => number; outerBudgetMs: number }): {

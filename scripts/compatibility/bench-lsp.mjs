@@ -15,7 +15,8 @@ import {
   tokenGraphContains, validateWorkerEnvelope
 } from './lsp-contract.mjs'
 import {
-  createCampaignBudget, evaluateSemanticPair, expectedPhaseCounts, isMatchedPolicySemanticMismatch, runMeasurementPhase, snapshotPublicValue,
+  createCampaignBudget, createPairedSchedule, evaluateSemanticPair, expectedPhaseCounts,
+  finalizeScheduleLedger, isMatchedPolicySemanticMismatch, runMeasurementPhase, selectPairedSchedule, snapshotPublicValue,
   validatePhaseResult, verifyInputBytes
 } from './lsp-measure.mjs'
 import { enumerateCells, expandDocumentStream, loadPinnedCorpus, semanticSources } from './lsp-fixtures.mjs'
@@ -631,6 +632,8 @@ async function measureWorker(config) {
     const outputSha256 = sha256(JSON.stringify(phase.output))
     return {
       workerId: config.workerId,
+      observationId: config.observationId,
+      repeatIndex: config.repeatIndex,
       head: config.expectedHead,
       cellId: config.cellId,
       participant: config.participant,
@@ -756,6 +759,7 @@ async function actualCheck(args) {
 }
 
 const MEASUREMENT_PROTOCOL = Object.freeze({
+  repeats: 2,
   warmups: 3,
   iterationsPerCell: 25,
   oracleAndChecksumOutsideCpu: true,
@@ -881,6 +885,8 @@ function spawnMeasurementPhase(config, timeoutMs) {
   const expectedCounts = expectedPhaseCounts(config.phase, config.warmups, config.iterations)
   validatePhaseResult(result, {
     workerId: config.workerId,
+    observationId: config.observationId,
+    repeatIndex: config.repeatIndex,
     head: config.expectedHead,
     cellId: config.cellId,
     participant: config.participant,
@@ -903,11 +909,16 @@ async function measurePlan(args, campaignStartedAt) {
   const { values, cells, selectedCells, candidate, server, candidateProvider, referenceProvider, referenceEntry, referenceIdentity, participants } = prepared
   const candidateArtifactsBefore = candidateArtifactHashes(resolve(values['candidate-entry']))
   const serverArtifactsBefore = serverArtifactHashes(resolve(values['server-root']))
-  const phaseIdsFor = (batchCells) => batchCells.flatMap((cell) => ['candidate', 'reference'].flatMap((participant) =>
-    ['cpu-wall', 'retained-heap', 'isolated-peak-rss'].map((phase) => `${cell.id}:${participant}:${phase}`)))
-  const allPhaseIds = phaseIdsFor(cells)
-  const selectedPhaseIds = phaseIdsFor(selectedCells)
+  const plannedSchedule = createPairedSchedule(cells, {
+    repeatCount: MEASUREMENT_PROTOCOL.repeats,
+    participants: ['candidate', 'reference'],
+    phases: ['cpu-wall', 'retained-heap', 'isolated-peak-rss']
+  })
+  const selectedSchedule = selectPairedSchedule(plannedSchedule, selectedCells.map((cell) => cell.id))
+  const allPhaseIds = plannedSchedule.map((item) => item.observationId)
+  const selectedPhaseIds = selectedSchedule.map((item) => item.observationId)
   if (args.mode === 'plan') {
+    const phaseLedger = finalizeScheduleLedger(plannedSchedule, selectedSchedule)
     return {
       kind: 'lsp-measurement-plan', status: 'dry-run', scoredMeasurement: false, batch: values.batch,
       participants, protocol: MEASUREMENT_PROTOCOL, plannedCellCount: cells.length,
@@ -916,6 +927,9 @@ async function measurePlan(args, campaignStartedAt) {
       completed: [], failed: [], pending: selectedCells.map((cell) => cell.id),
       plannedPhases: allPhaseIds,
       selectedPhases: selectedPhaseIds,
+      plannedSchedule,
+      selectedSchedule,
+      phases: phaseLedger,
       notSelected: cells.filter((cell) => !selectedCells.some((selected) => selected.id === cell.id)).map((cell) => cell.id),
       eligibility: selectedCells.map((cell) => ({ id: cell.id, ...measurementEligibility(cell) })),
       note: 'Dry-run only: no parser operations were measured.'
@@ -1002,9 +1016,12 @@ async function measurePlan(args, campaignStartedAt) {
         }
         const entry = participant === 'candidate' ? resolve(values['candidate-entry']) : referenceEntry
         const expectedHead = participant === 'candidate' ? candidate.head : referenceIdentity
+        const observationId = `${cell.id}:preflight:${participant}`
         const config = {
           kind: 'measure-phase',
-          workerId: `${cell.id}:${participant}:semantic-only`,
+          workerId: observationId,
+          observationId,
+          repeatIndex: -1,
           expectedHead,
           entry,
           label: participant,
@@ -1029,7 +1046,8 @@ async function measurePlan(args, campaignStartedAt) {
         }
         try {
           const checked = spawnMeasurementPhase(config, Math.max(1, Math.floor(remaining)))
-          semanticPreflight.push({ cellId: cell.id, participant, outputSha256: checked.outputSha256, output: checked.output, input: materialized })
+          semanticPreflight.push({ cellId: cell.id, participant, observationId, repeatIndex: -1,
+            outputSha256: checked.outputSha256, output: checked.output, input: materialized })
         } catch (error) {
           failedPhases.push({ id: `${cell.id}:semantic-preflight:${participant}`, error: error.message })
           preflightComplete = false
@@ -1053,62 +1071,85 @@ async function measurePlan(args, campaignStartedAt) {
       if (isMatchedPolicySemanticMismatch(cell.policy, eligibility)) ineligibleMatchedCells.add(cell.id)
     }
 
+    for (const scheduled of selectedSchedule) {
+      if (!ineligibleMatchedCells.has(scheduled.cellId)) continue
+      failedPhases.push({
+        id: scheduled.observationId,
+        observationId: scheduled.observationId,
+        cellId: scheduled.cellId,
+        repeatIndex: scheduled.repeatIndex,
+        participant: scheduled.participant,
+        phase: scheduled.phase,
+        error: 'candidate/reference semantic preflight differs; scored phase skipped'
+      })
+    }
+
     innerDeadline = Math.min(outerDeadline, performance.now() + MEASUREMENT_PROTOCOL.innerBudgetMs)
 
-    for (let cellIndex = 0; preflightComplete && cellIndex < selectedCells.length; cellIndex++) {
-      const cell = selectedCells[cellIndex]
-      if (ineligibleMatchedCells.has(cell.id)) continue
-      const { materialized, sourceFile } = materializedCells.get(cell.id)
-      const order = cellIndex % 2 === 0 ? ['candidate', 'reference'] : ['reference', 'candidate']
-      for (const participant of order) {
-        const entry = participant === 'candidate' ? resolve(values['candidate-entry']) : referenceEntry
-        const expectedHead = participant === 'candidate' ? candidate.head : referenceIdentity
-        for (const phase of ['cpu-wall', 'retained-heap', 'isolated-peak-rss']) {
-          const phaseId = `${cell.id}:${participant}:${phase}`
-          const remaining = Math.min(innerDeadline - performance.now(), outerDeadline - performance.now())
-          if (remaining <= 0) break
-          const config = {
-            kind: 'measure-phase',
-            workerId: phaseId,
-            expectedHead,
-            entry,
-            label: participant,
-            participant,
-            cellId: cell.id,
-            sourceFile,
-            inputSha256: materialized.sourceSha256,
-            expectedDocumentCount: materialized.expectedDocumentCount,
-            phase,
-            policy: cell.policy,
-            documentMode: cell.documentMode,
-            serverMode: values.batch === 'lsp-consumer',
-            serverRoot: resolve(values['server-root']),
-            warmups: MEASUREMENT_PROTOCOL.warmups,
-            iterations: MEASUREMENT_PROTOCOL.iterationsPerCell
-          }
-          try {
-            const measured = spawnMeasurementPhase(config, Math.max(1, Math.floor(remaining)))
-            rawObservations.push({ ...measured, input: materialized, providerOrder: order, providerOrderIndex: order.indexOf(participant) })
-            completedPhases.add(phaseId)
-          } catch (error) {
-            failedPhases.push({ id: phaseId, error: error.message })
-          }
-        }
+    for (let scheduleIndex = 0; preflightComplete && scheduleIndex < selectedSchedule.length; scheduleIndex++) {
+      const scheduled = selectedSchedule[scheduleIndex]
+      const cell = selectedCells.find((candidateCell) => candidateCell.id === scheduled.cellId)
+      if (ineligibleMatchedCells.has(scheduled.cellId)) continue
+      const { materialized, sourceFile } = materializedCells.get(scheduled.cellId)
+      const participant = scheduled.participant
+      const entry = participant === 'candidate' ? resolve(values['candidate-entry']) : referenceEntry
+      const expectedHead = participant === 'candidate' ? candidate.head : referenceIdentity
+      const remaining = Math.min(innerDeadline - performance.now(), outerDeadline - performance.now())
+      if (remaining <= 0) break
+      const config = {
+        kind: 'measure-phase',
+        workerId: scheduled.observationId,
+        observationId: scheduled.observationId,
+        repeatIndex: scheduled.repeatIndex,
+        expectedHead,
+        entry,
+        label: participant,
+        participant,
+        cellId: cell.id,
+        sourceFile,
+        inputSha256: materialized.sourceSha256,
+        expectedDocumentCount: materialized.expectedDocumentCount,
+        phase: scheduled.phase,
+        policy: cell.policy,
+        documentMode: cell.documentMode,
+        serverMode: values.batch === 'lsp-consumer',
+        serverRoot: resolve(values['server-root']),
+        warmups: MEASUREMENT_PROTOCOL.warmups,
+        iterations: MEASUREMENT_PROTOCOL.iterationsPerCell
+      }
+      try {
+        const measured = spawnMeasurementPhase(config, Math.max(1, Math.floor(remaining)))
+        rawObservations.push({ ...measured, input: materialized, scheduleIndex })
+        completedPhases.add(scheduled.observationId)
+      } catch (error) {
+        failedPhases.push({
+          id: scheduled.observationId,
+          observationId: scheduled.observationId,
+          cellId: scheduled.cellId,
+          repeatIndex: scheduled.repeatIndex,
+          participant,
+          phase: scheduled.phase,
+          error: error.message
+        })
       }
     }
   } finally {
     rmSync(scratch, { recursive: true, force: true })
   }
 
-    const allPhases = selectedPhaseIds.every((id) => completedPhases.has(id))
-  const completedCells = selectedCells.filter((cell) => ['candidate', 'reference'].every((participant) =>
-    ['cpu-wall', 'retained-heap', 'isolated-peak-rss'].every((phase) => completedPhases.has(`${cell.id}:${participant}:${phase}`)))).map((cell) => cell.id)
+  const failedObservationIds = failedPhases.filter((item) => item.observationId).map((item) => item.observationId)
+  const phaseLedger = finalizeScheduleLedger(plannedSchedule, selectedSchedule, [...completedPhases], failedObservationIds)
+  const allPhases = preflightComplete && phaseLedger.pending.length === 0 && phaseLedger.failed.length === 0
   const selectedIds = selectedCells.map((cell) => cell.id)
+  const completedCells = selectedCells.filter((cell) => selectedSchedule.filter((item) => item.cellId === cell.id)
+    .every((item) => completedPhases.has(item.observationId))).map((cell) => cell.id)
+  const failedCells = selectedCells.filter((cell) => failedPhases.some(({ id }) => id.startsWith(`${cell.id}:`))).map((cell) => cell.id)
   const cellLedger = {
     planned: cells.map((cell) => cell.id),
+    selected: selectedIds,
     completed: completedCells,
-    failed: cells.filter((cell) => ineligibleMatchedCells.has(cell.id) || failedPhases.some(({ id }) => id.startsWith(`${cell.id}:`))).map((cell) => cell.id),
-    pending: cells.map((cell) => cell.id).filter((id) => !completedCells.includes(id) && !ineligibleMatchedCells.has(id) && !failedPhases.some(({ id: failed }) => failed.startsWith(`${id}:`))),
+    failed: failedCells,
+    pending: selectedIds.filter((id) => !completedCells.includes(id) && !failedCells.includes(id)),
     notSelected: cells.filter((cell) => !selectedCells.some((selected) => selected.id === cell.id)).map((cell) => cell.id)
   }
   const candidateArtifactsAfter = candidateArtifactHashes(resolve(values['candidate-entry']))
@@ -1134,12 +1175,9 @@ async function measurePlan(args, campaignStartedAt) {
     cells: cellLedger,
     semanticComparisons,
     phases: {
-      planned: allPhaseIds,
-      selected: selectedPhaseIds,
-      completed: allPhaseIds.filter((id) => completedPhases.has(id)),
-      failed: failedPhases.map(({ id }) => id),
-      pending: allPhaseIds.filter((id) => !completedPhases.has(id) && !failedPhases.some((failed) => failed.id === id)),
-      notSelected: allPhaseIds.filter((id) => !selectedPhaseIds.includes(id))
+      ...phaseLedger,
+      schedule: plannedSchedule,
+      selectedSchedule
     },
     failedPhases,
     rawObservations,

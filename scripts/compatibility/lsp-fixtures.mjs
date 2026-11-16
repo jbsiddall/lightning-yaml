@@ -130,23 +130,21 @@ export const semanticSources = Object.freeze({
 })
 
 export const plannedBatches = Object.freeze({
-  'bare-corpus': Object.freeze({ providers: ['reference', 'candidate'], fixtures: ['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform'], policies: ['literal-default'] }),
-  'bare-scale': Object.freeze({ providers: ['reference', 'candidate'], fixtures: ['github-actions-cmake-multi-platform:scaled-document-count:30', 'github-actions-cmake-multi-platform:scaled-document-count:312'], policies: ['literal-default'] }),
-  'bare-policy': Object.freeze({ providers: ['reference', 'candidate'], fixtures: ['duplicateKeys', 'comparatorKeys'], policies: ['uniqueKeys-false', 'uniqueKeys-true', 'uniqueKeys-comparator'] }),
-  'lsp-consumer': Object.freeze({ providers: ['reference', 'candidate'], fixtures: ['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform'], documentModes: ['absent', 'nonempty-final-line', 'empty-final-line', 'whitespace-final-line'], policies: ['literal-default'] })
+  'bare-corpus': Object.freeze({ fixtures: ['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform'], policies: ['literal-default'] }),
+  'bare-scale': Object.freeze({ fixtures: ['github-actions-cmake-multi-platform:scaled-document-count:30', 'github-actions-cmake-multi-platform:scaled-document-count:312'], policies: ['literal-default'] }),
+  'bare-policy': Object.freeze({ fixtures: ['duplicateKeys', 'comparatorKeys'], policies: ['uniqueKeys-false', 'uniqueKeys-true', 'uniqueKeys-comparator'] }),
+  'lsp-consumer': Object.freeze({ fixtures: ['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform'], documentModes: ['absent', 'nonempty-final-line', 'empty-final-line', 'whitespace-final-line'], policies: ['literal-default'] })
 })
 
 export function enumerateCells(batchName) {
   const batch = plannedBatches[batchName]
   if (!batch) throw new Error(`unknown planned batch ${batchName}`)
   const cells = []
-  for (const provider of batch.providers) {
-    for (const fixture of batch.fixtures) {
-      for (const policy of batch.policies) {
-        for (const documentMode of batch.documentModes ?? ['absent']) {
-          const id = [batchName, provider, fixture, policy, documentMode].join(':')
-          cells.push({ id, batch: batchName, provider, fixture, policy, documentMode })
-        }
+  for (const fixture of batch.fixtures) {
+    for (const policy of batch.policies) {
+      for (const documentMode of batch.documentModes ?? ['absent']) {
+        const id = [batchName, fixture, policy, documentMode].join(':')
+        cells.push({ id, batch: batchName, fixture, policy, documentMode })
       }
     }
   }
