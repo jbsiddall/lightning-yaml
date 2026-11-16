@@ -85,6 +85,7 @@
     "bench:bundlesize": "node bench/bundlesize/run.mjs",
     "bench:browser": "node --import tsx bench/browser/run.ts",
     "bench:browser:memory": "node --import tsx bench/browser/memoryRun.ts",
+    "bench:lsp": "node scripts/compatibility/bench-lsp.mjs",
     "bench": "pnpm gen:fixtures && pnpm bench:competition && pnpm bench:self",
     "build": "tsup",
     "prepublishOnly": "pnpm build",
