@@ -2749,3 +2749,34 @@ results:
     passed: 354
     total: 373
     score: 94.9
+---
+suite: conformance
+scope: competition
+suite_total: 373
+unit: "%"
+higher_is_better: true
+schema_version: 1
+generated: 2026-11-17
+generated_at: 2026-11-17T14:33:35.779Z
+source: 3124e5a3f26e1d4d1aaa6b5e7fa1b924009f3c4a
+results:
+  - id: lightning-yaml
+    label: Lightning YAML
+    self: true
+    passed: 367
+    total: 373
+    score: 98.4
+    negative_passed: 91
+    negative_total: 91
+  - id: yaml
+    label: yaml (eemeli)
+    version: 2.9.0
+    passed: 362
+    total: 373
+    score: 97.1
+  - id: js-yaml
+    label: js-yaml
+    version: 5.4.3
+    passed: 354
+    total: 373
+    score: 94.9
