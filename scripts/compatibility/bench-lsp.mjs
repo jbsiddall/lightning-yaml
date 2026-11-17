@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
-  SERVER_ENTRY, SERVER_TAGS_ENTRY, assertCstLossless, assertProviderDocument, assertYamlProvider,
+  SERVER_ENTRY, SERVER_TAGS_ENTRY, assertCstLossless, assertDuplicateKeyFixturePolicy, assertProviderDocument, assertYamlProvider,
   assertAliasResolvesTo, assertCustomTagReturnType, assertDiagnosticPosition, assertLineStarts,
   assertRootScalarValue, assertYamlResolutions, createYamlResolverHook, enumerateErrorSignature, findPackageRoot,
   getRegisterHooks, gitProvenance, hashFile, hashModuleClosure, importYamlProvider,
@@ -414,9 +414,11 @@ async function checkServer(api, providerVersion, serverRoot, parserModule, getCu
   if (!missingInclude.documents[0].internalDocument.errors.some((error) => error.pos[0] === 9 && error.pos[1] === 17)) fail('actual server !include missing-value diagnostic changed')
 
   const duplicate = parserModule.parse(semanticSources.duplicateKeys, { yamlVersion: '1.2', customTags: TAG_SETTINGS })
-  const duplicateUniqueKeys = duplicate.documents[0].internalDocument.options.uniqueKeys
+  const duplicateDocument = duplicate.documents[0].internalDocument
+  const duplicateUniqueKeys = duplicateDocument.options.uniqueKeys
   const expectedLiteralUniqueKeys = providerVersion === '2.9.0' ? true : false
   if (duplicateUniqueKeys !== expectedLiteralUniqueKeys) fail('actual server literal uniqueKeys policy changed')
+  const duplicatePolicyReceipt = assertDuplicateKeyFixturePolicy(duplicateDocument, expectedLiteralUniqueKeys)
 
   const rootIndent = parserModule.parse(semanticSources.rootIndent, { yamlVersion: '1.2', customTags: TAG_SETTINGS })
   const rootIndentDocument = rootIndent.documents[0].internalDocument
@@ -455,7 +457,8 @@ async function checkServer(api, providerVersion, serverRoot, parserModule, getCu
     customTags: { include: include.value.value, scalar: count.value.value, scalarReturnType: count.value.customTagReturnType,
       recordReturnType: record.value.customTagReturnType, callbackTrace: customTrace, astNodes: customNodes.size,
       directDefinitionEvidence: directCustomEvidence },
-    duplicateDefaults: { declaredServerDependency: serverDep, injectedPackageVersion: providerVersion, literalUniqueKeys: duplicateUniqueKeys, statusOnly: true },
+    duplicateDefaults: { declaredServerDependency: serverDep, injectedPackageVersion: providerVersion, literalUniqueKeys: duplicateUniqueKeys,
+      observed: duplicatePolicyReceipt, statusOnly: true },
     rootIndent: { providerVersion, directComposerValue: directRootIndentValue, internalDocumentValue: rootIndentValue, serverAstValue: rootAstValue,
       contextFreeCstValue: contextFreeRootValue, providerSpecific: true, statusOnly: true },
     cloneAndStructuredClone: cloneEvidence,

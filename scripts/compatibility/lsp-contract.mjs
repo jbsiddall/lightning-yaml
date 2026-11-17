@@ -383,6 +383,30 @@ export function enumerateErrorSignature(documents) {
   })))
 }
 
+export function assertDuplicateKeyFixturePolicy(document, expectedUniqueKeys) {
+  if (typeof expectedUniqueKeys !== 'boolean') throw new TypeError('expected duplicate-key policy must be boolean')
+  const uniqueKeys = document?.options?.uniqueKeys
+  if (uniqueKeys !== expectedUniqueKeys) throw new Error(`duplicate-key policy changed: expected ${expectedUniqueKeys}, got ${uniqueKeys}`)
+
+  // The value and span below are specific to semanticSources.duplicateKeys.
+  const diagnostics = enumerateErrorSignature([document])
+  if (expectedUniqueKeys) {
+    if (diagnostics.length !== 1 || diagnostics[0].code !== 'DUPLICATE_KEY'
+      || JSON.stringify(diagnostics[0].pos) !== JSON.stringify([5, 6])) {
+      throw new Error('duplicate-key policy did not emit exactly DUPLICATE_KEY at [5,6]')
+    }
+  } else if (diagnostics.length !== 0) {
+    throw new Error('duplicate-key policy emitted a diagnostic for the repeated key')
+  }
+
+  const value = document.toJS()
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).length !== 1 || value.a !== 2) {
+    throw new Error('duplicate-key policy did not retain the last-wins value { a: 2 }')
+  }
+  return { uniqueKeys, diagnostics, value }
+}
+
 export function documentSourceTokenIdentity(api, document, tokens) {
   return assertProviderDocument(api, document, tokens)
 }

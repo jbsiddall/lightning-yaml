@@ -2,6 +2,11 @@ export function assertCstLossless(api: any, tokens: any[], source: string): { ut
 export function assertAliasResolvesTo(api: any, document: any, tokens: any[], anchorNode: any): any
 export function assertCustomTagReturnType(node: any, expected: string): void
 export function assertDiagnosticPosition(document: any, code: string, expectedPosition: number[]): any
+export function assertDuplicateKeyFixturePolicy(document: any, expectedUniqueKeys: boolean): {
+  uniqueKeys: boolean
+  diagnostics: Array<{ code: string; pos: number[]; message: string }>
+  value: { a: number }
+}
 export function assertLineStarts(actual: number[], expected: number[]): void
 export function assertProviderDocument(api: any, document: any, tokens: any[]): { tokenIdentity: boolean }
 export function assertRootScalarValue(api: any, document: any, tokens: any[], expected: string): { value: string; tokenIdentity: true }

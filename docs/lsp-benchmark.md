@@ -85,7 +85,36 @@ are recorded separately: stock `yaml` uses `true`, while the candidate uses
 performance claim. Bare Composer policy controls cover literal defaults,
 explicit `false`, explicit `true`, and a traced comparator; they do not change
 the server's options.
-<!-- yaml:2.9.0 ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
+<!-- yaml:2.9.0 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
+
+The actual-server check also records the duplicate witness's real `Document`
+diagnostics and converted value. For the fixed input `a: 1\na: 2\n`, stock
+`yaml@2.9.0` reports one `DUPLICATE_KEY` at `[5,6]` and converts to `{a: 2}`;
+the candidate's literal default reports no composition error and converts to
+the same value. The receipt checks the observed policy flag, diagnostic and
+value independently. This is evidence for that witness only, and the literal
+consumer rows remain status-only: the server's supported parser options are
+`customTags` and `yamlVersion`, and its Composer construction does not forward
+`uniqueKeys`. The explicit matched-policy bare-provider results are not a
+substitute for this server operation.
+<!-- yaml:2.9.0 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
+
+### P0c outcome and remaining acceptance
+
+The pinned unchanged server operation is behaviorally incompatible on the
+duplicate-key diagnostic witness, despite converting to the same last-wins
+value. This receipt makes the incompatibility observable; it does not promote
+the literal rows into performance comparisons or complete P0. P1 remains
+unready. Any future actual-consumer comparison needs a supported way to obtain
+the same duplicate diagnostic behavior on both providers, plus the remaining
+representative server attribution and verified mandatory-output memory floor.
+The fixed witness does not establish universal duplicate-key or YAML
+equivalence, and this result does not authorize a provider-default or API
+change. The separate [P0b report in PR #325](https://github.com/jbsiddall/lightning-yaml/pull/325)
+retains the earlier execution-unknown failed launch, the incomplete 312-document
+run, the unknown mandatory-byte floor, and declared diagnostic cases that were
+not run. P0c does not resolve or replace those limitations.
+<!-- yaml:2.9.0 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
 
 ## Measurement runs
 
