@@ -112,8 +112,10 @@ The fixed witness does not establish universal duplicate-key or YAML
 equivalence, and this result does not authorize a provider-default or API
 change. The separate [P0b report in PR #325](https://github.com/jbsiddall/lightning-yaml/pull/325)
 retains the earlier execution-unknown failed launch, the incomplete 312-document
-run, the unknown mandatory-byte floor, and declared diagnostic cases that were
-not run. P0c does not resolve or replace those limitations.
+run, the unknown mandatory-byte floor, and declared measurement cells that were
+not run. Caller `TextDocument` inputs and post-drop cache lifetime are separate
+unmeasured consumer scenarios, not declared diagnostics. P0c does not resolve
+or replace those limitations.
 <!-- yaml:2.9.0 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
 
 ## Measurement runs
