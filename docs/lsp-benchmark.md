@@ -118,6 +118,20 @@ unmeasured consumer scenarios, not declared diagnostics. P0c does not resolve
 or replace those limitations.
 <!-- yaml:2.9.0 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:8ea0498b65b80806dfd67d1815b4faefcdede04e -->
 
+### P0d true-policy baseline
+
+The predeclared matched-policy campaigns completed for the three original YAML
+streams and a separate 30-document derived GitHub Actions stream with the explicit
+`uniqueKeys: true` policy. CPU and retained-heap factors stayed near
+parity; none shows the joint 10× gain. This is a bare-library baseline only:
+the unchanged server still uses literal defaults with different duplicate-key
+diagnostics, and actual-consumer performance remains ineligible. The 312-document
+true-policy cell was not run. P0 remains incomplete and P1 unready. See the
+[2026-11-17 report](compatibility/reports/2026-11-17/lsp.md) and its
+[compact observation export](compatibility/reports/2026-11-17/lsp-observations.json)
+for paired factors, all 48 observations, run integrity and limits.
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:a49da30569b75b2287f8b9a0567fbf10d6468af7aa9c14305afecd98a6aa1e0c -->
+
 ## Measurement runs
 
 `--plan` validates participants and prints the selected pending cells without
