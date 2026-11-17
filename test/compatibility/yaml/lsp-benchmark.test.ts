@@ -13,6 +13,7 @@ import {
   assertRootScalarValue,
   assertAliasResolvesTo,
   assertCustomTagReturnType,
+  assertDuplicateKeyFixturePolicy,
   assertDiagnosticPosition,
   assertLineStarts,
   assertYamlProvider,
@@ -229,6 +230,37 @@ describe("maintained LSP compatibility contract", () => {
     document.contents!.value = "wrong\n";
     expect(document.contents!.srcToken).toBe(originalToken);
     expect(() => assertRootScalarValue(yaml, document, result.tokens, "hello\n")).toThrow(/root scalar value changed/);
+  });
+
+  it("records the stock duplicate-key diagnostic and last-wins value on real Documents", () => {
+    const source = semanticSources.duplicateKeys;
+    const stockDefault = runBareOperation(yaml, source).documents[0]!;
+    const explicitFalse = runBareOperation(yaml, source, { policy: "uniqueKeys-false" }).documents[0]!;
+
+    const defaultReceipt = assertDuplicateKeyFixturePolicy(stockDefault, true);
+    const falseReceipt = assertDuplicateKeyFixturePolicy(explicitFalse, false);
+    expect(defaultReceipt).toMatchObject({
+      uniqueKeys: true,
+      diagnostics: [{ code: "DUPLICATE_KEY", pos: [5, 6] }],
+      value: { a: 2 },
+    });
+    expect(falseReceipt).toEqual({ uniqueKeys: false, diagnostics: [], value: { a: 2 } });
+    expect(defaultReceipt.value).toEqual(falseReceipt.value);
+
+    const missingDefaultError = runBareOperation(yaml, source).documents[0]!;
+    const unchangedDefaultValue = missingDefaultError.toJS();
+    missingDefaultError.errors.splice(0, missingDefaultError.errors.length);
+    expect(missingDefaultError.options.uniqueKeys).toBe(true);
+    expect(missingDefaultError.toJS()).toEqual(unchangedDefaultValue);
+    expect(() => assertDuplicateKeyFixturePolicy(missingDefaultError, true)).toThrow(/exactly DUPLICATE_KEY/);
+
+    const unexpectedFalseError = runBareOperation(yaml, source, { policy: "uniqueKeys-false" }).documents[0]!;
+    const actualDuplicateError = runBareOperation(yaml, source).documents[0]!.errors[0]!;
+    const unchangedFalseValue = unexpectedFalseError.toJS();
+    unexpectedFalseError.errors.push(actualDuplicateError);
+    expect(unexpectedFalseError.options.uniqueKeys).toBe(false);
+    expect(unexpectedFalseError.toJS()).toEqual(unchangedFalseValue);
+    expect(() => assertDuplicateKeyFixturePolicy(unexpectedFalseError, false)).toThrow(/emitted a diagnostic/);
   });
 
   it("rejects shifted callbacks and diagnostics, broken aliases, and changed tag metadata", () => {
