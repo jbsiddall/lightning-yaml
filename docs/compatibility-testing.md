@@ -418,12 +418,15 @@ production code; compatibility metrics measure the bounded schedule of observati
 ## YAML language-server feasibility
 
 The separate [2026-11-16 LSP report](compatibility/reports/2026-11-16/lsp.md)
-records bounded parser-path measurements and diagnostics for the pinned
-language-server consumer. It is a feasibility report, not part of the
-js-yaml compatibility audit. Its compact [observation export](compatibility/reports/2026-11-16/lsp-observations.json)
-preserves the recorded phase rows and incomplete statuses; the actual-server
-default-policy diagnostics do not establish matched-policy performance.
-<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:eb4b3adcd5f3cf9a97a6f8430c468f84b652347c data:883aaeb39b9196e3345146e82534951278e1b67d9a24179bd29ad13cebdcc19c -->
+records the explicit-false parser-path measurements and diagnostics. Its compact
+[observation export](compatibility/reports/2026-11-16/lsp-observations.json)
+preserves incomplete statuses. The [2026-11-17 report](compatibility/reports/2026-11-17/lsp.md)
+adds completed explicit-true matched-policy baselines for the three original
+streams and a separate 30-document derived stream; its [compact export](compatibility/reports/2026-11-17/lsp-observations.json)
+preserves all 48 phase observations and execution receipts. Both are feasibility
+evidence, not part of the js-yaml compatibility audit. Actual-server literal
+default rows remain ineligible for matched-policy performance comparisons.
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:d3ea10ddf4da888cca38898c1d1b67771164dbcf390cba7e05b2abab5e2f3493 -->
 
 ## Latest measured run
 
