@@ -13,10 +13,10 @@ Factors are **reference ÷ candidate**, so values above 1 favor the candidate. E
 | GitHub Actions original, 3,356 B / 1 document | 1.1322 [1.1319, 1.1325] | 1.1444 [1.0934, 1.1954] | 0.9965 [0.9962, 0.9968] | 1.1364 [1.1307, 1.1420] |
 | GitHub Actions derived, 100,825 B / 30 documents | 1.0347 [0.9954, 1.0741] | 1.0375 [0.9980, 1.0769] | 0.9977 [0.9976, 0.9979] | 0.9904 [0.9829, 0.9979] |
 
-<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:a49da30569b75b2287f8b9a0567fbf10d6468af7aa9c14305afecd98a6aa1e0c -->
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:d3ea10ddf4da888cca38898c1d1b67771164dbcf390cba7e05b2abab5e2f3493 -->
 
 No cell approaches a 10× gain in both primary measures. The two-repeat ranges also show why this table should not be read as a stable ranking: Compose CPU/wall favor the reference, while the original GitHub Actions stream favors the candidate on CPU/wall; retained-heap ratios remain close to parity. Peak RSS varies separately and does not replace the primary retained measure. Do not generalize the short paired results into an optimization prescription.
-<!-- yaml:2.9.0 ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:a49da30569b75b2287f8b9a0567fbf10d6468af7aa9c14305afecd98a6aa1e0c -->
+<!-- yaml:2.9.0 ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:d3ea10ddf4da888cca38898c1d1b67771164dbcf390cba7e05b2abab5e2f3493 -->
 
 ## Campaigns and integrity
 
@@ -24,10 +24,10 @@ The originals campaign selected the three original fixture cells with the explic
 
 The measured harness was `b849a0053a98f079fd5f3771b38648a4c4f72f41` (tree `2bb25593e55f78ed63adb1ac0982bafc27994d22`). The candidate was `8ea0498b65b80806dfd67d1815b4faefcdede04e`; the unchanged server was `4bf9c818850bf9751696d24848fdeaececb4203c`, with declared `yaml` dependency version 2.8.3. The reference was `yaml` 2.9.0. The candidate entry and 3-file closure, server compiled entry and 23-file closure, reference entry and 72-file closure, installed server alias, and hashes for the measured harness scripts are recorded in the compact export. Closure file lists are omitted, while counts, byte totals, and closure hashes remain.
 
-The separately approved prelaunch manifest was validated before the two campaign launches. The CLI retained its 60-second outer and 49-second inner work budgets; an external 70-second process guard allowed startup and report finalization. Complete process wall time was 8,764.687039 ms for originals and 12,387.997580000001 ms for scale-30. The report's internal `elapsedMs` values were 8,139.266671 ms and 11,293.736376 ms respectively; these are distinct clocks and are not presented as full process time. Plans, semantic check, manifest, launch intent, execution receipts, exact raw report sizes/hashes, and all 48 observations are available in the export.
+The launch-envelope record preserves its creation-time `awaiting-review` status; the final prelaunch manifest binds that exact envelope SHA to an `APPROVED` independent review before the separate launches. The separately approved prelaunch manifest was validated before both campaigns. The CLI retained its 60-second outer and 49-second inner work budgets; an external 70-second process guard allowed startup and report finalization. Complete process wall time was 8,764.687039 ms for originals and 12,387.997580000001 ms for scale-30. The report's internal `elapsedMs` values were 8,139.266671 ms and 11,293.736376 ms respectively; these are distinct clocks and are not presented as full process time. Plans, semantic check, manifest, launch intent, execution receipts, exact raw report sizes/hashes, and all 48 observations are available in the export.
 
 The export omits repeated decoded output trees, fixture text, and full dependency-closure path lists. It retains observation identities, schedules, all scalar metric fields, input/output digests, source byte counts and fixture hashes, semantic comparisons and preflight digests, selected/not-selected and completed/failed/pending ledgers, provider provenance, and per-run execution receipts. P0d added no diagnostics, profiles, or snapshots.
-<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:a49da30569b75b2287f8b9a0567fbf10d6468af7aa9c14305afecd98a6aa1e0c -->
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:d3ea10ddf4da888cca38898c1d1b67771164dbcf390cba7e05b2abab5e2f3493 -->
 
 ## Interpretation and limits
 
@@ -36,4 +36,4 @@ This is a matched-policy bare-library baseline. It does not make the unchanged l
 The earlier first `--measure` launch on harness `8821cfc7` remains execution-unknown and unscored. The earlier false-policy 312-document attempt remains 7 completed, 1 failed, and 4 pending; the true-policy 312-document cell was not run. Those histories are preserved in the [2026-11-16 report](../2026-11-16/lsp.md), and this completed campaign does not replace them. The lifecycle scenarios involving caller-provided `TextDocument` state and post-drop cache behavior also remain unmeasured; they were not among the completed diagnostic ledger's 12 declared cases.
 
 The true-policy baseline does not close P0. Actual-consumer compatibility, representative server attribution, a verified full CST/provider-AST/server-AST mandatory-byte floor, lifecycle behavior, and the 312-document true-policy cell remain open. The mandatory-output byte floor is still unknown. P1 remains unready; the joint 10–100× CPU and primary retained-memory ambition is unchanged.
-<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:a49da30569b75b2287f8b9a0567fbf10d6468af7aa9c14305afecd98a6aa1e0c -->
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:d3ea10ddf4da888cca38898c1d1b67771164dbcf390cba7e05b2abab5e2f3493 -->

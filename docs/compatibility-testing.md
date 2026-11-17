@@ -426,7 +426,7 @@ streams and a separate 30-document derived stream; its [compact export](compatib
 preserves all 48 phase observations and execution receipts. Both are feasibility
 evidence, not part of the js-yaml compatibility audit. Actual-server literal
 default rows remain ineligible for matched-policy performance comparisons.
-<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:a49da30569b75b2287f8b9a0567fbf10d6468af7aa9c14305afecd98a6aa1e0c -->
+<!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:d3ea10ddf4da888cca38898c1d1b67771164dbcf390cba7e05b2abab5e2f3493 -->
 
 ## Latest measured run
 
