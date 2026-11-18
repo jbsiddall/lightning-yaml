@@ -35,7 +35,7 @@ three ordinary warmups, requests 1000 us sampling before start and runs exactly
 These fixed choices are experimental design, not measured feasibility.
 
 
-Pinned originals (bytes, SHA256), from the [corpus manifest](../../../../../test/corpus/real-world/manifest.json):
+Pinned originals (bytes, SHA256), from the [corpus manifest](../../../../test/corpus/real-world/manifest.json):
 
 - kubernetes-zookeeper: 2903, f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529
 - docker-compose-pihole-cloudflared-doh: 1608, 1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857

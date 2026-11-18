@@ -4,9 +4,19 @@ import { fileURLToPath } from 'node:url'
 import { isDeepStrictEqual } from 'node:util'
 import { auditCpuProfile, readHashBoundJson } from './lsp-cpu-audit.mjs'
 
+// eb4b3adc bench-lsp.mjs:1345 -> diagnosticWorker:665 -> openMeasurementOperation:600-604
+// selects absent for every diagnostic; receipts do not serialize this config field.
+const frozenHarnessHead = 'eb4b3adcd5f3cf9a97a6f8430c468f84b652347c'
+const frozenBenchSha256 = '7dedbd5588fcdb9ed9da22abe57a0534f3fe1ce94ab921c0fdb5276f957c0b97'
+const frozenDocumentModes = { candidate: 'absent', reference: 'absent', 'server-candidate': 'absent', 'server-reference': 'absent' }
+
 export function verifyFrozenCpuAudit(directory, manifest) {
   if (manifest.schema !== 'lsp-frozen-cpu-audit-v1'
     || !isDeepStrictEqual(manifest.records.map((record) => record.participant), ['candidate', 'reference', 'server-candidate', 'server-reference'])) throw new Error('frozen audit record set')
+  for (const record of manifest.records) {
+    if (record.harness?.head !== frozenHarnessHead || record.harness?.files?.['bench-lsp.mjs']?.sha256 !== frozenBenchSha256) throw new Error('frozen operation source mismatch')
+    if (record.documentMode !== frozenDocumentModes[record.participant]) throw new Error('frozen operation document mode mismatch')
+  }
   const ledger = readHashBoundJson(readFileSync(resolve(directory, 'diagnostic-ledger.json')), manifest.ledgerSha256)
   readHashBoundJson(readFileSync(resolve(directory, 'declared-run-plan.json')), manifest.declaredPlanSha256)
   if (ledger.status !== 'completed' || ledger.scored !== false) throw new Error('ledger status')

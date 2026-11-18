@@ -73,6 +73,16 @@ describe("offline CPU clock and stack audit", () => {
   it("rejects a pruned frozen export before reading any files", () => {
     expect(() => verifyFrozenCpuAudit("unused", { schema: "lsp-frozen-cpu-audit-v1", records: [] })).toThrow("frozen audit record set");
   });
+  it.each(["candidate", "reference", "server-candidate", "server-reference"])("rejects changed %s caller document mode before replay", (participant) => {
+    const manifest = JSON.parse(readFileSync(new URL("../../../docs/compatibility/reports/2026-11-18/lsp-cpu-audit.json", import.meta.url), "utf8"));
+    manifest.records.find((record: any) => record.participant === participant).documentMode = "supplied";
+    expect(() => verifyFrozenCpuAudit("unused", manifest)).toThrow("frozen operation document mode mismatch");
+  });
+  it("rejects a changed source pin for the frozen document mode", () => {
+    const manifest = JSON.parse(readFileSync(new URL("../../../docs/compatibility/reports/2026-11-18/lsp-cpu-audit.json", import.meta.url), "utf8"));
+    manifest.records[2].harness.head = "changed";
+    expect(() => verifyFrozenCpuAudit("unused", manifest)).toThrow("frozen operation source mismatch");
+  });
   it("publishes all four frozen recounts with private graph data omitted", () => {
     const text = readFileSync(new URL("../../../docs/compatibility/reports/2026-11-18/lsp-cpu-audit.json", import.meta.url), "utf8");
     const data = JSON.parse(text);
