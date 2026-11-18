@@ -360,13 +360,16 @@ pnpm bench:lsp -- --plan --diagnostic contract-header-budget \
   --participant server-reference
 ```
 
-For the approved future launch, change `--plan` to `--diagnose` and supply the
-reviewed candidate/server roots and heads and physical stock reference entry
-as in the existing diagnostic invocation. Do not supply `--fixture`, `--cells`,
-`--batch` or `--artifact`: the schedule is fixed. The compact
-[pending plan receipt](compatibility/reports/2026-11-18/lsp-header-budget-plan.json)
-contains no collected target diagnostics. Independent protocol review and an
-explicit coordinator launch decision precede data collection.
+For a separately reviewed reproduction, change `--plan` to `--diagnose` and
+supply the reviewed candidate/server roots and heads and physical stock
+reference entry as in the existing diagnostic invocation. Saving a report with
+`--output` requires a fresh destination; an existing file or symlink is rejected
+before work begins. Do not supply `--fixture`, `--cells`, `--batch` or
+`--artifact`: the schedule is fixed. Independent protocol review and an explicit
+coordinator launch decision must precede any new data collection. The linked
+[plan receipt](compatibility/reports/2026-11-18/lsp-header-budget-plan.json)
+is the frozen prelaunch declaration for the completed run; its pending statuses
+record the declaration state and contain no collected target diagnostics.
 
 The approved reference-only campaign is now recorded in the
 [2026-11-18 report](compatibility/reports/2026-11-18/lsp.md) and its
