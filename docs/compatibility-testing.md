@@ -437,3 +437,7 @@ compatibility audit. Actual-server literal default rows remain ineligible for ma
 
 See [the measured results](compatibility/reports/2026-10-11/yaml.md) for main-wrapper and draft CST
 observations, independent denominators, time-budget failures and production coverage.
+
+The [frozen LSP CPU audit](compatibility/reports/2026-11-18/lsp-cpu-profiles.md)
+adds offline clock/stack reconstruction and a linked, unrun reference experiment;
+historical category coverage does not establish semantic CPU attribution.
