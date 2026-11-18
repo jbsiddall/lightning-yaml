@@ -47,6 +47,10 @@ import {
 } from "../../../scripts/compatibility/lsp-measure.mjs";
 import {
   censusOwnGraph,
+  createHeaderBudgetSchedule,
+  inventoryPublicIdentities,
+  validateHeaderRuntime,
+  summarizeHeaderBudget,
   canonicalFreshArtifactPath,
   classifyCpuSamples,
   collectCpuProfile,
@@ -61,6 +65,129 @@ import {
 const root = process.cwd();
 
 describe("maintained LSP compatibility contract", () => {
+  it("inventories public identities over retained unions without getters or private graphs", () => {
+    const scalar = { value: "a", range: [0, 1, 1] };
+    const cst: any = { type: "scalar", source: "a", offset: 0, indent: 0 };
+    Object.assign(scalar, { srcToken: cst });
+    const ast: any = { type: "string", internalNode: scalar, parent: null };
+    ast.parent = ast;
+    const single = { _internalDocument: { contents: scalar, range: [0, 1, 1] }, root: ast };
+    const result = { documents: [single], tokens: [cst] };
+    const first = inventoryPublicIdentities([result]);
+    const shared = inventoryPublicIdentities(Array(25).fill(result));
+    expect(shared.objects).toBe(first.objects);
+    expect(shared.arrays).toBe(first.arrays);
+    expect(first.identities.find((identity) => identity.categories.includes("provider"))?.paths.length).toBeGreaterThan(1);
+    const independent = structuredClone(result);
+    const cloned = inventoryPublicIdentities([result, independent]);
+    expect(cloned.objects).toBe(2 * first.objects);
+    expect(cloned.arrays).toBe(2 * first.arrays);
+    Object.assign(single._internalDocument, { schema: { contents: { nested: [{}] } }, options: { private: [{}] } });
+    Object.defineProperty(cst, "secret", { get: () => { throw new Error("getter executed"); } });
+    Object.assign(ast, { privateCache: [{}] });
+    const excluded = inventoryPublicIdentities([result]);
+    expect(excluded.objects).toBe(first.objects);
+    expect(excluded.arrays).toBe(first.arrays);
+    expect(excluded.excluded.observedEdges).toHaveLength(2);
+    const missing: any = structuredClone(independent);
+    delete missing.documents[0]._internalDocument.range;
+    expect(() => inventoryPublicIdentities([missing])).toThrow(/missing public own-data path.*range/);
+    Object.defineProperty(missing.documents[0]._internalDocument, "range", { get: () => { throw new Error("getter executed"); } });
+    expect(() => inventoryPublicIdentities([missing])).toThrow(/missing public own-data path.*range/);
+    const exotic = structuredClone(independent);
+    Object.setPrototypeOf(exotic, Date.prototype);
+    expect(() => inventoryPublicIdentities([exotic])).toThrow(/unproved public representation/);
+  });
+
+  it("handles real CST variant paths and Pair srcToken overlaps without invoking accessors", () => {
+    const source = "a: [1, 2]\nb: |\n  text\n";
+    const operation = runBareOperation(yaml, source);
+    const result = { tokens: operation.tokens, documents: operation.documents.map((document: any) => ({ _internalDocument: document, root: null })) };
+    const prototypes = new Set<any>([Object.prototype, Array.prototype, yaml.Document.prototype, yaml.Scalar.prototype, yaml.Pair.prototype, yaml.YAMLMap.prototype, yaml.YAMLSeq.prototype, yaml.Alias.prototype]);
+    const inventory = inventoryPublicIdentities([result], prototypes);
+    expect(inventory.identities.some((identity) => identity.categories.includes("cst") && identity.paths.length > 1)).toBe(true);
+    expect(inventory.identities.some((identity) => identity.paths.some((path) => path.endsWith(".props")))).toBe(true);
+  });
+
+  it("withholds header bytes for missing runtime assumptions and keeps signed heap budgets", () => {
+    const observed = {
+      node: "v24.19.0", v8: "13.6.233.17-node.51", arch: "x64", targetArch: "x64", pointerCompression: 0, sandbox: 0,
+      executableSha256: "a4c7d261ae62215e73edd637711f09a545535226ae9932c3148342f0b027d56b",
+      configSha256: "1370cb808f317b4aeec7f96b391bd3c7d4014b23d58ce6e6a02df88302a14014",
+      headerSha256: "eb74fc0740b7f858a03e319e077c1698d2083325f3154c67771b120fb48f8520",
+      execArgv: ["--expose-gc"], nodeOptions: "",
+    };
+    expect(validateHeaderRuntime(observed).headers).toEqual({ object: 24, array: 32 });
+    for (const key of Object.keys(observed)) {
+      const broken: any = { ...observed };
+      delete broken[key];
+      const runtime = validateHeaderRuntime(broken);
+      expect(runtime.verified, key).toBe(false);
+      expect(summarizeHeaderBudget({ objects: 2, arrays: 1 }, runtime, 100, 200).headerBytes, key).toBeNull();
+    }
+    const missing = validateHeaderRuntime({ ...observed, headerSha256: undefined });
+    expect(missing.verified).toBe(false);
+    expect(missing.failures).toContain("headerSha256");
+    expect(summarizeHeaderBudget({ objects: 2, arrays: 1 }, missing, 100, 200).headerBytes).toBeNull();
+    const known = { verified: true, headers: { object: 24, array: 32 } };
+    const positive = summarizeHeaderBudget({ objects: 2, arrays: 1 }, known, 100, 200);
+    expect(positive.headerBytes).toBe(80);
+    expect(positive.headerPerStreamBytes).toBe(80 / 25);
+    expect(positive.deltaHeapBytes).toBe(100);
+    for (const after of [100, 90]) {
+      const budget = summarizeHeaderBudget({ objects: 2, arrays: 1 }, known, 100, after);
+      expect(budget.deltaHeapBytes).toBe(after - 100);
+      expect(budget.headerToObservedBudgetRatio).toBeNull();
+    }
+    expect(validateHeaderRuntime(undefined).headers).toBeNull();
+  });
+
+  it("keeps the opt-in header campaign separate, fixed and reference-only", () => {
+    const schedule = createHeaderBudgetSchedule();
+    expect(schedule).toHaveLength(6);
+    expect(schedule.slice(0, 3).map((job) => job.fixture)).toEqual(loadPinnedCorpus(root).map((fixture) => fixture.id));
+    expect(schedule.slice(3).map((job) => job.fixture)).toEqual(schedule.slice(0, 3).map((job) => job.fixture).reverse());
+    expect(schedule.map((job) => job.repeatIndex)).toEqual([1, 1, 1, 2, 2, 2]);
+    const request = { diagnostic: "contract-header-budget" as const, participant: "server-reference" as const, fixture: schedule[0]!.fixture };
+    expect(validateDiagnosticRequest(request).policy).toBe("literal-default");
+    expect(() => validateDiagnosticRequest({ ...request, participant: "server-candidate" })).toThrow(/server-reference/);
+    expect(() => validateDiagnosticRequest({ ...request, artifact: "private.json" })).toThrow(/does not create/);
+    const plan = spawnSync(process.execPath, ["scripts/compatibility/bench-lsp.mjs", "--plan", "--diagnostic", "contract-header-budget", "--participant", "server-reference"], { cwd: root, encoding: "utf8" });
+    expect(plan.status, plan.stderr).toBe(0);
+    const output = JSON.parse(plan.stdout);
+    expect(output.status).toBe("planned");
+    expect(output.scoredMeasurement).toBe(false);
+    expect(output.ledger.pending).toEqual(schedule.map((job) => job.observationId));
+    expect(output.observations).toEqual([]);
+    expect(output.protocol.retainedStreams).toBe(25);
+    const failed = spawnSync(process.execPath, ["scripts/compatibility/bench-lsp.mjs", "--diagnose", "--diagnostic", "contract-header-budget", "--participant", "server-reference"], { cwd: root, encoding: "utf8" });
+    expect(failed.status).toBe(1);
+    const partial = JSON.parse(failed.stdout);
+    expect(partial.status).toBe("incomplete");
+    expect(partial.ledger.failed).toEqual([schedule[0]!.observationId]);
+    expect(partial.ledger.pending).toEqual(schedule.slice(1).map((job) => job.observationId));
+    expect(partial.observations).toEqual([]);
+  });
+
+  it("reserves a fresh header report before work and never replaces an earlier receipt", () => {
+    const directory = mkdtempSync(resolve(tmpdir(), "lsp-header-output-"));
+    try {
+      const output = resolve(directory, "plan.json");
+      const argv = ["scripts/compatibility/bench-lsp.mjs", "--plan", "--diagnostic", "contract-header-budget", "--participant", "server-reference", "--output", output];
+      const first = spawnSync(process.execPath, argv, { cwd: root, encoding: "utf8" });
+      expect(first.status, first.stderr).toBe(0);
+      const receipt = readFileSync(output, "utf8");
+      expect(JSON.parse(receipt).status).toBe("planned");
+      const second = spawnSync(process.execPath, argv, { cwd: root, encoding: "utf8" });
+      expect(second.status).toBe(1);
+      expect(second.stderr).toMatch(/EEXIST/);
+      expect(readFileSync(output, "utf8")).toBe(receipt);
+      expect(JSON.parse(receipt).observations).toEqual([]);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it("loads only byte-pinned corpus files and expands whole documents reproducibly", () => {
     const fixtures = loadPinnedCorpus(root);
     expect(fixtures.map(({ id }) => id)).toEqual([

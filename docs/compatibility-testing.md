@@ -423,10 +423,15 @@ records the explicit-false parser-path measurements and diagnostics. Its compact
 preserves incomplete statuses. The [2026-11-17 report](compatibility/reports/2026-11-17/lsp.md)
 adds completed explicit-true matched-policy baselines for the three original
 streams and a separate 30-document derived stream; its [compact export](compatibility/reports/2026-11-17/lsp-observations.json)
-preserves all 48 phase observations and execution receipts. Both are feasibility
-evidence, not part of the js-yaml compatibility audit. Actual-server literal
-default rows remain ineligible for matched-policy performance comparisons.
+preserves all 48 phase observations and execution receipts. The
+[2026-11-18 reference-only report](compatibility/reports/2026-11-18/lsp.md)
+adds conditional current-public-identity headers and like-retention post-GC
+budgets; its [compact export](compatibility/reports/2026-11-18/lsp-header-budget-observations.json)
+retains both repeats and their full status ledger. The genuine required-byte
+floor remains unknown. These are feasibility evidence, not part of the js-yaml
+compatibility audit. Actual-server literal default rows remain ineligible for matched-policy performance comparisons.
 <!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:b849a0053a98f079fd5f3771b38648a4c4f72f41 data:d3ea10ddf4da888cca38898c1d1b67771164dbcf390cba7e05b2abab5e2f3493 -->
+<!-- yaml:2.9.0 ly:75da749315dd019fc301055b4fd6962323d323db data:5aa4a636731e56230451e7bee117240807c5539dd56c7f8e36c316e2ca2b2212 -->
 
 ## Latest measured run
 

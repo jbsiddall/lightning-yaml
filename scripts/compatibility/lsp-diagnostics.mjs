@@ -1,14 +1,14 @@
-import { closeSync, linkSync, lstatSync, openSync, realpathSync, statSync, unlinkSync, writeSync } from 'node:fs'
+import { closeSync, linkSync, lstatSync, openSync, readFileSync, realpathSync, statSync, unlinkSync, writeSync } from 'node:fs'
 import inspector from 'node:inspector'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 function isReference(value) {
   return value !== null && (typeof value === 'object' || typeof value === 'function')
 }
 export function validateDiagnosticRequest({ diagnostic, participant, fixture, policy, artifact }) {
-  if (!['cpu-profile', 'graph-census', 'heap-snapshot'].includes(diagnostic)) throw new Error('unknown diagnostic mode')
+  if (!['cpu-profile', 'graph-census', 'heap-snapshot', 'contract-header-budget'].includes(diagnostic)) throw new Error('unknown diagnostic mode')
   if (!['candidate', 'reference', 'server-candidate', 'server-reference'].includes(participant)) throw new Error('unknown diagnostic participant')
   if (!['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform'].includes(fixture)) {
     throw new Error('diagnostics accept only one original corpus fixture')
@@ -28,8 +28,9 @@ export function validateDiagnosticRequest({ diagnostic, participant, fixture, po
   if (diagnostic === 'graph-census' && !serverMode) {
     throw new Error('graph census is predeclared only for actual-server cases')
   }
-  if (diagnostic !== 'graph-census' && !artifact) throw new Error(`${diagnostic} requires a private artifact path`)
-  if (diagnostic === 'graph-census' && artifact) throw new Error('graph census does not create an artifact')
+  if (diagnostic === 'contract-header-budget' && participant !== 'server-reference') throw new Error('header budget requires server-reference')
+  if (!['graph-census', 'contract-header-budget'].includes(diagnostic) && !artifact) throw new Error(`${diagnostic} requires a private artifact path`)
+  if (['graph-census', 'contract-header-budget'].includes(diagnostic) && artifact) throw new Error('graph census does not create an artifact')
   return { serverMode, policy: selectedPolicy, provider: participant.endsWith('candidate') ? 'candidate' : 'reference' }
 }
 
@@ -360,4 +361,171 @@ export async function writeHeapSnapshot(filePath, { session = new inspector.Sess
   } finally {
     try { session.disconnect?.() } catch {}
   }
+}
+
+
+export function createHeaderBudgetSchedule() {
+  const fixtures = ['docker-compose-pihole-cloudflared-doh', 'kubernetes-zookeeper', 'github-actions-cmake-multi-platform']
+  return [1, 2].flatMap((repeatIndex) => (repeatIndex === 1 ? fixtures : [...fixtures].reverse()).map((fixture) => ({
+    fixture, repeatIndex, observationId: `contract-header-budget:server-reference:${fixture}:repeat:${repeatIndex}`
+  })))
+}
+
+const HEADER_RUNTIME = Object.freeze({
+  node: 'v24.19.0', v8: '13.6.233.17-node.51', arch: 'x64',
+  executableSha256: 'a4c7d261ae62215e73edd637711f09a545535226ae9932c3148342f0b027d56b',
+  configSha256: '1370cb808f317b4aeec7f96b391bd3c7d4014b23d58ce6e6a02df88302a14014',
+  headerSha256: 'eb74fc0740b7f858a03e319e077c1698d2083325f3154c67771b120fb48f8520'
+})
+
+export function observeHeaderRuntime() {
+  const digest = (path) => createHash('sha256').update(readFileSync(path)).digest('hex')
+  const executable = realpathSync(process.execPath)
+  const headers = resolve(dirname(executable), '../include/node')
+  return {
+    node: process.version, v8: process.versions.v8, arch: process.arch,
+    executableSha256: digest(executable), configSha256: digest(resolve(headers, 'config.gypi')),
+    headerSha256: digest(resolve(headers, 'v8-internal.h')),
+    targetArch: process.config.variables.target_arch,
+    pointerCompression: process.config.variables.v8_enable_pointer_compression,
+    sandbox: process.config.variables.v8_enable_sandbox,
+    execArgv: [...process.execArgv], nodeOptions: process.env.NODE_OPTIONS ?? ''
+  }
+}
+
+export function validateHeaderRuntime(observed) {
+  const failures = Object.entries(HEADER_RUNTIME).filter(([key, value]) => observed?.[key] !== value).map(([key]) => key)
+  if (observed?.targetArch !== 'x64') failures.push('targetArch')
+  for (const key of ['pointerCompression', 'sandbox']) if (observed?.[key] !== 0) failures.push(key)
+  if (!Array.isArray(observed?.execArgv) || observed.execArgv.length !== 1 || observed.execArgv[0] !== '--expose-gc') failures.push('execArgv')
+  if (observed?.nodeOptions !== '') failures.push('nodeOptions')
+  return { verified: failures.length === 0, failures, observed,
+    headers: failures.length === 0 ? { object: 24, array: 32 } : null,
+    evidence: 'nodejs/node@cdc1b38d40cb567b7ad0b39c86addf830a0af0ae: deps/v8/include/v8-internal.h; deps/v8/src/objects/js-objects.tq; deps/v8/src/objects/js-array.tq' }
+}
+
+// Only these own-data edges describe the inventoried public representation. In particular,
+// SingleYAMLDocument.internalDocument is a getter; its audited backing slot is read directly.
+export function inventoryPublicIdentities(results, trustedPrototypes = new Set([Object.prototype, Array.prototype])) {
+  const seen = new WeakMap()
+  const identities = []
+  const exclusions = []
+  const processed = new WeakMap()
+  let objects = 0
+  let arrays = 0
+  const data = (value, key, path, required = false) => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key)
+    if (!descriptor || !Object.hasOwn(descriptor, 'value')) {
+      if (required) throw new Error(`missing public own-data path ${path}.${key}`)
+      return undefined
+    }
+    return descriptor.value
+  }
+  const visit = (value, path, role, reason, required = true) => {
+    if (value === null || value === undefined) {
+      if (required) throw new Error(`missing public identity ${path}`)
+      return
+    }
+    if (typeof value !== 'object') throw new Error(`invalid public identity ${path}`)
+    if (!trustedPrototypes.has(Object.getPrototypeOf(value))) throw new Error(`unproved public representation ${path}`)
+    const arrayRoles = ['result-documents', 'cst-array', 'provider-items', 'range', 'server-children', 'diagnostics']
+    if (arrayRoles.includes(role) !== Array.isArray(value)) throw new Error(`invalid public representation ${path}`)
+    let record = seen.get(value)
+    if (!record) {
+      record = { id: `public-${identities.length}`, kind: Array.isArray(value) ? 'array' : 'object', paths: [], reasons: [], categories: [] }
+      seen.set(value, record)
+      identities.push(record)
+      if (Array.isArray(value)) arrays++
+      else objects++
+    }
+    if (!record.categories.includes(role)) record.categories.push(role)
+    if (!record.reasons.includes(reason)) record.reasons.push(reason)
+    if (record.paths.length < 3 && !record.paths.includes(path)) record.paths.push(path)
+    const roles = processed.get(value) ?? new Set()
+    if (roles.has(role)) return
+    roles.add(role)
+    processed.set(value, roles)
+    const edge = (key, childRole, why, mandatory = false) => {
+      const child = data(value, key, path, mandatory)
+      if (child !== null && child !== undefined) visit(child, `${path}.${key}`, childRole, why)
+      else if (mandatory) throw new Error(`missing public identity ${path}.${key}`)
+    }
+    if (Array.isArray(value)) {
+      if (role === 'range') return
+      const childRole = { 'result-documents': 'single-document', 'cst-array': 'cst', 'provider-items': 'provider', 'server-children': 'server', diagnostics: 'diagnostic' }[role]
+      for (let index = 0; index < value.length; index++) {
+        const child = data(value, String(index), path, true)
+        if (child !== null) visit(child, `${path}[${index}]`, childRole, 'mutable public array element')
+      }
+      return
+    }
+    if (role === 'result') {
+      edge('documents', 'result-documents', 'returned document wrappers', true)
+      edge('tokens', 'cst-array', 'returned full mutable CST stream', true)
+    } else if (role === 'single-document') {
+      edge('_internalDocument', 'document', 'audited own backing slot of public internalDocument getter', true)
+      data(value, 'root', path, true)
+      edge('root', 'server', 'eager unchanged converter root')
+    } else if (role === 'document') {
+      data(value, 'contents', path, true)
+      edge('contents', 'provider', 'public mutable Document.contents')
+      edge('range', 'range', 'public source range', true)
+    } else if (role === 'provider') {
+      const items = data(value, 'items', path)
+      const key = Object.getOwnPropertyDescriptor(value, 'key')
+      if (items !== undefined) edge('items', 'provider-items', 'unchanged converter iterates mutable collection items', true)
+      else if (key) {
+        data(value, 'key', path, true)
+        data(value, 'value', path, true)
+        edge('key', 'provider', 'public Pair.key')
+        edge('value', 'provider', 'public Pair.value')
+      } else {
+        if (data(value, 'source', path) === undefined) data(value, 'value', path, true)
+      }
+      if (!key) edge('range', 'range', 'converter consumes node source range', true)
+      edge('srcToken', 'cst', 'public keepSourceTokens link to original CST identity', true)
+    } else if (role === 'server') {
+      const type = data(value, 'type', path, true)
+      edge('internalNode', 'provider', 'unchanged converter backlink', true)
+      edge('parent', 'server', 'observable parent identity')
+      if (type === 'object') edge('properties', 'server-children', 'public object children own storage', true)
+      else if (type === 'array') edge('items', 'server-children', 'public array children own storage', true)
+      else if (type === 'property') {
+        edge('keyNode', 'server', 'public property key', true)
+        data(value, 'valueNode', path, true)
+        edge('valueNode', 'server', 'public property value')
+      } else if (!['string', 'number', 'boolean', 'null'].includes(type)) throw new Error(`unknown server node ${path}`)
+    } else if (role === 'cst') {
+      const type = data(value, 'type', path)
+      if (type === undefined) data(value, 'start', path, true)
+      const tokenTypes = ['byte-order-mark', 'doc-mode', 'doc-start', 'space', 'comment', 'newline', 'directive-line', 'anchor', 'tag', 'seq-item-ind', 'explicit-key-ind', 'map-value-ind', 'flow-map-start', 'flow-map-end', 'flow-seq-start', 'flow-seq-end', 'flow-error-end', 'comma', 'block-scalar-header', 'error', 'directive', 'document', 'doc-end', 'alias', 'scalar', 'single-quoted-scalar', 'double-quoted-scalar', 'block-scalar', 'block-map', 'block-seq', 'flow-collection']
+      if (type !== undefined && !tokenTypes.includes(type)) throw new Error(`invalid CST type ${path}`)
+      if (type === 'flow-collection') edge('start', 'cst', 'public flow collection opening token', true)
+      else edge('start', 'cst-array', 'public CST document/item start sequence', type === 'document' || type === undefined)
+      for (const key of ['end', 'sep', 'props']) edge(key, 'cst-array', 'public CST token or collection-item sequence', (type === 'flow-collection' && key === 'end') || (type === 'block-scalar' && key === 'props'))
+      if (['block-map', 'block-seq', 'flow-collection'].includes(type)) data(value, 'items', path, true)
+      edge('items', 'cst-array', 'public CST collection items')
+      for (const key of ['key', 'value']) edge(key, 'cst', 'public CST collection-item subtree')
+    } else if (role === 'diagnostic') {
+      edge('pos', 'range', 'public diagnostic source positions', true)
+    }
+    for (const key of ['schema', 'options', 'directives', 'lineCounter', 'errors', 'warnings']) {
+      if (isReference(data(value, key, path))) exclusions.push({ path: `${path}.${key}`, reason: 'outside justified public identity subset; not traversed' })
+    }
+  }
+  results.forEach((result, index) => visit(result, `results[${index}]`, 'result', 'retained full operation result'))
+  return { accounting: 'current public-identity header accounting; indispensability beyond fixed eager ordinary representation unproved',
+    objects, arrays, identities, excluded: { observedEdges: exclusions,
+      categories: ['unlisted/private own fields', 'schema and directives', 'prototypes and modules', 'alias/module caches', 'strings and string backing storage', 'property tables and array backing stores', 'caller TextDocument/editor state'] } }
+}
+
+export function summarizeHeaderBudget(inventory, runtime, beforeHeapBytes, afterHeapBytes, streams = 25) {
+  const deltaHeapBytes = afterHeapBytes - beforeHeapBytes
+  const headerBytes = runtime.verified ? inventory.objects * runtime.headers.object + inventory.arrays * runtime.headers.array : null
+  return { beforeHeapBytes, afterHeapBytes, deltaHeapBytes, streams, deltaPerStreamBytes: deltaHeapBytes / streams,
+    headerBytes, headerPerStreamBytes: headerBytes === null ? null : headerBytes / streams,
+    tenfoldBudgetBytes: deltaHeapBytes / 10, hundredfoldBudgetBytes: deltaHeapBytes / 100,
+    tenfoldBudgetPerStreamBytes: deltaHeapBytes / (10 * streams), hundredfoldBudgetPerStreamBytes: deltaHeapBytes / (100 * streams),
+    headerToObservedBudgetRatio: deltaHeapBytes > 0 && headerBytes !== null ? headerBytes / deltaHeapBytes : null,
+    interpretation: 'noisy post-GC operational budget, not retained ownership or an upper bound; current public headers do not establish a universal lower bound, reduction ceiling, candidate eligibility or feasibility' }
 }

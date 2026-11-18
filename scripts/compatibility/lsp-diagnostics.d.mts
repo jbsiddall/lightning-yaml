@@ -18,7 +18,7 @@ export function censusOwnGraph(roots: Array<{ name: string; value: unknown }>, o
   }>;
 };
 export function validateDiagnosticRequest(options: {
-  diagnostic: 'cpu-profile' | 'graph-census' | 'heap-snapshot';
+  diagnostic: 'cpu-profile' | 'graph-census' | 'heap-snapshot' | 'contract-header-budget';
   participant: 'candidate' | 'reference' | 'server-candidate' | 'server-reference';
   fixture: string;
   policy?: 'literal-default' | 'uniqueKeys-false' | 'uniqueKeys-true';
@@ -74,3 +74,9 @@ export function createFileSink(filePath: string, options?: {
 };
 export function redactPrivatePaths(value: any): any;
 export function canonicalFreshArtifactPath(requestedPath: string, repositoryRoot: string): string;
+
+export function createHeaderBudgetSchedule(): Array<{ fixture: string; repeatIndex: number; observationId: string }>;
+export function observeHeaderRuntime(): any;
+export function validateHeaderRuntime(observed: any): { verified: boolean; failures: string[]; headers: { object: number; array: number } | null; observed: any; evidence: string };
+export function inventoryPublicIdentities(results: any[], trustedPrototypes?: Set<any>): { objects: number; arrays: number; identities: Array<{ id: string; kind: string; paths: string[]; reasons: string[]; categories: string[] }>; excluded: any; accounting: string };
+export function summarizeHeaderBudget(inventory: { objects: number; arrays: number }, runtime: any, beforeHeapBytes: number, afterHeapBytes: number, streams?: number): any;
