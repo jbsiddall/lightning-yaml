@@ -1,0 +1,1607 @@
+{
+  "schema": "lsp-frozen-cpu-audit-v1",
+  "ledgerSha256": "79c8ef5efe9c07572f1235a91630c895659ec5ba8db85abe41ffa8f4fdfa1dd1",
+  "declaredPlanSha256": "6eaafb96225a3bb33fd31136015a10780b660fbfac85bc19c9256cf76c1d0985",
+  "records": [
+    {
+      "participant": "candidate",
+      "prefix": "cpu-profile-candidate-github-actions-cmake-multi-platform",
+      "receiptSha256": "a04986c00bd9d1b273ce2a42e68938e53e8bdf501256ae8e32a2cf4e7a2a8dc6",
+      "artifactBytes": 34350,
+      "policy": "uniqueKeys-false",
+      "documentMode": "absent",
+      "fixture": {
+        "id": "github-actions-cmake-multi-platform",
+        "bytes": 3356,
+        "utf16Length": 3356,
+        "sha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0",
+        "expectedDocuments": 1
+      },
+      "candidate": {
+        "head": "8ea0498b65b80806dfd67d1815b4faefcdede04e",
+        "artifacts": {
+          "yaml-compat.js": {
+            "bytes": 218527,
+            "sha256": "f040321d97d55c6692c1a04c01d53eea2875dc8b5409f1ce7cfc271b4fac83d2"
+          },
+          "yaml-compat.cjs": {
+            "bytes": 219668,
+            "sha256": "587e54c0c897e1ee58a4604136a4199fe2a826368caeb49f236efe0295a233a3"
+          },
+          "yaml-compat.d.ts": {
+            "bytes": 69702,
+            "sha256": "e875ec6cc4fc3404486f33b3a695a91b921ac07ee10b48f6b40bdc9393d3d5f0"
+          },
+          "yaml-compat.d.cts": {
+            "bytes": 69702,
+            "sha256": "e875ec6cc4fc3404486f33b3a695a91b921ac07ee10b48f6b40bdc9393d3d5f0"
+          }
+        }
+      },
+      "server": {
+        "head": "4bf9c818850bf9751696d24848fdeaececb4203c",
+        "artifacts": {
+          "compiledEntry": {
+            "bytes": 3549,
+            "sha256": "a86e1044d30ad5d7241a8ccd39a7eefc6f5a669dc419d502e0ee310232fd35e5"
+          },
+          "compiledTags": {
+            "bytes": 2103,
+            "sha256": "976de3bcffd4b08dd4774011fce0a7fef0d60ab9610a7a91c621de83ae40d8ca"
+          },
+          "compiledClosure": {
+            "count": 23,
+            "sha256": "d80b96a9ee4e9c769e9c0398d0985ece1d4151a6b982f7e4005eef4244df7149"
+          },
+          "installedYamlAlias": {
+            "name": "yaml",
+            "version": "2.8.3-lightning-adapter",
+            "packageJson": {
+              "path": "<private-path>",
+              "bytes": 300,
+              "sha256": "084806d1af24aba980e560c51e93ff7e3c9aaa7b64655aed8085eff403cb508a"
+            },
+            "runtimeReexport": {
+              "path": "<private-path>",
+              "bytes": 84,
+              "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+            },
+            "typesReexport": {
+              "path": "<private-path>",
+              "bytes": 84,
+              "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+            }
+          }
+        }
+      },
+      "reference": {
+        "name": "yaml",
+        "version": "2.9.0",
+        "packageJsonSha256": "20b8b197cbd10dad245d45e463dfe58e4c8c25a47e24bc4256ad9ab58bf35683",
+        "lockSha256": null,
+        "entryBasename": "index.js",
+        "entryBytes": 1769,
+        "entrySha256": "2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "closureCount": 72,
+        "closureSha256": "2dd772e1e6839d90159c0fa900247b2d9854766c4d17f8953eb704110c03b217"
+      },
+      "harness": {
+        "head": "eb4b3adcd5f3cf9a97a6f8430c468f84b652347c",
+        "tree": "fa7746d05118009327197747d54d087b38572c92",
+        "files": {
+          "bench-lsp.mjs": {
+            "bytes": 79986,
+            "sha256": "7dedbd5588fcdb9ed9da22abe57a0534f3fe1ce94ab921c0fdb5276f957c0b97"
+          },
+          "lsp-diagnostics.mjs": {
+            "bytes": 18002,
+            "sha256": "19969786bb8f8ff5cc171ed80aa3aab716a20afd18ba021d6aee14effe748620"
+          },
+          "lsp-diagnostics.d.mts": {
+            "bytes": 3127,
+            "sha256": "f46332d295f024d141972be6715ccb0f76605c916c8a40b0bbaf687564746876"
+          },
+          "lsp-fixtures.mjs": {
+            "bytes": 7841,
+            "sha256": "3880c9c6b4ae177c3b8ed41b0c0424dbc61cd73cc6140414ca24c148892d6d7d"
+          },
+          "lsp-measure.mjs": {
+            "bytes": 12712,
+            "sha256": "2b9f78d11cb52a437fc5b0b48dc9ae0213365b59bac74f1b3f3e72d228b99ef4"
+          },
+          "lsp-contract.mjs": {
+            "bytes": 18351,
+            "sha256": "88f781e1fbc67e6b8b86d527e772fe7966168be79d8a8303f4a340b2eeca1f41"
+          }
+        }
+      },
+      "provider": {
+        "name": "lightning-yaml",
+        "version": "0.1.1",
+        "packageJsonSha256": "8fccaf9ecbbdb47c965354bb5f4f63f74797e76b14dbc1984b2d8846351b491f",
+        "lock": {
+          "path": "<private-path>",
+          "bytes": 98839,
+          "sha256": "a867aa09cd112f4a0a682993bbe419e6bef2e700172bcc2619c9e95f0b7df4d4"
+        },
+        "entry": {
+          "bytes": 218527,
+          "sha256": "f040321d97d55c6692c1a04c01d53eea2875dc8b5409f1ce7cfc271b4fac83d2"
+        },
+        "closure": {
+          "count": 3,
+          "sha256": "e19b7f97eb66bcd9a661cea9ad15536910e400cd7425484c79d885ac52fd4228"
+        }
+      },
+      "warmups": 3,
+      "iterations": 250,
+      "sampleIntervalUs": 1000,
+      "audit": {
+        "schema": "lsp-cpu-clock-stack-audit-v1",
+        "artifactSha256": "538c9880adeeb9076703ec20481a52fb296e0a8b723f7d0b1e03aa40a6cc2fec",
+        "sampleCount": 233,
+        "nodeHitCountSum": 235,
+        "clock": {
+          "spanUs": 280462,
+          "deltaSumUs": 279750,
+          "firstObservationDeltaUs": 20829,
+          "subsequentDeltaSumUs": 258921,
+          "trailingUnassignedUs": 712,
+          "minDeltaUs": 1045,
+          "maxDeltaUs": 20829
+        },
+        "legacy": {
+          "sampleCount": 233,
+          "assignedSamples": 230,
+          "usefulSamples": 210,
+          "classifiedCoverage": 0.9871244635193133,
+          "categories": {
+            "lexerParser": 161,
+            "composition": 26,
+            "customCallbacks": 23,
+            "runtimeGc": 20,
+            "serverAst": 0,
+            "serverWrapper": 0,
+            "unassigned": 3
+          },
+          "attributionAssessment": "sample-count-and-coverage-threshold-met"
+        },
+        "firstObservationStack": [
+          {
+            "functionName": "post",
+            "file": "node:inspector",
+            "line": 114,
+            "column": 6
+          },
+          {
+            "functionName": "",
+            "file": "lsp-diagnostics.mjs",
+            "line": 258,
+            "column": 21
+          },
+          {
+            "functionName": "request",
+            "file": "lsp-diagnostics.mjs",
+            "line": 257,
+            "column": 16
+          },
+          {
+            "functionName": "collectCpuProfile",
+            "file": "lsp-diagnostics.mjs",
+            "line": 261,
+            "column": 39
+          },
+          {
+            "functionName": "(root)",
+            "file": "",
+            "line": -1,
+            "column": -1
+          }
+        ],
+        "witnesses": [
+          {
+            "label": "operation-boundary",
+            "frames": [
+              {
+                "functionName": "operation",
+                "file": "bench-lsp.mjs",
+                "line": 674,
+                "column": 56
+              }
+            ],
+            "leaf": {
+              "samples": 0,
+              "intervalProxyUs": 0,
+              "legacyCategories": {}
+            },
+            "ancestry": {
+              "samples": 212,
+              "intervalProxyUs": 237067,
+              "legacyCategories": {
+                "lexerParser": 161,
+                "composition": 26,
+                "customCallbacks": 23,
+                "unassigned": 2
+              }
+            }
+          },
+          {
+            "label": "detached-gc",
+            "frames": [
+              {
+                "functionName": "(garbage collector)",
+                "file": "",
+                "line": -1,
+                "column": -1
+              }
+            ],
+            "leaf": {
+              "samples": 20,
+              "intervalProxyUs": 21854,
+              "legacyCategories": {
+                "runtimeGc": 20
+              }
+            },
+            "ancestry": {
+              "samples": 20,
+              "intervalProxyUs": 21854,
+              "legacyCategories": {
+                "runtimeGc": 20
+              }
+            }
+          },
+          {
+            "label": "inspector-post",
+            "frames": [
+              {
+                "functionName": "post",
+                "file": "node:inspector",
+                "line": 114,
+                "column": 6
+              }
+            ],
+            "leaf": {
+              "samples": 1,
+              "intervalProxyUs": 20829,
+              "legacyCategories": {
+                "unassigned": 1
+              }
+            },
+            "ancestry": {
+              "samples": 1,
+              "intervalProxyUs": 20829,
+              "legacyCategories": {
+                "unassigned": 1
+              }
+            }
+          },
+          {
+            "label": "built-in-resolvers",
+            "frames": [
+              {
+                "functionName": "resolveCollection",
+                "file": "yaml-compat.js",
+                "line": 3800,
+                "column": 26
+              },
+              {
+                "functionName": "resolveBlockMap",
+                "file": "yaml-compat.js",
+                "line": 3423,
+                "column": 24
+              },
+              {
+                "functionName": "resolveBlockSeq",
+                "file": "yaml-compat.js",
+                "line": 3529,
+                "column": 24
+              },
+              {
+                "functionName": "resolveProps",
+                "file": "yaml-compat.js",
+                "line": 3218,
+                "column": 21
+              },
+              {
+                "functionName": "resolveFlowCollection",
+                "file": "yaml-compat.js",
+                "line": 3611,
+                "column": 30
+              },
+              {
+                "functionName": "resolveBlockScalar",
+                "file": "yaml-compat.js",
+                "line": 3869,
+                "column": 27
+              }
+            ],
+            "leaf": {
+              "samples": 14,
+              "intervalProxyUs": 15452,
+              "legacyCategories": {
+                "customCallbacks": 14
+              }
+            },
+            "ancestry": {
+              "samples": 39,
+              "intervalProxyUs": 42809,
+              "legacyCategories": {
+                "composition": 16,
+                "customCallbacks": 23
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "participant": "reference",
+      "prefix": "cpu-profile-reference-github-actions-cmake-multi-platform",
+      "receiptSha256": "e39f07531b272d5949d1f255c7d4aa6f430199ffc2e5058abedf15b3ef4d4eda",
+      "artifactBytes": 43343,
+      "policy": "uniqueKeys-false",
+      "documentMode": "absent",
+      "fixture": {
+        "id": "github-actions-cmake-multi-platform",
+        "bytes": 3356,
+        "utf16Length": 3356,
+        "sha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0",
+        "expectedDocuments": 1
+      },
+      "candidate": {
+        "head": "8ea0498b65b80806dfd67d1815b4faefcdede04e",
+        "artifacts": {
+          "yaml-compat.js": {
+            "bytes": 218527,
+            "sha256": "f040321d97d55c6692c1a04c01d53eea2875dc8b5409f1ce7cfc271b4fac83d2"
+          },
+          "yaml-compat.cjs": {
+            "bytes": 219668,
+            "sha256": "587e54c0c897e1ee58a4604136a4199fe2a826368caeb49f236efe0295a233a3"
+          },
+          "yaml-compat.d.ts": {
+            "bytes": 69702,
+            "sha256": "e875ec6cc4fc3404486f33b3a695a91b921ac07ee10b48f6b40bdc9393d3d5f0"
+          },
+          "yaml-compat.d.cts": {
+            "bytes": 69702,
+            "sha256": "e875ec6cc4fc3404486f33b3a695a91b921ac07ee10b48f6b40bdc9393d3d5f0"
+          }
+        }
+      },
+      "server": {
+        "head": "4bf9c818850bf9751696d24848fdeaececb4203c",
+        "artifacts": {
+          "compiledEntry": {
+            "bytes": 3549,
+            "sha256": "a86e1044d30ad5d7241a8ccd39a7eefc6f5a669dc419d502e0ee310232fd35e5"
+          },
+          "compiledTags": {
+            "bytes": 2103,
+            "sha256": "976de3bcffd4b08dd4774011fce0a7fef0d60ab9610a7a91c621de83ae40d8ca"
+          },
+          "compiledClosure": {
+            "count": 23,
+            "sha256": "d80b96a9ee4e9c769e9c0398d0985ece1d4151a6b982f7e4005eef4244df7149"
+          },
+          "installedYamlAlias": {
+            "name": "yaml",
+            "version": "2.8.3-lightning-adapter",
+            "packageJson": {
+              "path": "<private-path>",
+              "bytes": 300,
+              "sha256": "084806d1af24aba980e560c51e93ff7e3c9aaa7b64655aed8085eff403cb508a"
+            },
+            "runtimeReexport": {
+              "path": "<private-path>",
+              "bytes": 84,
+              "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+            },
+            "typesReexport": {
+              "path": "<private-path>",
+              "bytes": 84,
+              "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+            }
+          }
+        }
+      },
+      "reference": {
+        "name": "yaml",
+        "version": "2.9.0",
+        "packageJsonSha256": "20b8b197cbd10dad245d45e463dfe58e4c8c25a47e24bc4256ad9ab58bf35683",
+        "lockSha256": null,
+        "entryBasename": "index.js",
+        "entryBytes": 1769,
+        "entrySha256": "2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "closureCount": 72,
+        "closureSha256": "2dd772e1e6839d90159c0fa900247b2d9854766c4d17f8953eb704110c03b217"
+      },
+      "harness": {
+        "head": "eb4b3adcd5f3cf9a97a6f8430c468f84b652347c",
+        "tree": "fa7746d05118009327197747d54d087b38572c92",
+        "files": {
+          "bench-lsp.mjs": {
+            "bytes": 79986,
+            "sha256": "7dedbd5588fcdb9ed9da22abe57a0534f3fe1ce94ab921c0fdb5276f957c0b97"
+          },
+          "lsp-diagnostics.mjs": {
+            "bytes": 18002,
+            "sha256": "19969786bb8f8ff5cc171ed80aa3aab716a20afd18ba021d6aee14effe748620"
+          },
+          "lsp-diagnostics.d.mts": {
+            "bytes": 3127,
+            "sha256": "f46332d295f024d141972be6715ccb0f76605c916c8a40b0bbaf687564746876"
+          },
+          "lsp-fixtures.mjs": {
+            "bytes": 7841,
+            "sha256": "3880c9c6b4ae177c3b8ed41b0c0424dbc61cd73cc6140414ca24c148892d6d7d"
+          },
+          "lsp-measure.mjs": {
+            "bytes": 12712,
+            "sha256": "2b9f78d11cb52a437fc5b0b48dc9ae0213365b59bac74f1b3f3e72d228b99ef4"
+          },
+          "lsp-contract.mjs": {
+            "bytes": 18351,
+            "sha256": "88f781e1fbc67e6b8b86d527e772fe7966168be79d8a8303f4a340b2eeca1f41"
+          }
+        }
+      },
+      "provider": {
+        "name": "yaml",
+        "version": "2.9.0",
+        "packageJsonSha256": "20b8b197cbd10dad245d45e463dfe58e4c8c25a47e24bc4256ad9ab58bf35683",
+        "lock": null,
+        "entry": {
+          "bytes": 1769,
+          "sha256": "2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9"
+        },
+        "closure": {
+          "count": 72,
+          "sha256": "2dd772e1e6839d90159c0fa900247b2d9854766c4d17f8953eb704110c03b217"
+        }
+      },
+      "warmups": 3,
+      "iterations": 250,
+      "sampleIntervalUs": 1000,
+      "audit": {
+        "schema": "lsp-cpu-clock-stack-audit-v1",
+        "artifactSha256": "a2ead66b417fee40241990d7dfd64ee5de36596a3bcde406ef4b64385152a5a6",
+        "sampleCount": 273,
+        "nodeHitCountSum": 278,
+        "clock": {
+          "spanUs": 329422,
+          "deltaSumUs": 328712,
+          "firstObservationDeltaUs": 23314,
+          "subsequentDeltaSumUs": 305398,
+          "trailingUnassignedUs": 710,
+          "minDeltaUs": 1017,
+          "maxDeltaUs": 23314
+        },
+        "legacy": {
+          "sampleCount": 273,
+          "assignedSamples": 266,
+          "usefulSamples": 243,
+          "classifiedCoverage": 0.9743589743589743,
+          "categories": {
+            "lexerParser": 173,
+            "composition": 33,
+            "customCallbacks": 37,
+            "runtimeGc": 23,
+            "serverAst": 0,
+            "serverWrapper": 0,
+            "unassigned": 7
+          },
+          "attributionAssessment": "sample-count-and-coverage-threshold-met"
+        },
+        "firstObservationStack": [
+          {
+            "functionName": "post",
+            "file": "node:inspector",
+            "line": 114,
+            "column": 6
+          },
+          {
+            "functionName": "",
+            "file": "lsp-diagnostics.mjs",
+            "line": 258,
+            "column": 21
+          },
+          {
+            "functionName": "request",
+            "file": "lsp-diagnostics.mjs",
+            "line": 257,
+            "column": 16
+          },
+          {
+            "functionName": "collectCpuProfile",
+            "file": "lsp-diagnostics.mjs",
+            "line": 261,
+            "column": 39
+          },
+          {
+            "functionName": "(root)",
+            "file": "",
+            "line": -1,
+            "column": -1
+          }
+        ],
+        "witnesses": [
+          {
+            "label": "operation-boundary",
+            "frames": [
+              {
+                "functionName": "operation",
+                "file": "bench-lsp.mjs",
+                "line": 674,
+                "column": 56
+              }
+            ],
+            "leaf": {
+              "samples": 0,
+              "intervalProxyUs": 0,
+              "legacyCategories": {}
+            },
+            "ancestry": {
+              "samples": 247,
+              "intervalProxyUs": 276802,
+              "legacyCategories": {
+                "lexerParser": 173,
+                "composition": 33,
+                "customCallbacks": 37,
+                "unassigned": 4
+              }
+            }
+          },
+          {
+            "label": "detached-gc",
+            "frames": [
+              {
+                "functionName": "(garbage collector)",
+                "file": "",
+                "line": -1,
+                "column": -1
+              }
+            ],
+            "leaf": {
+              "samples": 23,
+              "intervalProxyUs": 26440,
+              "legacyCategories": {
+                "runtimeGc": 23
+              }
+            },
+            "ancestry": {
+              "samples": 23,
+              "intervalProxyUs": 26440,
+              "legacyCategories": {
+                "runtimeGc": 23
+              }
+            }
+          },
+          {
+            "label": "inspector-post",
+            "frames": [
+              {
+                "functionName": "post",
+                "file": "node:inspector",
+                "line": 114,
+                "column": 6
+              }
+            ],
+            "leaf": {
+              "samples": 1,
+              "intervalProxyUs": 23314,
+              "legacyCategories": {
+                "unassigned": 1
+              }
+            },
+            "ancestry": {
+              "samples": 1,
+              "intervalProxyUs": 23314,
+              "legacyCategories": {
+                "unassigned": 1
+              }
+            }
+          },
+          {
+            "label": "built-in-resolvers",
+            "frames": [
+              {
+                "functionName": "resolveCollection",
+                "file": "compose-collection.js",
+                "line": 10,
+                "column": 26
+              },
+              {
+                "functionName": "resolveBlockMap",
+                "file": "resolve-block-map.js",
+                "line": 10,
+                "column": 24
+              },
+              {
+                "functionName": "resolveFlowCollection",
+                "file": "resolve-flow-collection.js",
+                "line": 13,
+                "column": 30
+              },
+              {
+                "functionName": "resolveProps",
+                "file": "resolve-props.js",
+                "line": 2,
+                "column": 21
+              },
+              {
+                "functionName": "resolveBlockSeq",
+                "file": "resolve-block-seq.js",
+                "line": 6,
+                "column": 24
+              },
+              {
+                "functionName": "resolveFlowScalar",
+                "file": "resolve-flow-scalar.js",
+                "line": 5,
+                "column": 26
+              }
+            ],
+            "leaf": {
+              "samples": 14,
+              "intervalProxyUs": 15318,
+              "legacyCategories": {
+                "customCallbacks": 14
+              }
+            },
+            "ancestry": {
+              "samples": 56,
+              "intervalProxyUs": 61412,
+              "legacyCategories": {
+                "composition": 19,
+                "customCallbacks": 37
+              }
+            }
+          },
+          {
+            "label": "foldLines",
+            "frames": [
+              {
+                "functionName": "foldLines",
+                "file": "resolve-flow-scalar.js",
+                "line": 75,
+                "column": 18
+              }
+            ],
+            "leaf": {
+              "samples": 15,
+              "intervalProxyUs": 16622,
+              "legacyCategories": {
+                "customCallbacks": 15
+              }
+            },
+            "ancestry": {
+              "samples": 15,
+              "intervalProxyUs": 16622,
+              "legacyCategories": {
+                "customCallbacks": 15
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "participant": "server-candidate",
+      "prefix": "cpu-profile-server-candidate-github-actions-cmake-multi-platform",
+      "receiptSha256": "95df23b9f22d977556e587c62b9e8692ea8af7afb95bd2d2fd5d1b291b6d615c",
+      "artifactBytes": 42008,
+      "policy": "literal-default",
+      "documentMode": "absent",
+      "fixture": {
+        "id": "github-actions-cmake-multi-platform",
+        "bytes": 3356,
+        "utf16Length": 3356,
+        "sha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0",
+        "expectedDocuments": 1
+      },
+      "candidate": {
+        "head": "8ea0498b65b80806dfd67d1815b4faefcdede04e",
+        "artifacts": {
+          "yaml-compat.js": {
+            "bytes": 218527,
+            "sha256": "f040321d97d55c6692c1a04c01d53eea2875dc8b5409f1ce7cfc271b4fac83d2"
+          },
+          "yaml-compat.cjs": {
+            "bytes": 219668,
+            "sha256": "587e54c0c897e1ee58a4604136a4199fe2a826368caeb49f236efe0295a233a3"
+          },
+          "yaml-compat.d.ts": {
+            "bytes": 69702,
+            "sha256": "e875ec6cc4fc3404486f33b3a695a91b921ac07ee10b48f6b40bdc9393d3d5f0"
+          },
+          "yaml-compat.d.cts": {
+            "bytes": 69702,
+            "sha256": "e875ec6cc4fc3404486f33b3a695a91b921ac07ee10b48f6b40bdc9393d3d5f0"
+          }
+        }
+      },
+      "server": {
+        "head": "4bf9c818850bf9751696d24848fdeaececb4203c",
+        "artifacts": {
+          "compiledEntry": {
+            "bytes": 3549,
+            "sha256": "a86e1044d30ad5d7241a8ccd39a7eefc6f5a669dc419d502e0ee310232fd35e5"
+          },
+          "compiledTags": {
+            "bytes": 2103,
+            "sha256": "976de3bcffd4b08dd4774011fce0a7fef0d60ab9610a7a91c621de83ae40d8ca"
+          },
+          "compiledClosure": {
+            "count": 23,
+            "sha256": "d80b96a9ee4e9c769e9c0398d0985ece1d4151a6b982f7e4005eef4244df7149"
+          },
+          "installedYamlAlias": {
+            "name": "yaml",
+            "version": "2.8.3-lightning-adapter",
+            "packageJson": {
+              "path": "<private-path>",
+              "bytes": 300,
+              "sha256": "084806d1af24aba980e560c51e93ff7e3c9aaa7b64655aed8085eff403cb508a"
+            },
+            "runtimeReexport": {
+              "path": "<private-path>",
+              "bytes": 84,
+              "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+            },
+            "typesReexport": {
+              "path": "<private-path>",
+              "bytes": 84,
+              "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+            }
+          }
+        }
+      },
+      "reference": {
+        "name": "yaml",
+        "version": "2.9.0",
+        "packageJsonSha256": "20b8b197cbd10dad245d45e463dfe58e4c8c25a47e24bc4256ad9ab58bf35683",
+        "lockSha256": null,
+        "entryBasename": "index.js",
+        "entryBytes": 1769,
+        "entrySha256": "2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "closureCount": 72,
+        "closureSha256": "2dd772e1e6839d90159c0fa900247b2d9854766c4d17f8953eb704110c03b217"
+      },
+      "harness": {
+        "head": "eb4b3adcd5f3cf9a97a6f8430c468f84b652347c",
+        "tree": "fa7746d05118009327197747d54d087b38572c92",
+        "files": {
+          "bench-lsp.mjs": {
+            "bytes": 79986,
+            "sha256": "7dedbd5588fcdb9ed9da22abe57a0534f3fe1ce94ab921c0fdb5276f957c0b97"
+          },
+          "lsp-diagnostics.mjs": {
+            "bytes": 18002,
+            "sha256": "19969786bb8f8ff5cc171ed80aa3aab716a20afd18ba021d6aee14effe748620"
+          },
+          "lsp-diagnostics.d.mts": {
+            "bytes": 3127,
+            "sha256": "f46332d295f024d141972be6715ccb0f76605c916c8a40b0bbaf687564746876"
+          },
+          "lsp-fixtures.mjs": {
+            "bytes": 7841,
+            "sha256": "3880c9c6b4ae177c3b8ed41b0c0424dbc61cd73cc6140414ca24c148892d6d7d"
+          },
+          "lsp-measure.mjs": {
+            "bytes": 12712,
+            "sha256": "2b9f78d11cb52a437fc5b0b48dc9ae0213365b59bac74f1b3f3e72d228b99ef4"
+          },
+          "lsp-contract.mjs": {
+            "bytes": 18351,
+            "sha256": "88f781e1fbc67e6b8b86d527e772fe7966168be79d8a8303f4a340b2eeca1f41"
+          }
+        }
+      },
+      "provider": {
+        "name": "lightning-yaml",
+        "version": "0.1.1",
+        "packageJsonSha256": "8fccaf9ecbbdb47c965354bb5f4f63f74797e76b14dbc1984b2d8846351b491f",
+        "lock": {
+          "path": "<private-path>",
+          "bytes": 98839,
+          "sha256": "a867aa09cd112f4a0a682993bbe419e6bef2e700172bcc2619c9e95f0b7df4d4"
+        },
+        "entry": {
+          "bytes": 218527,
+          "sha256": "f040321d97d55c6692c1a04c01d53eea2875dc8b5409f1ce7cfc271b4fac83d2"
+        },
+        "closure": {
+          "count": 3,
+          "sha256": "e19b7f97eb66bcd9a661cea9ad15536910e400cd7425484c79d885ac52fd4228"
+        }
+      },
+      "warmups": 3,
+      "iterations": 250,
+      "sampleIntervalUs": 1000,
+      "audit": {
+        "schema": "lsp-cpu-clock-stack-audit-v1",
+        "artifactSha256": "55c11950aa174ea1c8b092607b249a268222d1382a8ea5cc4444f9190b5a88bc",
+        "sampleCount": 225,
+        "nodeHitCountSum": 229,
+        "clock": {
+          "spanUs": 273611,
+          "deltaSumUs": 272611,
+          "firstObservationDeltaUs": 21617,
+          "subsequentDeltaSumUs": 250994,
+          "trailingUnassignedUs": 1000,
+          "minDeltaUs": 1003,
+          "maxDeltaUs": 21617
+        },
+        "legacy": {
+          "sampleCount": 225,
+          "assignedSamples": 224,
+          "usefulSamples": 211,
+          "classifiedCoverage": 0.9955555555555555,
+          "categories": {
+            "lexerParser": 148,
+            "composition": 23,
+            "customCallbacks": 29,
+            "runtimeGc": 12,
+            "serverAst": 11,
+            "serverWrapper": 1,
+            "unassigned": 1
+          },
+          "attributionAssessment": "sample-count-and-coverage-threshold-met"
+        },
+        "firstObservationStack": [
+          {
+            "functionName": "post",
+            "file": "node:inspector",
+            "line": 114,
+            "column": 6
+          },
+          {
+            "functionName": "",
+            "file": "lsp-diagnostics.mjs",
+            "line": 258,
+            "column": 21
+          },
+          {
+            "functionName": "request",
+            "file": "lsp-diagnostics.mjs",
+            "line": 257,
+            "column": 16
+          },
+          {
+            "functionName": "collectCpuProfile",
+            "file": "lsp-diagnostics.mjs",
+            "line": 261,
+            "column": 39
+          },
+          {
+            "functionName": "(root)",
+            "file": "",
+            "line": -1,
+            "column": -1
+          }
+        ],
+        "witnesses": [
+          {
+            "label": "operation-boundary",
+            "frames": [
+              {
+                "functionName": "operation",
+                "file": "bench-lsp.mjs",
+                "line": 674,
+                "column": 56
+              }
+            ],
+            "leaf": {
+              "samples": 0,
+              "intervalProxyUs": 0,
+              "legacyCategories": {}
+            },
+            "ancestry": {
+              "samples": 212,
+              "intervalProxyUs": 237624,
+              "legacyCategories": {
+                "composition": 23,
+                "lexerParser": 148,
+                "customCallbacks": 29,
+                "serverAst": 11,
+                "serverWrapper": 1
+              }
+            }
+          },
+          {
+            "label": "detached-gc",
+            "frames": [
+              {
+                "functionName": "(garbage collector)",
+                "file": "",
+                "line": -1,
+                "column": -1
+              }
+            ],
+            "leaf": {
+              "samples": 12,
+              "intervalProxyUs": 13370,
+              "legacyCategories": {
+                "runtimeGc": 12
+              }
+            },
+            "ancestry": {
+              "samples": 12,
+              "intervalProxyUs": 13370,
+              "legacyCategories": {
+                "runtimeGc": 12
+              }
+            }
+          },
+          {
+            "label": "inspector-post",
+            "frames": [
+              {
+                "functionName": "post",
+                "file": "node:inspector",
+                "line": 114,
+                "column": 6
+              }
+            ],
+            "leaf": {
+              "samples": 1,
+              "intervalProxyUs": 21617,
+              "legacyCategories": {
+                "unassigned": 1
+              }
+            },
+            "ancestry": {
+              "samples": 1,
+              "intervalProxyUs": 21617,
+              "legacyCategories": {
+                "unassigned": 1
+              }
+            }
+          },
+          {
+            "label": "built-in-resolvers",
+            "frames": [
+              {
+                "functionName": "resolveCollection",
+                "file": "yaml-compat.js",
+                "line": 3800,
+                "column": 26
+              },
+              {
+                "functionName": "resolveBlockMap",
+                "file": "yaml-compat.js",
+                "line": 3423,
+                "column": 24
+              },
+              {
+                "functionName": "resolveProps",
+                "file": "yaml-compat.js",
+                "line": 3218,
+                "column": 21
+              },
+              {
+                "functionName": "resolveBlockSeq",
+                "file": "yaml-compat.js",
+                "line": 3529,
+                "column": 24
+              },
+              {
+                "functionName": "resolveFlowScalar",
+                "file": "yaml-compat.js",
+                "line": 4033,
+                "column": 26
+              },
+              {
+                "functionName": "resolveEnd",
+                "file": "yaml-compat.js",
+                "line": 3571,
+                "column": 19
+              },
+              {
+                "functionName": "resolveFlowCollection",
+                "file": "yaml-compat.js",
+                "line": 3611,
+                "column": 30
+              },
+              {
+                "functionName": "resolveBlockScalar",
+                "file": "yaml-compat.js",
+                "line": 3869,
+                "column": 27
+              }
+            ],
+            "leaf": {
+              "samples": 17,
+              "intervalProxyUs": 18486,
+              "legacyCategories": {
+                "customCallbacks": 17
+              }
+            },
+            "ancestry": {
+              "samples": 41,
+              "intervalProxyUs": 45823,
+              "legacyCategories": {
+                "customCallbacks": 28,
+                "composition": 13
+              }
+            }
+          },
+          {
+            "label": "foldLines",
+            "frames": [
+              {
+                "functionName": "foldLines",
+                "file": "yaml-compat.js",
+                "line": 4107,
+                "column": 18
+              }
+            ],
+            "leaf": {
+              "samples": 1,
+              "intervalProxyUs": 1097,
+              "legacyCategories": {
+                "customCallbacks": 1
+              }
+            },
+            "ancestry": {
+              "samples": 1,
+              "intervalProxyUs": 1097,
+              "legacyCategories": {
+                "customCallbacks": 1
+              }
+            }
+          },
+          {
+            "label": "server-tag-setup",
+            "frames": [
+              {
+                "functionName": "getCustomTags",
+                "file": "custom-tag-provider.js",
+                "line": 58,
+                "column": 29
+              },
+              {
+                "functionName": "CommonTagImpl",
+                "file": "custom-tag-provider.js",
+                "line": 3,
+                "column": 15
+              },
+              {
+                "functionName": "parseCustomTag",
+                "file": "customTags.js",
+                "line": 13,
+                "column": 30
+              }
+            ],
+            "leaf": {
+              "samples": 3,
+              "intervalProxyUs": 3317,
+              "legacyCategories": {
+                "customCallbacks": 1,
+                "lexerParser": 2
+              }
+            },
+            "ancestry": {
+              "samples": 3,
+              "intervalProxyUs": 3317,
+              "legacyCategories": {
+                "customCallbacks": 1,
+                "lexerParser": 2
+              }
+            }
+          },
+          {
+            "label": "converter",
+            "frames": [
+              {
+                "functionName": "convertAST",
+                "file": "ast-converter.js",
+                "line": 13,
+                "column": 26
+              },
+              {
+                "functionName": "convertMap",
+                "file": "ast-converter.js",
+                "line": 43,
+                "column": 19
+              },
+              {
+                "functionName": "convertPair",
+                "file": "ast-converter.js",
+                "line": 59,
+                "column": 20
+              },
+              {
+                "functionName": "convertSeq",
+                "file": "ast-converter.js",
+                "line": 82,
+                "column": 19
+              }
+            ],
+            "leaf": {
+              "samples": 7,
+              "intervalProxyUs": 7774,
+              "legacyCategories": {
+                "serverAst": 7
+              }
+            },
+            "ancestry": {
+              "samples": 11,
+              "intervalProxyUs": 12128,
+              "legacyCategories": {
+                "serverAst": 11
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "participant": "server-reference",
+      "prefix": "cpu-profile-server-reference-github-actions-cmake-multi-platform",
+      "receiptSha256": "7a9b1fbfcd22bf3da72e0238862bc2c404b2a4cb899d236b30e0ccc8aabedf21",
+      "artifactBytes": 54887,
+      "policy": "literal-default",
+      "documentMode": "absent",
+      "fixture": {
+        "id": "github-actions-cmake-multi-platform",
+        "bytes": 3356,
+        "utf16Length": 3356,
+        "sha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0",
+        "expectedDocuments": 1
+      },
+      "candidate": {
+        "head": "8ea0498b65b80806dfd67d1815b4faefcdede04e",
+        "artifacts": {
+          "yaml-compat.js": {
+            "bytes": 218527,
+            "sha256": "f040321d97d55c6692c1a04c01d53eea2875dc8b5409f1ce7cfc271b4fac83d2"
+          },
+          "yaml-compat.cjs": {
+            "bytes": 219668,
+            "sha256": "587e54c0c897e1ee58a4604136a4199fe2a826368caeb49f236efe0295a233a3"
+          },
+          "yaml-compat.d.ts": {
+            "bytes": 69702,
+            "sha256": "e875ec6cc4fc3404486f33b3a695a91b921ac07ee10b48f6b40bdc9393d3d5f0"
+          },
+          "yaml-compat.d.cts": {
+            "bytes": 69702,
+            "sha256": "e875ec6cc4fc3404486f33b3a695a91b921ac07ee10b48f6b40bdc9393d3d5f0"
+          }
+        }
+      },
+      "server": {
+        "head": "4bf9c818850bf9751696d24848fdeaececb4203c",
+        "artifacts": {
+          "compiledEntry": {
+            "bytes": 3549,
+            "sha256": "a86e1044d30ad5d7241a8ccd39a7eefc6f5a669dc419d502e0ee310232fd35e5"
+          },
+          "compiledTags": {
+            "bytes": 2103,
+            "sha256": "976de3bcffd4b08dd4774011fce0a7fef0d60ab9610a7a91c621de83ae40d8ca"
+          },
+          "compiledClosure": {
+            "count": 23,
+            "sha256": "d80b96a9ee4e9c769e9c0398d0985ece1d4151a6b982f7e4005eef4244df7149"
+          },
+          "installedYamlAlias": {
+            "name": "yaml",
+            "version": "2.8.3-lightning-adapter",
+            "packageJson": {
+              "path": "<private-path>",
+              "bytes": 300,
+              "sha256": "084806d1af24aba980e560c51e93ff7e3c9aaa7b64655aed8085eff403cb508a"
+            },
+            "runtimeReexport": {
+              "path": "<private-path>",
+              "bytes": 84,
+              "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+            },
+            "typesReexport": {
+              "path": "<private-path>",
+              "bytes": 84,
+              "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+            }
+          }
+        }
+      },
+      "reference": {
+        "name": "yaml",
+        "version": "2.9.0",
+        "packageJsonSha256": "20b8b197cbd10dad245d45e463dfe58e4c8c25a47e24bc4256ad9ab58bf35683",
+        "lockSha256": null,
+        "entryBasename": "index.js",
+        "entryBytes": 1769,
+        "entrySha256": "2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "closureCount": 72,
+        "closureSha256": "2dd772e1e6839d90159c0fa900247b2d9854766c4d17f8953eb704110c03b217"
+      },
+      "harness": {
+        "head": "eb4b3adcd5f3cf9a97a6f8430c468f84b652347c",
+        "tree": "fa7746d05118009327197747d54d087b38572c92",
+        "files": {
+          "bench-lsp.mjs": {
+            "bytes": 79986,
+            "sha256": "7dedbd5588fcdb9ed9da22abe57a0534f3fe1ce94ab921c0fdb5276f957c0b97"
+          },
+          "lsp-diagnostics.mjs": {
+            "bytes": 18002,
+            "sha256": "19969786bb8f8ff5cc171ed80aa3aab716a20afd18ba021d6aee14effe748620"
+          },
+          "lsp-diagnostics.d.mts": {
+            "bytes": 3127,
+            "sha256": "f46332d295f024d141972be6715ccb0f76605c916c8a40b0bbaf687564746876"
+          },
+          "lsp-fixtures.mjs": {
+            "bytes": 7841,
+            "sha256": "3880c9c6b4ae177c3b8ed41b0c0424dbc61cd73cc6140414ca24c148892d6d7d"
+          },
+          "lsp-measure.mjs": {
+            "bytes": 12712,
+            "sha256": "2b9f78d11cb52a437fc5b0b48dc9ae0213365b59bac74f1b3f3e72d228b99ef4"
+          },
+          "lsp-contract.mjs": {
+            "bytes": 18351,
+            "sha256": "88f781e1fbc67e6b8b86d527e772fe7966168be79d8a8303f4a340b2eeca1f41"
+          }
+        }
+      },
+      "provider": {
+        "name": "yaml",
+        "version": "2.9.0",
+        "packageJsonSha256": "20b8b197cbd10dad245d45e463dfe58e4c8c25a47e24bc4256ad9ab58bf35683",
+        "lock": null,
+        "entry": {
+          "bytes": 1769,
+          "sha256": "2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9"
+        },
+        "closure": {
+          "count": 72,
+          "sha256": "2dd772e1e6839d90159c0fa900247b2d9854766c4d17f8953eb704110c03b217"
+        }
+      },
+      "warmups": 3,
+      "iterations": 250,
+      "sampleIntervalUs": 1000,
+      "audit": {
+        "schema": "lsp-cpu-clock-stack-audit-v1",
+        "artifactSha256": "5f740410a0baba4a269696ebc05c17d1e96b7fbb9ae9238a38606f03506e97aa",
+        "sampleCount": 268,
+        "nodeHitCountSum": 271,
+        "clock": {
+          "spanUs": 322449,
+          "deltaSumUs": 321567,
+          "firstObservationDeltaUs": 25460,
+          "subsequentDeltaSumUs": 296107,
+          "trailingUnassignedUs": 882,
+          "minDeltaUs": 921,
+          "maxDeltaUs": 25460
+        },
+        "legacy": {
+          "sampleCount": 268,
+          "assignedSamples": 267,
+          "usefulSamples": 238,
+          "classifiedCoverage": 0.996268656716418,
+          "categories": {
+            "lexerParser": 149,
+            "composition": 39,
+            "customCallbacks": 41,
+            "runtimeGc": 22,
+            "serverAst": 9,
+            "serverWrapper": 7,
+            "unassigned": 1
+          },
+          "attributionAssessment": "sample-count-and-coverage-threshold-met"
+        },
+        "firstObservationStack": [
+          {
+            "functionName": "post",
+            "file": "node:inspector",
+            "line": 114,
+            "column": 6
+          },
+          {
+            "functionName": "",
+            "file": "lsp-diagnostics.mjs",
+            "line": 258,
+            "column": 21
+          },
+          {
+            "functionName": "request",
+            "file": "lsp-diagnostics.mjs",
+            "line": 257,
+            "column": 16
+          },
+          {
+            "functionName": "collectCpuProfile",
+            "file": "lsp-diagnostics.mjs",
+            "line": 261,
+            "column": 39
+          },
+          {
+            "functionName": "(root)",
+            "file": "",
+            "line": -1,
+            "column": -1
+          }
+        ],
+        "witnesses": [
+          {
+            "label": "operation-boundary",
+            "frames": [
+              {
+                "functionName": "operation",
+                "file": "bench-lsp.mjs",
+                "line": 674,
+                "column": 56
+              }
+            ],
+            "leaf": {
+              "samples": 0,
+              "intervalProxyUs": 0,
+              "legacyCategories": {}
+            },
+            "ancestry": {
+              "samples": 244,
+              "intervalProxyUs": 269995,
+              "legacyCategories": {
+                "lexerParser": 148,
+                "composition": 39,
+                "serverAst": 9,
+                "customCallbacks": 41,
+                "serverWrapper": 7
+              }
+            }
+          },
+          {
+            "label": "detached-gc",
+            "frames": [
+              {
+                "functionName": "(garbage collector)",
+                "file": "",
+                "line": -1,
+                "column": -1
+              }
+            ],
+            "leaf": {
+              "samples": 22,
+              "intervalProxyUs": 25033,
+              "legacyCategories": {
+                "runtimeGc": 22
+              }
+            },
+            "ancestry": {
+              "samples": 22,
+              "intervalProxyUs": 25033,
+              "legacyCategories": {
+                "runtimeGc": 22
+              }
+            }
+          },
+          {
+            "label": "inspector-post",
+            "frames": [
+              {
+                "functionName": "post",
+                "file": "node:inspector",
+                "line": 114,
+                "column": 6
+              }
+            ],
+            "leaf": {
+              "samples": 1,
+              "intervalProxyUs": 25460,
+              "legacyCategories": {
+                "unassigned": 1
+              }
+            },
+            "ancestry": {
+              "samples": 1,
+              "intervalProxyUs": 25460,
+              "legacyCategories": {
+                "unassigned": 1
+              }
+            }
+          },
+          {
+            "label": "built-in-resolvers",
+            "frames": [
+              {
+                "functionName": "resolveCollection",
+                "file": "compose-collection.js",
+                "line": 10,
+                "column": 26
+              },
+              {
+                "functionName": "resolveBlockMap",
+                "file": "resolve-block-map.js",
+                "line": 10,
+                "column": 24
+              },
+              {
+                "functionName": "resolveBlockSeq",
+                "file": "resolve-block-seq.js",
+                "line": 6,
+                "column": 24
+              },
+              {
+                "functionName": "resolveFlowScalar",
+                "file": "resolve-flow-scalar.js",
+                "line": 5,
+                "column": 26
+              },
+              {
+                "functionName": "resolveEnd",
+                "file": "resolve-end.js",
+                "line": 2,
+                "column": 19
+              },
+              {
+                "functionName": "resolveProps",
+                "file": "resolve-props.js",
+                "line": 2,
+                "column": 21
+              },
+              {
+                "functionName": "resolveFlowCollection",
+                "file": "resolve-flow-collection.js",
+                "line": 13,
+                "column": 30
+              },
+              {
+                "functionName": "resolveBlockScalar",
+                "file": "resolve-block-scalar.js",
+                "line": 4,
+                "column": 27
+              }
+            ],
+            "leaf": {
+              "samples": 19,
+              "intervalProxyUs": 20833,
+              "legacyCategories": {
+                "customCallbacks": 19
+              }
+            },
+            "ancestry": {
+              "samples": 60,
+              "intervalProxyUs": 67862,
+              "legacyCategories": {
+                "customCallbacks": 40,
+                "composition": 20
+              }
+            }
+          },
+          {
+            "label": "foldLines",
+            "frames": [
+              {
+                "functionName": "foldLines",
+                "file": "resolve-flow-scalar.js",
+                "line": 75,
+                "column": 18
+              }
+            ],
+            "leaf": {
+              "samples": 17,
+              "intervalProxyUs": 18629,
+              "legacyCategories": {
+                "customCallbacks": 17
+              }
+            },
+            "ancestry": {
+              "samples": 17,
+              "intervalProxyUs": 18629,
+              "legacyCategories": {
+                "customCallbacks": 17
+              }
+            }
+          },
+          {
+            "label": "server-tag-setup",
+            "frames": [
+              {
+                "functionName": "getCustomTags",
+                "file": "custom-tag-provider.js",
+                "line": 58,
+                "column": 29
+              },
+              {
+                "functionName": "parseCustomTag",
+                "file": "customTags.js",
+                "line": 13,
+                "column": 30
+              }
+            ],
+            "leaf": {
+              "samples": 2,
+              "intervalProxyUs": 2179,
+              "legacyCategories": {
+                "lexerParser": 2
+              }
+            },
+            "ancestry": {
+              "samples": 2,
+              "intervalProxyUs": 2179,
+              "legacyCategories": {
+                "lexerParser": 2
+              }
+            }
+          },
+          {
+            "label": "converter-tag-helper",
+            "frames": [
+              {
+                "functionName": "getCustomTagReturnType",
+                "file": "customTags.js",
+                "line": 33,
+                "column": 38
+              }
+            ],
+            "leaf": {
+              "samples": 1,
+              "intervalProxyUs": 1097,
+              "legacyCategories": {
+                "customCallbacks": 1
+              }
+            },
+            "ancestry": {
+              "samples": 1,
+              "intervalProxyUs": 1097,
+              "legacyCategories": {
+                "customCallbacks": 1
+              }
+            }
+          },
+          {
+            "label": "converter",
+            "frames": [
+              {
+                "functionName": "convertAST",
+                "file": "ast-converter.js",
+                "line": 13,
+                "column": 26
+              },
+              {
+                "functionName": "convertMap",
+                "file": "ast-converter.js",
+                "line": 43,
+                "column": 19
+              },
+              {
+                "functionName": "convertPair",
+                "file": "ast-converter.js",
+                "line": 59,
+                "column": 20
+              },
+              {
+                "functionName": "convertSeq",
+                "file": "ast-converter.js",
+                "line": 82,
+                "column": 19
+              }
+            ],
+            "leaf": {
+              "samples": 6,
+              "intervalProxyUs": 6621,
+              "legacyCategories": {
+                "serverAst": 6
+              }
+            },
+            "ancestry": {
+              "samples": 11,
+              "intervalProxyUs": 12064,
+              "legacyCategories": {
+                "serverAst": 9,
+                "customCallbacks": 1,
+                "composition": 1
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

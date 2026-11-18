@@ -378,3 +378,8 @@ Both repeats exceed the observed one-tenth and one-hundredth heap budgets using
 current public-identity headers under the fixed eager representation. The
 genuine required-byte floor and universal implementation ceiling remain unknown.
 <!-- yaml:2.9.0 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:75da749315dd019fc301055b4fd6962323d323db data:5aa4a636731e56230451e7bee117240807c5539dd56c7f8e36c316e2ca2b2212 -->
+
+The [Nov 18 frozen CPU profile audit](compatibility/reports/2026-11-18/lsp-cpu-profiles.md)
+reconstructs historical clocks and selected stacks without changing receipts or
+classifications. Its [next reference experiment](compatibility/reports/2026-11-18/lsp-cpu-next-experiment.md)
+is frozen and unrun; no candidate comparison or CPU ceiling follows from the old profiles.
