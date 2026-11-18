@@ -1,0 +1,2963 @@
+{
+  "kind": "lsp-header-budget-campaign",
+  "status": "completed",
+  "scoredMeasurement": false,
+  "diagnostic": "contract-header-budget",
+  "participant": "server-reference",
+  "policy": "literal-default",
+  "effectiveUniqueKeys": true,
+  "protocol": {
+    "repeats": 2,
+    "warmups": 3,
+    "retainedStreams": 25,
+    "outerLimitMs": 60000,
+    "innerLimitMs": 49000,
+    "externalProcessGuardMs": 70000,
+    "serial": true,
+    "retries": 0,
+    "documentMode": "absent",
+    "accounting": "current public-identity headers under fixed eager ordinary representation; genuine lower bound unknown"
+  },
+  "pins": {
+    "candidateHead": "8ea0498b65b80806dfd67d1815b4faefcdede04e",
+    "serverHead": "4bf9c818850bf9751696d24848fdeaececb4203c",
+    "reference": "yaml@2.9.0"
+  },
+  "schedule": [
+    {
+      "fixture": "docker-compose-pihole-cloudflared-doh",
+      "repeatIndex": 1,
+      "observationId": "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "fixtureSha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857"
+    },
+    {
+      "fixture": "kubernetes-zookeeper",
+      "repeatIndex": 1,
+      "observationId": "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+      "fixtureSha256": "f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529"
+    },
+    {
+      "fixture": "github-actions-cmake-multi-platform",
+      "repeatIndex": 1,
+      "observationId": "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+      "fixtureSha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0"
+    },
+    {
+      "fixture": "github-actions-cmake-multi-platform",
+      "repeatIndex": 2,
+      "observationId": "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+      "fixtureSha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0"
+    },
+    {
+      "fixture": "kubernetes-zookeeper",
+      "repeatIndex": 2,
+      "observationId": "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+      "fixtureSha256": "f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529"
+    },
+    {
+      "fixture": "docker-compose-pihole-cloudflared-doh",
+      "repeatIndex": 2,
+      "observationId": "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2",
+      "fixtureSha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857"
+    }
+  ],
+  "ledger": {
+    "planned": [
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2"
+    ],
+    "selected": [
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2"
+    ],
+    "completed": [
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2"
+    ],
+    "failed": [],
+    "pending": [],
+    "notSelected": []
+  },
+  "failures": [],
+  "dataPending": false,
+  "interpretation": "reference-only noisy operational budget; no candidate measurement, eligibility or universal feasibility conclusion",
+  "publicationKind": "static allowlisted reference-only diagnostic evidence",
+  "source": {
+    "rawReport": {
+      "bytes": 114537606,
+      "sha256": "5aa4a636731e56230451e7bee117240807c5539dd56c7f8e36c316e2ca2b2212"
+    },
+    "declaredPlan": {
+      "bytes": 4474,
+      "sha256": "6a59838d89253c4b2d7319d821dd2b807594c7d2778c729300dd247fcee96fd1"
+    },
+    "exporterSha256": "8bf543b0fb0c782eb273bb2e3855bf3425ab82642bf99650140083a8ef1a1730"
+  },
+  "provenance": {
+    "harness": {
+      "head": "75da749315dd019fc301055b4fd6962323d323db",
+      "tree": "2b625010f28b94343e68d54dd71bceae7a139ca2",
+      "files": {
+        "bench-lsp.mjs": {
+          "bytes": 85594,
+          "sha256": "85dc947e46a8cbd52531555dcf34e03e2a28843a2154da7ebb1bbb45702cae0f"
+        },
+        "lsp-diagnostics.mjs": {
+          "bytes": 29243,
+          "sha256": "099f02eaf59148643b0e0d57ae9b5b60e3e6049ef5ca9314de46de6d1b2b961b"
+        },
+        "lsp-diagnostics.d.mts": {
+          "bytes": 3940,
+          "sha256": "b07905d4c683df6283c582ba36acd27dab88f4b118f4718179e1aa0f3efe64dd"
+        },
+        "lsp-fixtures.mjs": {
+          "bytes": 7841,
+          "sha256": "3880c9c6b4ae177c3b8ed41b0c0424dbc61cd73cc6140414ca24c148892d6d7d"
+        },
+        "lsp-measure.mjs": {
+          "bytes": 12712,
+          "sha256": "2b9f78d11cb52a437fc5b0b48dc9ae0213365b59bac74f1b3f3e72d228b99ef4"
+        },
+        "lsp-contract.mjs": {
+          "bytes": 19576,
+          "sha256": "7c665f57c1a6fb3065fbea8894bd9c3c09f3af3985091f7dc8ff1b866259f9cf"
+        }
+      }
+    },
+    "server": {
+      "head": "4bf9c818850bf9751696d24848fdeaececb4203c",
+      "tree": "cbd49da58734d081dd1b855e7adafa4aa18131fc",
+      "declaredYamlDependency": "2.8.3",
+      "compiledEntry": {
+        "bytes": 3549,
+        "sha256": "a86e1044d30ad5d7241a8ccd39a7eefc6f5a669dc419d502e0ee310232fd35e5"
+      },
+      "compiledTags": {
+        "bytes": 2103,
+        "sha256": "976de3bcffd4b08dd4774011fce0a7fef0d60ab9610a7a91c621de83ae40d8ca"
+      },
+      "compiledClosure": {
+        "count": 23,
+        "sha256": "d80b96a9ee4e9c769e9c0398d0985ece1d4151a6b982f7e4005eef4244df7149",
+        "totalFileBytes": 140438
+      },
+      "installedYamlAlias": {
+        "name": "yaml",
+        "version": "2.8.3-lightning-adapter",
+        "packageJson": {
+          "bytes": 300,
+          "sha256": "084806d1af24aba980e560c51e93ff7e3c9aaa7b64655aed8085eff403cb508a"
+        },
+        "runtimeReexport": {
+          "bytes": 84,
+          "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+        },
+        "typesReexport": {
+          "bytes": 84,
+          "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc"
+        }
+      }
+    },
+    "reference": {
+      "name": "yaml",
+      "version": "2.9.0",
+      "packageJsonSha256": "20b8b197cbd10dad245d45e463dfe58e4c8c25a47e24bc4256ad9ab58bf35683",
+      "lockSha256": null,
+      "entryBasename": "index.js",
+      "entryBytes": 1769,
+      "entrySha256": "2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+      "closureCount": 72,
+      "closureSha256": "9eefabde5b3600edcb470efd741c857b1b2d495cb103021e406c826651331db0",
+      "moduleTree": {
+        "count": 72,
+        "sha256": "9eefabde5b3600edcb470efd741c857b1b2d495cb103021e406c826651331db0",
+        "totalFileBytes": 287635
+      },
+      "gitTree": null,
+      "gitTreeNote": "installed stock package; physical module tree is identified by the reviewed closure, not a provider git checkout"
+    },
+    "candidatePreflightOnly": {
+      "head": "8ea0498b65b80806dfd67d1815b4faefcdede04e",
+      "tree": "bfb6db45b3b3924f47063f158585e9ba87e2393e",
+      "diagnosticExecuted": false
+    },
+    "runtime": {
+      "verified": true,
+      "failures": [],
+      "observed": {
+        "node": "v24.19.0",
+        "v8": "13.6.233.17-node.51",
+        "arch": "x64",
+        "executableSha256": "a4c7d261ae62215e73edd637711f09a545535226ae9932c3148342f0b027d56b",
+        "configSha256": "1370cb808f317b4aeec7f96b391bd3c7d4014b23d58ce6e6a02df88302a14014",
+        "headerSha256": "eb74fc0740b7f858a03e319e077c1698d2083325f3154c67771b120fb48f8520",
+        "targetArch": "x64",
+        "pointerCompression": 0,
+        "sandbox": 0
+      },
+      "requiredExecArgvVerified": true,
+      "nodeOptionsEmpty": true,
+      "headers": {
+        "object": 24,
+        "array": 32
+      },
+      "evidence": "nodejs/node@cdc1b38d40cb567b7ad0b39c86addf830a0af0ae: deps/v8/include/v8-internal.h; deps/v8/src/objects/js-objects.tq; deps/v8/src/objects/js-array.tq"
+    }
+  },
+  "launch": {
+    "envelopeDeclaredStatus": "review-pending",
+    "seal": {
+      "status": "approved",
+      "envelopeSha256": "eb98f26729bc536068af37227c57a89299f38119197cb996fcafc15a20168ae6",
+      "reviewSha256": "6dbce28fad2ec37944f7fda6938ab265ac024294eedcc060206b220e1c573b85",
+      "runnerSha256": "2f69fc134a2d0f3fd3aaf3f30400f1b02870548d7deeca6b583327a19245e779",
+      "head": "75da749315dd019fc301055b4fd6962323d323db",
+      "sealedAt": "2026-11-18T01:23:52.534Z"
+    },
+    "guard": {
+      "status": "passed",
+      "envelopeSha256": "eb98f26729bc536068af37227c57a89299f38119197cb996fcafc15a20168ae6",
+      "reviewSha256": "6dbce28fad2ec37944f7fda6938ab265ac024294eedcc060206b220e1c573b85",
+      "expectedIds": [
+        "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+        "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+        "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+        "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+        "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+        "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2"
+      ]
+    },
+    "execution": {
+      "endedAt": "2026-11-18T01:24:10.827Z",
+      "completeProcessElapsedMs": 7092.876534999999,
+      "exit": 0,
+      "signal": null,
+      "spawnError": null,
+      "attempts": 1,
+      "report": {
+        "sha256": "5aa4a636731e56230451e7bee117240807c5539dd56c7f8e36c316e2ca2b2212",
+        "bytes": 114537606
+      },
+      "reportStatus": "completed",
+      "reportElapsedMs": null
+    },
+    "startedAt": "2026-11-18T01:24:03.733Z",
+    "envelope": {
+      "bytes": 29835,
+      "sha256": "eb98f26729bc536068af37227c57a89299f38119197cb996fcafc15a20168ae6"
+    },
+    "protocolReview": {
+      "status": "APPROVED",
+      "bytes": 4917,
+      "sha256": "6dbce28fad2ec37944f7fda6938ab265ac024294eedcc060206b220e1c573b85"
+    },
+    "executionReceipt": {
+      "bytes": 345,
+      "sha256": "4b06744f64fecd71dcce9be81c3d4f05a0b0d59ab23d3aeb8aba9ba444783760"
+    },
+    "launchIntent": {
+      "bytes": 1818,
+      "sha256": "db3f5e77270c1c6732a76c3353712c4bff52396dec2ad449207508bb1136341b"
+    },
+    "prelaunchGuard": {
+      "bytes": 766,
+      "sha256": "d3abc90827e2b39fae2cb3a4175c7c04da82e8e163bfd87221f1a94c270f93b0"
+    },
+    "prelaunchSeal": {
+      "bytes": 383,
+      "sha256": "5c57974492aa5d04d8fdf28a3c62ced28a269490ace6df7dc1089dca37cd58b1"
+    },
+    "semanticCheck": {
+      "bytes": 2652186,
+      "sha256": "bd7650025fc1b2956ca1f875d8c1fabc8cbdeb96ce17bad9f701619d5cf0755c"
+    },
+    "lastObservationCumulativeCliElapsedMs": 6356.498926,
+    "finalCliElapsedMs": null,
+    "clockNote": "Per-observation elapsedMs is cumulative since CLI entry through that observation. Top-level final CLI elapsed time was not emitted; external complete-process time includes startup and report finalization."
+  },
+  "observations": [
+    {
+      "observationId": "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "repeatIndex": 1,
+      "kind": "lsp-diagnostic-result",
+      "status": "completed",
+      "scoredMeasurement": false,
+      "diagnostic": "contract-header-budget",
+      "participant": "server-reference",
+      "policy": "literal-default",
+      "fixture": {
+        "id": "docker-compose-pihole-cloudflared-doh",
+        "bytes": 1608,
+        "utf16Length": 1608,
+        "sha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857",
+        "expectedDocuments": 1
+      },
+      "elapsedMs": 695.969733,
+      "worker": {
+        "kind": "lsp-diagnostic",
+        "status": "completed",
+        "scoredMeasurement": false,
+        "diagnostic": "contract-header-budget",
+        "head": "yaml@2.9.0:2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "participant": "server-reference",
+        "fixture": "docker-compose-pihole-cloudflared-doh",
+        "policy": "literal-default",
+        "inputSha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857",
+        "resolution": {
+          "resolutionCount": 5,
+          "targetsValidated": true,
+          "parentRootsValidated": true
+        }
+      },
+      "diagnosticDetails": {
+        "warmups": 3,
+        "iterations": 25,
+        "resultCount": 25,
+        "callerTextDocument": "absent",
+        "effectiveUniqueKeys": true,
+        "rootLiveness": "25 complete streams held through after-GC sample and union inventory; modules/cache unchanged",
+        "lifecycle": "source/modules prepared before baseline; warmups discarded; ledger allocated after after-GC sample; post-drop cache lifetime unmeasured"
+      },
+      "runtimeVerified": true,
+      "inventory": {
+        "accounting": "current public-identity header accounting; indispensability beyond fixed eager ordinary representation unproved",
+        "objects": 13500,
+        "arrays": 6225,
+        "objectsPerStream": 540.0,
+        "arraysPerStream": 249.0,
+        "uniqueIdentities": 19725,
+        "identitiesWithMultipleRecordedPaths": 6325,
+        "identitiesWithMultipleCategoryMemberships": 0,
+        "disjointMembershipSignatures": [
+          {
+            "kind": "array",
+            "categories": [
+              "cst-array"
+            ],
+            "count": 3275,
+            "perStreamCount": 131.0,
+            "headerBytes": 104800,
+            "reasons": [
+              "public CST collection items",
+              "public CST document/item start sequence",
+              "public CST token or collection-item sequence",
+              "returned full mutable CST stream"
+            ],
+            "representatives": [
+              {
+                "id": "public-1575",
+                "kind": "array",
+                "categories": [
+                  "cst-array"
+                ],
+                "paths": [
+                  "results[1].tokens"
+                ],
+                "reasons": [
+                  "returned full mutable CST stream"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "provider-items"
+            ],
+            "count": 475,
+            "perStreamCount": 19.0,
+            "headerBytes": 15200,
+            "reasons": [
+              "unchanged converter iterates mutable collection items"
+            ],
+            "representatives": [
+              {
+                "id": "public-1583",
+                "kind": "array",
+                "categories": [
+                  "provider-items"
+                ],
+                "paths": [
+                  "results[2].documents[0]._internalDocument.contents.items"
+                ],
+                "reasons": [
+                  "unchanged converter iterates mutable collection items"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "range"
+            ],
+            "count": 1975,
+            "perStreamCount": 79.0,
+            "headerBytes": 63200,
+            "reasons": [
+              "converter consumes node source range",
+              "public source range"
+            ],
+            "representatives": [
+              {
+                "id": "public-1451",
+                "kind": "array",
+                "categories": [
+                  "range"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument.range"
+                ],
+                "reasons": [
+                  "public source range"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "result-documents"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 800,
+            "reasons": [
+              "returned document wrappers"
+            ],
+            "representatives": [
+              {
+                "id": "public-1",
+                "kind": "array",
+                "categories": [
+                  "result-documents"
+                ],
+                "paths": [
+                  "results[0].documents"
+                ],
+                "reasons": [
+                  "returned document wrappers"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "server-children"
+            ],
+            "count": 475,
+            "perStreamCount": 19.0,
+            "headerBytes": 15200,
+            "reasons": [
+              "public array children own storage",
+              "public object children own storage"
+            ],
+            "representatives": [
+              {
+                "id": "public-1453",
+                "kind": "array",
+                "categories": [
+                  "server-children"
+                ],
+                "paths": [
+                  "results[1].documents[0].root.properties"
+                ],
+                "reasons": [
+                  "public object children own storage"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "cst"
+            ],
+            "count": 8225,
+            "perStreamCount": 329.0,
+            "headerBytes": 197400,
+            "reasons": [
+              "mutable public array element",
+              "public CST collection-item subtree",
+              "public keepSourceTokens link to original CST identity"
+            ],
+            "representatives": [
+              {
+                "id": "public-1576",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[1].tokens[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              },
+              {
+                "id": "public-1449",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument.contents.srcToken",
+                  "results[1].tokens[0].value"
+                ],
+                "reasons": [
+                  "public keepSourceTokens link to original CST identity",
+                  "public CST collection-item subtree"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "document"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "audited own backing slot of public internalDocument getter"
+            ],
+            "representatives": [
+              {
+                "id": "public-1581",
+                "kind": "object",
+                "categories": [
+                  "document"
+                ],
+                "paths": [
+                  "results[2].documents[0]._internalDocument"
+                ],
+                "reasons": [
+                  "audited own backing slot of public internalDocument getter"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "provider"
+            ],
+            "count": 2600,
+            "perStreamCount": 104.0,
+            "headerBytes": 62400,
+            "reasons": [
+              "mutable public array element",
+              "public Pair.key",
+              "public Pair.value",
+              "public mutable Document.contents",
+              "unchanged converter backlink"
+            ],
+            "representatives": [
+              {
+                "id": "public-1582",
+                "kind": "object",
+                "categories": [
+                  "provider"
+                ],
+                "paths": [
+                  "results[2].documents[0]._internalDocument.contents",
+                  "results[2].documents[0].root.internalNode"
+                ],
+                "reasons": [
+                  "public mutable Document.contents",
+                  "unchanged converter backlink"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "result"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "retained full operation result"
+            ],
+            "representatives": [
+              {
+                "id": "public-0",
+                "kind": "object",
+                "categories": [
+                  "result"
+                ],
+                "paths": [
+                  "results[0]"
+                ],
+                "reasons": [
+                  "retained full operation result"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "server"
+            ],
+            "count": 2600,
+            "perStreamCount": 104.0,
+            "headerBytes": 62400,
+            "reasons": [
+              "eager unchanged converter root",
+              "mutable public array element",
+              "observable parent identity",
+              "public property key",
+              "public property value"
+            ],
+            "representatives": [
+              {
+                "id": "public-1452",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[1].documents[0].root",
+                  "results[1].documents[0].root.properties[0].parent",
+                  "results[1].documents[0].root.properties[1].parent"
+                ],
+                "reasons": [
+                  "eager unchanged converter root",
+                  "observable parent identity"
+                ]
+              },
+              {
+                "id": "public-1556",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[1].documents[0].root.properties[2].valueNode",
+                  "results[1].documents[0].root.properties[2].valueNode.properties[0].parent"
+                ],
+                "reasons": [
+                  "public property value",
+                  "observable parent identity"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "single-document"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "mutable public array element"
+            ],
+            "representatives": [
+              {
+                "id": "public-1580",
+                "kind": "object",
+                "categories": [
+                  "single-document"
+                ],
+                "paths": [
+                  "results[2].documents[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              }
+            ]
+          }
+        ],
+        "excludedCategories": [
+          "unlisted/private own fields",
+          "schema and directives",
+          "prototypes and modules",
+          "alias/module caches",
+          "strings and string backing storage",
+          "property tables and array backing stores",
+          "caller TextDocument/editor state"
+        ],
+        "excludedObservedEdgeOccurrences": 675,
+        "counting": "One count per raw inventory identity across the 25-output union. Membership signatures partition identities; categories within a signature must not be added again. Multiple recorded paths are a capped sharing witness, not total edge/referrer counts. Excluded edge occurrences are not excluded identity or byte counts."
+      },
+      "budget": {
+        "beforeHeapBytes": 7957952,
+        "afterHeapBytes": 10289256,
+        "deltaHeapBytes": 2331304,
+        "streams": 25,
+        "deltaPerStreamBytes": 93252.16,
+        "headerBytes": 523200,
+        "headerPerStreamBytes": 20928,
+        "tenfoldBudgetBytes": 233130.4,
+        "hundredfoldBudgetBytes": 23313.04,
+        "tenfoldBudgetPerStreamBytes": 9325.216,
+        "hundredfoldBudgetPerStreamBytes": 932.5216,
+        "headerToObservedBudgetRatio": 0.2244237559751967,
+        "interpretation": "noisy post-GC operational budget, not retained ownership or an upper bound; current public headers do not establish a universal lower bound, reduction ceiling, candidate eligibility or feasibility"
+      },
+      "campaignClock": {
+        "outerLimitMs": 60000,
+        "innerLimitMs": 49000,
+        "workerTimeoutMs": 48915,
+        "outerRemainingMs": 59304.008547,
+        "innerRemainingMs": 48307.448766
+      },
+      "conditionalObservedBudgetScreen": {
+        "available": true,
+        "headerExceedsObservedTenth": true,
+        "headerExceedsObservedHundredth": true,
+        "universalLowerBoundKnown": false,
+        "implementationCeilingEstablished": false
+      }
+    },
+    {
+      "observationId": "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+      "repeatIndex": 1,
+      "kind": "lsp-diagnostic-result",
+      "status": "completed",
+      "scoredMeasurement": false,
+      "diagnostic": "contract-header-budget",
+      "participant": "server-reference",
+      "policy": "literal-default",
+      "fixture": {
+        "id": "kubernetes-zookeeper",
+        "bytes": 2903,
+        "utf16Length": 2903,
+        "sha256": "f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529",
+        "expectedDocuments": 4
+      },
+      "elapsedMs": 2376.782273,
+      "worker": {
+        "kind": "lsp-diagnostic",
+        "status": "completed",
+        "scoredMeasurement": false,
+        "diagnostic": "contract-header-budget",
+        "head": "yaml@2.9.0:2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "participant": "server-reference",
+        "fixture": "kubernetes-zookeeper",
+        "policy": "literal-default",
+        "inputSha256": "f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529",
+        "resolution": {
+          "resolutionCount": 5,
+          "targetsValidated": true,
+          "parentRootsValidated": true
+        }
+      },
+      "diagnosticDetails": {
+        "warmups": 3,
+        "iterations": 25,
+        "resultCount": 25,
+        "callerTextDocument": "absent",
+        "effectiveUniqueKeys": true,
+        "rootLiveness": "25 complete streams held through after-GC sample and union inventory; modules/cache unchanged",
+        "lifecycle": "source/modules prepared before baseline; warmups discarded; ledger allocated after after-GC sample; post-drop cache lifetime unmeasured"
+      },
+      "runtimeVerified": true,
+      "inventory": {
+        "accounting": "current public-identity header accounting; indispensability beyond fixed eager ordinary representation unproved",
+        "objects": 36525,
+        "arrays": 18150,
+        "objectsPerStream": 1461.0,
+        "arraysPerStream": 726.0,
+        "uniqueIdentities": 54675,
+        "identitiesWithMultipleRecordedPaths": 20900,
+        "identitiesWithMultipleCategoryMemberships": 0,
+        "disjointMembershipSignatures": [
+          {
+            "kind": "array",
+            "categories": [
+              "cst-array"
+            ],
+            "count": 9075,
+            "perStreamCount": 363.0,
+            "headerBytes": 290400,
+            "reasons": [
+              "public CST collection items",
+              "public CST document/item start sequence",
+              "public CST token or collection-item sequence",
+              "returned full mutable CST stream"
+            ],
+            "representatives": [
+              {
+                "id": "public-10920",
+                "kind": "array",
+                "categories": [
+                  "cst-array"
+                ],
+                "paths": [
+                  "results[4].tokens"
+                ],
+                "reasons": [
+                  "returned full mutable CST stream"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "provider-items"
+            ],
+            "count": 1575,
+            "perStreamCount": 63.0,
+            "headerBytes": 50400,
+            "reasons": [
+              "unchanged converter iterates mutable collection items"
+            ],
+            "representatives": [
+              {
+                "id": "public-10940",
+                "kind": "array",
+                "categories": [
+                  "provider-items"
+                ],
+                "paths": [
+                  "results[5].documents[0]._internalDocument.contents.items"
+                ],
+                "reasons": [
+                  "unchanged converter iterates mutable collection items"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "range"
+            ],
+            "count": 5900,
+            "perStreamCount": 236.0,
+            "headerBytes": 188800,
+            "reasons": [
+              "converter consumes node source range",
+              "public source range"
+            ],
+            "representatives": [
+              {
+                "id": "public-10655",
+                "kind": "array",
+                "categories": [
+                  "range"
+                ],
+                "paths": [
+                  "results[4].documents[3]._internalDocument.range"
+                ],
+                "reasons": [
+                  "public source range"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "result-documents"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 800,
+            "reasons": [
+              "returned document wrappers"
+            ],
+            "representatives": [
+              {
+                "id": "public-1",
+                "kind": "array",
+                "categories": [
+                  "result-documents"
+                ],
+                "paths": [
+                  "results[0].documents"
+                ],
+                "reasons": [
+                  "returned document wrappers"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "server-children"
+            ],
+            "count": 1575,
+            "perStreamCount": 63.0,
+            "headerBytes": 50400,
+            "reasons": [
+              "public array children own storage",
+              "public object children own storage"
+            ],
+            "representatives": [
+              {
+                "id": "public-10657",
+                "kind": "array",
+                "categories": [
+                  "server-children"
+                ],
+                "paths": [
+                  "results[4].documents[3].root.properties"
+                ],
+                "reasons": [
+                  "public object children own storage"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "cst"
+            ],
+            "count": 19550,
+            "perStreamCount": 782.0,
+            "headerBytes": 469200,
+            "reasons": [
+              "mutable public array element",
+              "public CST collection-item subtree",
+              "public flow collection opening token",
+              "public keepSourceTokens link to original CST identity"
+            ],
+            "representatives": [
+              {
+                "id": "public-10921",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[4].tokens[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              },
+              {
+                "id": "public-10653",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[4].documents[3]._internalDocument.contents.srcToken",
+                  "results[4].tokens[3].value"
+                ],
+                "reasons": [
+                  "public keepSourceTokens link to original CST identity",
+                  "public CST collection-item subtree"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "document"
+            ],
+            "count": 100,
+            "perStreamCount": 4.0,
+            "headerBytes": 2400,
+            "reasons": [
+              "audited own backing slot of public internalDocument getter"
+            ],
+            "representatives": [
+              {
+                "id": "public-10938",
+                "kind": "object",
+                "categories": [
+                  "document"
+                ],
+                "paths": [
+                  "results[5].documents[0]._internalDocument"
+                ],
+                "reasons": [
+                  "audited own backing slot of public internalDocument getter"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "provider"
+            ],
+            "count": 8375,
+            "perStreamCount": 335.0,
+            "headerBytes": 201000,
+            "reasons": [
+              "mutable public array element",
+              "public Pair.key",
+              "public Pair.value",
+              "public mutable Document.contents",
+              "unchanged converter backlink"
+            ],
+            "representatives": [
+              {
+                "id": "public-10939",
+                "kind": "object",
+                "categories": [
+                  "provider"
+                ],
+                "paths": [
+                  "results[5].documents[0]._internalDocument.contents",
+                  "results[5].documents[0].root.internalNode"
+                ],
+                "reasons": [
+                  "public mutable Document.contents",
+                  "unchanged converter backlink"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "result"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "retained full operation result"
+            ],
+            "representatives": [
+              {
+                "id": "public-0",
+                "kind": "object",
+                "categories": [
+                  "result"
+                ],
+                "paths": [
+                  "results[0]"
+                ],
+                "reasons": [
+                  "retained full operation result"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "server"
+            ],
+            "count": 8375,
+            "perStreamCount": 335.0,
+            "headerBytes": 201000,
+            "reasons": [
+              "eager unchanged converter root",
+              "mutable public array element",
+              "observable parent identity",
+              "public property key",
+              "public property value"
+            ],
+            "representatives": [
+              {
+                "id": "public-10656",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[4].documents[3].root",
+                  "results[4].documents[3].root.properties[0].parent",
+                  "results[4].documents[3].root.properties[1].parent"
+                ],
+                "reasons": [
+                  "eager unchanged converter root",
+                  "observable parent identity"
+                ]
+              },
+              {
+                "id": "public-10666",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[4].documents[3].root.properties[2].valueNode",
+                  "results[4].documents[3].root.properties[2].valueNode.properties[0].parent"
+                ],
+                "reasons": [
+                  "public property value",
+                  "observable parent identity"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "single-document"
+            ],
+            "count": 100,
+            "perStreamCount": 4.0,
+            "headerBytes": 2400,
+            "reasons": [
+              "mutable public array element"
+            ],
+            "representatives": [
+              {
+                "id": "public-10937",
+                "kind": "object",
+                "categories": [
+                  "single-document"
+                ],
+                "paths": [
+                  "results[5].documents[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              }
+            ]
+          }
+        ],
+        "excludedCategories": [
+          "unlisted/private own fields",
+          "schema and directives",
+          "prototypes and modules",
+          "alias/module caches",
+          "strings and string backing storage",
+          "property tables and array backing stores",
+          "caller TextDocument/editor state"
+        ],
+        "excludedObservedEdgeOccurrences": 2225,
+        "counting": "One count per raw inventory identity across the 25-output union. Membership signatures partition identities; categories within a signature must not be added again. Multiple recorded paths are a capped sharing witness, not total edge/referrer counts. Excluded edge occurrences are not excluded identity or byte counts."
+      },
+      "budget": {
+        "beforeHeapBytes": 8174240,
+        "afterHeapBytes": 13856768,
+        "deltaHeapBytes": 5682528,
+        "streams": 25,
+        "deltaPerStreamBytes": 227301.12,
+        "headerBytes": 1457400,
+        "headerPerStreamBytes": 58296,
+        "tenfoldBudgetBytes": 568252.8,
+        "hundredfoldBudgetBytes": 56825.28,
+        "tenfoldBudgetPerStreamBytes": 22730.112,
+        "hundredfoldBudgetPerStreamBytes": 2273.0112,
+        "headerToObservedBudgetRatio": 0.25647035967090703,
+        "interpretation": "noisy post-GC operational budget, not retained ownership or an upper bound; current public headers do not establish a universal lower bound, reduction ceiling, candidate eligibility or feasibility"
+      },
+      "campaignClock": {
+        "outerLimitMs": 60000,
+        "innerLimitMs": 49000,
+        "workerTimeoutMs": 48248,
+        "outerRemainingMs": 57623.206206,
+        "innerRemainingMs": 46626.650583
+      },
+      "conditionalObservedBudgetScreen": {
+        "available": true,
+        "headerExceedsObservedTenth": true,
+        "headerExceedsObservedHundredth": true,
+        "universalLowerBoundKnown": false,
+        "implementationCeilingEstablished": false
+      }
+    },
+    {
+      "observationId": "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+      "repeatIndex": 1,
+      "kind": "lsp-diagnostic-result",
+      "status": "completed",
+      "scoredMeasurement": false,
+      "diagnostic": "contract-header-budget",
+      "participant": "server-reference",
+      "policy": "literal-default",
+      "fixture": {
+        "id": "github-actions-cmake-multi-platform",
+        "bytes": 3356,
+        "utf16Length": 3356,
+        "sha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0",
+        "expectedDocuments": 1
+      },
+      "elapsedMs": 3189.900126,
+      "worker": {
+        "kind": "lsp-diagnostic",
+        "status": "completed",
+        "scoredMeasurement": false,
+        "diagnostic": "contract-header-budget",
+        "head": "yaml@2.9.0:2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "participant": "server-reference",
+        "fixture": "github-actions-cmake-multi-platform",
+        "policy": "literal-default",
+        "inputSha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0",
+        "resolution": {
+          "resolutionCount": 5,
+          "targetsValidated": true,
+          "parentRootsValidated": true
+        }
+      },
+      "diagnosticDetails": {
+        "warmups": 3,
+        "iterations": 25,
+        "resultCount": 25,
+        "callerTextDocument": "absent",
+        "effectiveUniqueKeys": true,
+        "rootLiveness": "25 complete streams held through after-GC sample and union inventory; modules/cache unchanged",
+        "lifecycle": "source/modules prepared before baseline; warmups discarded; ledger allocated after after-GC sample; post-drop cache lifetime unmeasured"
+      },
+      "runtimeVerified": true,
+      "inventory": {
+        "accounting": "current public-identity header accounting; indispensability beyond fixed eager ordinary representation unproved",
+        "objects": 18775,
+        "arrays": 8675,
+        "objectsPerStream": 751.0,
+        "arraysPerStream": 347.0,
+        "uniqueIdentities": 27450,
+        "identitiesWithMultipleRecordedPaths": 9550,
+        "identitiesWithMultipleCategoryMemberships": 0,
+        "disjointMembershipSignatures": [
+          {
+            "kind": "array",
+            "categories": [
+              "cst-array"
+            ],
+            "count": 4525,
+            "perStreamCount": 181.0,
+            "headerBytes": 144800,
+            "reasons": [
+              "public CST collection items",
+              "public CST document/item start sequence",
+              "public CST token or collection-item sequence",
+              "returned full mutable CST stream"
+            ],
+            "representatives": [
+              {
+                "id": "public-1091",
+                "kind": "array",
+                "categories": [
+                  "cst-array"
+                ],
+                "paths": [
+                  "results[0].tokens"
+                ],
+                "reasons": [
+                  "returned full mutable CST stream"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "provider-items"
+            ],
+            "count": 675,
+            "perStreamCount": 27.0,
+            "headerBytes": 21600,
+            "reasons": [
+              "unchanged converter iterates mutable collection items"
+            ],
+            "representatives": [
+              {
+                "id": "public-1103",
+                "kind": "array",
+                "categories": [
+                  "provider-items"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument.contents.items"
+                ],
+                "reasons": [
+                  "unchanged converter iterates mutable collection items"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "range"
+            ],
+            "count": 2775,
+            "perStreamCount": 111.0,
+            "headerBytes": 88800,
+            "reasons": [
+              "converter consumes node source range",
+              "public source range"
+            ],
+            "representatives": [
+              {
+                "id": "public-10790",
+                "kind": "array",
+                "categories": [
+                  "range"
+                ],
+                "paths": [
+                  "results[9].documents[0]._internalDocument.range"
+                ],
+                "reasons": [
+                  "public source range"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "result-documents"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 800,
+            "reasons": [
+              "returned document wrappers"
+            ],
+            "representatives": [
+              {
+                "id": "public-1",
+                "kind": "array",
+                "categories": [
+                  "result-documents"
+                ],
+                "paths": [
+                  "results[0].documents"
+                ],
+                "reasons": [
+                  "returned document wrappers"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "server-children"
+            ],
+            "count": 675,
+            "perStreamCount": 27.0,
+            "headerBytes": 21600,
+            "reasons": [
+              "public array children own storage",
+              "public object children own storage"
+            ],
+            "representatives": [
+              {
+                "id": "public-10792",
+                "kind": "array",
+                "categories": [
+                  "server-children"
+                ],
+                "paths": [
+                  "results[9].documents[0].root.properties"
+                ],
+                "reasons": [
+                  "public object children own storage"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "cst"
+            ],
+            "count": 10950,
+            "perStreamCount": 438.0,
+            "headerBytes": 262800,
+            "reasons": [
+              "mutable public array element",
+              "public CST collection-item subtree",
+              "public flow collection opening token",
+              "public keepSourceTokens link to original CST identity"
+            ],
+            "representatives": [
+              {
+                "id": "public-1092",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[0].tokens[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              },
+              {
+                "id": "public-10788",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[9].documents[0]._internalDocument.contents.srcToken",
+                  "results[9].tokens[4].value"
+                ],
+                "reasons": [
+                  "public keepSourceTokens link to original CST identity",
+                  "public CST collection-item subtree"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "document"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "audited own backing slot of public internalDocument getter"
+            ],
+            "representatives": [
+              {
+                "id": "public-1101",
+                "kind": "object",
+                "categories": [
+                  "document"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument"
+                ],
+                "reasons": [
+                  "audited own backing slot of public internalDocument getter"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "provider"
+            ],
+            "count": 3875,
+            "perStreamCount": 155.0,
+            "headerBytes": 93000,
+            "reasons": [
+              "mutable public array element",
+              "public Pair.key",
+              "public Pair.value",
+              "public mutable Document.contents",
+              "unchanged converter backlink"
+            ],
+            "representatives": [
+              {
+                "id": "public-1102",
+                "kind": "object",
+                "categories": [
+                  "provider"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument.contents",
+                  "results[1].documents[0].root.internalNode"
+                ],
+                "reasons": [
+                  "public mutable Document.contents",
+                  "unchanged converter backlink"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "result"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "retained full operation result"
+            ],
+            "representatives": [
+              {
+                "id": "public-0",
+                "kind": "object",
+                "categories": [
+                  "result"
+                ],
+                "paths": [
+                  "results[0]"
+                ],
+                "reasons": [
+                  "retained full operation result"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "server"
+            ],
+            "count": 3875,
+            "perStreamCount": 155.0,
+            "headerBytes": 93000,
+            "reasons": [
+              "eager unchanged converter root",
+              "mutable public array element",
+              "observable parent identity",
+              "public property key",
+              "public property value"
+            ],
+            "representatives": [
+              {
+                "id": "public-10791",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[9].documents[0].root",
+                  "results[9].documents[0].root.properties[0].parent",
+                  "results[9].documents[0].root.properties[1].parent"
+                ],
+                "reasons": [
+                  "eager unchanged converter root",
+                  "observable parent identity"
+                ]
+              },
+              {
+                "id": "public-10820",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[9].documents[0].root.properties[2].valueNode",
+                  "results[9].documents[0].root.properties[2].valueNode.properties[0].parent"
+                ],
+                "reasons": [
+                  "public property value",
+                  "observable parent identity"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "single-document"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "mutable public array element"
+            ],
+            "representatives": [
+              {
+                "id": "public-1100",
+                "kind": "object",
+                "categories": [
+                  "single-document"
+                ],
+                "paths": [
+                  "results[1].documents[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              }
+            ]
+          }
+        ],
+        "excludedCategories": [
+          "unlisted/private own fields",
+          "schema and directives",
+          "prototypes and modules",
+          "alias/module caches",
+          "strings and string backing storage",
+          "property tables and array backing stores",
+          "caller TextDocument/editor state"
+        ],
+        "excludedObservedEdgeOccurrences": 875,
+        "counting": "One count per raw inventory identity across the 25-output union. Membership signatures partition identities; categories within a signature must not be added again. Multiple recorded paths are a capped sharing witness, not total edge/referrer counts. Excluded edge occurrences are not excluded identity or byte counts."
+      },
+      "budget": {
+        "beforeHeapBytes": 8430832,
+        "afterHeapBytes": 11189864,
+        "deltaHeapBytes": 2759032,
+        "streams": 25,
+        "deltaPerStreamBytes": 110361.28,
+        "headerBytes": 728200,
+        "headerPerStreamBytes": 29128,
+        "tenfoldBudgetBytes": 275903.2,
+        "hundredfoldBudgetBytes": 27590.32,
+        "tenfoldBudgetPerStreamBytes": 11036.128,
+        "hundredfoldBudgetPerStreamBytes": 1103.6128,
+        "headerToObservedBudgetRatio": 0.26393314756769765,
+        "interpretation": "noisy post-GC operational budget, not retained ownership or an upper bound; current public headers do not establish a universal lower bound, reduction ceiling, candidate eligibility or feasibility"
+      },
+      "campaignClock": {
+        "outerLimitMs": 60000,
+        "innerLimitMs": 49000,
+        "workerTimeoutMs": 46574,
+        "outerRemainingMs": 56810.087891,
+        "innerRemainingMs": 45813.531467
+      },
+      "conditionalObservedBudgetScreen": {
+        "available": true,
+        "headerExceedsObservedTenth": true,
+        "headerExceedsObservedHundredth": true,
+        "universalLowerBoundKnown": false,
+        "implementationCeilingEstablished": false
+      }
+    },
+    {
+      "observationId": "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+      "repeatIndex": 2,
+      "kind": "lsp-diagnostic-result",
+      "status": "completed",
+      "scoredMeasurement": false,
+      "diagnostic": "contract-header-budget",
+      "participant": "server-reference",
+      "policy": "literal-default",
+      "fixture": {
+        "id": "github-actions-cmake-multi-platform",
+        "bytes": 3356,
+        "utf16Length": 3356,
+        "sha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0",
+        "expectedDocuments": 1
+      },
+      "elapsedMs": 4028.593494,
+      "worker": {
+        "kind": "lsp-diagnostic",
+        "status": "completed",
+        "scoredMeasurement": false,
+        "diagnostic": "contract-header-budget",
+        "head": "yaml@2.9.0:2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "participant": "server-reference",
+        "fixture": "github-actions-cmake-multi-platform",
+        "policy": "literal-default",
+        "inputSha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0",
+        "resolution": {
+          "resolutionCount": 5,
+          "targetsValidated": true,
+          "parentRootsValidated": true
+        }
+      },
+      "diagnosticDetails": {
+        "warmups": 3,
+        "iterations": 25,
+        "resultCount": 25,
+        "callerTextDocument": "absent",
+        "effectiveUniqueKeys": true,
+        "rootLiveness": "25 complete streams held through after-GC sample and union inventory; modules/cache unchanged",
+        "lifecycle": "source/modules prepared before baseline; warmups discarded; ledger allocated after after-GC sample; post-drop cache lifetime unmeasured"
+      },
+      "runtimeVerified": true,
+      "inventory": {
+        "accounting": "current public-identity header accounting; indispensability beyond fixed eager ordinary representation unproved",
+        "objects": 18775,
+        "arrays": 8675,
+        "objectsPerStream": 751.0,
+        "arraysPerStream": 347.0,
+        "uniqueIdentities": 27450,
+        "identitiesWithMultipleRecordedPaths": 9550,
+        "identitiesWithMultipleCategoryMemberships": 0,
+        "disjointMembershipSignatures": [
+          {
+            "kind": "array",
+            "categories": [
+              "cst-array"
+            ],
+            "count": 4525,
+            "perStreamCount": 181.0,
+            "headerBytes": 144800,
+            "reasons": [
+              "public CST collection items",
+              "public CST document/item start sequence",
+              "public CST token or collection-item sequence",
+              "returned full mutable CST stream"
+            ],
+            "representatives": [
+              {
+                "id": "public-1091",
+                "kind": "array",
+                "categories": [
+                  "cst-array"
+                ],
+                "paths": [
+                  "results[0].tokens"
+                ],
+                "reasons": [
+                  "returned full mutable CST stream"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "provider-items"
+            ],
+            "count": 675,
+            "perStreamCount": 27.0,
+            "headerBytes": 21600,
+            "reasons": [
+              "unchanged converter iterates mutable collection items"
+            ],
+            "representatives": [
+              {
+                "id": "public-1103",
+                "kind": "array",
+                "categories": [
+                  "provider-items"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument.contents.items"
+                ],
+                "reasons": [
+                  "unchanged converter iterates mutable collection items"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "range"
+            ],
+            "count": 2775,
+            "perStreamCount": 111.0,
+            "headerBytes": 88800,
+            "reasons": [
+              "converter consumes node source range",
+              "public source range"
+            ],
+            "representatives": [
+              {
+                "id": "public-10790",
+                "kind": "array",
+                "categories": [
+                  "range"
+                ],
+                "paths": [
+                  "results[9].documents[0]._internalDocument.range"
+                ],
+                "reasons": [
+                  "public source range"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "result-documents"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 800,
+            "reasons": [
+              "returned document wrappers"
+            ],
+            "representatives": [
+              {
+                "id": "public-1",
+                "kind": "array",
+                "categories": [
+                  "result-documents"
+                ],
+                "paths": [
+                  "results[0].documents"
+                ],
+                "reasons": [
+                  "returned document wrappers"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "server-children"
+            ],
+            "count": 675,
+            "perStreamCount": 27.0,
+            "headerBytes": 21600,
+            "reasons": [
+              "public array children own storage",
+              "public object children own storage"
+            ],
+            "representatives": [
+              {
+                "id": "public-10792",
+                "kind": "array",
+                "categories": [
+                  "server-children"
+                ],
+                "paths": [
+                  "results[9].documents[0].root.properties"
+                ],
+                "reasons": [
+                  "public object children own storage"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "cst"
+            ],
+            "count": 10950,
+            "perStreamCount": 438.0,
+            "headerBytes": 262800,
+            "reasons": [
+              "mutable public array element",
+              "public CST collection-item subtree",
+              "public flow collection opening token",
+              "public keepSourceTokens link to original CST identity"
+            ],
+            "representatives": [
+              {
+                "id": "public-1092",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[0].tokens[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              },
+              {
+                "id": "public-10788",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[9].documents[0]._internalDocument.contents.srcToken",
+                  "results[9].tokens[4].value"
+                ],
+                "reasons": [
+                  "public keepSourceTokens link to original CST identity",
+                  "public CST collection-item subtree"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "document"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "audited own backing slot of public internalDocument getter"
+            ],
+            "representatives": [
+              {
+                "id": "public-1101",
+                "kind": "object",
+                "categories": [
+                  "document"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument"
+                ],
+                "reasons": [
+                  "audited own backing slot of public internalDocument getter"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "provider"
+            ],
+            "count": 3875,
+            "perStreamCount": 155.0,
+            "headerBytes": 93000,
+            "reasons": [
+              "mutable public array element",
+              "public Pair.key",
+              "public Pair.value",
+              "public mutable Document.contents",
+              "unchanged converter backlink"
+            ],
+            "representatives": [
+              {
+                "id": "public-1102",
+                "kind": "object",
+                "categories": [
+                  "provider"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument.contents",
+                  "results[1].documents[0].root.internalNode"
+                ],
+                "reasons": [
+                  "public mutable Document.contents",
+                  "unchanged converter backlink"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "result"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "retained full operation result"
+            ],
+            "representatives": [
+              {
+                "id": "public-0",
+                "kind": "object",
+                "categories": [
+                  "result"
+                ],
+                "paths": [
+                  "results[0]"
+                ],
+                "reasons": [
+                  "retained full operation result"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "server"
+            ],
+            "count": 3875,
+            "perStreamCount": 155.0,
+            "headerBytes": 93000,
+            "reasons": [
+              "eager unchanged converter root",
+              "mutable public array element",
+              "observable parent identity",
+              "public property key",
+              "public property value"
+            ],
+            "representatives": [
+              {
+                "id": "public-10791",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[9].documents[0].root",
+                  "results[9].documents[0].root.properties[0].parent",
+                  "results[9].documents[0].root.properties[1].parent"
+                ],
+                "reasons": [
+                  "eager unchanged converter root",
+                  "observable parent identity"
+                ]
+              },
+              {
+                "id": "public-10820",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[9].documents[0].root.properties[2].valueNode",
+                  "results[9].documents[0].root.properties[2].valueNode.properties[0].parent"
+                ],
+                "reasons": [
+                  "public property value",
+                  "observable parent identity"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "single-document"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "mutable public array element"
+            ],
+            "representatives": [
+              {
+                "id": "public-1100",
+                "kind": "object",
+                "categories": [
+                  "single-document"
+                ],
+                "paths": [
+                  "results[1].documents[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              }
+            ]
+          }
+        ],
+        "excludedCategories": [
+          "unlisted/private own fields",
+          "schema and directives",
+          "prototypes and modules",
+          "alias/module caches",
+          "strings and string backing storage",
+          "property tables and array backing stores",
+          "caller TextDocument/editor state"
+        ],
+        "excludedObservedEdgeOccurrences": 875,
+        "counting": "One count per raw inventory identity across the 25-output union. Membership signatures partition identities; categories within a signature must not be added again. Multiple recorded paths are a capped sharing witness, not total edge/referrer counts. Excluded edge occurrences are not excluded identity or byte counts."
+      },
+      "budget": {
+        "beforeHeapBytes": 8170960,
+        "afterHeapBytes": 11189480,
+        "deltaHeapBytes": 3018520,
+        "streams": 25,
+        "deltaPerStreamBytes": 120740.8,
+        "headerBytes": 728200,
+        "headerPerStreamBytes": 29128,
+        "tenfoldBudgetBytes": 301852,
+        "hundredfoldBudgetBytes": 30185.2,
+        "tenfoldBudgetPerStreamBytes": 12074.08,
+        "hundredfoldBudgetPerStreamBytes": 1207.408,
+        "headerToObservedBudgetRatio": 0.2412440533771517,
+        "interpretation": "noisy post-GC operational budget, not retained ownership or an upper bound; current public headers do not establish a universal lower bound, reduction ceiling, candidate eligibility or feasibility"
+      },
+      "campaignClock": {
+        "outerLimitMs": 60000,
+        "innerLimitMs": 49000,
+        "workerTimeoutMs": 45751,
+        "outerRemainingMs": 55971.396137,
+        "innerRemainingMs": 44974.840323
+      },
+      "conditionalObservedBudgetScreen": {
+        "available": true,
+        "headerExceedsObservedTenth": true,
+        "headerExceedsObservedHundredth": true,
+        "universalLowerBoundKnown": false,
+        "implementationCeilingEstablished": false
+      }
+    },
+    {
+      "observationId": "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+      "repeatIndex": 2,
+      "kind": "lsp-diagnostic-result",
+      "status": "completed",
+      "scoredMeasurement": false,
+      "diagnostic": "contract-header-budget",
+      "participant": "server-reference",
+      "policy": "literal-default",
+      "fixture": {
+        "id": "kubernetes-zookeeper",
+        "bytes": 2903,
+        "utf16Length": 2903,
+        "sha256": "f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529",
+        "expectedDocuments": 4
+      },
+      "elapsedMs": 5690.405603,
+      "worker": {
+        "kind": "lsp-diagnostic",
+        "status": "completed",
+        "scoredMeasurement": false,
+        "diagnostic": "contract-header-budget",
+        "head": "yaml@2.9.0:2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "participant": "server-reference",
+        "fixture": "kubernetes-zookeeper",
+        "policy": "literal-default",
+        "inputSha256": "f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529",
+        "resolution": {
+          "resolutionCount": 5,
+          "targetsValidated": true,
+          "parentRootsValidated": true
+        }
+      },
+      "diagnosticDetails": {
+        "warmups": 3,
+        "iterations": 25,
+        "resultCount": 25,
+        "callerTextDocument": "absent",
+        "effectiveUniqueKeys": true,
+        "rootLiveness": "25 complete streams held through after-GC sample and union inventory; modules/cache unchanged",
+        "lifecycle": "source/modules prepared before baseline; warmups discarded; ledger allocated after after-GC sample; post-drop cache lifetime unmeasured"
+      },
+      "runtimeVerified": true,
+      "inventory": {
+        "accounting": "current public-identity header accounting; indispensability beyond fixed eager ordinary representation unproved",
+        "objects": 36525,
+        "arrays": 18150,
+        "objectsPerStream": 1461.0,
+        "arraysPerStream": 726.0,
+        "uniqueIdentities": 54675,
+        "identitiesWithMultipleRecordedPaths": 20900,
+        "identitiesWithMultipleCategoryMemberships": 0,
+        "disjointMembershipSignatures": [
+          {
+            "kind": "array",
+            "categories": [
+              "cst-array"
+            ],
+            "count": 9075,
+            "perStreamCount": 363.0,
+            "headerBytes": 290400,
+            "reasons": [
+              "public CST collection items",
+              "public CST document/item start sequence",
+              "public CST token or collection-item sequence",
+              "returned full mutable CST stream"
+            ],
+            "representatives": [
+              {
+                "id": "public-10920",
+                "kind": "array",
+                "categories": [
+                  "cst-array"
+                ],
+                "paths": [
+                  "results[4].tokens"
+                ],
+                "reasons": [
+                  "returned full mutable CST stream"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "provider-items"
+            ],
+            "count": 1575,
+            "perStreamCount": 63.0,
+            "headerBytes": 50400,
+            "reasons": [
+              "unchanged converter iterates mutable collection items"
+            ],
+            "representatives": [
+              {
+                "id": "public-10940",
+                "kind": "array",
+                "categories": [
+                  "provider-items"
+                ],
+                "paths": [
+                  "results[5].documents[0]._internalDocument.contents.items"
+                ],
+                "reasons": [
+                  "unchanged converter iterates mutable collection items"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "range"
+            ],
+            "count": 5900,
+            "perStreamCount": 236.0,
+            "headerBytes": 188800,
+            "reasons": [
+              "converter consumes node source range",
+              "public source range"
+            ],
+            "representatives": [
+              {
+                "id": "public-10655",
+                "kind": "array",
+                "categories": [
+                  "range"
+                ],
+                "paths": [
+                  "results[4].documents[3]._internalDocument.range"
+                ],
+                "reasons": [
+                  "public source range"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "result-documents"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 800,
+            "reasons": [
+              "returned document wrappers"
+            ],
+            "representatives": [
+              {
+                "id": "public-1",
+                "kind": "array",
+                "categories": [
+                  "result-documents"
+                ],
+                "paths": [
+                  "results[0].documents"
+                ],
+                "reasons": [
+                  "returned document wrappers"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "server-children"
+            ],
+            "count": 1575,
+            "perStreamCount": 63.0,
+            "headerBytes": 50400,
+            "reasons": [
+              "public array children own storage",
+              "public object children own storage"
+            ],
+            "representatives": [
+              {
+                "id": "public-10657",
+                "kind": "array",
+                "categories": [
+                  "server-children"
+                ],
+                "paths": [
+                  "results[4].documents[3].root.properties"
+                ],
+                "reasons": [
+                  "public object children own storage"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "cst"
+            ],
+            "count": 19550,
+            "perStreamCount": 782.0,
+            "headerBytes": 469200,
+            "reasons": [
+              "mutable public array element",
+              "public CST collection-item subtree",
+              "public flow collection opening token",
+              "public keepSourceTokens link to original CST identity"
+            ],
+            "representatives": [
+              {
+                "id": "public-10921",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[4].tokens[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              },
+              {
+                "id": "public-10653",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[4].documents[3]._internalDocument.contents.srcToken",
+                  "results[4].tokens[3].value"
+                ],
+                "reasons": [
+                  "public keepSourceTokens link to original CST identity",
+                  "public CST collection-item subtree"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "document"
+            ],
+            "count": 100,
+            "perStreamCount": 4.0,
+            "headerBytes": 2400,
+            "reasons": [
+              "audited own backing slot of public internalDocument getter"
+            ],
+            "representatives": [
+              {
+                "id": "public-10938",
+                "kind": "object",
+                "categories": [
+                  "document"
+                ],
+                "paths": [
+                  "results[5].documents[0]._internalDocument"
+                ],
+                "reasons": [
+                  "audited own backing slot of public internalDocument getter"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "provider"
+            ],
+            "count": 8375,
+            "perStreamCount": 335.0,
+            "headerBytes": 201000,
+            "reasons": [
+              "mutable public array element",
+              "public Pair.key",
+              "public Pair.value",
+              "public mutable Document.contents",
+              "unchanged converter backlink"
+            ],
+            "representatives": [
+              {
+                "id": "public-10939",
+                "kind": "object",
+                "categories": [
+                  "provider"
+                ],
+                "paths": [
+                  "results[5].documents[0]._internalDocument.contents",
+                  "results[5].documents[0].root.internalNode"
+                ],
+                "reasons": [
+                  "public mutable Document.contents",
+                  "unchanged converter backlink"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "result"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "retained full operation result"
+            ],
+            "representatives": [
+              {
+                "id": "public-0",
+                "kind": "object",
+                "categories": [
+                  "result"
+                ],
+                "paths": [
+                  "results[0]"
+                ],
+                "reasons": [
+                  "retained full operation result"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "server"
+            ],
+            "count": 8375,
+            "perStreamCount": 335.0,
+            "headerBytes": 201000,
+            "reasons": [
+              "eager unchanged converter root",
+              "mutable public array element",
+              "observable parent identity",
+              "public property key",
+              "public property value"
+            ],
+            "representatives": [
+              {
+                "id": "public-10656",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[4].documents[3].root",
+                  "results[4].documents[3].root.properties[0].parent",
+                  "results[4].documents[3].root.properties[1].parent"
+                ],
+                "reasons": [
+                  "eager unchanged converter root",
+                  "observable parent identity"
+                ]
+              },
+              {
+                "id": "public-10666",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[4].documents[3].root.properties[2].valueNode",
+                  "results[4].documents[3].root.properties[2].valueNode.properties[0].parent"
+                ],
+                "reasons": [
+                  "public property value",
+                  "observable parent identity"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "single-document"
+            ],
+            "count": 100,
+            "perStreamCount": 4.0,
+            "headerBytes": 2400,
+            "reasons": [
+              "mutable public array element"
+            ],
+            "representatives": [
+              {
+                "id": "public-10937",
+                "kind": "object",
+                "categories": [
+                  "single-document"
+                ],
+                "paths": [
+                  "results[5].documents[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              }
+            ]
+          }
+        ],
+        "excludedCategories": [
+          "unlisted/private own fields",
+          "schema and directives",
+          "prototypes and modules",
+          "alias/module caches",
+          "strings and string backing storage",
+          "property tables and array backing stores",
+          "caller TextDocument/editor state"
+        ],
+        "excludedObservedEdgeOccurrences": 2225,
+        "counting": "One count per raw inventory identity across the 25-output union. Membership signatures partition identities; categories within a signature must not be added again. Multiple recorded paths are a capped sharing witness, not total edge/referrer counts. Excluded edge occurrences are not excluded identity or byte counts."
+      },
+      "budget": {
+        "beforeHeapBytes": 8188976,
+        "afterHeapBytes": 13857656,
+        "deltaHeapBytes": 5668680,
+        "streams": 25,
+        "deltaPerStreamBytes": 226747.2,
+        "headerBytes": 1457400,
+        "headerPerStreamBytes": 58296,
+        "tenfoldBudgetBytes": 566868,
+        "hundredfoldBudgetBytes": 56686.8,
+        "tenfoldBudgetPerStreamBytes": 22674.72,
+        "hundredfoldBudgetPerStreamBytes": 2267.472,
+        "headerToObservedBudgetRatio": 0.2570968902813353,
+        "interpretation": "noisy post-GC operational budget, not retained ownership or an upper bound; current public headers do not establish a universal lower bound, reduction ceiling, candidate eligibility or feasibility"
+      },
+      "campaignClock": {
+        "outerLimitMs": 60000,
+        "innerLimitMs": 49000,
+        "workerTimeoutMs": 44909,
+        "outerRemainingMs": 54309.587985,
+        "innerRemainingMs": 43313.032933
+      },
+      "conditionalObservedBudgetScreen": {
+        "available": true,
+        "headerExceedsObservedTenth": true,
+        "headerExceedsObservedHundredth": true,
+        "universalLowerBoundKnown": false,
+        "implementationCeilingEstablished": false
+      }
+    },
+    {
+      "observationId": "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2",
+      "repeatIndex": 2,
+      "kind": "lsp-diagnostic-result",
+      "status": "completed",
+      "scoredMeasurement": false,
+      "diagnostic": "contract-header-budget",
+      "participant": "server-reference",
+      "policy": "literal-default",
+      "fixture": {
+        "id": "docker-compose-pihole-cloudflared-doh",
+        "bytes": 1608,
+        "utf16Length": 1608,
+        "sha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857",
+        "expectedDocuments": 1
+      },
+      "elapsedMs": 6356.498926,
+      "worker": {
+        "kind": "lsp-diagnostic",
+        "status": "completed",
+        "scoredMeasurement": false,
+        "diagnostic": "contract-header-budget",
+        "head": "yaml@2.9.0:2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9",
+        "participant": "server-reference",
+        "fixture": "docker-compose-pihole-cloudflared-doh",
+        "policy": "literal-default",
+        "inputSha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857",
+        "resolution": {
+          "resolutionCount": 5,
+          "targetsValidated": true,
+          "parentRootsValidated": true
+        }
+      },
+      "diagnosticDetails": {
+        "warmups": 3,
+        "iterations": 25,
+        "resultCount": 25,
+        "callerTextDocument": "absent",
+        "effectiveUniqueKeys": true,
+        "rootLiveness": "25 complete streams held through after-GC sample and union inventory; modules/cache unchanged",
+        "lifecycle": "source/modules prepared before baseline; warmups discarded; ledger allocated after after-GC sample; post-drop cache lifetime unmeasured"
+      },
+      "runtimeVerified": true,
+      "inventory": {
+        "accounting": "current public-identity header accounting; indispensability beyond fixed eager ordinary representation unproved",
+        "objects": 13500,
+        "arrays": 6225,
+        "objectsPerStream": 540.0,
+        "arraysPerStream": 249.0,
+        "uniqueIdentities": 19725,
+        "identitiesWithMultipleRecordedPaths": 6325,
+        "identitiesWithMultipleCategoryMemberships": 0,
+        "disjointMembershipSignatures": [
+          {
+            "kind": "array",
+            "categories": [
+              "cst-array"
+            ],
+            "count": 3275,
+            "perStreamCount": 131.0,
+            "headerBytes": 104800,
+            "reasons": [
+              "public CST collection items",
+              "public CST document/item start sequence",
+              "public CST token or collection-item sequence",
+              "returned full mutable CST stream"
+            ],
+            "representatives": [
+              {
+                "id": "public-1575",
+                "kind": "array",
+                "categories": [
+                  "cst-array"
+                ],
+                "paths": [
+                  "results[1].tokens"
+                ],
+                "reasons": [
+                  "returned full mutable CST stream"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "provider-items"
+            ],
+            "count": 475,
+            "perStreamCount": 19.0,
+            "headerBytes": 15200,
+            "reasons": [
+              "unchanged converter iterates mutable collection items"
+            ],
+            "representatives": [
+              {
+                "id": "public-1583",
+                "kind": "array",
+                "categories": [
+                  "provider-items"
+                ],
+                "paths": [
+                  "results[2].documents[0]._internalDocument.contents.items"
+                ],
+                "reasons": [
+                  "unchanged converter iterates mutable collection items"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "range"
+            ],
+            "count": 1975,
+            "perStreamCount": 79.0,
+            "headerBytes": 63200,
+            "reasons": [
+              "converter consumes node source range",
+              "public source range"
+            ],
+            "representatives": [
+              {
+                "id": "public-1451",
+                "kind": "array",
+                "categories": [
+                  "range"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument.range"
+                ],
+                "reasons": [
+                  "public source range"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "result-documents"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 800,
+            "reasons": [
+              "returned document wrappers"
+            ],
+            "representatives": [
+              {
+                "id": "public-1",
+                "kind": "array",
+                "categories": [
+                  "result-documents"
+                ],
+                "paths": [
+                  "results[0].documents"
+                ],
+                "reasons": [
+                  "returned document wrappers"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "array",
+            "categories": [
+              "server-children"
+            ],
+            "count": 475,
+            "perStreamCount": 19.0,
+            "headerBytes": 15200,
+            "reasons": [
+              "public array children own storage",
+              "public object children own storage"
+            ],
+            "representatives": [
+              {
+                "id": "public-1453",
+                "kind": "array",
+                "categories": [
+                  "server-children"
+                ],
+                "paths": [
+                  "results[1].documents[0].root.properties"
+                ],
+                "reasons": [
+                  "public object children own storage"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "cst"
+            ],
+            "count": 8225,
+            "perStreamCount": 329.0,
+            "headerBytes": 197400,
+            "reasons": [
+              "mutable public array element",
+              "public CST collection-item subtree",
+              "public keepSourceTokens link to original CST identity"
+            ],
+            "representatives": [
+              {
+                "id": "public-1576",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[1].tokens[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              },
+              {
+                "id": "public-1449",
+                "kind": "object",
+                "categories": [
+                  "cst"
+                ],
+                "paths": [
+                  "results[1].documents[0]._internalDocument.contents.srcToken",
+                  "results[1].tokens[0].value"
+                ],
+                "reasons": [
+                  "public keepSourceTokens link to original CST identity",
+                  "public CST collection-item subtree"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "document"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "audited own backing slot of public internalDocument getter"
+            ],
+            "representatives": [
+              {
+                "id": "public-1581",
+                "kind": "object",
+                "categories": [
+                  "document"
+                ],
+                "paths": [
+                  "results[2].documents[0]._internalDocument"
+                ],
+                "reasons": [
+                  "audited own backing slot of public internalDocument getter"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "provider"
+            ],
+            "count": 2600,
+            "perStreamCount": 104.0,
+            "headerBytes": 62400,
+            "reasons": [
+              "mutable public array element",
+              "public Pair.key",
+              "public Pair.value",
+              "public mutable Document.contents",
+              "unchanged converter backlink"
+            ],
+            "representatives": [
+              {
+                "id": "public-1582",
+                "kind": "object",
+                "categories": [
+                  "provider"
+                ],
+                "paths": [
+                  "results[2].documents[0]._internalDocument.contents",
+                  "results[2].documents[0].root.internalNode"
+                ],
+                "reasons": [
+                  "public mutable Document.contents",
+                  "unchanged converter backlink"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "result"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "retained full operation result"
+            ],
+            "representatives": [
+              {
+                "id": "public-0",
+                "kind": "object",
+                "categories": [
+                  "result"
+                ],
+                "paths": [
+                  "results[0]"
+                ],
+                "reasons": [
+                  "retained full operation result"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "server"
+            ],
+            "count": 2600,
+            "perStreamCount": 104.0,
+            "headerBytes": 62400,
+            "reasons": [
+              "eager unchanged converter root",
+              "mutable public array element",
+              "observable parent identity",
+              "public property key",
+              "public property value"
+            ],
+            "representatives": [
+              {
+                "id": "public-1452",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[1].documents[0].root",
+                  "results[1].documents[0].root.properties[0].parent",
+                  "results[1].documents[0].root.properties[1].parent"
+                ],
+                "reasons": [
+                  "eager unchanged converter root",
+                  "observable parent identity"
+                ]
+              },
+              {
+                "id": "public-1556",
+                "kind": "object",
+                "categories": [
+                  "server"
+                ],
+                "paths": [
+                  "results[1].documents[0].root.properties[2].valueNode",
+                  "results[1].documents[0].root.properties[2].valueNode.properties[0].parent"
+                ],
+                "reasons": [
+                  "public property value",
+                  "observable parent identity"
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "object",
+            "categories": [
+              "single-document"
+            ],
+            "count": 25,
+            "perStreamCount": 1.0,
+            "headerBytes": 600,
+            "reasons": [
+              "mutable public array element"
+            ],
+            "representatives": [
+              {
+                "id": "public-1580",
+                "kind": "object",
+                "categories": [
+                  "single-document"
+                ],
+                "paths": [
+                  "results[2].documents[0]"
+                ],
+                "reasons": [
+                  "mutable public array element"
+                ]
+              }
+            ]
+          }
+        ],
+        "excludedCategories": [
+          "unlisted/private own fields",
+          "schema and directives",
+          "prototypes and modules",
+          "alias/module caches",
+          "strings and string backing storage",
+          "property tables and array backing stores",
+          "caller TextDocument/editor state"
+        ],
+        "excludedObservedEdgeOccurrences": 675,
+        "counting": "One count per raw inventory identity across the 25-output union. Membership signatures partition identities; categories within a signature must not be added again. Multiple recorded paths are a capped sharing witness, not total edge/referrer counts. Excluded edge occurrences are not excluded identity or byte counts."
+      },
+      "budget": {
+        "beforeHeapBytes": 7974224,
+        "afterHeapBytes": 10305040,
+        "deltaHeapBytes": 2330816,
+        "streams": 25,
+        "deltaPerStreamBytes": 93232.64,
+        "headerBytes": 523200,
+        "headerPerStreamBytes": 20928,
+        "tenfoldBudgetBytes": 233081.6,
+        "hundredfoldBudgetBytes": 23308.16,
+        "tenfoldBudgetPerStreamBytes": 9323.264,
+        "hundredfoldBudgetPerStreamBytes": 932.3264,
+        "headerToObservedBudgetRatio": 0.22447074329333588,
+        "interpretation": "noisy post-GC operational budget, not retained ownership or an upper bound; current public headers do not establish a universal lower bound, reduction ceiling, candidate eligibility or feasibility"
+      },
+      "campaignClock": {
+        "outerLimitMs": 60000,
+        "innerLimitMs": 49000,
+        "workerTimeoutMs": 43238,
+        "outerRemainingMs": 53643.443096,
+        "innerRemainingMs": 42646.88608
+      },
+      "conditionalObservedBudgetScreen": {
+        "available": true,
+        "headerExceedsObservedTenth": true,
+        "headerExceedsObservedHundredth": true,
+        "universalLowerBoundKnown": false,
+        "implementationCeilingEstablished": false
+      }
+    }
+  ],
+  "omissions": [
+    "absolute local paths and file URLs",
+    "shell argv and private nested URLs",
+    "fixture/source text and decoded output graphs",
+    "full identity ledger and dependency closure file lists",
+    "full excluded-edge list; occurrences and categories retained",
+    "unproved private/options/schema/cache/prototype/module/string/backing-store bytes"
+  ],
+  "auditMethod": "Verify exact rawReport hash and declaration. Observation and ledger order are copied without selection. For each observation, partition raw inventory.identities by (kind, sorted categories), sum counts and 24/32-byte header terms once per identity, union its reasons, and select the shortest-path representative plus shortest multiple-path witness when distinct. Representative IDs/paths/reasons are literal raw records; no graph is rebuilt. All budget scalars and statuses are copied; threshold screens are derived only for positive delta."
+}

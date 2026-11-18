@@ -367,3 +367,11 @@ as in the existing diagnostic invocation. Do not supply `--fixture`, `--cells`,
 [pending plan receipt](compatibility/reports/2026-11-18/lsp-header-budget-plan.json)
 contains no collected target diagnostics. Independent protocol review and an
 explicit coordinator launch decision precede data collection.
+
+The approved reference-only campaign is now recorded in the
+[2026-11-18 report](compatibility/reports/2026-11-18/lsp.md) and its
+[compact observations](compatibility/reports/2026-11-18/lsp-header-budget-observations.json).
+Both repeats exceed the observed one-tenth and one-hundredth heap budgets using
+current public-identity headers under the fixed eager representation. The
+genuine required-byte floor and universal implementation ceiling remain unknown.
+<!-- yaml:2.9.0 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:75da749315dd019fc301055b4fd6962323d323db data:5aa4a636731e56230451e7bee117240807c5539dd56c7f8e36c316e2ca2b2212 -->
