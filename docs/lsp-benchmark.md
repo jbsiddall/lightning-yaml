@@ -282,3 +282,85 @@ unscored. The evidence does not establish same-behavior actual-server
 performance or a mandatory-output byte floor. See the [report and compact
 observations](compatibility/reports/2026-11-16/lsp.md).
 <!-- yaml:2.9.0 yaml:2.8.3 server:4bf9c818850bf9751696d24848fdeaececb4203c ly:eb4b3adcd5f3cf9a97a6f8430c468f84b652347c data:883aaeb39b9196e3345146e82534951278e1b67d9a24179bd29ad13cebdcc19c -->
+
+## Reference public-identity headers (P0e)
+
+The opt-in `--diagnostic contract-header-budget` has its own fixed schedule:
+Compose, ZooKeeper, GitHub Actions, then GitHub Actions, ZooKeeper, Compose.
+`--plan` emits all six IDs as pending without importing either provider or
+launching workers. `--diagnose` runs fresh children serially, only through
+`server-reference`, retaining all selected, completed, failed and pending IDs.
+It stops after the first failure and does not retry. No historical scored,
+profile, census or snapshot count changes. A preparation/worker/postflight
+failure produces an incomplete JSON report and exit status 1; an external
+process kill can prevent that final write and must be retained as an unknown
+launch alongside the predeclared pending plan.
+
+Each child uses the existing retained-heap phase: prepare source/modules and
+runtime evidence, discard three ordinary warmups, collect garbage and sample
+heapUsed, retain 25 full streams, collect garbage and sample again. Graph
+validation and inventory allocation happen after the second sample. The
+TextDocument argument remains absent, custom tags and ordinary server options
+remain present, and module/alias-cache state is untouched. Each retained
+provider Document must expose effective `uniqueKeys: true`; the semantic
+`--check` duplicate witness remains the separate evidence for literal policy.
+The caller source is part of the baseline; editor state and post-drop cache
+lifetime remain unmeasured. The entire CLI has a 60-second work budget and a
+shared 49-second inner budget for the six serial jobs, clamped to remaining
+outer time. The separately disclosed process guard is 70 seconds, including
+startup/reporting. These counts are fixed before data, with no adaptive reruns.
+
+The inventory is **current public-identity header accounting**, conditional on
+the fixed eager mutable ordinary-object/array representation. Its allowlist is
+independent of the old census. It admits returned result/document wrappers,
+CST tokens and collection-item records, provider Documents/Nodes/Pairs and
+items/ranges, and server AST nodes and their own properties/items arrays.
+Known `_internalDocument` backing storage is read directly; getters, including
+allocating `children` and diagnostic getters, are never invoked by the
+inventory. `srcToken`, `internalNode` and parent links preserve actual sharing
+and cycles. Identity IDs deduplicate over the union of all returned streams;
+mutable clones remain distinct. Each entry records categories, reasons and up
+to three representative own-data access paths. Trusted pinned prototypes and
+required own paths are checked; a missing path fails the observation.
+
+Schema/options/directives, arbitrary private fields, prototypes/module/cache
+roots, diagnostic internals, custom object scalar payloads, string storage,
+property tables and array backing stores stay excluded or unproved. Exclusion
+does not establish that storage is unnecessary. An identity reached through an
+admitted edge still counts if an excluded field also references it.
+
+The diagnostic process verifies its actual executable version/hash, V8,
+architecture, process configuration, argv, empty NODE_OPTIONS and installed
+config/header hashes. Under the pinned uncompressed x64 representation,
+24 bytes per ordinary object and 32 per array account only for headers. The
+inference follows the pinned Node/V8 [tagged size and JSObject header](https://github.com/nodejs/node/blob/cdc1b38d40cb567b7ad0b39c86addf830a0af0ae/deps/v8/include/v8-internal.h),
+[JSObject fields](https://github.com/nodejs/node/blob/cdc1b38d40cb567b7ad0b39c86addf830a0af0ae/deps/v8/src/objects/js-objects.tq)
+and [JSArray length field](https://github.com/nodejs/node/blob/cdc1b38d40cb567b7ad0b39c86addf830a0af0ae/deps/v8/src/objects/js-array.tq).
+Missing or mismatched runtime evidence yields null header-byte terms; host
+assumptions are never substituted.
+<!-- node:24.19.0 v8:13.6.233.17-node.51 source:cdc1b38d40cb567b7ad0b39c86addf830a0af0ae yaml:2.9.0 server:4bf9c818850bf9751696d24848fdeaececb4203c -->
+
+Reports retain signed before/after/delta heap values, union header totals,
+per-stream terms and the observed budget divided by 10 and 100. A nonpositive
+delta has no header/budget ratio. Post-GC heap delta is a noisy operational
+budget, not output ownership or a rigorous upper bound. Even two observed
+budgets cannot establish a statistical upper bound. These current identities
+do not establish indispensability for lazy/proxy/rebuilt representations; the
+genuine compatibility lower bound remains unknown. No universal reduction
+ceiling, candidate result, eligibility or feasibility follows. Both repeats
+must remain visible in any later comparison.
+
+Plan-only example (no roots or worker launch needed):
+
+```sh
+pnpm bench:lsp -- --plan --diagnostic contract-header-budget \
+  --participant server-reference
+```
+
+For the approved future launch, change `--plan` to `--diagnose` and supply the
+reviewed candidate/server roots and heads and physical stock reference entry
+as in the existing diagnostic invocation. Do not supply `--fixture`, `--cells`,
+`--batch` or `--artifact`: the schedule is fixed. The compact
+[pending plan receipt](compatibility/reports/2026-11-18/lsp-header-budget-plan.json)
+contains no collected target diagnostics. Independent protocol review and an
+explicit coordinator launch decision precede data collection.

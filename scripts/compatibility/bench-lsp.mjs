@@ -23,7 +23,8 @@ import {
 import { enumerateCells, expandDocumentStream, loadPinnedCorpus, semanticSources } from './lsp-fixtures.mjs'
 import {
   canonicalFreshArtifactPath, censusOwnGraph, classifyCpuSamples, collectCpuProfile, createDiagnosticBudget,
-  validateDiagnosticRequest, redactPrivatePaths, validateDiagnosticWorker, writeHeapSnapshot
+  validateDiagnosticRequest, redactPrivatePaths, validateDiagnosticWorker, writeHeapSnapshot,
+  createHeaderBudgetSchedule, inventoryPublicIdentities, observeHeaderRuntime, validateHeaderRuntime, summarizeHeaderBudget
 } from './lsp-diagnostics.mjs'
 
 const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), '../..')
@@ -673,7 +674,31 @@ async function diagnosticWorker(config) {
   try {
     let result
     let diagnostic
-    if (config.diagnostic === 'cpu-profile') {
+    if (config.diagnostic === 'contract-header-budget') {
+      let runtime
+      try { runtime = validateHeaderRuntime(observeHeaderRuntime()) }
+      catch { runtime = { verified: false, failures: ['runtime/header provenance unavailable'], headers: null } }
+      const prototypes = new Set([Object.prototype, Array.prototype])
+      for (const constructor of [api.Document, api.Scalar, api.Pair, api.YAMLMap, api.YAMLSeq, api.Alias]) prototypes.add(constructor.prototype)
+      for (const modulePath of ['out/src/languageservice/parser/jsonDocument.js', 'out/src/languageservice/parser/yaml-documents.js']) {
+        const module = await import(pathToFileURL(resolve(config.serverRoot, modulePath)).href)
+        for (const constructor of Object.values(module)) if (typeof constructor === 'function' && constructor.prototype) prototypes.add(constructor.prototype)
+      }
+      const phase = runMeasurementPhase({ phase: 'retained-heap', operation, warmups: 3, iterations: 25,
+        summarize: (retained) => {
+          for (const output of retained) {
+            assertDiagnosticGraph(api, output, source, true, config.expectedDocumentCount)
+            for (const single of output.documents) if (single.internalDocument.options.uniqueKeys !== true) fail('reference effective uniqueKeys changed')
+          }
+          return inventoryPublicIdentities(retained, prototypes)
+        } })
+      diagnostic = { warmups: phase.warmups, iterations: phase.iterations, resultCount: phase.resultCount,
+        runtime, inventory: phase.output,
+        budget: summarizeHeaderBudget(phase.output, runtime, phase.beforeHeapBytes, phase.afterHeapBytes),
+        callerTextDocument: 'absent', effectiveUniqueKeys: true,
+        rootLiveness: '25 complete streams held through after-GC sample and union inventory; modules/cache unchanged',
+        lifecycle: 'source/modules prepared before baseline; warmups discarded; ledger allocated after after-GC sample; post-drop cache lifetime unmeasured' }
+    } else if (config.diagnostic === 'cpu-profile') {
       let lastResult
       diagnostic = await collectCpuProfile({ operation: () => { lastResult = operation() } })
       result = lastResult
@@ -1271,7 +1296,7 @@ async function measurePlan(args, campaignStartedAt) {
 
 function spawnDiagnostic(config, timeoutMs) {
   const encoded = Buffer.from(JSON.stringify(config)).toString('base64url')
-  const child = spawnSync(process.execPath, [scriptPath, '--worker', encoded], {
+  const child = spawnSync(process.execPath, [...(config.diagnostic === 'contract-header-budget' ? ['--expose-gc'] : []), scriptPath, '--worker', encoded], {
     cwd: repoRoot, encoding: 'utf8', timeout: timeoutMs,
     maxBuffer: 32 * 1024 * 1024, windowsHide: true, env: { ...process.env, LOG_TOKENS: '' }
   })
@@ -1310,8 +1335,8 @@ function diagnosticProviderIdentity(provider) {
   }
 }
 
-async function diagnose(args, startedAt) {
-  const budget = createDiagnosticBudget({ startedAt, now: () => performance.now() })
+async function diagnose(args, startedAt, job = null, sharedBudget = null) {
+  const budget = sharedBudget ?? createDiagnosticBudget({ startedAt, now: () => performance.now() })
   const harnessBefore = diagnosticHarnessIdentity()
   const values = args.values
   const required = ['candidate-root', 'candidate-entry', 'candidate-head', 'server-root', 'server-head', 'diagnostic', 'participant', 'fixture']
@@ -1344,13 +1369,13 @@ async function diagnose(args, startedAt) {
     const sourceFile = join(scratch, 'input.yaml')
     writeFileSync(sourceFile, fixture.source)
     const config = {
-      kind: 'diagnostic', diagnostic: values.diagnostic, workerId: `${values.diagnostic}:${values.participant}:${fixture.id}`,
+      kind: 'diagnostic', diagnostic: values.diagnostic, workerId: job?.observationId ?? `${values.diagnostic}:${values.participant}:${fixture.id}`,
       participant: values.participant, fixture: fixture.id, policy, serverMode, documentMode: 'absent',
       entry, label: participant, expectedHead, serverRoot: resolve(values['server-root']), sourceFile,
       inputSha256: fixture.sha256, expectedDocumentCount: fixture.expectedDocuments,
       artifactPath
     }
-    budget.startInner()
+    if (!sharedBudget) budget.startInner()
     const remaining = budget.remainingWorkerMs()
     if (remaining <= 0) fail('diagnostic outer budget expired during participant preparation')
     const diagnosticResult = spawnDiagnostic(config, Math.max(1, Math.floor(remaining)))
@@ -1399,13 +1424,53 @@ async function diagnose(args, startedAt) {
   }
 }
 
+async function headerBudgetCampaign(args, startedAt) {
+  if (!['plan', 'diagnose'].includes(args.mode)) fail('header budget accepts only --plan or --diagnose')
+  for (const key of ['fixture', 'artifact', 'batch', 'cells']) if (args.values[key]) fail(`header budget fixes its six-job schedule; --${key} is not allowed`)
+  validateDiagnosticRequest({ ...args.values, fixture: createHeaderBudgetSchedule()[0].fixture })
+  const fixtures = loadPinnedCorpus(repoRoot)
+  const schedule = createHeaderBudgetSchedule().map((job) => ({ ...job,
+    fixtureSha256: fixtures.find((fixture) => fixture.id === job.fixture).sha256 }))
+  const completed = []
+  const failed = []
+  const observations = []
+  const failures = []
+  const budget = createDiagnosticBudget({ startedAt, now: () => performance.now() })
+  if (args.mode === 'diagnose') {
+    budget.startInner()
+    for (const job of schedule) {
+      if (budget.expired()) break
+      try {
+        const observation = await diagnose({ ...args, values: { ...args.values, fixture: job.fixture } }, startedAt, job, budget)
+        observations.push({ observationId: job.observationId, repeatIndex: job.repeatIndex, ...observation })
+        completed.push(job.observationId)
+      } catch (error) {
+        failed.push(job.observationId)
+        failures.push({ observationId: job.observationId, reason: error.message.replace(/(?:file:\/\/)?\/[^\s\"'<>]+/g, '<private-path>') })
+        break
+      }
+    }
+  }
+  return { kind: 'lsp-header-budget-campaign', status: args.mode === 'plan' ? 'planned' : completed.length === schedule.length ? 'completed' : 'incomplete',
+    scoredMeasurement: false, diagnostic: 'contract-header-budget', participant: 'server-reference',
+    policy: 'literal-default', effectiveUniqueKeys: true,
+    protocol: { repeats: 2, warmups: 3, retainedStreams: 25, outerLimitMs: 60_000, innerLimitMs: 49_000,
+      externalProcessGuardMs: 70_000, serial: true, retries: 0, documentMode: 'absent',
+      accounting: 'current public-identity headers under fixed eager ordinary representation; genuine lower bound unknown' },
+    pins: { candidateHead: EXPECTED_CANDIDATE_HEAD, serverHead: EXPECTED_SERVER_HEAD, reference: 'yaml@2.9.0' },
+    schedule, ledger: finalizeScheduleLedger(schedule, schedule, completed, failed), observations, failures,
+    dataPending: completed.length !== schedule.length,
+    interpretation: 'reference-only noisy operational budget; no candidate measurement, eligibility or universal feasibility conclusion' }
+}
+
 async function main() {
   const campaignStartedAt = performance.now()
   if (process.argv[2] === '--worker') return workerMain(process.argv[3])
   const args = parseArgs(process.argv.slice(2))
   if (!args.mode) fail('choose --check, --plan, --measure or --diagnose explicitly')
   let output
-  if (args.mode === 'measure' || args.mode === 'plan') output = await measurePlan(args, campaignStartedAt)
+  if (args.values.diagnostic === 'contract-header-budget') output = await headerBudgetCampaign(args, campaignStartedAt)
+  else if (args.mode === 'measure' || args.mode === 'plan') output = await measurePlan(args, campaignStartedAt)
   else if (args.mode === 'diagnose') output = await diagnose(args, campaignStartedAt)
   else output = await actualCheck(args)
   const text = `${JSON.stringify(output, null, 2)}\n`

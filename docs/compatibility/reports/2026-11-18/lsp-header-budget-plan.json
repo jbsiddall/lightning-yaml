@@ -1,0 +1,97 @@
+{
+  "kind": "lsp-header-budget-campaign",
+  "status": "planned",
+  "scoredMeasurement": false,
+  "diagnostic": "contract-header-budget",
+  "participant": "server-reference",
+  "policy": "literal-default",
+  "effectiveUniqueKeys": true,
+  "protocol": {
+    "repeats": 2,
+    "warmups": 3,
+    "retainedStreams": 25,
+    "outerLimitMs": 60000,
+    "innerLimitMs": 49000,
+    "externalProcessGuardMs": 70000,
+    "serial": true,
+    "retries": 0,
+    "documentMode": "absent",
+    "accounting": "current public-identity headers under fixed eager ordinary representation; genuine lower bound unknown"
+  },
+  "pins": {
+    "candidateHead": "8ea0498b65b80806dfd67d1815b4faefcdede04e",
+    "serverHead": "4bf9c818850bf9751696d24848fdeaececb4203c",
+    "reference": "yaml@2.9.0"
+  },
+  "schedule": [
+    {
+      "fixture": "docker-compose-pihole-cloudflared-doh",
+      "repeatIndex": 1,
+      "observationId": "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "fixtureSha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857"
+    },
+    {
+      "fixture": "kubernetes-zookeeper",
+      "repeatIndex": 1,
+      "observationId": "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+      "fixtureSha256": "f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529"
+    },
+    {
+      "fixture": "github-actions-cmake-multi-platform",
+      "repeatIndex": 1,
+      "observationId": "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+      "fixtureSha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0"
+    },
+    {
+      "fixture": "github-actions-cmake-multi-platform",
+      "repeatIndex": 2,
+      "observationId": "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+      "fixtureSha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0"
+    },
+    {
+      "fixture": "kubernetes-zookeeper",
+      "repeatIndex": 2,
+      "observationId": "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+      "fixtureSha256": "f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529"
+    },
+    {
+      "fixture": "docker-compose-pihole-cloudflared-doh",
+      "repeatIndex": 2,
+      "observationId": "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2",
+      "fixtureSha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857"
+    }
+  ],
+  "ledger": {
+    "planned": [
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2"
+    ],
+    "selected": [
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2"
+    ],
+    "completed": [],
+    "failed": [],
+    "pending": [
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:1",
+      "contract-header-budget:server-reference:github-actions-cmake-multi-platform:repeat:2",
+      "contract-header-budget:server-reference:kubernetes-zookeeper:repeat:2",
+      "contract-header-budget:server-reference:docker-compose-pihole-cloudflared-doh:repeat:2"
+    ],
+    "notSelected": []
+  },
+  "observations": [],
+  "failures": [],
+  "dataPending": true,
+  "interpretation": "reference-only noisy operational budget; no candidate measurement, eligibility or universal feasibility conclusion"
+}
