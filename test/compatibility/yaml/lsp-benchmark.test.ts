@@ -169,6 +169,25 @@ describe("maintained LSP compatibility contract", () => {
     expect(partial.observations).toEqual([]);
   });
 
+  it("reserves a fresh header report before work and never replaces an earlier receipt", () => {
+    const directory = mkdtempSync(resolve(tmpdir(), "lsp-header-output-"));
+    try {
+      const output = resolve(directory, "plan.json");
+      const argv = ["scripts/compatibility/bench-lsp.mjs", "--plan", "--diagnostic", "contract-header-budget", "--participant", "server-reference", "--output", output];
+      const first = spawnSync(process.execPath, argv, { cwd: root, encoding: "utf8" });
+      expect(first.status, first.stderr).toBe(0);
+      const receipt = readFileSync(output, "utf8");
+      expect(JSON.parse(receipt).status).toBe("planned");
+      const second = spawnSync(process.execPath, argv, { cwd: root, encoding: "utf8" });
+      expect(second.status).toBe(1);
+      expect(second.stderr).toMatch(/EEXIST/);
+      expect(readFileSync(output, "utf8")).toBe(receipt);
+      expect(JSON.parse(receipt).observations).toEqual([]);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it("loads only byte-pinned corpus files and expands whole documents reproducibly", () => {
     const fixtures = loadPinnedCorpus(root);
     expect(fixtures.map(({ id }) => id)).toEqual([

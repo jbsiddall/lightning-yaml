@@ -290,7 +290,10 @@ Compose, ZooKeeper, GitHub Actions, then GitHub Actions, ZooKeeper, Compose.
 `--plan` emits all six IDs as pending without importing either provider or
 launching workers. `--diagnose` runs fresh children serially, only through
 `server-reference`, retaining all selected, completed, failed and pending IDs.
-It stops after the first failure and does not retry. No historical scored,
+It stops after the first failure and does not retry. An explicit `--output` is
+reserved exclusively before any work; an existing file or symlink is rejected.
+A killed process may leave an empty or partial reserved report, which remains
+a retained launch artifact and cannot be overwritten by a rerun. No historical scored,
 profile, census or snapshot count changes. A preparation/worker/postflight
 failure produces an incomplete JSON report and exit status 1; an external
 process kill can prevent that final write and must be retained as an unknown

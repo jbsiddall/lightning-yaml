@@ -1469,8 +1469,22 @@ async function main() {
   const args = parseArgs(process.argv.slice(2))
   if (!args.mode) fail('choose --check, --plan, --measure or --diagnose explicitly')
   let output
-  if (args.values.diagnostic === 'contract-header-budget') output = await headerBudgetCampaign(args, campaignStartedAt)
-  else if (args.mode === 'measure' || args.mode === 'plan') output = await measurePlan(args, campaignStartedAt)
+  if (args.values.diagnostic === 'contract-header-budget') {
+    const destination = args.values.output
+      ? await import('node:fs/promises').then(({ open }) => open(resolve(args.values.output), 'wx'))
+      : null
+    try {
+      output = await headerBudgetCampaign(args, campaignStartedAt)
+      const text = `${JSON.stringify(output, null, 2)}\n`
+      if (destination) await destination.writeFile(text)
+      else process.stdout.write(text)
+      if (output.status === 'incomplete') process.exitCode = 1
+    } finally {
+      await destination?.close()
+    }
+    return
+  }
+  if (args.mode === 'measure' || args.mode === 'plan') output = await measurePlan(args, campaignStartedAt)
   else if (args.mode === 'diagnose') output = await diagnose(args, campaignStartedAt)
   else output = await actualCheck(args)
   const text = `${JSON.stringify(output, null, 2)}\n`
