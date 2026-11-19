@@ -398,7 +398,9 @@
         {
           "id": "harness:lsp-reference-cpu-collector.mjs",
           "sha256": "9968f33988a09eb4823c63292a46112f89dae9adbf29c11eb6515f8b32d0b359",
-          "bytes": 2604
+          "recordedBytes": 2604,
+          "actualBytes": 3180,
+          "lengthDiscrepancy": "Frozen ownership manifest length is stale. Its SHA256 matches the independently verified physical file; the frozen manifest and its digest are preserved."
         }
       ],
       "functionCount": 268,
@@ -415,7 +417,8 @@
           "lineNumber": 10,
           "columnNumber": 32
         }
-      }
+      },
+      "metadataCaveat": "Collector length recorded as 2604 bytes in the frozen manifest; independently verified actual length is 3180 bytes under the recorded SHA256. All other module lengths matched. Recorded manifest bytes are not corrected retroactively."
     },
     "matchedEnvelopePins": 156,
     "aliasPins": [

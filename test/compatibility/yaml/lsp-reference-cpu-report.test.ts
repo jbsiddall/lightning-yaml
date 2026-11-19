@@ -16,6 +16,14 @@ describe("terminal reference CPU publication", () => {
     expect(bytes.toString()).not.toMatch(/\/home\/|\/tmp\/|\/nix\/|file:\/\/|"scriptId"|"nodes"\s*:/);
     expect(result.provenance.hashes["captures/1.cpuprofile"]).toBe("fbd255e4e76cacde7c8d499e5dd85fc82077a02b4948b8d5ac09caad161263b1");
   });
+  it("discloses the frozen collector length error separately from its verified digest", () => {
+    const collector = result.provenance.sourceOwnership.modules.find((module: { id: string }) => module.id === "harness:lsp-reference-cpu-collector.mjs");
+    expect(collector).toMatchObject({ recordedBytes: 2604, actualBytes: 3180,
+      sha256: "9968f33988a09eb4823c63292a46112f89dae9adbf29c11eb6515f8b32d0b359" });
+    expect(collector).not.toHaveProperty("bytes");
+    expect(collector.lengthDiscrepancy).toContain("stale");
+    expect(result.provenance.hashes["source-ownership.json"]).toBe("ab34bbf53cb4d3bacaccbb2552ed1be72ae922c52bfed6d33cf802065cc1a35d");
+  });
   it("keeps the failed coverage screen and all unlaunched work visible", () => {
     expect(result.status).toBe("incomplete");
     expect(result.execution).toMatchObject({ attempts: 1, exit: 1, signal: null, externalTermination: false });
