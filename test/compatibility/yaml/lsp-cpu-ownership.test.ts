@@ -1,19 +1,19 @@
-import test from 'node:test'
+import { test, type TestContext } from 'vitest'
 import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { auditOwnedCpuProfile, validateOwnershipManifest } from '../scripts/compatibility/lsp-cpu-ownership.mjs'
-import { sha256 } from '../scripts/compatibility/lsp-cpu-audit.mjs'
+import { auditOwnedCpuProfile, validateOwnershipManifest } from '../../../scripts/compatibility/lsp-cpu-ownership.mjs'
+import { sha256 } from '../../../scripts/compatibility/lsp-cpu-audit.mjs'
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const dir = mkdtempSync(join(tmpdir(), 'lsp-ownership-test-'))
-  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  t.onTestFinished(() => rmSync(dir, { recursive: true, force: true }))
   const path = join(dir, 'source.mjs'), source = 'function batch() {}\nfunction operation() {}\nfunction resolve() {}\n'
   writeFileSync(path, source)
-  const frame = (functionName, lineNumber) => ({ functionName, lineNumber, columnNumber: 0, url: pathToFileURL(path).href, scriptId: '1' })
-  const owned = (functionName, lineNumber) => ({ moduleId: 'fixture:source.mjs', functionName, lineNumber, columnNumber: 0 })
+  const frame = (functionName: string, lineNumber: number) => ({ functionName, lineNumber, columnNumber: 0, url: pathToFileURL(path).href, scriptId: '1' })
+  const owned = (functionName: string, lineNumber: number) => ({ moduleId: 'fixture:source.mjs', functionName, lineNumber, columnNumber: 0 })
   const manifest = {
     schema: 'lsp-exact-source-ownership-v1', modules: [{ id: 'fixture:source.mjs', path, sha256: sha256(source) }],
     functions: [{ ...owned('resolve', 2), category: 'customTagCallback' }],
@@ -52,7 +52,7 @@ test('exact operation leaf coverage keeps framing, runtime and unknown visible',
 
 test('strict function name, location and module path prevent basename or resolve-name matches', (t) => {
   const { profile, audit } = fixture(t)
-  profile.nodes.find((node) => node.id === 4).callFrame.functionName = 'anotherResolve'
+  profile.nodes.find((node) => node.id === 4)!.callFrame.functionName = 'anotherResolve'
   assert.equal(audit().coverage.numerator, 0)
   assert.equal(audit().exclusive.unknown.samples, 4)
 })
@@ -60,7 +60,7 @@ test('strict function name, location and module path prevent basename or resolve
 test('inclusive and nearest-owned ancestry cannot turn unknown child leaves into coverage', (t) => {
   const { manifest, profile, audit } = fixture(t)
   manifest.functions.push({ ...manifest.boundaries.operation, category: 'serverWrapper' })
-  profile.nodes.find((node) => node.id === 4).children = [8]
+  profile.nodes.find((node) => node.id === 4)!.children = [8]
   profile.nodes.push({ id: 8, callFrame: { functionName: 'unknown', url: 'file:///unknown.js', lineNumber: 0, columnNumber: 0 } })
   profile.samples = [4, 8, 8]
   profile.timeDeltas = [10, 10, 10]
@@ -85,10 +85,10 @@ test('profile digest, cycles and operation without batch ancestry fail closed', 
   const { manifest, profile, audit } = fixture(t)
   const bytes = Buffer.from(JSON.stringify(profile))
   assert.throws(() => auditOwnedCpuProfile(bytes, '0'.repeat(64), manifest), /SHA256 mismatch/)
-  profile.nodes.find((node) => node.id === 4).children = [2]
+  profile.nodes.find((node) => node.id === 4)!.children = [2]
   assert.throws(audit, /multiple parents|cycle/)
-  delete profile.nodes.find((node) => node.id === 4).children
-  profile.nodes.find((node) => node.id === 2).callFrame.functionName = 'notBatch'
+  delete profile.nodes.find((node) => node.id === 4)!.children
+  profile.nodes.find((node) => node.id === 2)!.callFrame.functionName = 'notBatch'
   assert.throws(audit, /lacks batch ancestry/)
 })
 

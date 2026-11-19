@@ -28,7 +28,7 @@ import {
 } from './lsp-diagnostics.mjs'
 
 const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), '../..')
-const scriptPath = resolve(process.argv[1])
+const scriptPath = resolve(process.argv[1] ?? '.')
 const EXPECTED_SERVER_HEAD = '4bf9c818850bf9751696d24848fdeaececb4203c'
 const EXPECTED_CANDIDATE_HEAD = '8ea0498b65b80806dfd67d1815b4faefcdede04e'
 const EXPECTED_CANDIDATE_ARTIFACTS = {
@@ -585,7 +585,7 @@ function measurementSummary(result, api, source, serverPath, expectedDocumentCou
   return { sourceSha256: sha256(source), tokenCount: tokens.length, documents: values, lineStarts }
 }
 
-async function openMeasurementOperation(config, source) {
+export async function openMeasurementOperation(config, source) {
   const { api, provenance } = await importYamlProvider(config.entry)
   assertYamlProvider(api, config.label)
   let operation
@@ -764,7 +764,7 @@ async function diagnosticWorker(config) {
   }
 }
 
-function assertDiagnosticGraph(api, result, source, serverMode, expectedDocumentCount) {
+export function assertDiagnosticGraph(api, result, source, serverMode, expectedDocumentCount) {
   assertCstLossless(api, result.tokens, source)
   const internalDocuments = serverMode ? result.documents.map((single) => single.internalDocument) : result.documents
   if (internalDocuments.length !== expectedDocumentCount) fail('diagnostic operation document count changed')
@@ -1496,7 +1496,7 @@ async function main() {
   if (output.status === 'incomplete') process.exitCode = 1
 }
 
-main().catch((error) => {
+if (pathToFileURL(scriptPath).href === import.meta.url) main().catch((error) => {
   process.stderr.write(`${error.stack || error}\n`)
   process.exitCode = 1
 })
