@@ -66,3 +66,7 @@ Both sample screens must pass for each child; inadequacy stops the campaign.
 A complete campaign reports both repeats and permits inspection of their
 agreement. It makes no optimization, candidate eligibility or universal CPU
 ceiling claim.
+
+The [2026-11-19 terminal attempt](reports/2026-11-19/lsp-reference-cpu.md)
+records an incomplete campaign and links the safe scalar observations. It keeps
+the measured implementation identity separate from later publication changes.

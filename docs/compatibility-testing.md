@@ -439,5 +439,7 @@ See [the measured results](compatibility/reports/2026-10-11/yaml.md) for main-wr
 observations, independent denominators, time-budget failures and production coverage.
 
 The [frozen LSP CPU audit](compatibility/reports/2026-11-18/lsp-cpu-profiles.md)
-adds offline clock/stack reconstruction and a linked, unrun reference experiment;
-historical category coverage does not establish semantic CPU attribution.
+adds offline clock/stack reconstruction and the frozen reference experiment design;
+historical category coverage does not establish semantic CPU attribution. The
+[2026-11-19 reference attempt](compatibility/reports/2026-11-19/lsp-reference-cpu.md)
+stopped as incomplete after its first attribution screen failed.

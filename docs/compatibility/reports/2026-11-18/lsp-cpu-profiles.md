@@ -133,3 +133,7 @@ manifest is evidence local to these captures, not a general profiler framework.
 See the [frozen next-experiment specification](lsp-cpu-next-experiment.md), which
 is **unrun** and requires a separately reviewed collector change. This PR adds
 no capture implementation.
+
+Dated follow-up: the [2026-11-19 reference attempt](../2026-11-19/lsp-reference-cpu.md)
+implements that frozen design and records its terminal incomplete outcome. It
+retains this historical audit separately.
