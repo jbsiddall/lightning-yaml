@@ -38,6 +38,7 @@ async function worker(config) {
   let failure = null
   try {
     collected = await collectReferenceCpu({ operation: opened.operation })
+    if (!collected.clocks.valid) failure = collected.clocks.failure
     if (collected.operationError) failure = `operation threw ${collected.operationError.name}: ${collected.operationError.message}`
     if (!failure) {
       assertDiagnosticGraph(opened.api, collected.result, source.toString('utf8'), true, fixture.expectedDocuments)
@@ -146,7 +147,7 @@ export async function main(argv = process.argv.slice(2)) {
       if (receipt.status === 'incomplete') return { ...receipt, receiptSha256: envelope.receiptSha256, adequate: false }
       if (receipt.documentCount !== fixture.expectedDocuments || receipt.policy?.verified !== true) throw new Error('child graph/policy mismatch')
       const clock = receipt.clocks
-      if (!clock || !/^\d+$/.test(clock.loopWallNs) || ![clock.processUserUs, clock.processSystemUs].every(value => Number.isFinite(value) && value >= 0)) throw new Error('invalid loop clock receipt')
+      if (!clock || clock.valid !== true || !/^\d+$/.test(clock.loopWallNs) || ![clock.processUserUs, clock.processSystemUs].every(value => Number.isFinite(value) && value >= 0)) throw new Error('invalid loop clock receipt')
       const profileClock = JSON.parse(artifact)
       same(clock.inspector, { startTime: profileClock.startTime, endTime: profileClock.endTime, deltaUs: profileClock.endTime - profileClock.startTime }, 'Inspector receipt clock')
       same(clock.snapshotOrder, ['hrtime-start', 'cpuUsage-start', 'batch', 'cpuUsage-end', 'hrtime-end'], 'clock snapshot order')

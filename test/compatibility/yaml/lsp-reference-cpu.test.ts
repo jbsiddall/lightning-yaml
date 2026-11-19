@@ -139,3 +139,25 @@ test('identity preparation failure preserves the prepopulated pending ledger wit
   assert.equal(result.ledger.every(row => row.state === 'pending'), true);
   assert.match(result.firstFailure?.reason ?? '', /physical identity changed/);
 });
+
+test('invalid loop clocks preserve captured profile, completed operations and serializable snapshots', async () => {
+  const events: unknown[] = [];
+  let wallCall = 0;
+  let cpuCall = 0;
+  const result = await collectReferenceCpu({ operation: () => 'latest', session: fakeSession(events),
+    hrtime: () => wallCall++ === 0 ? 10n : 5n,
+    cpuUsage: () => cpuCall++ === 0 ? { user: 10, system: 2 } : { user: Number.POSITIVE_INFINITY, system: 1 } });
+  assert.equal(result.completedOperations, 1000);
+  assert.equal(result.result, 'latest');
+  assert.equal(result.clocks.valid, false);
+  assert.equal(result.clocks.failure, 'invalid loop clock');
+  assert.equal(result.clocks.loopWallNs, '-5');
+  assert.equal(result.clocks.processUserUs, 'Infinity');
+  assert.equal(result.clocks.processSystemUs, -1);
+  assert.deepEqual(result.clocks.snapshots, { wallStartNs: '10', wallEndNs: '5',
+    cpuStart: { user: 10, system: 2 }, cpuEnd: { user: 'Infinity', system: 1 } });
+  assert.equal(result.profile.startTime, 10);
+  assert.doesNotThrow(() => JSON.stringify(result.clocks));
+  assert.equal(events.filter(event => Array.isArray(event) && event[0] === 'Profiler.stop').length, 1);
+  assert.equal(events.at(-1), 'disconnect');
+});

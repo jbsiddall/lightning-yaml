@@ -1,13 +1,30 @@
 {
-  "schema": "lsp-p0g-external-server-static-pins-v1",
-  "note": "Static direct non-yaml external imports from existing server23; bundled entries. Node builtins pinned separately by runtime. Independently review actual loader resolution before capture.",
+  "schema": "lsp-p0g-external-server-static-pins-v2",
+  "note": "Pinned actual import-selected entries and closures, entry interpretation package manifests, plus conservatively retained require-selected entry files. Caller TextDocument stays absent; adapter still loads its createRequire-selected TextDocument module.",
   "dependencies": [
     {
       "specifier": "vscode-languageserver-types",
-      "entry": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-types/lib/umd/main.js",
+      "entry": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-types/lib/esm/main.js",
       "name": "vscode-languageserver-types",
       "version": "3.18.4",
       "closure": {
+        "count": 1,
+        "sha256": "0d9020ea03612e95b245c0d82435d247987c5f447b230a11304abf17d39deea2",
+        "files": [
+          {
+            "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-types/lib/esm/main.js",
+            "bytes": 83933,
+            "sha256": "a3b917f6fee370fa0393caf96803d2c13e05ed2713c4bbf2e35f758d4530b3a2"
+          }
+        ]
+      },
+      "packageJson": {
+        "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-types/package.json",
+        "bytes": 1255,
+        "sha256": "14079e44c301ffca8e2482b62498bc0e1afbfe9ef16495aeaf87fa2d7725e87d"
+      },
+      "requireEntry": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-types/lib/umd/main.js",
+      "legacyRequireClosure": {
         "count": 1,
         "sha256": "625392ff2193c195f72a82e2031cd66e4247c8e2af4e8c2af1f9a8845f20b5da",
         "files": [
@@ -17,19 +34,31 @@
             "sha256": "f1b6bb37ec0d620440ef31bbe9b79ebb7a3e8f80626455a3b9002523e5718ec3"
           }
         ]
-      },
-      "packageJson": {
-        "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-types/package.json",
-        "bytes": 1255,
-        "sha256": "14079e44c301ffca8e2482b62498bc0e1afbfe9ef16495aeaf87fa2d7725e87d"
       }
     },
     {
       "specifier": "vscode-languageserver-textdocument",
-      "entry": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-textdocument/lib/umd/main.js",
+      "entry": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-textdocument/lib/esm/main.js",
       "name": "vscode-languageserver-textdocument",
       "version": "1.0.15",
       "closure": {
+        "count": 1,
+        "sha256": "97687929090e12f708ee549997ce03142fbf952e8fb4bb17bf2b844231a9fabe",
+        "files": [
+          {
+            "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-textdocument/lib/esm/main.js",
+            "bytes": 11476,
+            "sha256": "a0b45326a09bec7a4cde8062cdf39cd52d223b12752f0377e44a80a920421b3e"
+          }
+        ]
+      },
+      "packageJson": {
+        "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-textdocument/package.json",
+        "bytes": 1317,
+        "sha256": "57747e7d26b30a1e0f6df51890de596502017b4d717da5fe0480c363fe6fbfe3"
+      },
+      "requireEntry": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-textdocument/lib/umd/main.js",
+      "legacyRequireClosure": {
         "count": 1,
         "sha256": "3734c14e0f3f8cc7627f931ffaaad44bd7cd158f1ba8426ecb543c01bfcfa211",
         "files": [
@@ -39,11 +68,6 @@
             "sha256": "2bfe6cf4c5e9778310b5adc710247ae1777d69a795554b73606daa5619a96059"
           }
         ]
-      },
-      "packageJson": {
-        "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-textdocument/package.json",
-        "bytes": 1317,
-        "sha256": "57747e7d26b30a1e0f6df51890de596502017b4d717da5fe0480c363fe6fbfe3"
       }
     },
     {
@@ -66,14 +90,43 @@
         "path": "/tmp/ly-nov13-lsp-candidate/node_modules/@vscode/l10n/package.json",
         "bytes": 1504,
         "sha256": "293375e8e1de0d54c2437079fdc47e6ee4f55a125ca346ac58e61cbd602e959a"
+      },
+      "requireEntry": "/tmp/ly-nov13-lsp-candidate/node_modules/@vscode/l10n/dist/main.js",
+      "legacyRequireClosure": {
+        "count": 1,
+        "sha256": "7ece1af15dce6a424eabd974a4d810e8a84c9f1943fa1762e060efe5317c152f",
+        "files": [
+          {
+            "path": "/tmp/ly-nov13-lsp-candidate/node_modules/@vscode/l10n/dist/main.js",
+            "bytes": 4582,
+            "sha256": "acb4bd2bcbfc029a6744f475151a9c188890cd0dca00c15b739d2371497909cb"
+          }
+        ]
       }
     },
     {
       "specifier": "vscode-uri",
-      "entry": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-uri/lib/umd/index.js",
+      "entry": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-uri/lib/esm/index.mjs",
       "name": "vscode-uri",
       "version": "3.2.0",
       "closure": {
+        "count": 1,
+        "sha256": "cf2eb08c54fa4e9c42ea8b12c6a6cf40208b3fbaee4472cdb5c58036cce205d1",
+        "files": [
+          {
+            "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-uri/lib/esm/index.mjs",
+            "bytes": 10516,
+            "sha256": "c81f174755a466e331351a101c9d5337a1ce424212a154be4313a474e14e5bac"
+          }
+        ]
+      },
+      "packageJson": {
+        "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-uri/package.json",
+        "bytes": 1307,
+        "sha256": "cc5817e31a1d799401a7d2cc9b9725a154d4a77db536a5bfda599c4d32404882"
+      },
+      "requireEntry": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-uri/lib/umd/index.js",
+      "legacyRequireClosure": {
         "count": 1,
         "sha256": "527da370777f03f496e87a61b699b133dee5ce3d4d952770012d3cd8a53a671e",
         "files": [
@@ -83,11 +136,6 @@
             "sha256": "ab26b675d914d7a4529412b755170ee602172e6dc32e06b542bc8f2101dbe7c3"
           }
         ]
-      },
-      "packageJson": {
-        "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-uri/package.json",
-        "bytes": 1307,
-        "sha256": "cc5817e31a1d799401a7d2cc9b9725a154d4a77db536a5bfda599c4d32404882"
       }
     }
   ],
@@ -131,6 +179,31 @@
       "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-uri/package.json",
       "bytes": 1307,
       "sha256": "cc5817e31a1d799401a7d2cc9b9725a154d4a77db536a5bfda599c4d32404882"
+    },
+    {
+      "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-types/lib/esm/main.js",
+      "bytes": 83933,
+      "sha256": "a3b917f6fee370fa0393caf96803d2c13e05ed2713c4bbf2e35f758d4530b3a2"
+    },
+    {
+      "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-types/lib/esm/package.json",
+      "bytes": 23,
+      "sha256": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a"
+    },
+    {
+      "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-textdocument/lib/esm/main.js",
+      "bytes": 11476,
+      "sha256": "a0b45326a09bec7a4cde8062cdf39cd52d223b12752f0377e44a80a920421b3e"
+    },
+    {
+      "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-languageserver-textdocument/lib/esm/package.json",
+      "bytes": 23,
+      "sha256": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a"
+    },
+    {
+      "path": "/tmp/ly-nov13-lsp-candidate/node_modules/vscode-uri/lib/esm/index.mjs",
+      "bytes": 10516,
+      "sha256": "c81f174755a466e331351a101c9d5337a1ce424212a154be4313a474e14e5bac"
     }
   ]
 }

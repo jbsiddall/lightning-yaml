@@ -38,10 +38,15 @@ export async function collectReferenceCpu({ operation, session = new inspector.S
     const wallNs = wallEnd - wallStart
     const userUs = cpuEnd.user - cpuStart.user
     const systemUs = cpuEnd.system - cpuStart.system
-    if (wallNs < 0n || ![userUs, systemUs].every(value => Number.isFinite(value) && value >= 0)) throw new Error('invalid loop clock')
+    const valid = wallStart >= 0n && wallEnd >= wallStart && [cpuStart.user, cpuStart.system, cpuEnd.user, cpuEnd.system, userUs, systemUs].every(value => Number.isFinite(value) && value >= 0)
+    const safeScalar = value => Number.isFinite(value) ? value : String(value)
     return { profile, result: holder.result, completedOperations: holder.completedOperations, operationError,
       warmups: 3, iterations: 1000, sampleIntervalUs: 1000,
-      clocks: { loopWallNs: String(wallNs), processUserUs: userUs, processSystemUs: systemUs,
+      clocks: { valid, failure: valid ? null : 'invalid loop clock',
+        snapshots: { wallStartNs: String(wallStart), wallEndNs: String(wallEnd),
+          cpuStart: { user: safeScalar(cpuStart.user), system: safeScalar(cpuStart.system) },
+          cpuEnd: { user: safeScalar(cpuEnd.user), system: safeScalar(cpuEnd.system) } },
+        loopWallNs: String(wallNs), processUserUs: safeScalar(userUs), processSystemUs: safeScalar(systemUs),
         snapshotOrder: ['hrtime-start', 'cpuUsage-start', 'batch', 'cpuUsage-end', 'hrtime-end'],
         inspector: { startTime: profile.startTime, endTime: profile.endTime, deltaUs: profile.endTime - profile.startTime },
         relationship: 'separate clocks; no shared epoch or per-operation timestamps asserted',

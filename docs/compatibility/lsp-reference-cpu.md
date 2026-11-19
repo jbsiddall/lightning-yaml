@@ -23,6 +23,8 @@ node scripts/compatibility/bench-lsp-reference-cpu.mjs --plan \
 This command hashes inputs and validates identities without starting Inspector.
 It binds the manifest digest, exact physical stock reference closure, compiled
 server closure and external modules, corpus, producer HEAD/tree and runtime.
+External pins include import-selected ESM entries and their interpretation package
+manifests, alongside the adapter's require-selected TextDocument entry.
 The closure policy hashes sorted absolute-path/SHA256 pairs; moving an otherwise
 identical provider changes its identity. Physical module paths must match the
 frozen source manifest and launch plan.
@@ -50,7 +52,9 @@ server adapter with caller TextDocument absent, then validates the final graph,
 ordinary options and effective custom tags after stopping Inspector. It keeps
 only the latest result, with ordinary server cache behavior. Loop monotonic wall
 and process CPU snapshots have a recorded order and remain separate from
-Inspector clocks. Process CPU includes all process threads.
+Inspector clocks. Process CPU includes all process threads. Invalid loop clock
+values retain their original snapshots in a safe JSON representation and make
+the receipt incomplete while preserving the captured profile and operation count.
 
 Receipts contain artifact digests, safe scalars and redacted frame/module paths;
 raw profiles stay private. Exclusive leaf assignment, nearest-owned ancestry and
