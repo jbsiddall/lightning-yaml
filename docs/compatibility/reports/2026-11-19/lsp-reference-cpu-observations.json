@@ -1,0 +1,1061 @@
+{
+  "schema": "lsp-reference-cpu-observations-v1",
+  "date": "2026-11-19",
+  "status": "incomplete",
+  "scoredMeasurement": false,
+  "interpretation": "reference diagnostic observations only; no optimization, eligibility or universal CPU ceiling claim",
+  "provenance": {
+    "hashes": {
+      "campaign.json": "35fa59a5a24f64ec7a1250ca4fee92242d9472a153aca2dcc9c99fa79bde8d33",
+      "campaign.execution.json": "905b93407368557a2cffa77307f0753afaf99872c30b504dcf0f1f5fc33ef115",
+      "campaign.intent.json": "c044771d02cf1dc452f7e6815d32c6c041d1b45a61f96ccd317caca46358f289",
+      "plan.json": "434abf6dea0b0eab4641d26a0b3e605ad3cb65c04fd5d54cfbb079b1a6209731",
+      "source-ownership.json": "ab34bbf53cb4d3bacaccbb2552ed1be72ae922c52bfed6d33cf802065cc1a35d",
+      "launch-envelope.json": "58c4a273a962b5baa295dc2c8097edc7c7b0f6d174066907bfd1da7c7a5ee3e1",
+      "prelaunch-seal.json": "412696f4c90deb682aa650d128b904d3786c8bdef21cfae9c6d4b7c0f46dc446",
+      "prelaunch-guard.json": "67e154570a445320ef0614da01b877694344e06851d7f7a46fdc7b4ff611bada",
+      "protocol-review.md": "faecb5d2bb3048a05be13b86f31a51b41404d4e4f6967a0acee4b9ee031b201b",
+      "captures/1.receipt.json": "0ac162e833eaeca62742a1bd16279adba0b4991c86d92ebbecfc3fbc89c92820",
+      "captures/1.cpuprofile": "fbd255e4e76cacde7c8d499e5dd85fc82077a02b4948b8d5ac09caad161263b1"
+    },
+    "identitySha256": "c6c380aadf3bde69481fb0e9cf1db4ebb034237e953315776fa7dee22f526bd7",
+    "inputSha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857",
+    "measuredHarness": {
+      "head": "1bfa775d0f0bcda3596001c03a83862391d7a9d0",
+      "tree": "f8d72b6d9894a4722e5310a42f49e4e8767d1fc6",
+      "dirty": false
+    },
+    "server": {
+      "head": "4bf9c818850bf9751696d24848fdeaececb4203c",
+      "tree": "cbd49da58734d081dd1b855e7adafa4aa18131fc",
+      "dirty": false
+    },
+    "runtime": {
+      "version": "v24.19.0",
+      "v8": "13.6.233.17-node.51",
+      "arch": "x64",
+      "executable": {
+        "bytes": 74993144,
+        "sha256": "a4c7d261ae62215e73edd637711f09a545535226ae9932c3148342f0b027d56b"
+      },
+      "execArgv": [],
+      "nodeOptions": ""
+    },
+    "provider": {
+      "name": "yaml",
+      "version": "2.9.0",
+      "packageJsonSha256": "20b8b197cbd10dad245d45e463dfe58e4c8c25a47e24bc4256ad9ab58bf35683",
+      "lock": null,
+      "entry": {
+        "bytes": 1769,
+        "sha256": "2d58984e0ae80de4acbd8f009fab332f5ce77d9e1a5f138a3058a0ada6567fb9"
+      },
+      "closure": {
+        "count": 72,
+        "sha256": "2dd772e1e6839d90159c0fa900247b2d9854766c4d17f8953eb704110c03b217"
+      }
+    },
+    "compiled": {
+      "count": 23,
+      "sha256": "d80b96a9ee4e9c769e9c0398d0985ece1d4151a6b982f7e4005eef4244df7149"
+    },
+    "harnessClosure": {
+      "count": 11,
+      "sha256": "a21f01e6138d4ec39bda4dad3a5f77e4079ec00ba6d130e636ec26b7a8b7d097"
+    },
+    "externalPins": [
+      {
+        "bytes": 101226,
+        "sha256": "f1b6bb37ec0d620440ef31bbe9b79ebb7a3e8f80626455a3b9002523e5718ec3",
+        "module": "vscode-languageserver-types/lib/umd/main.js"
+      },
+      {
+        "bytes": 1255,
+        "sha256": "14079e44c301ffca8e2482b62498bc0e1afbfe9ef16495aeaf87fa2d7725e87d",
+        "module": "vscode-languageserver-types/package.json"
+      },
+      {
+        "bytes": 14786,
+        "sha256": "2bfe6cf4c5e9778310b5adc710247ae1777d69a795554b73606daa5619a96059",
+        "module": "vscode-languageserver-textdocument/lib/umd/main.js"
+      },
+      {
+        "bytes": 1317,
+        "sha256": "57747e7d26b30a1e0f6df51890de596502017b4d717da5fe0480c363fe6fbfe3",
+        "module": "vscode-languageserver-textdocument/package.json"
+      },
+      {
+        "bytes": 4582,
+        "sha256": "acb4bd2bcbfc029a6744f475151a9c188890cd0dca00c15b739d2371497909cb",
+        "module": "@vscode/l10n/dist/main.js"
+      },
+      {
+        "bytes": 1504,
+        "sha256": "293375e8e1de0d54c2437079fdc47e6ee4f55a125ca346ac58e61cbd602e959a",
+        "module": "@vscode/l10n/package.json"
+      },
+      {
+        "bytes": 11868,
+        "sha256": "ab26b675d914d7a4529412b755170ee602172e6dc32e06b542bc8f2101dbe7c3",
+        "module": "vscode-uri/lib/umd/index.js"
+      },
+      {
+        "bytes": 1307,
+        "sha256": "cc5817e31a1d799401a7d2cc9b9725a154d4a77db536a5bfda599c4d32404882",
+        "module": "vscode-uri/package.json"
+      },
+      {
+        "bytes": 83933,
+        "sha256": "a3b917f6fee370fa0393caf96803d2c13e05ed2713c4bbf2e35f758d4530b3a2",
+        "module": "vscode-languageserver-types/lib/esm/main.js"
+      },
+      {
+        "bytes": 23,
+        "sha256": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a",
+        "module": "vscode-languageserver-types/lib/esm/package.json"
+      },
+      {
+        "bytes": 11476,
+        "sha256": "a0b45326a09bec7a4cde8062cdf39cd52d223b12752f0377e44a80a920421b3e",
+        "module": "vscode-languageserver-textdocument/lib/esm/main.js"
+      },
+      {
+        "bytes": 23,
+        "sha256": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a",
+        "module": "vscode-languageserver-textdocument/lib/esm/package.json"
+      },
+      {
+        "bytes": 10516,
+        "sha256": "c81f174755a466e331351a101c9d5337a1ce424212a154be4313a474e14e5bac",
+        "module": "vscode-uri/lib/esm/index.mjs"
+      }
+    ],
+    "fixtures": [
+      {
+        "id": "docker-compose-pihole-cloudflared-doh",
+        "sourcePath": "pihole-cloudflared-DoH/compose.yaml",
+        "sourceUrl": "https://github.com/docker/awesome-compose/blob/30f4b7f6a6c3b0c0ecf4d4efb0de203c48d11562/pihole-cloudflared-DoH/compose.yaml",
+        "repository": "docker/awesome-compose",
+        "commit": "30f4b7f6a6c3b0c0ecf4d4efb0de203c48d11562",
+        "license": "CC0-1.0",
+        "licenseSha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+        "bytes": 1608,
+        "utf16Length": 1608,
+        "sha256": "1d21b87c152f756a760df9029fe1d303d3c2fad00b4ca277439490ac77e7a857",
+        "expectedDocuments": 1
+      },
+      {
+        "id": "kubernetes-zookeeper",
+        "sourcePath": "content/en/examples/application/zookeeper/zookeeper.yaml",
+        "sourceUrl": "https://github.com/kubernetes/website/blob/109572ac97242c9b3d68b4b26afdd22b5f88ed73/content/en/examples/application/zookeeper/zookeeper.yaml",
+        "repository": "kubernetes/website",
+        "commit": "109572ac97242c9b3d68b4b26afdd22b5f88ed73",
+        "license": "CC-BY-4.0",
+        "licenseSha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
+        "bytes": 2903,
+        "utf16Length": 2903,
+        "sha256": "f8ee35065a386477e8435a64cecc2a5fd9e89e708666426be8d8760e7efdd529",
+        "expectedDocuments": 4
+      },
+      {
+        "id": "github-actions-cmake-multi-platform",
+        "sourcePath": "ci/cmake-multi-platform.yml",
+        "sourceUrl": "https://github.com/actions/starter-workflows/blob/e3c451d60f119b71caebf13c98ac45da6e15b4b7/ci/cmake-multi-platform.yml",
+        "repository": "actions/starter-workflows",
+        "commit": "e3c451d60f119b71caebf13c98ac45da6e15b4b7",
+        "license": "MIT",
+        "licenseSha256": "d78930d559f68ee1b8d5c69df99c42a223921b1953e9bb59d7ef1785acb81fb3",
+        "bytes": 3356,
+        "utf16Length": 3356,
+        "sha256": "251f58c701753102802d0cb9a45f217d68ee1599475dcce1114641f3b42eacc0",
+        "expectedDocuments": 1
+      }
+    ],
+    "closureDigestPolicy": "sha256(JSON.stringify(sorted absolute-path/SHA256 pairs)); hashModuleClosure v1",
+    "sourceOwnership": {
+      "schema": "lsp-exact-source-ownership-v1",
+      "modules": [
+        {
+          "id": "yaml:parse/lexer.js",
+          "sha256": "cb30a2c4628e270ee810530217f3f7bb0f2730ab89f8fbaf1f8a73ccd1883cf5",
+          "bytes": 24149
+        },
+        {
+          "id": "yaml:parse/parser.js",
+          "sha256": "0adc5ffa51ffa4c0ceed1f80efa8b188d10f58c7b9389a6d46bc861e6bff34e1",
+          "bytes": 35551
+        },
+        {
+          "id": "yaml:parse/cst.js",
+          "sha256": "acc25760d010068844f36f4aefc7fe6f5f6048fd7f8fcc29d4290e154819d1a4",
+          "bytes": 3242
+        },
+        {
+          "id": "yaml:parse/line-counter.js",
+          "sha256": "ddfd11ca2cdd42d36bc6c3090a31c21e6bbcc90bf3498bf6aacfbb30c5d79436",
+          "bytes": 1445
+        },
+        {
+          "id": "yaml:compose/compose-collection.js",
+          "sha256": "a7db11a1a7987d6412df8adbbb85ccd4370171f82265703b2b6af2d13c45d646",
+          "bytes": 3613
+        },
+        {
+          "id": "yaml:compose/compose-doc.js",
+          "sha256": "0f388537747b5c1a241639413f17fc2b5f831451b5017d6902e46db6842a5fe4",
+          "bytes": 1615
+        },
+        {
+          "id": "yaml:compose/compose-node.js",
+          "sha256": "86562c85e4e5737d28b24aae2030b97bc9b672e1f2de5da9e4d25c4571e4345c",
+          "bytes": 4269
+        },
+        {
+          "id": "yaml:compose/compose-scalar.js",
+          "sha256": "37920472755bdaa76399b6d33872f0015ae1fd9ba7faa031c03d501aa8c3e903",
+          "bytes": 3446
+        },
+        {
+          "id": "yaml:compose/composer.js",
+          "sha256": "509c0bdb4cef641cc784c130b6cc2b350752f6841798daa1a13cbcaf4fc74c46",
+          "bytes": 8692
+        },
+        {
+          "id": "yaml:compose/resolve-block-map.js",
+          "sha256": "dcfada448c8fc532ebba96d6788a4b41bb015fc5e697a9544ff429b9c4e4c70a",
+          "bytes": 5071
+        },
+        {
+          "id": "yaml:compose/resolve-block-scalar.js",
+          "sha256": "af562e2e3cd7ee7b3cb9342984177f6b5c77de73121e87695db3ff635e12d152",
+          "bytes": 7500
+        },
+        {
+          "id": "yaml:compose/resolve-block-seq.js",
+          "sha256": "18f54a39d73b600ebbd74a343e6671d0d08423f125bd86963b72dc24d6261911",
+          "bytes": 1812
+        },
+        {
+          "id": "yaml:compose/resolve-end.js",
+          "sha256": "532bf56299183e75bb7c20db75321367c28393b66ecb8ffd540faedd9817f116",
+          "bytes": 1264
+        },
+        {
+          "id": "yaml:compose/resolve-flow-collection.js",
+          "sha256": "242470b54c0deba1507babba2e879f3005ed2ee3bd53a36affb6ecf82fddd375",
+          "bytes": 8927
+        },
+        {
+          "id": "yaml:compose/resolve-flow-scalar.js",
+          "sha256": "167fa296e6fb75618bb7b315acaa926d4e88b2b63a9ff139f1a7de9c78db4610",
+          "bytes": 7386
+        },
+        {
+          "id": "yaml:compose/resolve-props.js",
+          "sha256": "0b49c6af0145c309883dbf24d1a00260c0c090412be10aaa301de126dad15983",
+          "bytes": 5579
+        },
+        {
+          "id": "yaml:compose/util-contains-newline.js",
+          "sha256": "60182618fc9fa669e74ab74f4231c15b5d24bc52ab0a419684bb827a00d69be6",
+          "bytes": 1081
+        },
+        {
+          "id": "yaml:compose/util-empty-scalar-position.js",
+          "sha256": "460516395ef7e961d5248e047ee6d52084f279b76e8af9f3c2bac92da1c7d656",
+          "bytes": 850
+        },
+        {
+          "id": "yaml:compose/util-flow-indent-check.js",
+          "sha256": "c7c0c9837a1f828de19eb3ee0947dff39c4f69222c762aed9fa2fe14fc46ee3e",
+          "bytes": 547
+        },
+        {
+          "id": "yaml:compose/util-map-includes.js",
+          "sha256": "0330dc34072cb499493176b293228631ca8ebaaaddcdc0e63b02bf24f6a25c2d",
+          "bytes": 471
+        },
+        {
+          "id": "yaml:schema/Schema.js",
+          "sha256": "d3b1bc956a766e2489c36114366f3b3f89762a257ae05ff6271ee3fc8c2a9bf5",
+          "bytes": 1547
+        },
+        {
+          "id": "yaml:schema/tags.js",
+          "sha256": "dba2f42d4dbe8cc8b13f662fd97d253da2da5567e71c47115305efede5a888f2",
+          "bytes": 3239
+        },
+        {
+          "id": "yaml:doc/Document.js",
+          "sha256": "9bc1c9a56de3902d554e77193125b6aadcfaec743073b3417b22c95a8f7d7923",
+          "bytes": 13114
+        },
+        {
+          "id": "yaml:doc/directives.js",
+          "sha256": "8f02c3c03571e377e33680b68027d4336234d7a6da3d8c6a8b7f1183c1c428ff",
+          "bytes": 6237
+        },
+        {
+          "id": "yaml:nodes/Node.js",
+          "sha256": "b57b42071f7ebab633626858656ec5187617f2290c272e87edc57467ef591215",
+          "bytes": 1382
+        },
+        {
+          "id": "yaml:nodes/Collection.js",
+          "sha256": "e2d3ffdc9a997774602e72b296fba641558bc7355c9f12a3ee0502fb1e541306",
+          "bytes": 5221
+        },
+        {
+          "id": "yaml:nodes/Scalar.js",
+          "sha256": "616ac0f6a0a5a6565307a4bb4443691b0dd019c03d6bb8777353750bd3459487",
+          "bytes": 759
+        },
+        {
+          "id": "yaml:nodes/YAMLMap.js",
+          "sha256": "d140cfc5aa8d28737bd3c993d977d5a10ab81efe221e36708ac45b3cf18f5dce",
+          "bytes": 5105
+        },
+        {
+          "id": "yaml:nodes/YAMLSeq.js",
+          "sha256": "9f89417f3cba5f22a4436f67a9ff9dce627344b5874d2ed7957ff9acffb030e4",
+          "bytes": 3667
+        },
+        {
+          "id": "yaml:nodes/Pair.js",
+          "sha256": "d5dad67916ba0e864a892da63265a062c45c15a191349ef50a540f2ddbae93e5",
+          "bytes": 1232
+        },
+        {
+          "id": "yaml:nodes/identity.js",
+          "sha256": "1a7cb042ae725ff68d05dc503efbbecbe65281f18b23dfc23f12d1749a440cfe",
+          "bytes": 1794
+        },
+        {
+          "id": "yaml:schema/core/bool.js",
+          "sha256": "9fa696b1efc38cf8c73a398f30d9f9841658aa5afd0b7a6b0822947c3991ba7a",
+          "bytes": 635
+        },
+        {
+          "id": "yaml:schema/core/int.js",
+          "sha256": "f0e474254f6877d5dd23bb57017980931ab333a7eaa3d33872247a80d11f754d",
+          "bytes": 1407
+        },
+        {
+          "id": "yaml:schema/core/float.js",
+          "sha256": "139e3964f0e626ad3741500faf51d855ff98eafa2d9e7523cac06260e4515382",
+          "bytes": 1510
+        },
+        {
+          "id": "yaml:schema/common/map.js",
+          "sha256": "769207eaa56e34c113da10cdc22da845f92b4080ff2b921a72847a38d3ac03d8",
+          "bytes": 483
+        },
+        {
+          "id": "yaml:schema/common/seq.js",
+          "sha256": "51fc0e8bfc63d1d9c7c66b0370a069bb33e0dad865080ff76802803597b9909a",
+          "bytes": 484
+        },
+        {
+          "id": "yaml:schema/common/null.js",
+          "sha256": "f5d5f694ea3a42ef136e0fbcc674dfd7aa0a3da2b8d62183fb750166a12e52bb",
+          "bytes": 469
+        },
+        {
+          "id": "yaml:schema/common/string.js",
+          "sha256": "51d0b3aafab2ffa4ad9d86656a3b92c4b4824d0a8806423882ea5f92a1bf8d11",
+          "bytes": 457
+        },
+        {
+          "id": "server:src/languageservice/parser/yamlParser07.js",
+          "sha256": "a86e1044d30ad5d7241a8ccd39a7eefc6f5a669dc419d502e0ee310232fd35e5",
+          "bytes": 3549
+        },
+        {
+          "id": "server:src/languageservice/parser/ast-converter.js",
+          "sha256": "9137ced1db60f106fc3f4c7aae5fdefa4c9b67b76110724edf7212d84b04c7c2",
+          "bytes": 6573
+        },
+        {
+          "id": "server:src/languageservice/parser/custom-tag-provider.js",
+          "sha256": "976de3bcffd4b08dd4774011fce0a7fef0d60ab9610a7a91c621de83ae40d8ca",
+          "bytes": 2103
+        },
+        {
+          "id": "server:src/languageservice/parser/yaml-documents.js",
+          "sha256": "af8a7ba69ce484bedd4bb3032434e09028c65fcff3bac3e8cb48d1e92d6af0fc",
+          "bytes": 10682
+        },
+        {
+          "id": "server:src/languageservice/parser/jsonDocument.js",
+          "sha256": "a2d79ec5e93347168502d8214dc536f4d49b49418a0e1e35a515ee5a240be9f5",
+          "bytes": 5937
+        },
+        {
+          "id": "server:src/languageservice/utils/customTags.js",
+          "sha256": "83d11e9a66d36fbd963180dff73c74f135ca4bfa3ac1afd2c9070f6b060b06ab",
+          "bytes": 1763
+        },
+        {
+          "id": "harness:lsp-reference-cpu-collector.mjs",
+          "sha256": "9968f33988a09eb4823c63292a46112f89dae9adbf29c11eb6515f8b32d0b359",
+          "recordedBytes": 2604,
+          "actualBytes": 3180,
+          "lengthDiscrepancy": "Frozen ownership manifest length is stale. Its SHA256 matches the independently verified physical file; the frozen manifest and its digest are preserved."
+        }
+      ],
+      "functionCount": 268,
+      "boundaries": {
+        "operation": {
+          "moduleId": "harness:lsp-reference-cpu-collector.mjs",
+          "functionName": "runProfiledOperation",
+          "lineNumber": 6,
+          "columnNumber": 36
+        },
+        "batch": {
+          "moduleId": "harness:lsp-reference-cpu-collector.mjs",
+          "functionName": "runProfiledBatch",
+          "lineNumber": 10,
+          "columnNumber": 32
+        }
+      },
+      "metadataCaveat": "Collector length recorded as 2604 bytes in the frozen manifest; independently verified actual length is 3180 bytes under the recorded SHA256. All other module lengths matched. Recorded manifest bytes are not corrected retroactively."
+    },
+    "matchedEnvelopePins": 156,
+    "aliasPins": [
+      {
+        "bytes": 300,
+        "sha256": "084806d1af24aba980e560c51e93ff7e3c9aaa7b64655aed8085eff403cb508a",
+        "module": "yaml/package.json"
+      },
+      {
+        "bytes": 84,
+        "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc",
+        "module": "yaml/index.js"
+      },
+      {
+        "bytes": 84,
+        "sha256": "bfa95ecb0c617470ddc2e7302ecec2ea6a44ca6b2b9dfb8f061d9d4f30eca6cc",
+        "module": "yaml/index.d.ts"
+      }
+    ],
+    "corpusManifest": {
+      "bytes": 6027,
+      "sha256": "5d4d6c2cf90e9bc6404d6e4507bf965057bee86daf91bb11b68b0e64034811df"
+    },
+    "lock": {
+      "bytes": 98839,
+      "sha256": "a867aa09cd112f4a0a682993bbe419e6bef2e700172bcc2619c9e95f0b7df4d4"
+    }
+  },
+  "protocol": {
+    "schema": "lsp-reference-cpu-v1",
+    "warmups": 3,
+    "iterations": 1000,
+    "sampleIntervalUs": 1000,
+    "outerBudgetMs": 60000,
+    "innerBudgetMs": 49000,
+    "externalGuardMs": 65000,
+    "retries": 0,
+    "participant": "server-reference",
+    "uniqueKeys": true,
+    "documentMode": "absent"
+  },
+  "thresholds": {
+    "minimumUsefulSamples": 200,
+    "minimumClassifiedCoverage": 0.8
+  },
+  "policy": {
+    "uniqueKeys": true,
+    "yamlVersion": "1.2",
+    "keepSourceTokens": true,
+    "strict": false,
+    "customTags": [
+      "!count scalar:number",
+      "!record mapping:object"
+    ],
+    "effectiveCustomTags": [
+      {
+        "tag": "!count",
+        "type": "scalar",
+        "returnType": "number"
+      },
+      {
+        "tag": "!record",
+        "type": "mapping",
+        "returnType": "object"
+      },
+      {
+        "tag": "!include",
+        "type": "scalar",
+        "returnType": null
+      }
+    ],
+    "verified": true,
+    "callerTextDocument": "absent"
+  },
+  "execution": {
+    "attempts": 1,
+    "exit": 1,
+    "signal": null,
+    "spawnError": null,
+    "externalTermination": false,
+    "endedAt": "2026-11-19T13:47:04.633Z",
+    "completeProcessElapsedMs": 1766.974794,
+    "cleanupReceipt": "unknown until report and process cleanup are independently checked"
+  },
+  "campaign": {
+    "firstFailure": {
+      "id": "reference-cpu:docker-compose-pihole-cloudflared-doh:repeat:1",
+      "reason": "sampling screens inadequate; inconclusive"
+    },
+    "elapsedMs": 1737.876466,
+    "innerElapsedMs": 1538.182891,
+    "clockScope": {
+      "outer": "process performance.now origin, including CLI setup",
+      "inner": "first child launch; never reset"
+    },
+    "ledger": [
+      {
+        "fixture": "docker-compose-pihole-cloudflared-doh",
+        "repeat": 1,
+        "id": "reference-cpu:docker-compose-pihole-cloudflared-doh:repeat:1",
+        "state": "incomplete",
+        "completedOperations": 1000,
+        "timeout": false,
+        "signal": null,
+        "cleanup": "retained-private-artifact",
+        "receiptSha256": "0ac162e833eaeca62742a1bd16279adba0b4991c86d92ebbecfc3fbc89c92820",
+        "artifactSha256": "fbd255e4e76cacde7c8d499e5dd85fc82077a02b4948b8d5ac09caad161263b1",
+        "timeoutMs": 49000
+      },
+      {
+        "fixture": "kubernetes-zookeeper",
+        "repeat": 1,
+        "id": "reference-cpu:kubernetes-zookeeper:repeat:1",
+        "state": "pending",
+        "completedOperations": 0,
+        "timeout": false,
+        "signal": null,
+        "cleanup": "not-started",
+        "receiptSha256": null,
+        "artifactSha256": null
+      },
+      {
+        "fixture": "github-actions-cmake-multi-platform",
+        "repeat": 1,
+        "id": "reference-cpu:github-actions-cmake-multi-platform:repeat:1",
+        "state": "pending",
+        "completedOperations": 0,
+        "timeout": false,
+        "signal": null,
+        "cleanup": "not-started",
+        "receiptSha256": null,
+        "artifactSha256": null
+      },
+      {
+        "fixture": "github-actions-cmake-multi-platform",
+        "repeat": 2,
+        "id": "reference-cpu:github-actions-cmake-multi-platform:repeat:2",
+        "state": "pending",
+        "completedOperations": 0,
+        "timeout": false,
+        "signal": null,
+        "cleanup": "not-started",
+        "receiptSha256": null,
+        "artifactSha256": null
+      },
+      {
+        "fixture": "kubernetes-zookeeper",
+        "repeat": 2,
+        "id": "reference-cpu:kubernetes-zookeeper:repeat:2",
+        "state": "pending",
+        "completedOperations": 0,
+        "timeout": false,
+        "signal": null,
+        "cleanup": "not-started",
+        "receiptSha256": null,
+        "artifactSha256": null
+      },
+      {
+        "fixture": "docker-compose-pihole-cloudflared-doh",
+        "repeat": 2,
+        "id": "reference-cpu:docker-compose-pihole-cloudflared-doh:repeat:2",
+        "state": "pending",
+        "completedOperations": 0,
+        "timeout": false,
+        "signal": null,
+        "cleanup": "not-started",
+        "receiptSha256": null,
+        "artifactSha256": null
+      }
+    ]
+  },
+  "child": {
+    "status": "completed",
+    "completedOperations": 1000,
+    "documentCount": 1,
+    "operationError": null,
+    "failure": null,
+    "artifactBytes": 119965,
+    "cleanup": "retained-private-artifact"
+  },
+  "clocks": {
+    "valid": true,
+    "failure": null,
+    "snapshots": {
+      "wallStartNs": "6418801596910673",
+      "wallEndNs": "6418802230970649",
+      "cpuStart": {
+        "user": 269836,
+        "system": 74052
+      },
+      "cpuEnd": {
+        "user": 1200222,
+        "system": 127726
+      }
+    },
+    "loopWallNs": "634059976",
+    "processUserUs": 930386,
+    "processSystemUs": 53674,
+    "snapshotOrder": [
+      "hrtime-start",
+      "cpuUsage-start",
+      "batch",
+      "cpuUsage-end",
+      "hrtime-end"
+    ],
+    "inspector": {
+      "startTime": 6418801571514,
+      "endTime": 6418802231250,
+      "deltaUs": 659736
+    },
+    "relationship": "separate clocks; no shared epoch or per-operation timestamps asserted",
+    "scope": "process CPU includes all threads; loop wall includes scheduling and sampling overhead"
+  },
+  "audit": {
+    "schema": "lsp-exact-source-cpu-attribution-v1",
+    "artifactSha256": "fbd255e4e76cacde7c8d499e5dd85fc82077a02b4948b8d5ac09caad161263b1",
+    "sampleCount": 572,
+    "operationSamples": 454,
+    "usefulSamples": 452,
+    "classifiedSamples": 452,
+    "coverage": {
+      "numerator": 452,
+      "denominator": 571,
+      "ratio": 0.7915936952714536
+    },
+    "adequate": false,
+    "exclusive": {
+      "framing": {
+        "samples": 1,
+        "intervalWeightedEstimateUs": 25125
+      },
+      "lexerParser": {
+        "samples": 284,
+        "intervalWeightedEstimateUs": 317063
+      },
+      "serverTagSetup": {
+        "samples": 10,
+        "intervalWeightedEstimateUs": 10957
+      },
+      "composition": {
+        "samples": 67,
+        "intervalWeightedEstimateUs": 76478
+      },
+      "serverWrapper": {
+        "samples": 11,
+        "intervalWeightedEstimateUs": 11955
+      },
+      "referenceSetup": {
+        "samples": 9,
+        "intervalWeightedEstimateUs": 9820
+      },
+      "referenceHelpers": {
+        "samples": 24,
+        "intervalWeightedEstimateUs": 26271
+      },
+      "serverAstConversion": {
+        "samples": 18,
+        "intervalWeightedEstimateUs": 19676
+      },
+      "runtime": {
+        "samples": 31,
+        "intervalWeightedEstimateUs": 33796
+      },
+      "scalarDecoding": {
+        "samples": 29,
+        "intervalWeightedEstimateUs": 31633
+      },
+      "harness": {
+        "samples": 86,
+        "intervalWeightedEstimateUs": 94425
+      },
+      "unknown": {
+        "samples": 1,
+        "intervalWeightedEstimateUs": 1082
+      },
+      "boundary": {
+        "samples": 1,
+        "intervalWeightedEstimateUs": 1118
+      }
+    },
+    "operationExclusive": {
+      "lexerParser": {
+        "samples": 284,
+        "intervalWeightedEstimateUs": 317063
+      },
+      "serverTagSetup": {
+        "samples": 10,
+        "intervalWeightedEstimateUs": 10957
+      },
+      "composition": {
+        "samples": 67,
+        "intervalWeightedEstimateUs": 76478
+      },
+      "serverWrapper": {
+        "samples": 11,
+        "intervalWeightedEstimateUs": 11955
+      },
+      "referenceSetup": {
+        "samples": 9,
+        "intervalWeightedEstimateUs": 9820
+      },
+      "referenceHelpers": {
+        "samples": 24,
+        "intervalWeightedEstimateUs": 26271
+      },
+      "serverAstConversion": {
+        "samples": 18,
+        "intervalWeightedEstimateUs": 19676
+      },
+      "scalarDecoding": {
+        "samples": 29,
+        "intervalWeightedEstimateUs": 31633
+      },
+      "unknown": {
+        "samples": 1,
+        "intervalWeightedEstimateUs": 1082
+      },
+      "boundary": {
+        "samples": 1,
+        "intervalWeightedEstimateUs": 1118
+      }
+    },
+    "inclusive": {
+      "lexerParser": {
+        "samples": 337,
+        "intervalWeightedEstimateUs": 374901
+      },
+      "serverWrapper": {
+        "samples": 535,
+        "intervalWeightedEstimateUs": 595583
+      },
+      "operation": {
+        "samples": 454,
+        "intervalWeightedEstimateUs": 506053
+      },
+      "serverTagSetup": {
+        "samples": 13,
+        "intervalWeightedEstimateUs": 14263
+      },
+      "composition": {
+        "samples": 149,
+        "intervalWeightedEstimateUs": 167092
+      },
+      "referenceSetup": {
+        "samples": 9,
+        "intervalWeightedEstimateUs": 9820
+      },
+      "referenceHelpers": {
+        "samples": 29,
+        "intervalWeightedEstimateUs": 31754
+      },
+      "serverAstConversion": {
+        "samples": 23,
+        "intervalWeightedEstimateUs": 25129
+      },
+      "scalarDecoding": {
+        "samples": 35,
+        "intervalWeightedEstimateUs": 39174
+      }
+    },
+    "nearestOwned": {
+      "lexerParser": {
+        "samples": 337,
+        "intervalWeightedEstimateUs": 374901
+      },
+      "serverTagSetup": {
+        "samples": 13,
+        "intervalWeightedEstimateUs": 14263
+      },
+      "composition": {
+        "samples": 82,
+        "intervalWeightedEstimateUs": 93899
+      },
+      "serverWrapper": {
+        "samples": 14,
+        "intervalWeightedEstimateUs": 15281
+      },
+      "referenceSetup": {
+        "samples": 9,
+        "intervalWeightedEstimateUs": 9820
+      },
+      "referenceHelpers": {
+        "samples": 28,
+        "intervalWeightedEstimateUs": 30658
+      },
+      "serverAstConversion": {
+        "samples": 21,
+        "intervalWeightedEstimateUs": 22951
+      },
+      "runtime": {
+        "samples": 31,
+        "intervalWeightedEstimateUs": 33796
+      },
+      "scalarDecoding": {
+        "samples": 32,
+        "intervalWeightedEstimateUs": 34893
+      },
+      "harness": {
+        "samples": 2,
+        "intervalWeightedEstimateUs": 1612
+      },
+      "unknown": {
+        "samples": 1,
+        "intervalWeightedEstimateUs": 1082
+      },
+      "boundary": {
+        "samples": 1,
+        "intervalWeightedEstimateUs": 1118
+      }
+    },
+    "coverageFormula": "Exact owned operation leaf observations / all post-framing observations, including detached runtime/GC and unknown. Useful count equals numerator. Nearest-owned and inclusive rows do not confer coverage.",
+    "exclusiveAssignment": "Exact owned leaf. Unknown source/native leaves remain unknown; operation wrappers cannot confer coverage on descendants.",
+    "intervalEstimate": "Observed sample intervals, not exact CPU shares; first framing interval and trailing residual kept separate.",
+    "clock": {
+      "spanUs": 659736,
+      "deltaSumUs": 659399,
+      "firstObservationDeltaUs": 25125,
+      "subsequentDeltaSumUs": 634274,
+      "trailingUnassignedUs": 337,
+      "minDeltaUs": 523,
+      "maxDeltaUs": 25125
+    },
+    "framing": {
+      "samples": 1,
+      "intervalWeightedEstimateUs": 25125,
+      "stack": [
+        {
+          "functionName": "post",
+          "module": "node:inspector",
+          "lineNumber": 114,
+          "columnNumber": 6
+        },
+        {
+          "functionName": "",
+          "module": "lsp-reference-cpu-collector.mjs",
+          "lineNumber": 2,
+          "columnNumber": 62
+        },
+        {
+          "functionName": "request",
+          "module": "lsp-reference-cpu-collector.mjs",
+          "lineNumber": 2,
+          "columnNumber": 16
+        },
+        {
+          "functionName": "collectReferenceCpu",
+          "module": "lsp-reference-cpu-collector.mjs",
+          "lineNumber": 17,
+          "columnNumber": 41
+        },
+        {
+          "functionName": "(root)",
+          "module": "root",
+          "lineNumber": -1,
+          "columnNumber": -1
+        }
+      ]
+    },
+    "unknownFrames": [
+      {
+        "frame": {
+          "functionName": "operation",
+          "lineNumber": 607,
+          "columnNumber": 18,
+          "module": "bench-lsp.mjs"
+        },
+        "samples": 1,
+        "intervalWeightedEstimateUs": 1082
+      }
+    ]
+  },
+  "independentDecoding": {
+    "harnessGroups": {
+      "batch-leaf": {
+        "samples": 2,
+        "intervalWeightedEstimateUs": 1612
+      },
+      "server-parse-directly-under-batch": {
+        "samples": 83,
+        "intervalWeightedEstimateUs": 91730
+      },
+      "lexer-parseNext-directly-under-root": {
+        "samples": 1,
+        "intervalWeightedEstimateUs": 1083
+      }
+    },
+    "harnessLeafCategories": {
+      "boundary": {
+        "samples": 2,
+        "intervalWeightedEstimateUs": 1612
+      },
+      "lexerParser": {
+        "samples": 53,
+        "intervalWeightedEstimateUs": 57838
+      },
+      "referenceHelpers": {
+        "samples": 4,
+        "intervalWeightedEstimateUs": 4387
+      },
+      "scalarDecoding": {
+        "samples": 3,
+        "intervalWeightedEstimateUs": 3260
+      },
+      "composition": {
+        "samples": 15,
+        "intervalWeightedEstimateUs": 17421
+      },
+      "serverTagSetup": {
+        "samples": 3,
+        "intervalWeightedEstimateUs": 3306
+      },
+      "serverAstConversion": {
+        "samples": 3,
+        "intervalWeightedEstimateUs": 3275
+      },
+      "serverWrapper": {
+        "samples": 3,
+        "intervalWeightedEstimateUs": 3326
+      }
+    },
+    "operationServerIntersections": {
+      "operation=true;serverWrapper=true": {
+        "samples": 452,
+        "intervalWeightedEstimateUs": 503853
+      },
+      "operation=false;serverWrapper=false": {
+        "samples": 34,
+        "intervalWeightedEstimateUs": 36491
+      },
+      "operation=true;serverWrapper=false": {
+        "samples": 2,
+        "intervalWeightedEstimateUs": 2200
+      },
+      "operation=false;serverWrapper=true": {
+        "samples": 83,
+        "intervalWeightedEstimateUs": 91730
+      }
+    },
+    "serverParseAncestryPatterns": {
+      "(root) > collectReferenceCpu > runProfiledBatch > runProfiledOperation > operation > parse": {
+        "samples": 316,
+        "intervalWeightedEstimateUs": 351058
+      },
+      "(root) > collectReferenceCpu > runProfiledBatch > runProfiledOperation > parse": {
+        "samples": 136,
+        "intervalWeightedEstimateUs": 152795
+      },
+      "(root) > collectReferenceCpu > runProfiledBatch > parse": {
+        "samples": 83,
+        "intervalWeightedEstimateUs": 91730
+      }
+    },
+    "runtimeLeaves": {
+      "(garbage collector)": {
+        "samples": 31,
+        "intervalWeightedEstimateUs": 33796
+      }
+    },
+    "callerWitnesses": [
+      {
+        "frame": {
+          "id": 6,
+          "moduleId": "harness:lsp-reference-cpu-collector.mjs",
+          "functionName": "runProfiledBatch",
+          "lineNumber": 10,
+          "columnNumber": 32
+        },
+        "parent": 2
+      },
+      {
+        "frame": {
+          "id": 7,
+          "moduleId": "harness:lsp-reference-cpu-collector.mjs",
+          "functionName": "runProfiledOperation",
+          "lineNumber": 6,
+          "columnNumber": 36
+        },
+        "parent": 6
+      },
+      {
+        "frame": {
+          "id": 8,
+          "moduleId": "bench-lsp.mjs",
+          "functionName": "operation",
+          "lineNumber": 607,
+          "columnNumber": 18
+        },
+        "parent": 7
+      },
+      {
+        "frame": {
+          "id": 174,
+          "moduleId": "server:src/languageservice/parser/yamlParser07.js",
+          "functionName": "parse",
+          "lineNumber": 19,
+          "columnNumber": 21
+        },
+        "parent": 7
+      },
+      {
+        "frame": {
+          "id": 317,
+          "moduleId": "server:src/languageservice/parser/yamlParser07.js",
+          "functionName": "parse",
+          "lineNumber": 19,
+          "columnNumber": 21
+        },
+        "parent": 6
+      },
+      {
+        "frame": {
+          "id": 419,
+          "moduleId": "yaml:parse/lexer.js",
+          "functionName": "parseNext",
+          "lineNumber": 224,
+          "columnNumber": 14
+        },
+        "parent": 1
+      }
+    ],
+    "profileMetadata": {
+      "keys": [
+        "nodes",
+        "startTime",
+        "endTime",
+        "samples",
+        "timeDeltas"
+      ],
+      "positionTickNodes": 202,
+      "deoptReasonNodes": 0
+    },
+    "limitations": [
+      "Harness exclusive label includes exact-owned parser/server leaves lacking the accepted operation frame; not a measure of harness overhead.",
+      "Ancestry omissions are observed; no JIT tier/inlining events establish their mechanism.",
+      "Redacted five-import receipt does not independently recover original runtime resolver parent/target strings; exact child validator and pinned source establish those checks were required.",
+      "Frozen coverage remains 452/571 and inadequate; no retrospective promotion of ancestry-ambiguous samples.",
+      "One original fixture repeat only; no shape/repeat concentration or candidate/lifecycle result."
+    ]
+  }
+}
