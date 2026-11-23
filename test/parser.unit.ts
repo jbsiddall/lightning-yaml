@@ -2154,9 +2154,9 @@ test("a finished parseAll does not keep its input string alive", async () => {
 });
 
 test("a parse that throws does not keep its input string alive", async () => {
-  // A parse that throws must still run the release in its `finally`, or the input stays alive.
+  // Throws right after an anchor name, so `pendingAnchorName` must be cleared on this path too.
   const retained = await heapRetainedBy(() =>
-    throws(() => parse(`${"a".repeat(20)}: [1, 2\n# ${"x".repeat(8_000_000)}\n`)),
+    throws(() => parse(`${"a".repeat(20)}: &${"b".repeat(20)} @x\n# ${"x".repeat(8_000_000)}\n`)),
   );
   ok(retained < 4_000_000, `a parse that threw still holds ${retained} bytes of its input`);
 });
