@@ -16,7 +16,7 @@ implementing YAML 1.2, passing ~98.9% (369/373) of the official
 compatibility shims for common `yaml` and `js-yaml` calls, ESM + CJS,
 TypeScript types, and **zero runtime dependencies**. See the module references
 for the supported calls and current gaps.
-<!-- js-yaml:5.4.3 yaml:2.9.0 ly:ddd0913 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:eda87f8 -->
 
 **Two goals, in priority order:** (1) full YAML 1.2 spec compliance, then
 (2) speed and memory within reach of native `JSON.parse`/`JSON.stringify`.
@@ -28,7 +28,7 @@ Everything else is secondary to those two.
   <!-- bench:4ca6140 js-yaml:5.2.1 -->
 - **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~98.9% (369/373) of
   the official yaml-test-suite.
-  <!-- ly:ddd0913 -->
+  <!-- ly:eda87f8 -->
 - **Compatibility shims.** Common calls are available through `lightning-yaml/yaml`
   and `lightning-yaml/js-yaml`. The shims support selected calls and options;
   unsupported options throw instead of being silently ignored. See
@@ -242,10 +242,10 @@ Remaining YAML 1.2 spec edge cases are tracked through the official suite and
 follow-up issues.
 
 On the pinned official yaml-test-suite snapshot (`data-2022-01-17`), source
-`ddd0913` scored **369/373 (98.9%)**, with comparison runs against js-yaml
+`eda87f8` scored **369/373 (98.9%)**, with comparison runs against js-yaml
 5.4.3 and yaml 2.9.0. The remaining suite failures are YAML 1.2 spec edge
 cases; the suite does not exercise merge keys (`<<`).
-<!-- ly:ddd0913 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:eda87f8 -->
 
 ## Decisions and deviations
 
