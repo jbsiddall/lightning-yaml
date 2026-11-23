@@ -88,7 +88,7 @@ which is kept in the value. Pass `{ strict: true }` to reject that input instead
 ```ts
 import { parse } from "lightning-yaml";
 
-const withTab = "a:\n\tb: 1\n"; // a tab indenting "b"
+const withTab = "a:\n \tb: 1\n"; // a space, then a tab, indenting "b"
 
 parse(withTab); // { a: { b: 1 } } — accepted by default
 parse(withTab, { strict: true }); // throws YAMLParseError
