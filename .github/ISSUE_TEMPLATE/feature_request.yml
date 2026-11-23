@@ -5,10 +5,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        Note the project's scope: **YAML 1.2.2 only — YAML 1.1 compatibility is a
-        non-goal**, and correctness is adjudicated by the spec (via the
-        yaml-test-suite), not by matching another library. Requests that would
-        pull the parser away from the 1.2.2 spec are unlikely to land.
+        Note the project's scope: **YAML 1.1 compatibility is a non-goal**. Strict
+        checking follows YAML 1.2.2 (`strict: true`). The native API follows the
+        project priorities, and the `js-yaml` and `yaml` shims match the library
+        they replace. Requests that fit those goals are welcome.
   - type: textarea
     id: problem
     attributes:

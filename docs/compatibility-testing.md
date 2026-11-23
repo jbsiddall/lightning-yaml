@@ -289,8 +289,7 @@ package API.
 <!-- yaml:2.9.0 ly:57d28ea62ca656e5bc63fad4c6e73faf69df9a99 -->
 
 The campaign measures behavior without changing that implementation. A reference
-mismatch is a candidate for investigation; the YAML specification remains the
-project's authority on correctness.
+mismatch is a candidate for investigation. For a compat shim, the library it replaces is the authority, and a mismatch is a bug unless README's Decisions section records an owner-approved exception; for `strict: true`, the YAML specification is the authority.
 
 ## Run
 

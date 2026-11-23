@@ -4,12 +4,12 @@ Guidance for Claude Code working in this repo.
 
 ## What this is
 
-`lightning-yaml` is a **YAML 1.2.2-compliant parser and serializer**
+`lightning-yaml` is a **fast YAML parser and serializer**; `strict: true` checks YAML 1.2.2
 ([`src/core.ts`](src/core.ts) implements `parse`/`parseAll`/`stringify`). The
 project's **goals are the north star, and their authoritative statement lives in
-[README.md](README.md#project-priorities)** — spec compliance first, then
+[README.md](README.md#project-priorities)** — compatibility shims match their library first, then
 performance approaching the browser's native `JSON.parse`/`JSON.stringify` —
-read them from there rather than redefine them here (YAML 1.1 is a non-goal). It
+read them from there rather than redefine them here (YAML 1.1 is a non-goal; strict YAML 1.2.2 checking is opt-in). It
 targets high conformance to the official yaml-test-suite; the live pass rate
 comes from `pnpm test:suite`, not pinned here. Around the parser the repo carries two things, each detailed in
 its own section below: a **benchmark harness** (speed + peak memory, every
@@ -76,25 +76,25 @@ thing — necessary precision is fine, a jargon wall where an example would do i
 ## Source-of-truth precedence — when sources disagree
 
 Highest wins; the lower source is the bug to fix (don't average, and "more detailed"
-doesn't win). Scope it to the claim — the **YAML 1.2.2 spec owns parse/dump
-correctness**, benchmarks own *numbers*, code owns *behavior*, README/research own
+doesn't win). Scope it to the claim — the **owner priorities** own native-API behaviour, the **library a compat shim replaces** owns that shim's output, and the **YAML 1.2.2 spec** owns `strict: true` parse/dump
+correctness, benchmarks own *numbers*, code owns *behavior*, README/research own
 *why*:
 
-**YAML 1.2.2 spec (via the yaml-test-suite = the spec operationalized) › CLAUDE.md
+**Compat shim output = the library it replaces (exact) › owner priorities in README (native API: fast, then lean on memory, just works) › `strict: true` = YAML 1.2.2 via the yaml-test-suite › CLAUDE.md
 (process/policy) › measured output (the `benchmark-data` orphan branch + suite pass
 rate) › `src/` (real behavior & API) › README / the research notes (intent) › `site/`'s generated API reference
 (downstream; generated from `src/`, never ahead of it).**
 
 The reference implementations we test against — `yaml` (`bench/oracle.ts`) and
-js-yaml — are **differential aids, NOT the definition of correct.** A disagreement
+js-yaml — are **the definition of correct for the compat shims**, **differential aids for the native API**, and **not** the definition of correct for `strict: true`. A disagreement
 between our output and an implementation flags a *candidate* to investigate; the
-**spec adjudicates**. Where an implementation diverges from the spec, the spec wins,
+**adjudicator depends on the API** (see the precedence rule above). Where an implementation diverges from its adjudicator, the adjudicator wins,
 and lightning-yaml deliberately matches the spec against it — e.g. we reject an
 implicit flow collection key (`{[1,2]: v}`), a spec error (yaml-test-suite SBG9/X38W)
 that `yaml` wrongly accepts. So "matches the oracle" is never on its own a proof of
 correctness, and "differs from the oracle" is never on its own a bug: check the spec.
-Trust an implementation only where it agrees with the spec. **Sanctioned deviations
-from the spec or the goals live in exactly one place — the [Decisions and
+Trust an implementation only where it agrees with its adjudicator. **Sanctioned deviations
+from the library a compat shim replaces, the spec (`strict: true`), or the goals live in exactly one place — the [Decisions and
 deviations](README.md#decisions-and-deviations) section of `README.md` — and nowhere
 else counts: a deviation asserted in this file, a research note, or a code comment but
 *absent* from that README section is not approved, so flag/escalate it rather than wave
@@ -103,7 +103,7 @@ keeps every standing exception (e.g. duplicate-key last-wins, for `JSON.parse` p
 the rationale is in `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`)
 visible instead of buried.
 
-Code can still carry bugs — behavior that contradicts the spec (or a stated design
+Code can still carry bugs — behavior that contradicts its adjudicator (the library a compat shim replaces, the spec under `strict: true`, or a stated design
 goal) is a bug to fix, not intent to enshrine.
 
 ## Orchestration loop — how to work in this repo
@@ -220,7 +220,7 @@ the shared tree.
 
 A chunk is **not done** until, as applicable: `pnpm typecheck` clean · `pnpm test`
 (vitest, all green) · `pnpm test:unit` · `pnpm test:stringify` · `pnpm test:suite`
-(yaml-test-suite pass rate must **not** drop) · `pnpm bench:self` shows **no** perf
+(yaml-test-suite pass rate must **not** drop) · `pnpm test:compat` (shim changes) · `pnpm bench:self` shows **no** perf
 regression. Never claim progress or commit on a red gate; emit fresh
 `results/benchmarks/*.yaml` per the Benchmarking rules below (CI publishes real runs
 to the orphan `benchmark-data` branch — nothing to commit locally).
@@ -252,7 +252,7 @@ voice_.
 ## Research dossier — when to read it
 
 [site/src/content/docs/research/notes/](site/src/content/docs/research/notes/) holds the parser-strategy research
-(2026-07). Do **not** re-derive or contradict it from scratch — read the
+(2026-07). Do **not** re-derive it from scratch. Its conclusions reflect the goals as of 2026-07; where they conflict with README's current priorities, the priorities win — read the
 relevant file first. Skip it entirely for harness tweaks, fixtures, docs,
 or dependency chores. Read it when the task touches parser design,
 implementation, or performance — pick by task:
@@ -385,8 +385,8 @@ PATH. Not needed on ordinary commits. See [bench/bundlesize](bench/bundlesize/RE
 ## Notes for changes to the harness
 
 - `bench/candidates.ts` is the single source of truth. `lightning-yaml` is
-  already registered there (group `ours`), wired to `src/index.ts` — to bring it
-  to life you implement `src/core.ts`, you don't touch the registry. Each
+  already registered there (group `ours`), wired to `src/index.ts` — the parser lives in
+  `src/core.ts`; you don't touch the registry. Each
   candidate declares a `kind` (`json` vs. `yaml`); `candidateApplies` uses it
   with the dataset category to decide which candidates run for parse vs.
   stringify (e.g. JSON never parses block YAML), and `candidateSupports` skips
@@ -404,7 +404,7 @@ PATH. Not needed on ordinary commits. See [bench/bundlesize](bench/bundlesize/RE
   dataset defs, run `pnpm gen:fixtures` to regenerate all, or tests run on stale
   data.
 - **The reference aid** (`bench/oracle.ts`) is `yaml` — a *differential aid*, NOT
-  ground truth for correctness (the spec is; see the precedence rule above).
+  ground truth for the native API (for a compat shim the library is; for `strict: true` the spec is; see the precedence rule above).
   Fixtures' in-memory values (for stringify) and the consistency tests both go
   through it; that's sound because the fixtures avoid spec-contested constructs. It
   parses with `maxAliasCount: -1` (our rich fixtures reuse anchors thousands of

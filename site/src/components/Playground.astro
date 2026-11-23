@@ -36,7 +36,7 @@ const { autorun = 'view' }: Props = Astro.props;
     <p class="pg__lede">
       Paste any YAML or JSON and hit <b>Run</b> — all three parsers race on your input
       in your browser, then dump it back and race again. If you find a case where
-      <b>lightning-yaml</b> is slower, or disagrees with the others, you've found
+      <b>lightning-yaml</b> is slower, or disagrees with the others on YAML that should just work, you've found
       something we want to fix — the numbers are one click from a GitHub issue.
     </p>
   </header>
@@ -102,8 +102,8 @@ const { autorun = 'view' }: Props = Astro.props;
       'logo: !!binary |\n' +
       '  R0lGODlhAQABAAAAACw=\n',
     merge:
-      '# Merge keys (<<) are not in YAML 1.2 core, so all three parsers keep "<<"\n' +
-      '# as a literal key by default. js-yaml merges it only with its opt-in\n' +
+      '# Merge keys (<<) are not in YAML 1.2 core. yaml and lightning-yaml keep "<<" as a\n' +
+      '# literal key today; lightning-yaml\'s native expansion is planned, not shipped. js-yaml merges it only with its opt-in\n' +
       '# YAML 1.1 schema (js-yaml 4 merged by default; v5 no longer does).\n' +
       'base: &base\n' +
       '  a: 1\n' +
@@ -111,7 +111,7 @@ const { autorun = 'view' }: Props = Astro.props;
       'derived:\n' +
       '  <<: *base\n' +
       '  b: 3\n',
-    json: '{ "name": "lightning-yaml", "version": "0.1.0", "features": ["fast", "spec-compliant"], "deps": null }\n',
+    json: '{ "name": "lightning-yaml", "version": "0.1.0", "features": ["fast", "lean"], "deps": null }\n',
   }
 
   // One Playground per page, so a document-level lookup is safe (module scripts
@@ -540,7 +540,7 @@ const { autorun = 'view' }: Props = Astro.props;
       ' for every library — indicative only, not the CI benchmark on the ' +
       '<a href="/benchmarks/">Benchmarks page</a>. Values compared structurally; <code>!!binary</code> ' +
       'normalizes to bytes, <code>yaml</code> runs with <code>maxAliasCount:-1</code>. A disagreement is ' +
-      'not automatically a bug — the YAML&nbsp;1.2 spec adjudicates.</p>'
+      'not automatically a bug: the native API aims to do what you expect, the compat shims follow their library, and strict checking follows the YAML&nbsp;1.2.2 spec.</p>'
 
     root.querySelector('#pg-issue').href = issueUrl(rep)
 
@@ -558,7 +558,7 @@ const { autorun = 'view' }: Props = Astro.props;
   // The query-param names below MUST match the field ids in
   // .github/ISSUE_TEMPLATE/playground_report.yml.
   function issueUrl(rep) {
-    // Baseline rows (native JSON) are excluded: beating JSON.parse is the design
+    // Baseline rows (native JSON) are excluded: approaching JSON.parse is the design
     // target, not a race we claim to win — "slower" means slower than a YAML library.
     const slower = (rows) => {
       const ly = rows.find((r) => r.id === 'lightning-yaml' && r.state === 'ok')

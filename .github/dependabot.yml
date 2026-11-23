@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Root package (dev toolchain + the js-yaml/yaml differential aids). Grouped so
+  # Root package (dev toolchain + the js-yaml/yaml compatibility references). Grouped so
   # routine bumps arrive as one reviewable PR instead of a flood.
   - package-ecosystem: npm
     directory: "/"

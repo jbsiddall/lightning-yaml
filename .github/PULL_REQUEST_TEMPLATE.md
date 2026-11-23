@@ -16,6 +16,7 @@ Please confirm the relevant checks pass locally (see CONTRIBUTING.md):
 - [ ] `pnpm test` (consistency vs. the oracle)
 - [ ] `pnpm test:unit` and `pnpm test:stringify` (for parser/dumper changes)
 - [ ] `pnpm test:suite` — yaml-test-suite pass rate did **not** drop (parser changes)
+- [ ] `pnpm test:compat` — shims still match their library (shim changes)
 - [ ] `pnpm bench:self` shows no perf regression (hot-path changes)
 
 ## Code review
@@ -55,6 +56,6 @@ Anything the /code-review panel raised that this PR deliberately does NOT fix:
 
 <!--
 If this changes parse/dump behavior, cite the YAML 1.2.2 spec (or the relevant
-yaml-test-suite case). "Another library does it this way" is not on its own a
-justification — the spec adjudicates. See CONTRIBUTING.md.
+yaml-test-suite case) for `strict: true`, or the library version a compat shim must match. "Another library does it this way" is not on its own a
+justification for a native-default change. See CONTRIBUTING.md.
 -->

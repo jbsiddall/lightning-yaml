@@ -26,9 +26,11 @@
  *
  * ## Goal
  *
- * Improve compatibility for these entry points **without ever compromising
- * the two things that outrank it: YAML-1.2-spec correctness and core
- * (./core.ts) speed.**
+ * Improve compatibility for these entry points toward **exact js-yaml
+ * behaviour**, edge cases included (target: effectively 100%; partial today,
+ * selected functions only). Any remaining difference must be an
+ * owner-approved entry in README's Decisions and deviations. The options-free
+ * core path (./core.ts) must not slow down.
  * Per-option cost is therefore paid either in this shim (pre-/post-processing
  * the plain-JS value, the way the `yaml` shim's reviver already does) or behind
  * a gated core seam that leaves the options-free fast path byte-identical. An
@@ -82,9 +84,9 @@
  *     tags. The js-yaml default CORE profile rejects `!!binary`, while the
  *     native and `yaml` parsers retain binary decoding. Other
  *     YAML 1.2 spec edge cases are tracked through the official suite and
- *     follow-up issues. Merge keys (`<<`) are currently neither merged nor
- *     rejected: they come back as ordinary keys (e.g. `{ "<<": {...}, y: 2 }`),
- *     and remain literal in the returned mapping. (See the matrix above.)
+ *     follow-up issues. Merge keys (`<<`) are not merged yet: they
+ *     come back as ordinary keys (e.g. `{ "<<": {...}, y: 2 }`) and stay literal
+ *     in the returned mapping. Target: match js-yaml's merge behaviour exactly. (See the matrix above.)
  *   - Errors: a genuine syntax error surfaces as a `YAMLException` (see below),
  *     so a caller's `catch (e) { if (e instanceof YAMLException) ... }` gets the
  *     same "this document is broken" signal js-yaml gives. `load`/`loadAll` also

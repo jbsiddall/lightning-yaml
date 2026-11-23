@@ -1196,8 +1196,8 @@ test("anchor redefinition is allowed — a later anchor shadows the earlier one 
 });
 
 // --------------------------------------------------------------------------
-// STRICTNESS — a negative-suite win over leniency (js-yaml v5 / the oracle
-// both reject these; see CLAUDE.md's mandate for this feature).
+// STRICTNESS — rejections of invalid YAML (js-yaml v5 / the oracle
+// both reject these).
 // --------------------------------------------------------------------------
 
 test("STRICTNESS: an alias to an undefined/unknown anchor throws", () => {

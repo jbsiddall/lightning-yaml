@@ -14,7 +14,7 @@
  *
  * **Partial API compatibility, not a drop-in replacement.** This module
  * exports `parse`, `parseAllDocuments`, `parseDocument`, `stringify`, the
- * standalone `LineCounter`, and the complete upstream `Lexer` and `Parser`
+ * standalone `LineCounter`, and targets the complete upstream `Lexer` and `Parser`
  * token APIs, the source-preserving `CST` helper namespace, plus the
  * `CompatDocument` and `Reviver` types and a convenience default object.
  * CST supports token inspection and editing, without Composer, AST nodes, or
@@ -38,9 +38,11 @@
  *
  * ## Goal
  *
- * Improve compatibility for these entry points **without ever compromising
- * the two things that outrank it: YAML-1.2-spec correctness and core
- * (./core.ts) speed.**
+ * Improve compatibility for these entry points toward **exact `yaml`
+ * behaviour**, edge cases included (target: the subset used by
+ * yaml-language-server; partial today). Any remaining difference must be an
+ * owner-approved entry in README's Decisions and deviations. The options-free
+ * core path (./core.ts) must not slow down.
  * Per-option cost is paid either in this shim (pre-/post-processing the
  * plain-JS value, as the reviver already does — proof a hook here costs the
  * core nothing) or behind a gated core seam that leaves the options-free fast

@@ -99,7 +99,7 @@ widens what's accepted; `strict: true` narrows it back to the spec.
 ## Merge keys
 
 Merge keys such as `<<: *defaults` are currently read as ordinary `<<` keys;
-lightning-yaml does not expand them. The parser also has other YAML 1.2 spec
+lightning-yaml does not expand them yet. Expanding them, the way older Docker Compose files expect, is the planned native behaviour. The parser also has other YAML 1.2 spec
 edge cases, tracked through the conformance suite and follow-up issues — see
 [Benchmarks](/benchmarks/) for the current suite result.
 
