@@ -2589,14 +2589,16 @@ function foldFlowBreak(i: number): number {
     // (yaml-test-suite 5TRB / RXY3). An INDENTED `---` is ordinary content.
     if (looksLikeDocMarkerAt(i)) fail("unterminated quoted string: a document marker interrupts it");
     const ls = i; // col-0 offset of this continuation line
+    while (i < len && src.charCodeAt(i) === SPACE) i++;
+    const indentEnd = i; // s-indent is spaces only; a tab may separate but never indents
     while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
     if (i >= len) fail("unterminated quoted string");
     const cc = src.charCodeAt(i);
     if (cc !== LF && cc !== CR) {
       // A quoted scalar nested in a block context must keep its continuation
       // lines indented deeper than the enclosing block node (yaml-test-suite
-      // QB6E); at the document root (floor -1) col 0 is legal.
-      if (flowIndentFloor >= 0 && i - ls <= flowIndentFloor) {
+      // QB6E, DK95/01); at the document root (floor -1) col 0 is legal.
+      if (flowIndentFloor >= 0 && indentEnd - ls <= flowIndentFloor) {
         pos = i;
         fail("insufficient indentation for a multi-line quoted scalar");
       }
