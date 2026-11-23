@@ -1846,7 +1846,10 @@ const RE_KEY_SCALAR_RETYPES = /^(?:~|null|Null|NULL|true|True|TRUE|false|False|F
 
 function keyScalarNeedsQuote(s: string): boolean {
   if (s.length === 0) return true;
-  return RE_KEY_SCALAR_LEADING_INDICATOR.test(s) || RE_KEY_SCALAR_STRUCTURAL.test(s) || RE_KEY_SCALAR_RETYPES.test(s);
+  // Match a copy: `s` can be a slice of the input, and V8 keeps the last regex
+  // subject alive in RegExp.input, which would pin the whole YAML text.
+  const t = (" " + s).slice(1);
+  return RE_KEY_SCALAR_LEADING_INDICATOR.test(t) || RE_KEY_SCALAR_STRUCTURAL.test(t) || RE_KEY_SCALAR_RETYPES.test(t);
 }
 
 /**

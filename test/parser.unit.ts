@@ -2138,9 +2138,11 @@ async function heapRetainedBy(run: () => void): Promise<number> {
 }
 
 test("a finished parse does not keep its input string alive", async () => {
-  const retained = await heapRetainedBy(() =>
-    deepStrictEqual(parse(`k: 1\n# ${"x".repeat(8_000_000)}\n`), { k: 1 }),
-  );
+  // Covers a complex key (`? [...]`), which once left a slice of the input in RegExp.input.
+  const retained = await heapRetainedBy(() => {
+    const doc = parse(`%TAG !e! tag:example.com,2000:app/\n---\nk: &a1 ${"v".repeat(20)}\nj: *a1\n? [ "a: ${"b".repeat(20)}" ]\n: v\n# ${"x".repeat(8_000_000)}\n`) as { k: unknown; j: unknown };
+    deepStrictEqual({ k: doc.k, j: doc.j }, { k: "v".repeat(20), j: "v".repeat(20) });
+  });
   ok(retained < 4_000_000, `parse still holds ${retained} bytes of its last input`);
 });
 
@@ -2154,7 +2156,7 @@ test("a finished parseAll does not keep its input string alive", async () => {
 test("a parse that throws does not keep its input string alive", async () => {
   // A parse that throws must still run the release in its `finally`, or the input stays alive.
   const retained = await heapRetainedBy(() =>
-    throws(() => parse(`${"a".repeat(20)}: 1\n# ${"x".repeat(8_000_000)}\nbad: [1, 2\n`)),
+    throws(() => parse(`${"a".repeat(20)}: [1, 2\n# ${"x".repeat(8_000_000)}\n`)),
   );
   ok(retained < 4_000_000, `a parse that threw still holds ${retained} bytes of its input`);
 });
