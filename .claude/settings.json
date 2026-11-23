@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh api -X PUT repos/jbsiddall/lightning-yaml/pulls/*/merge *)"
+    ]
+  }
+}
