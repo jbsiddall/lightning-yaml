@@ -562,6 +562,23 @@ function resetForStream(text: string): void {
 }
 
 /**
+ * Drop what a finished parse left in module state. Without this, `src` and any
+ * cached key or anchored value sliced from it keep the whole input string alive
+ * until the next call.
+ */
+function releaseParseState(): void {
+  src = "";
+  len = 0;
+  keyCache.clear();
+  keyCacheBytes = 0;
+  lastRecordKeys = null;
+  tagHandles = null;
+  anchorMap = null;
+  pendingAnchorName = null;
+  flowFolded = null;
+}
+
+/**
  * Opt-in parse-time performance tradeoffs.
  *
  * IMPORTANT DESIGN RULE: only optimizations that carry a real COST as well as a
@@ -676,6 +693,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
   } finally {
     jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
+    releaseParseState();
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
@@ -724,6 +742,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   } finally {
     jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
+    releaseParseState();
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
@@ -1827,7 +1846,10 @@ const RE_KEY_SCALAR_RETYPES = /^(?:~|null|Null|NULL|true|True|TRUE|false|False|F
 
 function keyScalarNeedsQuote(s: string): boolean {
   if (s.length === 0) return true;
-  return RE_KEY_SCALAR_LEADING_INDICATOR.test(s) || RE_KEY_SCALAR_STRUCTURAL.test(s) || RE_KEY_SCALAR_RETYPES.test(s);
+  // Match a copy: `s` can be a slice of the input, and V8 keeps the subject of
+  // a successful match in RegExp.input, which would pin the whole YAML text.
+  const t = (" " + s).slice(1);
+  return RE_KEY_SCALAR_LEADING_INDICATOR.test(t) || RE_KEY_SCALAR_STRUCTURAL.test(t) || RE_KEY_SCALAR_RETYPES.test(t);
 }
 
 /**

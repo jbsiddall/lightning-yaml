@@ -2119,3 +2119,44 @@ test("explicit collection properties retain anchors and inline nested maps", () 
   deepStrictEqual(parse("? a: 1\n  b: 2\n: value\n"), { "{ a: 1, b: 2 }": "value" });
   deepStrictEqual(parse("? key\n: a: 1\n  b: 2\n"), { key: { a: 1, b: 2 } });
 });
+
+// `run` must build its input and result inside the closure: a value held by the
+// caller's frame would count as retained by the parser.
+async function heapRetainedBy(run: () => void): Promise<number> {
+  const { setFlagsFromString } = await import("node:v8");
+  const { runInNewContext } = await import("node:vm");
+  setFlagsFromString("--expose_gc");
+  const gc = runInNewContext("gc") as () => void;
+  const heapAfterGc = () => {
+    gc();
+    gc();
+    return process.memoryUsage().heapUsed;
+  };
+  const before = heapAfterGc();
+  run();
+  return heapAfterGc() - before;
+}
+
+test("a finished parse does not keep its input string alive", async () => {
+  // 13+ chars so V8 slices instead of copying; ": " makes the key regex match, and V8 keeps a match's subject in RegExp.input.
+  const retained = await heapRetainedBy(() => {
+    const doc = parse(`%TAG !e! tag:example.com,2000:app/\n---\nk: &a1 ${"v".repeat(20)}\nj: *a1\n? [ "a: ${"b".repeat(20)}" ]\n: v\n# ${"x".repeat(8_000_000)}\n`) as { k: unknown; j: unknown };
+    deepStrictEqual({ k: doc.k, j: doc.j }, { k: "v".repeat(20), j: "v".repeat(20) });
+  });
+  ok(retained < 4_000_000, `parse still holds ${retained} bytes of its last input`);
+});
+
+test("a finished parseAll does not keep its input string alive", async () => {
+  const retained = await heapRetainedBy(() =>
+    deepStrictEqual(parseAll(`k: 1\n# ${"x".repeat(8_000_000)}\n---\nk: 2\n`), [{ k: 1 }, { k: 2 }]),
+  );
+  ok(retained < 4_000_000, `parseAll still holds ${retained} bytes of its last input`);
+});
+
+test("a parse that throws does not keep its input string alive", async () => {
+  // Throws right after an anchor name, so `pendingAnchorName` must be cleared on this path too.
+  const retained = await heapRetainedBy(() =>
+    throws(() => parse(`${"a".repeat(20)}: &${"b".repeat(20)} @x\n# ${"x".repeat(8_000_000)}\n`)),
+  );
+  ok(retained < 4_000_000, `a parse that threw still holds ${retained} bytes of its input`);
+});
