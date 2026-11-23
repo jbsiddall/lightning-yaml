@@ -268,6 +268,19 @@ here, treat it as a bug and
   parse(withTab); // { a: { b: 1 } } — accepted by default
   parse(withTab, { strict: true }); // throws: spec-invalid indentation
   ```
+- **A blank line inside a nested quoted value may not hold a tab, unlike
+  js-yaml.** [YAML 1.2.2 §6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces)
+  and [§6.4](https://yaml.org/spec/1.2.2/#64-empty-lines) allow only spaces in
+  that blank line's indentation, and the `yaml` library agrees. This holds in
+  default and `strict: true` modes alike, for quoted values inside a block
+  mapping or sequence. `js-yaml` accepts a blank line holding only a tab, in
+  either quote style, so the input below parses there but throws here:
+  ```ts
+  parse('foo: "a\n\t\n  b"'); // throws; js-yaml gives { foo: "a\nb" }
+  ```
+  Non-blank continuation lines indented with a tab (`foo: "bar\n\tbaz"`) are
+  rejected by both libraries, so only the blank-line form differs.
+  <!-- js-yaml:5.4.3 yaml:2.9.0 ly:d050198 -->
 - **Duplicate mapping keys: last one wins.** The spec makes a duplicate key an
   error; we keep the last instead, matching `JSON.parse` — `{a: 1, a: 2}` parses
   to `{a: 2}`.
