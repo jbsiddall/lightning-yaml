@@ -562,6 +562,23 @@ function resetForStream(text: string): void {
 }
 
 /**
+ * Drop what a finished parse left in module state. Otherwise `src` keeps the
+ * whole input string alive until the next call, and the key and anchor caches
+ * keep every key and value that was sliced from it.
+ */
+function releaseParseState(): void {
+  src = "";
+  len = 0;
+  keyCache.clear();
+  keyCacheBytes = 0;
+  lastRecordKeys = null;
+  tagHandles = null;
+  anchorMap = null;
+  pendingAnchorName = null;
+  flowFolded = null;
+}
+
+/**
  * Opt-in parse-time performance tradeoffs.
  *
  * IMPORTANT DESIGN RULE: only optimizations that carry a real COST as well as a
@@ -676,6 +693,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
   } finally {
     jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
+    releaseParseState();
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
@@ -724,6 +742,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   } finally {
     jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
+    releaseParseState();
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }

@@ -2119,3 +2119,20 @@ test("explicit collection properties retain anchors and inline nested maps", () 
   deepStrictEqual(parse("? a: 1\n  b: 2\n: value\n"), { "{ a: 1, b: 2 }": "value" });
   deepStrictEqual(parse("? key\n: a: 1\n  b: 2\n"), { key: { a: 1, b: 2 } });
 });
+
+test("a finished parse does not keep its input string alive", async () => {
+  const { setFlagsFromString } = await import("node:v8");
+  const { runInNewContext } = await import("node:vm");
+  setFlagsFromString("--expose_gc");
+  const gc = runInNewContext("gc") as () => void;
+  const heapAfterGc = () => {
+    gc();
+    gc();
+    return process.memoryUsage().heapUsed;
+  };
+  const parseWithPaddedInput = () => parse(`k: 1\n# ${"x".repeat(8_000_000)}\n`);
+  const before = heapAfterGc();
+  deepStrictEqual(parseWithPaddedInput(), { k: 1 });
+  const retained = heapAfterGc() - before;
+  ok(retained < 4_000_000, `parser still holds ${retained} bytes of its last input`);
+});
