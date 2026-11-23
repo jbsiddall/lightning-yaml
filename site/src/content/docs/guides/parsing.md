@@ -78,11 +78,12 @@ try {
 
 ## Strict vs. lenient parsing
 
-By default, `parse` and `parseAll` are **lenient** about one spec-invalid
-construct: a tab used to indent a block sequence or mapping ([YAML 1.2.2
+By default, `parse` and `parseAll` are **lenient** about two spec-invalid
+constructs: a tab used to indent a block sequence or mapping ([YAML 1.2.2
 §6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces) forbids it, but
-real-world YAML sometimes has it anyway). Pass `{ strict: true }` to reject
-that input instead:
+real-world YAML sometimes has it anyway), and a raw control character such as
+NUL inside a quoted string ([§5.1](https://yaml.org/spec/1.2.2/#51-character-set)),
+which is kept in the value. Pass `{ strict: true }` to reject that input instead:
 
 ```ts
 import { parse } from "lightning-yaml";
@@ -91,6 +92,9 @@ const withTab = "a:\n\tb: 1\n"; // a tab indenting "b"
 
 parse(withTab); // { a: { b: 1 } } — accepted by default
 parse(withTab, { strict: true }); // throws YAMLParseError
+
+parse('"x\x00y"'); // "x\u0000y" — accepted by default
+parse('"x\x00y"', { strict: true }); // throws YAMLParseError
 ```
 
 Lenient parsing never changes how a *valid* document is read — it only

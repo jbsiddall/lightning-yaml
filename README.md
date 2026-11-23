@@ -247,18 +247,6 @@ On the pinned official yaml-test-suite snapshot (`data-2022-01-17`), source
 cases; the suite does not exercise merge keys (`<<`).
 <!-- js-yaml:5.4.3 yaml:2.9.0 ly:6248a9c -->
 
-[Known gaps, not decisions](https://github.com/jbsiddall/lightning-yaml/issues/339): raw control bytes outside quoted scalars are
-accepted, where [§5.1](https://yaml.org/spec/1.2.2/#51-character-set) forbids
-them. A raw NUL or backspace in a comment, plain scalar or block scalar parses,
-as it does in `yaml`; `js-yaml` rejects NUL in all three and backspace outside
-comments. DEL and C1 controls other than NEL (U+0085) are accepted in the same
-places, and `yaml` accepts them too. A bare CR does not end a comment, so
-`a: 1 # c\rb: 2` drops `b` (`js-yaml` keeps it). In a block scalar a bare CR is
-kept as content: `a: |\r  x\r  y\r` gives `"x\r  y\n"` (`js-yaml` gives
-`"x\ny\n"`). A quoted key split by a line break inside a flow collection, such as `[ "x\ny": 1 ]` or `{ "x\ny": 1 }`, is read as `"x y"`; [§6.7](https://yaml.org/spec/1.2.2/#67-separation-lines) keeps implicit keys to one line. Tracked in [#261](https://github.com/jbsiddall/lightning-yaml/issues/261). Draft [#263](https://github.com/jbsiddall/lightning-yaml/pull/263),
-closed without merging, aimed to reject raw controls throughout YAML input.
-<!-- js-yaml:5.4.3 yaml:2.9.0 ly:6248a9c -->
-
 ## Decisions and deviations
 
 The **single, authoritative list** of places lightning-yaml knowingly departs
@@ -293,19 +281,6 @@ here, treat it as a bug and
   Non-blank continuation lines indented with a tab (`foo: "bar\n\tbaz"`) are
   rejected by both libraries, so only the blank-line form differs.
   <!-- js-yaml:5.4.3 yaml:2.9.0 ly:d050198 -->
-- **Raw control characters and bare CR in quoted scalars.** A raw ASCII control
-  byte (0x00 to 0x1F, such as NUL or backspace, but not TAB or a line break) is
-  an error inside a quoted scalar, as
-  [YAML 1.2.2 §5.1](https://yaml.org/spec/1.2.2/#51-character-set) requires, and
-  `yaml` accepts it. Write the byte as an escape instead. Inside a quoted scalar,
-  a bare CR is a line break like LF or CRLF, so it folds to a space
-  ([§5.4](https://yaml.org/spec/1.2.2/#54-line-break-characters)); `yaml` keeps it.
-  ```ts
-  parse('a: "x\x00y"');     // throws: raw NUL byte
-  parse('a: "x\\0y"');      // { a: "x\u0000y" }
-  parse('a: "one\r  two"'); // { a: "one two" }
-  ```
-  <!-- js-yaml:5.4.3 yaml:2.9.0 ly:6248a9c -->
 - **Duplicate mapping keys: last one wins.** The spec makes a duplicate key an
   error; we keep the last instead, matching `JSON.parse` — `{a: 1, a: 2}` parses
   to `{a: 2}`.

@@ -621,19 +621,24 @@ test("regression [7]: quoted-scalar multi-line flow folding matches the oracle",
   strictEqual(parse('"a\\\tb"'), "a\tb");
 });
 
-test("quoted scalars: raw C0 control characters are rejected, TAB/DEL/C1 are fine", () => {
+test("quoted scalars: a raw C0 byte is kept by default and by the yaml shim, rejected by strict mode and the js-yaml shim", () => {
   for (const cc of [0x00, 0x01, 0x08, 0x0b, 0x0c, 0x0e, 0x1f]) {
     const ch = String.fromCharCode(cc);
-    for (const s of [`"a${ch}b"`, `'a${ch}b'`, `{"a${ch}b": 1}`, `{'a${ch}b': 1}`, `k: "a${ch}b"`, `"a\nb${ch}"`]) {
-      throws(() => parse(s), YAMLParseError, JSON.stringify(s));
-      throws(() => parse(s, { strict: true }), YAMLParseError, JSON.stringify(s));
-      throws(() => jsYamlCompatLoad(s), JSON.stringify(s));
-      throws(() => yamlCompatParse(s), JSON.stringify(s));
+    for (const s of [`"a${ch}b"`, `'a${ch}b'`, `"ab${ch}"`, `'ab${ch}'`, `{"a${ch}b": 1}`, `{'a${ch}b': 1}`, `k: "a${ch}b"`, `"a\nb${ch}"`, `'a\nb${ch}'`, `"\\t${ch}"`, `'it''s${ch}'`]) {
+      const label = JSON.stringify(s);
+      deepStrictEqual(parse(s), oracleParse(s), label);
+      deepStrictEqual(yamlCompatParse(s), oracleParse(s), label);
+      throws(() => parse(s, { strict: true }), YAMLParseError, label);
+      throws(() => jsYamlLoad(s), label);
+      throws(() => jsYamlCompatLoad(s), JsYamlCompatException, label);
+      throws(() => jsYamlCompatLoadAll(s), JsYamlCompatException, label);
     }
   }
   for (const ch of ["\t", "\x7f", "\x85"]) {
-    strictEqual(parse(`"a${ch}b"`), `a${ch}b`);
-    strictEqual(parse(`'a${ch}b'`), `a${ch}b`);
+    for (const opts of [undefined, { strict: true }]) {
+      strictEqual(parse(`"a${ch}b"`, opts), `a${ch}b`);
+      strictEqual(parse(`'a${ch}b'`, opts), `a${ch}b`);
+    }
   }
 });
 
@@ -647,65 +652,28 @@ test("quoted scalars: a bare CR folds like LF; CRLF is one break", () => {
   }
   strictEqual(parse('"a\\\rb"'), parse('"a\\\nb"'));
   strictEqual(parse('"a\\\rb"'), "ab");
+  strictEqual(yamlCompatParse('"a\rb"'), "a b"); // README deviation: yaml keeps the CR
 });
 
-test("quoted scalars: a raw C0 byte is rejected in a flow key that repeats an earlier sibling's key", () => {
+test("quoted scalars: a raw C0 byte in a flow key that repeats an earlier sibling's key is checked like any key", () => {
   // The flow-mapping key fast path (`fastMatchFlowKey`) matches raw bytes
-  // against the previous sibling's decoded key and must decline a raw control
-  // byte the same way the quoted-scalar scanners do (§5.1 nb-json).
+  // against the previous sibling's decoded key, so it must decline a raw control
+  // byte and leave the check to the quoted-scalar scanners (§5.1 nb-json).
   for (const s of ['[{"\\x01": 1}, {"\x01": 2}]', '[{"\\x01": 1}, {"\x01x": 2}]', '[{"\\x01": 1}, {"\x01": 2}, {"\\x01": 3}]']) {
-    throws(() => parse(s), YAMLParseError, JSON.stringify(s));
-    throws(() => parseAll(s), YAMLParseError, JSON.stringify(s));
+    const label = JSON.stringify(s);
+    throws(() => parse(s, { strict: true }), YAMLParseError, label);
+    throws(() => parseAll(s, { strict: true }), YAMLParseError, label);
+    throws(() => jsYamlCompatLoad(s), JsYamlCompatException, label);
+    deepStrictEqual(parse(s), oracleParse(s), label);
   }
-  deepStrictEqual(parse('[{"\\x01": 1}, {"\\x01": 2}]'), [{ "\x01": 1 }, { "\x01": 2 }]);
+  deepStrictEqual(parse('[{"\\x01": 1}, {"\\x01": 2}]', { strict: true }), [{ "\x01": 1 }, { "\x01": 2 }]);
 });
 
-test("quoted scalars: a raw C0 byte is caught on either side of a scan-window seam", () => {
-  // The control scan runs in fixed-size windows. Each offset puts the byte on or
-  // beside a window edge (4096, 8192), so an off-by-one at a seam is an accepted byte.
-  for (const off of [1, 2, 4094, 4095, 4096, 4097, 8191, 8192, 8193, 12288]) {
-    const body = "a".repeat(off);
-    throws(() => parse(`"${body}\x01b"`), YAMLParseError, `double-quoted, byte after ${off} chars`);
-    throws(() => parse(`'${body}\x01b'`), YAMLParseError, `single-quoted, byte after ${off} chars`);
-  }
-});
-
-test("quoted scalars: a raw C0 byte is caught at the end of a long scalar, not only near its start", () => {
-  for (const n of [4095, 4096, 9000, 20000]) {
-    const long = "a".repeat(n);
-    strictEqual(parse(`"${long}"`), long);
-    strictEqual(parse(`'${long}'`), long);
-    throws(() => parse(`"${long}\x01"`), YAMLParseError, `double-quoted, ${n} chars then a control byte`);
-    throws(() => parse(`'${long}\x01'`), YAMLParseError, `single-quoted, ${n} chars then a control byte`);
-  }
-});
-
-test("quoted scalars: a raw C0 byte after thousands of clean scalars is caught", () => {
-  const clean = Array.from({ length: 3000 }, (_, i) => `- "item ${i}"\n`).join("");
-  strictEqual((parse(clean) as unknown[]).length, 3000);
-  throws(() => parse(`${clean}- "bad\x01"\n`), YAMLParseError);
-  throws(() => parse(`${clean}- 'bad\x01'\n`), YAMLParseError);
-});
-
-test("quoted scalars: TAB, DEL and C1 stay legal on both sides of a scan-window seam", () => {
-  for (const ch of ["\t", "\x7f", "\x85", "\u009f"]) {
-    const body = `${"a".repeat(4094)}${ch}${"b".repeat(4094)}`;
-    strictEqual(parse(`"${body}"`), body);
-    strictEqual(parse(`'${body}'`), body);
-  }
-});
-
-test("quoted scalars: a bare CR past a scan-window seam still folds to a space", () => {
-  const head = "a".repeat(4096);
-  strictEqual(parse(`"${head}\rb"`), `${head} b`);
-  strictEqual(parse(`'${head}\rb'`), `${head} b`);
-});
-
-test("quoted scalars: scan state from an earlier parse does not hide a raw C0 byte in a later one", () => {
+test("quoted scalars: line-break memo state from an earlier parse does not hide a bare CR in a later one", () => {
   strictEqual((parse(`"${"x".repeat(9000)}"`) as string).length, 9000);
-  throws(() => parse('"a\x01b"'), YAMLParseError);
+  strictEqual(parse('"a\rb"'), "a b");
   strictEqual((parse(`'${"y".repeat(9000)}'`) as string).length, 9000);
-  throws(() => parse("'a\x01b'"), YAMLParseError);
+  strictEqual(parse("'a\rb'"), "a b");
 });
 
 test("regression [8]: block sequence indented at the parent mapping key's column", () => {

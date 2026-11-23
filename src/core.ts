@@ -283,37 +283,47 @@ let flowIndentFloor = -1;
 let nextBackslash = -1;
 
 /**
- * Memo for the characters that push a quoted scalar off its slice fast path: a
- * line break (LF or bare CR) or a C0 control other than TAB (§5.1 nb-json).
- * `[ctrlFrom, ctrlClean)` holds none of them; `ctrlHit` is the first, at
- * `ctrlClean`, or -1 while unknown. Scanned a 4 KiB window at a time, and only
- * as far as the quoted scalars checked so far (plus at most one window), since
- * a scan to the end of the file is a full pass over a plain-block file with a
- * few quotes. Reset per parse.
+ * Memoized positions of the next `\n` and the next `\r` at or after the last
+ * query point (or `len` once none remain) — the line-break analogue of
+ * `nextBackslash`, for the same reason: a quoted-scalar fast path that checked
+ * each string with a fresh `indexOf` would rescan newline-free input to its end
+ * on every string — O(n²). A lone CR is a line break too (§5.4), so the scalar
+ * must fold. We recompute only when the cursor passes a memo, so input without
+ * that character pays one `indexOf` in total and input with it one short scan
+ * per line. Reset per parse.
  */
-let ctrlFrom = 0;
-let ctrlClean = 0;
-let ctrlHit = -1;
-const CTRL_WINDOW = 4096;
-const QUOTED_BREAK_OR_CONTROL = /[\n\r\x00-\x08\x0B-\x1F]/;
+let nextNewline = -1;
+let nextCR = -1;
 
-/** True when `src[start, end)` holds a line break or control matched by `QUOTED_BREAK_OR_CONTROL`. */
-function hasQuotedBreakOrControl(start: number, end: number): boolean {
-  if (start < ctrlFrom || start > ctrlClean) {
-    ctrlFrom = ctrlClean = start;
-    ctrlHit = -1;
+function hasLineBreak(start: number, end: number): boolean {
+  if (nextNewline < start) {
+    const n = src.indexOf("\n", start);
+    nextNewline = n === -1 ? len : n;
   }
-  while (ctrlHit === -1 && ctrlClean < end) {
-    const to = Math.min(len, ctrlClean + CTRL_WINDOW);
-    const k = src.slice(ctrlClean, to).search(QUOTED_BREAK_OR_CONTROL);
-    if (k === -1) {
-      ctrlClean = to;
-    } else {
-      ctrlClean += k;
-      ctrlHit = ctrlClean;
-    }
+  if (nextNewline < end) return true;
+  if (nextCR < start) {
+    const r = src.indexOf("\r", start);
+    nextCR = r === -1 ? len : r;
   }
-  return ctrlHit !== -1 && ctrlHit < end;
+  return nextCR < end;
+}
+
+/**
+ * On for `strict: true` and for the js-yaml shim: a raw C0 control other than
+ * TAB inside a quoted scalar is an error (§5.1 nb-json). js-yaml rejects it and
+ * `yaml` accepts it, so each shim copies its library; that is why this is its
+ * own flag and not part of SKIP_STRICT_VALIDATION. Off by default, so the
+ * default fast path never scans for controls.
+ */
+let rejectQuotedControls = false;
+
+/** Callers have already ruled out LF and CR in `src[start, end)`. */
+function hasRawControl(start: number, end: number): boolean {
+  for (let i = start; i < end; i++) {
+    const c = src.charCodeAt(i);
+    if (c < SPACE && c !== TAB) return true;
+  }
+  return false;
 }
 
 /**
@@ -563,8 +573,8 @@ function resetForStream(text: string): void {
   pos = 0;
   depth = 0;
   nextBackslash = -1;
-  ctrlFrom = ctrlClean = 0;
-  ctrlHit = -1;
+  nextNewline = -1;
+  nextCR = -1;
   lineStart = 0;
   keyCache = new Map();
   keyCacheBytes = 0;
@@ -623,10 +633,12 @@ export interface ParseOptimizations {
 export interface ParseOptions {
   /**
    * By default (`false`, or omitted) lightning-yaml is LENIENT: it tolerates
-   * some spec-invalid block indentation — today, a tab used to indent a block
-   * sequence/mapping (spec [§6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces))
-   * — rather than rejecting it. Pass `true` to restore full YAML 1.2.2
-   * rejection of that input. Lenient parsing never changes how a *valid*
+   * some spec-invalid input rather than rejecting it — today, a tab used to
+   * indent a block sequence/mapping (spec [§6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces)),
+   * and a raw control character (U+0000–U+001F other than tab and line breaks)
+   * inside a quoted string ([§5.1](https://yaml.org/spec/1.2.2/#51-character-set)),
+   * which is kept in the value. Pass `true` to reject that input as YAML 1.2.2
+   * requires. Lenient parsing never changes how a *valid*
    * document is interpreted — it only accepts some malformed input the spec
    * calls an error; `strict: true` never accepts anything the default rejects.
    * Default: `false` (lenient).
@@ -678,6 +690,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
   const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = skipStrictValidation;
+  rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -701,6 +714,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
+    rejectQuotedControls = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -734,6 +748,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = skipStrictValidation;
+  rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -749,6 +764,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
+    rejectQuotedControls = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -2646,11 +2662,11 @@ function parseDoubleQuoted(): string {
     nextBackslash = b === -1 ? len : b;
   }
   if (nextBackslash > e) {
-    // No escape before the closing quote. A line break or control character
-    // inside still needs the slow path (folding / rejection), so check for one
-    // (memoized like `nextBackslash`); absent all, the value is a single slice —
-    // the ~100% case on JSON-shaped input and why the hop path beats native.
-    if (!hasQuotedBreakOrControl(start, e)) {
+    // No escape before the closing quote. A line break inside still needs
+    // folding, and a raw control (strict / js-yaml shim) a rejection, so check
+    // for those; absent them, the value is a single slice — the ~100% case on
+    // JSON-shaped input and why the hop path beats native.
+    if (!hasLineBreak(start, e) && !(rejectQuotedControls && hasRawControl(start, e))) {
       pos = e + 1;
       return internValue(src.slice(start, e));
     }
@@ -2793,7 +2809,7 @@ function parseDoubleQuotedSlow(start: number): string {
       seg = i;
       continue;
     }
-    if (c < SPACE && c !== TAB) {
+    if (c < SPACE && c !== TAB && rejectQuotedControls) {
       pos = i;
       fail("control character is not allowed in a quoted scalar; use an escape");
     }
@@ -2831,9 +2847,9 @@ function parseSingleQuoted(): string {
   if (e + 1 < len && src.charCodeAt(e + 1) === SQUOTE) {
     return parseSingleQuotedSlow(start); // contains a '' escape
   }
-  // A line break or control character inside needs the slow path (memoized
-  // check, like the double-quoted fast path).
-  if (hasQuotedBreakOrControl(start, e)) return parseSingleQuotedSlow(start);
+  // A line break inside needs folding, and a raw control (strict / js-yaml
+  // shim) a rejection — both take the slow path, as for double quotes.
+  if (hasLineBreak(start, e) || (rejectQuotedControls && hasRawControl(start, e))) return parseSingleQuotedSlow(start);
   pos = e + 1;
   return internValue(src.slice(start, e));
 }
@@ -2867,7 +2883,7 @@ function parseSingleQuotedSlow(start: number): string {
       seg = i;
       continue;
     }
-    if (c < SPACE && c !== TAB) {
+    if (c < SPACE && c !== TAB && rejectQuotedControls) {
       pos = i;
       fail("control character is not allowed in a quoted scalar; use an escape");
     }

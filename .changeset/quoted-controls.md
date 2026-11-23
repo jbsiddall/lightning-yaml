@@ -2,11 +2,12 @@
 "lightning-yaml": minor
 ---
 
-A quoted string containing a raw ASCII control byte (0x00 to 0x1F, such as NUL or backspace, but not TAB or a line break) is now rejected, as the [YAML spec requires](https://yaml.org/spec/1.2.2/#51-character-set). Write the byte as an escape in a double-quoted string instead. A bare carriage return inside a quoted string is now a line break like any other, so it folds to a space.
+A carriage return on its own inside a quoted string is now a line break, the same as a newline, as the [YAML spec says](https://yaml.org/spec/1.2.2/#54-line-break-characters). Before, it stayed in the value as `\r`, unless the string also held an escape or a newline. As with a newline, the next line of a quoted value inside a block mapping must now be indented.
+
+With `{ strict: true }`, and always in `lightning-yaml/js-yaml`, a raw control character inside a quoted string (NUL, backspace and the other ASCII control characters except tab) is now an error, as the [spec requires](https://yaml.org/spec/1.2.2/#51-character-set) and js-yaml does. Plain `parse` and `lightning-yaml/yaml` still accept it, like the `yaml` library.
 
 ```yaml
-# before: parsed with a raw NUL byte inside   after: error
-a: "x<NUL>y"
-# write this instead
-a: "x\0y"
+# <CR> is a raw carriage return, <NUL> a raw NUL byte
+a: "one<CR>  two"   # before: "one\r  two"   after: "one two"
+b: "x<NUL>y"        # parse: unchanged; strict or js-yaml: now an error, write "x\0y"
 ```
