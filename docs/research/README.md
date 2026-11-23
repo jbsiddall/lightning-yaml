@@ -8,5 +8,8 @@ pages. They now live in:
 and are published at <https://lightning-yaml.dev/research/notes/>, with a generated scorecard at
 <https://lightning-yaml.dev/research/notes/optimization-index/>.
 
-This folder now holds only the authoring guide — [`CONVENTIONS.md`](./CONVENTIONS.md). Read it before
+This folder holds the authoring guide — [`CONVENTIONS.md`](./CONVENTIONS.md). Read it before
 adding or editing a note.
+
+It also holds the optimisation technique tracker — [`TECHNIQUES.md`](./TECHNIQUES.md). It lists each
+technique with the broadest condition where it pays off, where it loses, and the evidence so far.
