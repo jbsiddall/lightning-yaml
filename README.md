@@ -11,12 +11,12 @@
 
 lightning-yaml is a pure-JS YAML 1.2 parser and stringifier that parses and
 writes at speeds approaching native `JSON.parse`/`JSON.stringify` — while faithfully
-implementing YAML 1.2, passing ~98.9% (369/373) of the official
+implementing YAML 1.2, passing ~99.2% (370/373) of the official
 [yaml-test-suite](https://github.com/yaml/yaml-test-suite). It includes partial
 compatibility shims for common `yaml` and `js-yaml` calls, ESM + CJS,
 TypeScript types, and **zero runtime dependencies**. See the module references
 for the supported calls and current gaps.
-<!-- js-yaml:5.4.3 yaml:2.9.0 ly:eda87f8 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:6248a9c -->
 
 **Two goals, in priority order:** (1) full YAML 1.2 spec compliance, then
 (2) speed and memory within reach of native `JSON.parse`/`JSON.stringify`.
@@ -26,9 +26,9 @@ Everything else is secondary to those two.
   `JSON.parse`/`JSON.stringify` — **~4× faster than js-yaml** on parse across our
   benchmark workloads.
   <!-- bench:4ca6140 js-yaml:5.2.1 -->
-- **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~98.9% (369/373) of
+- **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~99.2% (370/373) of
   the official yaml-test-suite.
-  <!-- ly:eda87f8 -->
+  <!-- ly:6248a9c -->
 - **Compatibility shims.** Common calls are available through `lightning-yaml/yaml`
   and `lightning-yaml/js-yaml`. The shims support selected calls and options;
   unsupported options throw instead of being silently ignored. See
@@ -242,10 +242,10 @@ Remaining YAML 1.2 spec edge cases are tracked through the official suite and
 follow-up issues.
 
 On the pinned official yaml-test-suite snapshot (`data-2022-01-17`), source
-`eda87f8` scored **369/373 (98.9%)**, with comparison runs against js-yaml
+`6248a9c` scored **370/373 (99.2%)**, with comparison runs against js-yaml
 5.4.3 and yaml 2.9.0. The remaining suite failures are YAML 1.2 spec edge
 cases; the suite does not exercise merge keys (`<<`).
-<!-- js-yaml:5.4.3 yaml:2.9.0 ly:eda87f8 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:6248a9c -->
 
 ## Decisions and deviations
 
@@ -281,6 +281,25 @@ here, treat it as a bug and
   Non-blank continuation lines indented with a tab (`foo: "bar\n\tbaz"`) are
   rejected by both libraries, so only the blank-line form differs.
   <!-- js-yaml:5.4.3 yaml:2.9.0 ly:d050198 -->
+- **Raw control characters and bare CR in quoted scalars.** A raw ASCII control
+  byte (0x00 to 0x1F, such as NUL or backspace, but not TAB or a line break) is
+  an error inside a quoted scalar, as
+  [YAML 1.2.2 §5.1](https://yaml.org/spec/1.2.2/#51-character-set) requires, and
+  `yaml` accepts it. Write the byte as an escape instead. A bare CR is a line
+  break like LF or CRLF, so it folds to a space
+  ([§5.4](https://yaml.org/spec/1.2.2/#54-line-break-characters)); `yaml` keeps it.
+  ```ts
+  parse('a: "x\x00y"');     // throws: raw NUL byte
+  parse('a: "x\\0y"');      // { a: "x\u0000y" }
+  parse('a: "one\r  two"'); // { a: "one two" }
+  ```
+  Still open: raw NUL, backspace and other C0 control bytes are accepted in
+  comments, plain scalars and block scalars (`yaml` accepts them too; js-yaml
+  rejects them). §5.1 also excludes raw DEL and C1 controls from those places,
+  and lightning-yaml accepts them there too. Draft
+  [#263](https://github.com/jbsiddall/lightning-yaml/pull/263), closed without
+  merging, covered these.
+  <!-- js-yaml:5.4.3 yaml:2.9.0 ly:6248a9c -->
 - **Duplicate mapping keys: last one wins.** The spec makes a duplicate key an
   error; we keep the last instead, matching `JSON.parse` — `{a: 1, a: 2}` parses
   to `{a: 2}`.
