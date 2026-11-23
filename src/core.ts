@@ -283,19 +283,8 @@ let flowIndentFloor = -1;
 let nextBackslash = -1;
 
 /**
- * Memoized position of the next line break (`\n`) at or after the last query
- * point (or `len` once none remain) — the newline analogue of `nextBackslash`,
- * for the same reason: a quoted-scalar fast path that checked each string for an
- * interior line break via a fresh `indexOf('\n')` would rescan a minified
- * (newline-free) document to its end on every string — O(n²). We recompute only
- * when the cursor passes the memo, so newline-free input pays a single `indexOf`
- * total, and line-broken input pays one short scan per line. Reset per parse.
- */
-let nextNewline = -1;
-
-/**
  * Memo for the characters that push a quoted scalar off its slice fast path: a
- * bare CR (a line break) or a C0 control other than TAB/LF (§5.1 nb-json).
+ * line break (LF or bare CR) or a C0 control other than TAB (§5.1 nb-json).
  * `[ctrlFrom, ctrlClean)` holds none of them; `ctrlHit` is the first, at
  * `ctrlClean`, or -1 while unknown. Scanned a 4 KiB window at a time, and only
  * as far as the quoted scalars checked so far (plus at most one window), since
@@ -306,17 +295,17 @@ let ctrlFrom = 0;
 let ctrlClean = 0;
 let ctrlHit = -1;
 const CTRL_WINDOW = 4096;
-const QUOTED_CONTROL = /[\x00-\x08\x0B-\x1F]/;
+const QUOTED_BREAK_OR_CONTROL = /[\n\r\x00-\x08\x0B-\x1F]/;
 
-/** True when `src[start, end)` contains a character matched by `QUOTED_CONTROL`. */
-function hasQuotedControl(start: number, end: number): boolean {
+/** True when `src[start, end)` holds a line break or control matched by `QUOTED_BREAK_OR_CONTROL`. */
+function hasQuotedBreakOrControl(start: number, end: number): boolean {
   if (start < ctrlFrom || start > ctrlClean) {
     ctrlFrom = ctrlClean = start;
     ctrlHit = -1;
   }
   while (ctrlHit === -1 && ctrlClean < end) {
     const to = Math.min(len, ctrlClean + CTRL_WINDOW);
-    const k = src.slice(ctrlClean, to).search(QUOTED_CONTROL);
+    const k = src.slice(ctrlClean, to).search(QUOTED_BREAK_OR_CONTROL);
     if (k === -1) {
       ctrlClean = to;
     } else {
@@ -574,7 +563,6 @@ function resetForStream(text: string): void {
   pos = 0;
   depth = 0;
   nextBackslash = -1;
-  nextNewline = -1;
   ctrlFrom = ctrlClean = 0;
   ctrlHit = -1;
   lineStart = 0;
@@ -2662,11 +2650,7 @@ function parseDoubleQuoted(): string {
     // inside still needs the slow path (folding / rejection), so check for one
     // (memoized like `nextBackslash`); absent all, the value is a single slice —
     // the ~100% case on JSON-shaped input and why the hop path beats native.
-    if (nextNewline < start) {
-      const n = src.indexOf("\n", start);
-      nextNewline = n === -1 ? len : n;
-    }
-    if (nextNewline > e && !hasQuotedControl(start, e)) {
+    if (!hasQuotedBreakOrControl(start, e)) {
       pos = e + 1;
       return internValue(src.slice(start, e));
     }
@@ -2849,11 +2833,7 @@ function parseSingleQuoted(): string {
   }
   // A line break or control character inside needs the slow path (memoized
   // check, like the double-quoted fast path).
-  if (nextNewline < start) {
-    const n = src.indexOf("\n", start);
-    nextNewline = n === -1 ? len : n;
-  }
-  if (nextNewline < e || hasQuotedControl(start, e)) return parseSingleQuotedSlow(start);
+  if (hasQuotedBreakOrControl(start, e)) return parseSingleQuotedSlow(start);
   pos = e + 1;
   return internValue(src.slice(start, e));
 }

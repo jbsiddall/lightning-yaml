@@ -247,7 +247,7 @@ On the pinned official yaml-test-suite snapshot (`data-2022-01-17`), source
 cases; the suite does not exercise merge keys (`<<`).
 <!-- js-yaml:5.4.3 yaml:2.9.0 ly:6248a9c -->
 
-Known gaps, not decisions: raw control bytes outside quoted scalars are
+[Known gaps, not decisions](https://github.com/jbsiddall/lightning-yaml/issues/339): raw control bytes outside quoted scalars are
 accepted, where [§5.1](https://yaml.org/spec/1.2.2/#51-character-set) forbids
 them. A raw NUL or backspace in a comment, plain scalar or block scalar parses,
 as it does in `yaml`; `js-yaml` rejects NUL in all three and backspace outside
@@ -255,7 +255,7 @@ comments. DEL and C1 controls other than NEL (U+0085) are accepted in the same
 places, and `yaml` accepts them too. A bare CR does not end a comment, so
 `a: 1 # c\rb: 2` drops `b` (`js-yaml` keeps it). In a block scalar a bare CR is
 kept as content: `a: |\r  x\r  y\r` gives `"x\r  y\n"` (`js-yaml` gives
-`"x\ny\n"`). Draft [#263](https://github.com/jbsiddall/lightning-yaml/pull/263),
+`"x\ny\n"`). A quoted key split by a line break inside a flow collection, such as `[ "x\ny": 1 ]` or `{ "x\ny": 1 }`, is read as `"x y"`; [§6.7](https://yaml.org/spec/1.2.2/#67-separation-lines) keeps implicit keys to one line. Tracked in [#261](https://github.com/jbsiddall/lightning-yaml/issues/261). Draft [#263](https://github.com/jbsiddall/lightning-yaml/pull/263),
 closed without merging, aimed to reject raw controls throughout YAML input.
 <!-- js-yaml:5.4.3 yaml:2.9.0 ly:6248a9c -->
 
