@@ -2138,7 +2138,7 @@ async function heapRetainedBy(run: () => void): Promise<number> {
 }
 
 test("a finished parse does not keep its input string alive", async () => {
-  // Covers a complex key (`? [...]`), which once left a slice of the input in RegExp.input.
+  // 13+ chars so V8 slices instead of copying; ": " makes the key regex match, and V8 keeps a match's subject in RegExp.input.
   const retained = await heapRetainedBy(() => {
     const doc = parse(`%TAG !e! tag:example.com,2000:app/\n---\nk: &a1 ${"v".repeat(20)}\nj: *a1\n? [ "a: ${"b".repeat(20)}" ]\n: v\n# ${"x".repeat(8_000_000)}\n`) as { k: unknown; j: unknown };
     deepStrictEqual({ k: doc.k, j: doc.j }, { k: "v".repeat(20), j: "v".repeat(20) });

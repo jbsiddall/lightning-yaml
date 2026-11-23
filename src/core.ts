@@ -562,9 +562,9 @@ function resetForStream(text: string): void {
 }
 
 /**
- * Drop what a finished parse left in module state. Otherwise `src` keeps the
- * whole input string alive until the next call, and the key and anchor caches
- * keep every key and value that was sliced from it.
+ * Drop what a finished parse left in module state. Without this, `src` and any
+ * cached key or anchored value sliced from it keep the whole input string alive
+ * until the next call.
  */
 function releaseParseState(): void {
   src = "";
