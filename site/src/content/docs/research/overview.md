@@ -14,8 +14,7 @@ optimizations ship. Start here for the framing, then follow the links.
 
 On the same input, the established pure-JS YAML libraries are dramatically
 slower than `JSON.parse` — not by a small constant factor, but by roughly an
-order of magnitude (`js-yaml`) to two orders of magnitude (`yaml`), and the
-gap widens as documents get larger. None of that overhead comes from YAML's
+order of magnitude (`js-yaml`) to two orders of magnitude (`yaml`). None of that overhead comes from YAML's
 grammar being inherently harder to parse than JSON's grammar — flow-style
 YAML *is* effectively JSON with a few extra literals. It comes from
 implementation choices: per-node bookkeeping objects, defensive per-pair

@@ -2,7 +2,7 @@
   "name": "lightning-yaml",
   "version": "0.2.0",
   "type": "module",
-  "description": "A fast, spec-compliant YAML 1.2 parser and stringifier for JavaScript — approaching JSON.parse speed.",
+  "description": "A fast YAML parser and stringifier for JavaScript — approaching JSON.parse speed — with opt-in strict YAML 1.2.2 checking and js-yaml/yaml compatibility shims (partial today).",
   "license": "Apache-2.0",
   "author": "Joseph Siddall <j.b.siddall@gmail.com>",
   "homepage": "https://lightning-yaml.dev",

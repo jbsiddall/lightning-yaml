@@ -9,7 +9,7 @@ body:
         Thanks! This form is pre-filled by the **homepage playground** — the input,
         timings, and agreement below come straight from your browser. Those timings
         are **in-browser and indicative**, not the CI benchmark, and a disagreement
-        isn't automatically a bug (the YAML 1.2 spec adjudicates). Add anything the
+        isn't automatically a bug (for a compat shim, the library it replaces adjudicates; under `strict: true`, the YAML 1.2 spec does). Add anything the
         playground couldn't capture under **What looks off**.
   - type: textarea
     id: input

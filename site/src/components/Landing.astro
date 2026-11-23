@@ -79,11 +79,11 @@ const bundleKB = formatKB(bundleSizeItems(bundle)[0]?.value ?? 11817);
     <div class="pitch">
       <a class="badge" href="/benchmarks/#conformance" title={conformanceSource}>YAML Test Suite: <b>{confPct}</b>&nbsp;→</a>
 
-      <h1 class="title" id="hero-title">Spec-compliant YAML,<br /><span class="grad">approaching JSON speed.</span></h1>
+      <h1 class="title" id="hero-title">YAML that just works,<br /><span class="grad">approaching JSON speed.</span></h1>
 
       <p class="lead">
         A pure-JS YAML&nbsp;1.2 parser and stringifier that's out to give native <code>JSON.parse</code> a run
-        for its money — spec compliance first, then speed and memory within reach of it. On ~100&nbsp;KB of
+        for its money — speed first, then memory, and it takes the YAML people actually write as-is. Strict YAML 1.2.2 checking is opt-in. On ~100&nbsp;KB of
         block-YAML config, in {engineLabel}: <b>{vsJsYaml} faster than js-yaml</b>{jsYamlRangeClause} and <b>{vsYaml} faster than yaml</b> —
         and about <b>{vsJson} JSON.parse</b>'s parse time on the equivalent JSON. Zero dependencies, <b>{bundleKB}</b> min+gzip.
       </p>

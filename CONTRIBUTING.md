@@ -16,7 +16,7 @@ pnpm test:stringify # dumper round-trip suite
 
 Keep those green. If you touch the parser, also run `pnpm test:suite`
 (the yaml-test-suite conformance run — the pass rate must not drop) and
-`pnpm bench:self` (no perf regression).
+`pnpm bench:self` (no perf regression). If you touch a compat shim, also run `pnpm test:compat`.
 
 ## Versioning — add a changeset
 

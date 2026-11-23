@@ -1,6 +1,6 @@
 # ⚡ lightning-yaml
 
-**Spec-compliant YAML parsing, out to give `JSON.parse` a run for its money.**
+**Fast YAML parsing that just works, out to give `JSON.parse` a run for its money.**
 
 ⚡ **~4× faster** and **~1–3× lighter** than js-yaml (bigger file, bigger gap) — with **near-`JSON.parse` memory** even at 10 MB. [See the benchmarks ↓](#benchmarks-at-a-glance)
 <!-- bench:4ca6140 js-yaml:5.2.1 yaml:2.9.0 -->
@@ -10,24 +10,26 @@
 [![npm](https://img.shields.io/npm/v/lightning-yaml.svg)](https://www.npmjs.com/package/lightning-yaml)
 
 lightning-yaml is a pure-JS YAML 1.2 parser and stringifier that parses and
-writes at speeds approaching native `JSON.parse`/`JSON.stringify` — while faithfully
-implementing YAML 1.2, passing ~98.4% (367/373) of the official
+writes at speeds approaching native `JSON.parse`/`JSON.stringify`, and takes the YAML
+people actually write as-is. Strict YAML 1.2.2 checking is opt-in
+(`{ strict: true }`); the parser scores ~98.4% (367/373) on the official
 [yaml-test-suite](https://github.com/yaml/yaml-test-suite). It includes partial
-compatibility shims for common `yaml` and `js-yaml` calls, ESM + CJS,
+compatibility shims for common `yaml` and `js-yaml` calls (they target exact
+compatibility), ESM + CJS,
 TypeScript types, and **zero runtime dependencies**. See the module references
 for the supported calls and current gaps.
 <!-- js-yaml:5.4.3 yaml:2.9.0 ly:fc982a72 -->
 
-**Two goals, in priority order:** (1) full YAML 1.2 spec compliance, then
-(2) speed and memory within reach of native `JSON.parse`/`JSON.stringify`.
-Everything else is secondary to those two.
+**Priorities, in order:** compatibility shims match their library exactly, then the
+native API is fast, lean and just works, then strict YAML 1.2.2 checking is
+opt-in. See [Project priorities](#project-priorities).
 
 - **Fast.** Parses and stringifies at speeds approaching native
   `JSON.parse`/`JSON.stringify` — **~4× faster than js-yaml** on parse across our
   benchmark workloads.
   <!-- bench:4ca6140 js-yaml:5.2.1 -->
-- **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~98.4% (367/373) of
-  the official yaml-test-suite.
+- **Strict checking, opt-in.** `parse(text, { strict: true })` checks YAML 1.2.2;
+  the parser scores ~98.4% (367/373) on the official yaml-test-suite.
   <!-- ly:fc982a72 -->
 - **Compatibility shims.** Common calls are available through `lightning-yaml/yaml`
   and `lightning-yaml/js-yaml`. The shims support selected calls and options;
@@ -140,7 +142,8 @@ import { load, dump } from 'lightning-yaml/js-yaml';
 import { parse, stringify } from 'lightning-yaml/yaml';
 ```
 
-> **Status — partial compatibility.** The subpaths provide selected functions,
+> **Status — partial compatibility.** The shims target exact compatibility with the
+> libraries they replace, but today the subpaths provide selected functions,
 > not the full `yaml` or `js-yaml` export surfaces or every call signature.
 > Unsupported options throw instead of being silently ignored. Each shim's
 > **option-support matrix**
@@ -151,23 +154,29 @@ import { parse, stringify } from 'lightning-yaml/yaml';
 
 ## Project priorities
 
-In order:
+In order (higher numbers yield to lower ones on conflict):
 
-1. **Compliance with the YAML 1.2 specification.** Correctness comes first,
-   always — a fast parser that mis-reads your config is worthless. Where the spec
-   itself is unclear, the [yaml-test-suite](https://github.com/yaml/yaml-test-suite)
-   is our north star; where even that is ambiguous, we fall back to matching the
-   behaviour of the `yaml` and js-yaml libraries. By default `parse` is lenient
-   about a handful of spec-invalid inputs real-world YAML sometimes contains (see
-   [Decisions and deviations](#decisions-and-deviations)); pass `{ strict: true }`
-   for full YAML 1.2.2 rejection of those inputs too.
-2. **Speed and memory within reach of native `JSON.parse` / `JSON.stringify`.**
-   We'll never match native byte-for-byte, and we know it — but we treat that gap
-   as a bug to shrink, chasing every last nanosecond so there's no performance
-   reason left to reach for JSON over YAML.
+1. **Compatibility layers behave exactly like the libraries they replace.**
+   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` should give the same output
+   for the same input as the library they replace, edge cases included. Every
+   function a shim exposes must be fully supported, and an argument a shim does
+   not support throws a clear error rather than being silently ignored. The
+   target is effectively 100% js-yaml compatibility; for `yaml`, the target is the
+   subset of its API used by the VS Code YAML language server. Both are **partial
+   today** (see [Compatibility](#compatibility-with-js-yaml-or-yaml)). Any
+   difference from the library needs an owner-approved entry in
+   [Decisions and deviations](#decisions-and-deviations).
+2. **The native lightning-yaml API: fast, then lean on memory, and it just
+   works.** It is not bound to any library's behaviour. It accepts YAML as people
+   write it and does no validation you would not expect. Targets, not yet
+   shipped: merge keys (`<<`) expand the way older Docker Compose files expect,
+   and raw control characters are allowed by default (draft PR #338).
+3. **Strict YAML 1.2.2 checking is an explicit opt-in, never the default.**
+   Ask for it with `parse(text, { strict: true })`, or with a compat layer's
+   schema option set to `strict`/`core` where that option is supported.
+4. **Everything else: common sense.**
 
-Any sanctioned departure from these goals — anywhere lightning-yaml knowingly
-differs from the spec or from `js-yaml` / `yaml` — is tracked in
+Any sanctioned departure from these priorities is tracked in
 [Decisions and deviations](#decisions-and-deviations) below.
 
 ## Contributing & feedback
@@ -236,8 +245,11 @@ line coverage establish equivalence for every possible input.
 ## Status & scope
 
 The parser supports YAML 1.2 core features including block scalars,
-anchors/aliases, and tags such as `!!binary`. Merge keys (`<<`) are currently
-read as ordinary string keys: they are neither expanded nor rejected.
+anchors/aliases, and tags such as `!!binary`. Merge keys (`<<`) are read as
+ordinary string keys today, not expanded; the target for the native API is to
+expand them, Docker Compose style. For raw control characters in quoted scalars,
+the target is to allow them by default and reject them under `strict: true`; that
+is implemented in draft PR #338, not yet merged.
 Remaining YAML 1.2 spec edge cases are tracked through the official suite and
 follow-up issues.
 
@@ -271,10 +283,10 @@ here, treat it as a bug and
 - **Duplicate mapping keys: last one wins.** The spec makes a duplicate key an
   error; we keep the last instead, matching `JSON.parse` — `{a: 1, a: 2}` parses
   to `{a: 2}`.
-- **Merge keys (`<<`) are read as an ordinary key, not merged.** `<<: *anchor`
+- **Merge keys (`<<`) are read as an ordinary key, not merged (current status, not a final decision; native expansion is the target).** `<<: *anchor`
   gives you a literal `"<<"` string key rather than merging the aliased map in.
   The installed js-yaml 5.4.3 and `yaml` 2.9.0 defaults also leave it literal.
-  It's neither expanded nor rejected today.
+  It's neither expanded nor rejected today; the shims are expected to stay literal to match their libraries.
   <!-- js-yaml:5.4.3 yaml:2.9.0 ly:67d2e0b -->
 - **Compat options that aren't implemented yet throw.** The
   `lightning-yaml/js-yaml` and `lightning-yaml/yaml` shims take the same options

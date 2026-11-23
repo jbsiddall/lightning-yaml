@@ -7,7 +7,7 @@ sidebar:
 
 This page documents **how** lightning-yaml's benchmark and correctness numbers get
 produced — the harness design, what's measured and why, and how the parser is
-checked against the YAML 1.2 spec before any number is trusted. For the numbers
+checked against a reference library and the YAML 1.2.2 test suite before any number is trusted. For the numbers
 themselves, see [Benchmarks](/benchmarks/); for the parser's internal design
 (tokenizer, allocation strategy), see [Research Overview](/research/overview/).
 
@@ -95,7 +95,7 @@ Grouped in
 
 `lightning-yaml` (group `ours`) is wired to
 [`src/index.ts`](https://github.com/jbsiddall/lightning-yaml/blob/main/src/index.ts).
-Its `parse` covers the full YAML 1.2 core feature set — flow/block syntax, block
+Its `parse` covers the YAML 1.2 core feature set and passes 367/373 yaml-test-suite cases (README, fc982a72) — flow/block syntax, block
 scalars, anchors/aliases, tags including `!!binary`, directives, and
 multi-document streams. `stringify` (milestone **M6**, tuned for throughput in
 **M7**) is implemented too — a block-style dumper with scalar quoting,
@@ -121,10 +121,7 @@ now 1.2 core too, same as `yaml`):
 [`bench/oracle.ts`](https://github.com/jbsiddall/lightning-yaml/blob/main/bench/oracle.ts)
 designates **`yaml`** — the more spec-compliant of the two reference libraries,
 per the yaml-test-suite conformance results on [Conformance](/benchmarks/#conformance)
-— as our **differential reference**. The actual correctness authority is the
-**YAML 1.2 spec** (operationalized by the yaml-test-suite); `yaml` is the one
-library we diff against — sound where it agrees with the spec, with any
-disagreement adjudicated against the spec rather than assumed to be our bug. The
+— as our **differential reference**. The correctness authority depends on the API: strict checking follows the **YAML 1.2.2 spec** (operationalized by the yaml-test-suite), the compatibility shims follow their library, and the native API follows its own priorities (fast, lean, just works). `yaml` is the one library the consistency tests diff against; a disagreement is adjudicated by that authority rather than assumed to be our bug. The
 oracle normalizes `!!binary` to a portable plain `Uint8Array` (the library
 defaults to a Node `Buffer`, which wouldn't deep-equal a spec-portable
 `Uint8Array`) and reads with `maxAliasCount: -1` for the anchor-heavy rich
@@ -245,7 +242,7 @@ vitest.config.ts
   `yaml`, by default, re-emits a Uint8Array as a number sequence) — we're
   measuring each serializer on equivalent in-memory data, not byte-identical
   text.
-- Peak RSS includes Node's fixed baseline, so peak-RSS ratios are conservative;
+- Peak RSS includes Node's fixed baseline, which sits in both numerator and denominator, so every peak-RSS ratio is pulled toward 1.0 and understates the real difference;
   the `heap Δ` column isolates the retained result size. At ~1 KB inputs heap Δ
   is dominated by GC noise (it can go negative) — trust peak RSS there.
 

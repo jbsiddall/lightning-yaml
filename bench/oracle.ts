@@ -1,11 +1,11 @@
 /**
  * The differential oracle — a high-quality reference implementation we test
- * AGAINST, but NOT the definition of "correct". The definition of correct is the
+ * AGAINST, but NOT the definition of "correct". For strict mode, the definition of correct is the
  * YAML 1.2.2 spec, operationalized by the yaml-test-suite (scored in
  * `bench/conformance/`). This library is a differential AID: a disagreement between
  * lightning-yaml and it flags a *candidate* to investigate, and the spec — not this
- * library — adjudicates. Where this library diverges from the spec, the spec wins
- * and lightning-yaml deliberately matches the spec against it (e.g. rejecting an
+ * library — adjudicates. In strict mode, where this library diverges from the spec, the spec wins
+ * and lightning-yaml's strict mode deliberately matches the spec against it (e.g. rejecting an
  * implicit flow collection key `{[1,2]: v}`, a spec error per yaml-test-suite
  * SBG9/X38W that `yaml` wrongly accepts; see CLAUDE.md's source-of-truth precedence
  * and `site/src/content/docs/research/notes/2026-07-12-adversarial-torture-tests.md`).

@@ -12,8 +12,8 @@
  *     dumper's output must be readable by our own parser.
  *   - roundTripOracle(v):  deepEqual(oracleParse(stringify(v)), v) — our
  *     dumper's output must ALSO be spec-valid YAML that a real, independent,
- *     highly-conformant parser (`yaml`, this repo's oracle — see
- *     bench/oracle.ts) reads back unchanged. This is what proves the output is
+ *     independent parser (`yaml`, this repo's differential oracle — see
+ *     bench/oracle.ts) reads back unchanged. This cross-checks that the output is
  *     genuinely valid YAML and not merely something only our own parser
  *     tolerates.
  *
@@ -125,7 +125,7 @@ function roundTripSelf(value: unknown): boolean {
   return deepEqual(parse(stringify(value)), value);
 }
 
-/** Our own dumper's output must ALSO be spec-valid YAML per the oracle. */
+/** Our own dumper's output must ALSO be valid YAML, cross-checked by the oracle. */
 function roundTripOracle(value: unknown): boolean {
   return deepEqual(oracleParse(stringify(value)), value);
 }

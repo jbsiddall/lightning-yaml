@@ -8,7 +8,7 @@
  * research, the official yaml-test-suite corners, and real CVEs).
  *
  * Two properties are tracked SEPARATELY (per that research doc):
- *   (a) conformance — `parse` matches the YAML 1.2 SPEC (as operationalized by the
+ *   (a) conformance — `parse(text, { strict: true })` matches the YAML 1.2 SPEC (as operationalized by the
  *       spec-derived yaml-test-suite). The `yaml` implementation is a differential
  *       aid, not the definition of correct: where it diverges from spec, spec wins.
  *   (b) robustness — malformed bytes only ever raise our declared `YAMLParseError`,
@@ -148,7 +148,7 @@ test("numbers: 1.2-core boundary literals resolve per the active schema", () => 
 
 // --------------------------------------------------------------------------
 // §4.3 Duplicate keys — DELIBERATE DIVERGENCE.
-// lightning-yaml's north star is JSON.parse, which is last-wins:
+// Native parse is last-wins, as JSON.parse is (a spec deviation; it must be listed in README Decisions and deviations):
 // JSON.parse('{"a":1,"a":2}') === {a:2}. The `yaml` oracle instead REJECTS
 // duplicate keys ("Map keys must be unique"). We lock last-wins AND assert the
 // oracle diverges, so the policy (src/index.ts assignPair) is pinned. This is
@@ -165,8 +165,8 @@ test("duplicate keys: last-wins (JSON.parse semantics), diverging from the oracl
 });
 
 // --------------------------------------------------------------------------
-// §4.4/§4.5/§4.9 Merge keys `<<`. Merge is UNIMPLEMENTED by design (a documented
-// non-goal; `<<` was removed from YAML 1.2 and is absent from the test corpus).
+// §4.4/§4.5/§4.9 Merge keys `<<`. Merge is NOT YET IMPLEMENTED natively (target: `<<` expands; the compat shims stay literal
+// to match their libraries); `<<` was removed from YAML 1.2 and is absent from the test corpus).
 // The behaviour is NOT a throw and NOT a merge: `<<` is read as a plain, literal
 // string key — which is exactly what the `yaml` oracle does by default (its
 // merge support is opt-in). We lock the literal-key reading so it can't silently
@@ -203,7 +203,7 @@ test("flow plain scalars cannot start with invalid indicator characters", () => 
 });
 
 // --------------------------------------------------------------------------
-// §4.12 Complex (non-scalar) mapping keys — SPEC is the oracle here.
+// §4.12 Complex (non-scalar) mapping keys — under `{ strict: true }` the spec decides; the native default is an open owner question.
 // A collection used as a key needs the explicit `?` indicator, so the EXPLICIT
 // forms (block `? [a,b]`, flow `{? [1,2]: v}`) are valid and we accept them;
 // the IMPLICIT flow form `{[1,2]: v}` is a spec ERROR — yaml-test-suite SBG9

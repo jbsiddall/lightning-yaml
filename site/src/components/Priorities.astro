@@ -18,10 +18,10 @@ const conformanceSelf = conformance.results.find((result) => result.self);
   <div class="priorities__grid">
     <div class="pcard">
       <span class="pcard__dot pcard__dot--charge" aria-hidden="true"></span>
-      <h3 class="pcard__title">Spec-correct</h3>
+      <h3 class="pcard__title">Spec-checked on request</h3>
       <p class="pcard__body">
         {conformanceSelf ? (
-          <><b>{formatPercent(conformanceSelf.score)} ({conformanceSelf.passed}/{conformanceSelf.total})</b> on the YAML Test Suite. <a href="/benchmarks/#conformance">See the measured comparison</a>. {sourceLine(conformance)}</>
+          <><b>{formatPercent(conformanceSelf.score)} ({conformanceSelf.passed}/{conformanceSelf.total})</b> on the YAML Test Suite. Strict checking is opt-in: <code>{'parse(text, { strict: true })'}</code>. <a href="/benchmarks/#conformance">See the measured comparison</a>. {sourceLine(conformance)}</>
         ) : (
           <>The YAML Test Suite result is unavailable. <a href="/benchmarks/#conformance">See the measured comparison</a>. {sourceLine(conformance)}</>
         )}
@@ -30,7 +30,7 @@ const conformanceSelf = conformance.results.find((result) => result.self);
 
     <div class="pcard">
       <span class="pcard__dot pcard__dot--spark" aria-hidden="true"></span>
-      <h3 class="pcard__title">JSON-class speed</h3>
+      <h3 class="pcard__title">Fast, approaching JSON.parse</h3>
       <p class="pcard__body">
         Parses at <b>~0.5×</b> <code>JSON.parse</code>; <b>4–39×</b> the JS competition on
         block YAML.

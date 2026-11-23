@@ -1,13 +1,13 @@
 /**
  * Consistency suite — a differential check over the benchmark fixtures.
  *
- * The definition of "right" is the YAML 1.2.2 spec (operationalized by the
+ * The definition of "right" for strict mode is the YAML 1.2.2 spec (operationalized by the
  * yaml-test-suite; scored in `bench/conformance/` — that is the conformance gate).
  * This suite is a complementary DIFFERENTIAL aid: it checks OUR implementation
  * against the `yaml` reference (`bench/oracle.ts`) over the exact data the
  * benchmarks use. It is sound only because the fixtures deliberately avoid
  * spec-contested constructs, so the reference's output on them is spec-faithful; a
- * disagreement is a *candidate* to investigate against the spec, not a proven bug.
+ * disagreement is a *candidate* to investigate (against the spec for strict mode, against the project priorities for native parse), not a proven bug.
  * We deliberately do NOT cross-check the competitors against each other.
  *
  * Two properties per fixture:

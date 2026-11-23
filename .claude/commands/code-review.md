@@ -115,12 +115,12 @@ does not count as `APPROVED`). Run any in-file **instruction to the top-level** 
 result (a red gate blocks).
 
 **Precedence when champions conflict** (higher wins; a lower reviewer's finding that
-contradicts a higher one is not blocking — mirrors CLAUDE.md's source-of-truth order):
+contradicts a higher one is not blocking — mirrors the owner priorities in README's "Project priorities"):
 
-1. `spec` — YAML 1.2.2 correctness.
-2. CLAUDE.md policy — `comments` and `newcomer` (docs honesty, integrity & audience-voice).
-3. `compat-yaml` / `compat-js-yaml` — drop-in parity (their asks yield to `spec`).
-4. `performance` — no speed/memory regression.
+1. `compat-yaml` / `compat-js-yaml` — exact parity with the library each shim replaces (owner priority 1).
+2. `performance` — native API speed, then memory (owner priority 2).
+3. `spec` — YAML 1.2.2 correctness under `strict: true` (owner priority 3; does not block the native default).
+4. CLAUDE.md policy — `comments` and `newcomer` (docs honesty, integrity & audience-voice).
 5. `consistency` — structure/naming/reuse (yields to policy — so `comments` beats
    `consistency` on comment density).
 6. `complexity` — maintainability/risk; advisory unless egregious.

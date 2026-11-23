@@ -1,5 +1,6 @@
 /**
- * lightning-yaml — a single-pass, allocation-minimal, pure-JS YAML 1.2.2 parser
+ * lightning-yaml — a single-pass, allocation-minimal, pure-JS YAML parser (YAML 1.2.2 core typing;
+ * strict 1.2.2 checks are opt-in via `strict: true`)
  * engineered for V8 (see site/src/content/docs/research/notes/2026-07-12-design-a-pure-js-parser.md).
  *
  * The public surface mirrors `JSON.parse`:
@@ -32,12 +33,12 @@
  *   - security from day one: `__proto__` never pollutes a prototype, and a hard
  *     recursion-depth cap turns deep-nesting attacks into a controlled throw.
  *
- * Scalar typing follows YAML 1.2 **core schema** (the repo oracle, `yaml`): so
+ * Scalar typing follows YAML 1.2 **core schema** (the spec; `yaml` agrees and is the repo's differential oracle): so
  * `null|Null|NULL|~` and empty → null; `true|True|TRUE|false|False|FALSE` → bool
  * (exact case; `yes/no/on/off` stay strings); decimal/`0o`/`0x` ints, floats,
  * and `.inf`/`.nan` are numbers; timestamps are NOT resolved (`2026-08-02` is a
  * string). Quoted scalars are never typed. This deliberately diverges from
- * js-yaml's 1.1-flavoured defaults (binary `0b`, `_` separators, sexagesimals,
+ * js-yaml v4's 1.1-flavoured default schema (binary `0b`, `_` separators, sexagesimals,
  * timestamp→Date); those divergences are covered by differential tests.
  */
 
@@ -1130,7 +1131,7 @@ function checkTagSeparator(inFlow: boolean): void {
  *    tag: keep the raw string, matching the oracle (`!foo 123` → "123").
  *  - `!!int`/`!!float`/`!!bool`/`!!null`: STRICT core-schema validation —
  *    content that doesn't satisfy the tag is a hard error (STRICTNESS,
- *    matching js-yaml — the oracle is lenient here by design, warning and
+ *    matching js-yaml — `yaml` is lenient here by design (the spec adjudicates), warning and
  *    keeping the raw string instead; deliberate, documented divergence).
  *  - `!!binary`: base64-decode to a `Uint8Array` (see `decodeBinary`).
  *  - `!!map`/`!!seq`/`!!set`/`!!omap`/`!!pairs`: these require a collection
@@ -2957,7 +2958,7 @@ function skipBlankLines(): void {
     // Skip leading whitespace. Tabs are accepted as separation (matching the
     // oracle, which allows e.g. a tab before a top-level flow node); we do not
     // enforce YAML's "no tabs in block indentation" rule, since valid documents
-    // never rely on it and the oracle is lenient here.
+    // never rely on it; the default is lenient (see SKIP_STRICT_VALIDATION).
     while (pos < len) {
       const c = src.charCodeAt(pos);
       if (c === SPACE || c === TAB) pos++;
@@ -4544,7 +4545,7 @@ function parseNextDocument(preserveSuffixDocuments: boolean): unknown {
 // Stringify (dump) — M6. The inverse of the parser above: a JS value → a YAML
 // document that reads back to a deep-equal value through BOTH this file's own
 // `parse` and the oracle (`yaml`, see bench/oracle.ts) — that round-trip is
-// the entire correctness contract (test/stringify.unit.ts), never exact
+// the correctness contract, checked against the spec (test/stringify.unit.ts), never exact
 // textual output. Correctness-first (M6), then perf-tuned in M7: output is
 // accumulated into a single module-level `out` string via sequential `out += …`
 // appends (see `out`'s doc comment for why that ConsString rope is O(n) here,

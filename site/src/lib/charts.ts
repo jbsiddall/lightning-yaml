@@ -990,7 +990,7 @@ export interface LineChartOptions {
   domainMax?: number;
   /**
    * 'log' (base 10) for wide-dynamic-range data — the speed trends compare a
-   * ratio-to-fastest that spans ~1× to ~130× across libraries, where a linear
+   * ratio-to-fastest that spans ~1× to ~113× across libraries, where a linear
    * axis crushes the fast parsers into an unreadable sliver at the baseline and
    * hides exactly the run-to-run movement the chart exists to show. Only valid
    * for strictly-positive series (ratios are ≥ 1). Defaults to 'linear'.

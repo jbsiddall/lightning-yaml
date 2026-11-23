@@ -1,5 +1,5 @@
 /**
- * Differential compat report for the DROP-IN SHIMS (src/js-yaml-compat.ts,
+ * Differential compat report for the compat SHIMS, which target exact drop-in compatibility and are partial today (src/js-yaml-compat.ts,
  * src/yaml-compat.ts) — a different question from bench/conformance/run.ts
  * (which scores OUR PARSER's correctness against the yaml-test-suite). Here
  * we ask: "if a codebase swaps its `js-yaml`/`yaml` import for one of our
@@ -42,7 +42,7 @@
  * the orchestrator can pick the highest-impact feature to implement next:
  * most of these buckets (block-scalar, anchor-alias, tag, schema-1.1) close
  * automatically as the parser itself grows — they
- * are NOT gaps in this compat layer specifically.
+ * are gaps the shims inherit from the native parser, and each stays a shim gap until it closes.
  */
 
 import { existsSync } from "node:fs";

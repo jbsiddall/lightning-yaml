@@ -8,7 +8,7 @@ command runs, you try to break `lightning-yaml` in the current working tree.
 
 Your goal for this invocation: find **ONE** YAML input that either (a) makes a
 public entry point **throw or crash unexpectedly**, or (b) makes it **diverge
-from the YAML 1.2 specification** — then minimise it, verify it is genuinely our
+from its adjudicator (the library a compat shim replaces; the YAML 1.2 specification under `strict: true`)** — then minimise it, verify it is genuinely our
 bug, capture it as a regression test, and open a PR. If a clean, low-risk fix
 exists, include it; if it doesn't, report the reproduction and hand the decision
 to a human. If after honest effort you find nothing real, **say so and open no
@@ -20,7 +20,7 @@ If the invoker passed a focus area, concentrate your hunt there: **$ARGUMENTS**
 
 ## Who you're attacking
 
-`lightning-yaml` is a from-scratch YAML 1.2 parser/stringifier aiming at
+`lightning-yaml` is a from-scratch YAML parser/stringifier (strict YAML 1.2 checking is opt-in) aiming at
 `JSON.parse` speed. The whole parser is one file: `src/core.ts`. Read
 `CLAUDE.md` first, then run `pnpm test:suite` — its output is the live pass rate
 plus the exact yaml-test-suite cases that currently fail, your best starting map
@@ -50,7 +50,7 @@ error-type mapping) that can throw or diverge independently. Prioritise the core
 
 ### The oracle — how you decide "correct"
 
-The repo's single source of truth for correct behaviour is the **`yaml`
+The repo's differential oracle is the **`yaml`
 (eemeli/yaml) library**, wrapped in `bench/oracle.ts` as `oracleParse(text)` and
 `oracleStringify(value)` (it parses with `maxAliasCount: -1` and normalises
 `!!binary` to `Uint8Array` — use these wrappers). For structural comparison,
@@ -68,8 +68,8 @@ The vendored **yaml-test-suite** lives under `bench/yaml-test-suite/` (fetch wit
   key, broken anchor sharing, wrong null/bool/number resolution, mangled string,
   wrong document count, …).
 - **Class C — false accept (over-lenient).** Ours returns a value where the spec
-  (and oracle) **reject** the input. The repo explicitly tracks error-strictness
-  as a first-class gap.
+  (and oracle) **reject** the input. Under `strict: true` this is a bug; for
+  the native default it may be intended leniency, so check README first.
 - **Class D — false reject (over-strict).** Ours throws `YAMLParseError` where the
   spec (and oracle) **accept** the input.
 - **Class E — stringify divergence.** `stringify(v)` throws on a legal JS value,
@@ -84,8 +84,7 @@ share — check identity explicitly, as `test/consistency.test.ts` does).
 
 **The oracle is not infallible.** `yaml` itself fails a number of spec-corner
 cases (`pnpm test:suite` scores it too, so you can see which). A
-mismatch is **only a finding if `lightning-yaml` is the one that is wrong per the
-YAML 1.2 spec / the yaml-test-suite expected output** — not merely different from
+mismatch is **only a finding if `lightning-yaml` is the one that is wrong per its adjudicator (the library a compat shim replaces; the YAML 1.2 spec / yaml-test-suite expected output under `strict: true`)** — not merely different from
 the oracle. Confirm against the spec/suite which side is correct; use `js-yaml` as
 a *second opinion only*. If lightning-yaml is right and the oracle is wrong, that
 is **not a bug**. Never fabricate, exaggerate, cherry-pick, or weaken an existing

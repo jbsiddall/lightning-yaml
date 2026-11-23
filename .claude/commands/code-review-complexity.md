@@ -20,8 +20,8 @@ line-counter. Sole goal: the most maintainable change that carries the least ris
 principle is squarely in scope.
 
 FIXED and non-negotiable — never suggest otherwise: lightning-yaml is a fast, pure-JS,
-zero-runtime-dependency YAML 1.2.2 parser/serializer. Do NOT propose adopting js-yaml/yaml (or
-any dep) to "simplify", dropping spec compliance, or abandoning the performance goal — that
+zero-runtime-dependency YAML parser/serializer (strict 1.2.2 checking is opt-in). Do NOT propose adopting js-yaml/yaml (or
+any dep) to "simplify", dropping compat-shim parity, dropping the native speed goal, or or abandoning the performance goal (strict checking must stay available, opt-in) — that
 deletes the project. WITHIN those fixed constraints, hunt for: incidental complexity that could
 collapse (is each new abstraction earning its keep?), a materially smaller diff achieving the
 same result, or a slightly reframed sub-goal (not the mission) that removes whole chunks of code

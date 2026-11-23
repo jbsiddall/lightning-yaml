@@ -190,8 +190,7 @@ come from different published runs, so this page never shows one line for all of
 
 ## How to read these numbers
 
-Every figure on this page — and everywhere else on this site (the homepage, any "N× faster"
-figure) — is a **single real measurement** in the environment it's labelled with. Nothing here
+Every figure on this page is a **single real measurement** in the environment it's labelled with, and the homepage's "N× faster" figures are derived from those measurements in the same way. Nothing here
 is ever averaged or blended across environments: a browser's engine and Node are different
 machines with different results, and combining them into one number would hide that. Where more
 than one environment has published results, use the picker below to see each engine's own
@@ -257,7 +256,7 @@ Turning YAML text into JavaScript values — the hot path for most consumers.
 {speedSections.map((s) => (
   <ChartCard
     heading={`Parse time vs fastest, run over run — ${speedTrendWl}`}
-    note="Lower is better, log scale. Each parser's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line would mean a regression."
+    note="Lower is better, log scale. Each parser's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line means it fell further behind the fastest parser in that run, which is either a regression or a faster competitor."
     legend={s.parseTrendLegend}
     svg={s.parseTrendSvg}
     runtimeFamily={speedRuntimes.length > 1 ? s.family : undefined}
@@ -359,7 +358,7 @@ config would be identical to the default.
 {speedSections.map((s) => (
   <ChartCard
     heading={`Stringify time vs fastest, run over run — ${speedTrendWl}`}
-    note="Lower is better, log scale. Each dumper's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line would mean a regression."
+    note="Lower is better, log scale. Each dumper's time as a multiple of the fastest in the same run (×) — machine-invariant. The fastest sits at 1× by construction; a rising Lightning YAML line means it fell further behind the fastest parser in that run, which is either a regression or a faster competitor."
     legend={s.dumpTrendLegend}
     svg={s.dumpTrendSvg}
     runtimeFamily={speedRuntimes.length > 1 ? s.family : undefined}
@@ -414,7 +413,7 @@ measurement. Higher is better.
 
 Lightning YAML passes **{selfConf.score}%** of the suite{negClause}; the per-library standing is in
 the chart above and the table below. Merge keys (`<<`) are absent from the test corpus and are
-currently read as ordinary keys; the suite also reports other remaining YAML 1.2 edge cases.
+currently read as ordinary keys; expanding them is the planned native behaviour. The suite also reports other remaining YAML 1.2 edge cases.
 
 <ChartCard
   heading="Conformance pass rate, run over run"
