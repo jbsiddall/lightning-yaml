@@ -2595,16 +2595,14 @@ function foldFlowBreak(i: number): number {
     if (i >= len) fail("unterminated quoted string");
     const cc = src.charCodeAt(i);
     const blank = cc === LF || cc === CR;
-    // A quoted scalar nested in a block context must keep its continuation
-    // lines indented deeper than the enclosing block node (yaml-test-suite
-    // QB6E, DK95/01); at the document root (floor -1) col 0 is legal. A blank
-    // line may fall short of the floor, but a tab on it still sits in the
-    // indentation zone, so only a tab-free short blank line is allowed.
+    // Nested in a block node (floor >= 0), continuation lines must sit deeper
+    // than the floor (yaml-test-suite QB6E, DK95/01). A blank line may fall
+    // short, but a tab on it still counts as indentation: only a tab-free one may.
     if (flowIndentFloor >= 0 && indentEnd - ls <= flowIndentFloor && (!blank || i > indentEnd)) {
       pos = i;
       fail("insufficient indentation for a multi-line quoted scalar");
     }
-    if (!blank) break; // a content line (or the closing quote)
+    if (!blank) break;
   }
   foldedBreaks = breaks;
   quotedMultiline = true; // a real folded break was consumed → the scalar is multi-line

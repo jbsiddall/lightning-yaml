@@ -311,17 +311,3 @@ test("binary: invalid base64 characters (e.g. wide unicode or non-base64 charact
   throwsBecause(() => parse("!!binary \"AAAA-A==\""), /invalid base64 character/);
 });
 
-test("quoted scalar continuation: a tab cannot be the indentation inside a block node (YAML 1.2.2 §6.1, §7.3.1)", () => {
-  for (const s of ['foo: "bar\n\tbaz"', "foo: 'bar\n\tbaz'", '- "a\n\tb"', 'foo:\n  bar: "x\n  \ty"', 'foo: "a\n\t\n  b"', "foo: 'a\n\t\n  b'"]) {
-    for (const opts of [undefined, { strict: true }]) {
-      throws(() => parse(s, opts), YAMLParseError, JSON.stringify(s));
-    }
-  }
-});
-
-test("quoted scalar continuation: tabs stay legal at the root, after space indent, and on blank lines", () => {
-  strictEqual(parse('"bar\n\tbaz"'), "bar baz");
-  strictEqual((parse('foo: "bar\n \tbaz"') as any).foo, "bar baz");
-  strictEqual((parse('foo: "a\n \t\n  b"') as any).foo, "a\nb");
-  strictEqual((parse('"a\n\t\nb"') as any), "a\nb");
-});

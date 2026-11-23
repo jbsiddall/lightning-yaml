@@ -1776,6 +1776,21 @@ test("STRICTNESS: a tab cannot indent a flow continuation line (yaml-test-suite 
   deepStrictEqual(parse("- [\n\t\n foo\n ]\n"), oracleParse("- [\n\t\n foo\n ]\n"));
 });
 
+test("STRICTNESS: a tab cannot be the indentation of a quoted continuation line inside a block node (yaml-test-suite DK95/01)", () => {
+  for (const s of ['foo: "bar\n\tbaz"', "foo: 'bar\n\tbaz'", '- "a\n\tb"', 'foo:\n  bar: "x\n  \ty"', 'foo: "a\n\t\n  b"', "foo: 'a\n\t\n  b'"]) {
+    for (const opts of [undefined, { strict: true }]) {
+      throws(() => parse(s, opts), YAMLParseError, JSON.stringify(s));
+    }
+  }
+});
+
+test("STRICTNESS: a tab is legal in a quoted continuation line at the root, after a space indent, or on a blank line (YAML 1.2.2 §6.3, §6.4)", () => {
+  strictEqual(parse('"bar\n\tbaz"'), "bar baz");
+  deepStrictEqual(parse('foo: "bar\n \tbaz"'), { foo: "bar baz" });
+  deepStrictEqual(parse('foo: "a\n \t\n  b"'), { foo: "a\nb" });
+  strictEqual(parse('"a\n\t\nb"'), "a\nb");
+});
+
 // --------------------------------------------------------------------------
 // Space-then-tab positioning a block collection (issue #18 — a deeper 4EJS
 // manifestation). `" \t"` is byte-identical whether it precedes a block
