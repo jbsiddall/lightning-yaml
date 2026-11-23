@@ -294,20 +294,37 @@ let nextBackslash = -1;
 let nextNewline = -1;
 
 /**
- * Same memo for the other characters that push a quoted scalar off its slice
- * fast path: a bare CR (a line break) or any C0 control but TAB/LF (illegal in
- * a quoted scalar, §5.1 nb-json). Rare in real input, so one regex scan
- * typically covers the whole document. Kept apart from `nextNewline` because
- * `indexOf('\n')` is markedly faster than a regex on pretty-printed input,
- * where the newline memo refreshes on every line. Reset per parse.
+ * Memo for the characters that push a quoted scalar off its slice fast path: a
+ * bare CR (a line break) or a C0 control other than TAB/LF (§5.1 nb-json).
+ * `[ctrlFrom, ctrlClean)` holds none of them; `ctrlHit` is the first, at
+ * `ctrlClean`, or -1 while unknown. Scanned a 4 KiB window at a time, and only
+ * as far as the quoted scalars checked so far (plus at most one window), since
+ * a scan to the end of the file is a full pass over a plain-block file with a
+ * few quotes. Reset per parse.
  */
-let nextQuotedControl = -1;
-const QUOTED_CONTROL = /[\x00-\x08\x0B-\x1F]/g;
+let ctrlFrom = 0;
+let ctrlClean = 0;
+let ctrlHit = -1;
+const CTRL_WINDOW = 4096;
+const QUOTED_CONTROL = /[\x00-\x08\x0B-\x1F]/;
 
-/** `nextQuotedControl` refresh: first such char at or after `start`, else `len`. */
-function refreshQuotedControl(start: number): void {
-  QUOTED_CONTROL.lastIndex = start;
-  nextQuotedControl = QUOTED_CONTROL.test(src) ? QUOTED_CONTROL.lastIndex - 1 : len;
+/** True when `src[start, end)` contains a character matched by `QUOTED_CONTROL`. */
+function hasQuotedControl(start: number, end: number): boolean {
+  if (start < ctrlFrom || start > ctrlClean) {
+    ctrlFrom = ctrlClean = start;
+    ctrlHit = -1;
+  }
+  while (ctrlHit === -1 && ctrlClean < end) {
+    const to = Math.min(len, ctrlClean + CTRL_WINDOW);
+    const k = src.slice(ctrlClean, to).search(QUOTED_CONTROL);
+    if (k === -1) {
+      ctrlClean = to;
+    } else {
+      ctrlClean += k;
+      ctrlHit = ctrlClean;
+    }
+  }
+  return ctrlHit !== -1 && ctrlHit < end;
 }
 
 /**
@@ -558,7 +575,8 @@ function resetForStream(text: string): void {
   depth = 0;
   nextBackslash = -1;
   nextNewline = -1;
-  nextQuotedControl = -1;
+  ctrlFrom = ctrlClean = 0;
+  ctrlHit = -1;
   lineStart = 0;
   keyCache = new Map();
   keyCacheBytes = 0;
@@ -2648,8 +2666,7 @@ function parseDoubleQuoted(): string {
       const n = src.indexOf("\n", start);
       nextNewline = n === -1 ? len : n;
     }
-    if (nextQuotedControl < start) refreshQuotedControl(start);
-    if (nextNewline > e && nextQuotedControl > e) {
+    if (nextNewline > e && !hasQuotedControl(start, e)) {
       pos = e + 1;
       return internValue(src.slice(start, e));
     }
@@ -2836,8 +2853,7 @@ function parseSingleQuoted(): string {
     const n = src.indexOf("\n", start);
     nextNewline = n === -1 ? len : n;
   }
-  if (nextQuotedControl < start) refreshQuotedControl(start);
-  if (nextNewline < e || nextQuotedControl < e) return parseSingleQuotedSlow(start);
+  if (nextNewline < e || hasQuotedControl(start, e)) return parseSingleQuotedSlow(start);
   pos = e + 1;
   return internValue(src.slice(start, e));
 }

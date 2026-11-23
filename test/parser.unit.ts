@@ -660,6 +660,54 @@ test("quoted scalars: a raw C0 byte is rejected in a flow key that repeats an ea
   deepStrictEqual(parse('[{"\\x01": 1}, {"\\x01": 2}]'), [{ "\x01": 1 }, { "\x01": 2 }]);
 });
 
+test("quoted scalars: a raw C0 byte is caught on either side of a scan-window seam", () => {
+  // The control scan runs in fixed-size windows. Each offset puts the byte on or
+  // beside a window edge (4096, 8192), so an off-by-one at a seam is an accepted byte.
+  for (const off of [1, 2, 4094, 4095, 4096, 4097, 8191, 8192, 8193, 12288]) {
+    const body = "a".repeat(off);
+    throws(() => parse(`"${body}\x01b"`), YAMLParseError, `double-quoted, byte after ${off} chars`);
+    throws(() => parse(`'${body}\x01b'`), YAMLParseError, `single-quoted, byte after ${off} chars`);
+  }
+});
+
+test("quoted scalars: a raw C0 byte is caught at the end of a long scalar, not only near its start", () => {
+  for (const n of [4095, 4096, 9000, 20000]) {
+    const long = "a".repeat(n);
+    strictEqual(parse(`"${long}"`), long);
+    strictEqual(parse(`'${long}'`), long);
+    throws(() => parse(`"${long}\x01"`), YAMLParseError, `double-quoted, ${n} chars then a control byte`);
+    throws(() => parse(`'${long}\x01'`), YAMLParseError, `single-quoted, ${n} chars then a control byte`);
+  }
+});
+
+test("quoted scalars: a raw C0 byte after thousands of clean scalars is caught", () => {
+  const clean = Array.from({ length: 3000 }, (_, i) => `- "item ${i}"\n`).join("");
+  strictEqual((parse(clean) as unknown[]).length, 3000);
+  throws(() => parse(`${clean}- "bad\x01"\n`), YAMLParseError);
+  throws(() => parse(`${clean}- 'bad\x01'\n`), YAMLParseError);
+});
+
+test("quoted scalars: TAB, DEL and C1 stay legal on both sides of a scan-window seam", () => {
+  for (const ch of ["\t", "\x7f", "\x85", "\u009f"]) {
+    const body = `${"a".repeat(4094)}${ch}${"b".repeat(4094)}`;
+    strictEqual(parse(`"${body}"`), body);
+    strictEqual(parse(`'${body}'`), body);
+  }
+});
+
+test("quoted scalars: a bare CR past a scan-window seam still folds to a space", () => {
+  const head = "a".repeat(4096);
+  strictEqual(parse(`"${head}\rb"`), `${head} b`);
+  strictEqual(parse(`'${head}\rb'`), `${head} b`);
+});
+
+test("quoted scalars: scan state from an earlier parse does not hide a raw C0 byte in a later one", () => {
+  strictEqual((parse(`"${"x".repeat(9000)}"`) as string).length, 9000);
+  throws(() => parse('"a\x01b"'), YAMLParseError);
+  strictEqual((parse(`'${"y".repeat(9000)}'`) as string).length, 9000);
+  throws(() => parse("'a\x01b'"), YAMLParseError);
+});
+
 test("regression [8]: block sequence indented at the parent mapping key's column", () => {
   deepStrictEqual(parse("key:\n- a\n- b\nnext: 1\n"), { key: ["a", "b"], next: 1 });
   deepStrictEqual(parse("a:\n- 1\nb:\n- 2\n"), { a: [1], b: [2] });
