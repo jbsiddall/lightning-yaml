@@ -621,6 +621,34 @@ test("regression [7]: quoted-scalar multi-line flow folding matches the oracle",
   strictEqual(parse('"a\\\tb"'), "a\tb");
 });
 
+test("quoted scalars: raw C0 control characters are rejected, TAB/DEL/C1 are fine", () => {
+  for (const cc of [0x00, 0x01, 0x08, 0x0b, 0x0c, 0x0e, 0x1f]) {
+    const ch = String.fromCharCode(cc);
+    for (const s of [`"a${ch}b"`, `'a${ch}b'`, `{"a${ch}b": 1}`, `{'a${ch}b': 1}`, `k: "a${ch}b"`, `"a\nb${ch}"`]) {
+      throws(() => parse(s), YAMLParseError, JSON.stringify(s));
+      throws(() => parse(s, { strict: true }), YAMLParseError, JSON.stringify(s));
+      throws(() => jsYamlCompatLoad(s), JSON.stringify(s));
+      throws(() => yamlCompatParse(s), JSON.stringify(s));
+    }
+  }
+  for (const ch of ["\t", "\x7f", "\x85"]) {
+    strictEqual(parse(`"a${ch}b"`), `a${ch}b`);
+    strictEqual(parse(`'a${ch}b'`), `a${ch}b`);
+  }
+});
+
+test("quoted scalars: a bare CR folds like LF; CRLF is one break", () => {
+  for (const q of ['"', "'"]) {
+    strictEqual(parse(`${q}a\rb${q}`), "a b");
+    strictEqual(parse(`${q}a\r\nb${q}`), "a b");
+    strictEqual(parse(`${q}a\r\rb${q}`), "a\nb");
+    strictEqual(parse(`${q}a\r\r\nb${q}`), "a\nb");
+    strictEqual(parse(`${q}a\rb${q}`), jsYamlLoad(`${q}a\rb${q}`));
+  }
+  strictEqual(parse('"a\\\rb"'), parse('"a\\\nb"'));
+  strictEqual(parse('"a\\\rb"'), "ab");
+});
+
 test("regression [8]: block sequence indented at the parent mapping key's column", () => {
   deepStrictEqual(parse("key:\n- a\n- b\nnext: 1\n"), { key: ["a", "b"], next: 1 });
   deepStrictEqual(parse("a:\n- 1\nb:\n- 2\n"), { a: [1], b: [2] });

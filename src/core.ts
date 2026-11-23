@@ -294,6 +294,23 @@ let nextBackslash = -1;
 let nextNewline = -1;
 
 /**
+ * Same memo for the other characters that push a quoted scalar off its slice
+ * fast path: a bare CR (a line break) or any C0 control but TAB/LF (illegal in
+ * a quoted scalar, §5.1 nb-json). Rare in real input, so one regex scan
+ * typically covers the whole document. Kept apart from `nextNewline` because
+ * `indexOf('\n')` is markedly faster than a regex on pretty-printed input,
+ * where the newline memo refreshes on every line. Reset per parse.
+ */
+let nextQuotedControl = -1;
+const QUOTED_CONTROL = /[\x00-\x08\x0B-\x1F]/g;
+
+/** `nextQuotedControl` refresh: first such char at or after `start`, else `len`. */
+function refreshQuotedControl(start: number): void {
+  QUOTED_CONTROL.lastIndex = start;
+  nextQuotedControl = QUOTED_CONTROL.test(src) ? QUOTED_CONTROL.lastIndex - 1 : len;
+}
+
+/**
  * Per-parse key-intern cache. Repeated mapping keys collapse to one
  * `===`-identical string, so V8 amortizes internalization and transition walks
  * stay cheap across homogeneous records (doc 07 §5; the FastKeyMatch analog).
@@ -541,6 +558,7 @@ function resetForStream(text: string): void {
   depth = 0;
   nextBackslash = -1;
   nextNewline = -1;
+  nextQuotedControl = -1;
   lineStart = 0;
   keyCache = new Map();
   keyCacheBytes = 0;
@@ -2621,15 +2639,16 @@ function parseDoubleQuoted(): string {
     nextBackslash = b === -1 ? len : b;
   }
   if (nextBackslash > e) {
-    // No escape before the closing quote. A line break inside still triggers
-    // multi-line flow folding, so check for one (memoized like `nextBackslash`);
-    // absent both, the value is a single slice — the ~100% case on JSON-shaped
-    // input and why the hop path beats native.
+    // No escape before the closing quote. A line break or control character
+    // inside still needs the slow path (folding / rejection), so check for one
+    // (memoized like `nextBackslash`); absent all, the value is a single slice —
+    // the ~100% case on JSON-shaped input and why the hop path beats native.
     if (nextNewline < start) {
       const n = src.indexOf("\n", start);
       nextNewline = n === -1 ? len : n;
     }
-    if (nextNewline > e) {
+    if (nextQuotedControl < start) refreshQuotedControl(start);
+    if (nextNewline > e && nextQuotedControl > e) {
       pos = e + 1;
       return internValue(src.slice(start, e));
     }
@@ -2772,6 +2791,10 @@ function parseDoubleQuotedSlow(start: number): string {
       seg = i;
       continue;
     }
+    if (c < SPACE && c !== TAB) {
+      pos = i;
+      fail("control character is not allowed in a quoted scalar; use an escape");
+    }
     i++;
   }
 }
@@ -2806,13 +2829,14 @@ function parseSingleQuoted(): string {
   if (e + 1 < len && src.charCodeAt(e + 1) === SQUOTE) {
     return parseSingleQuotedSlow(start); // contains a '' escape
   }
-  // A line break inside triggers multi-line flow folding — divert to the slow
-  // path (memoized newline check, like the double-quoted fast path).
+  // A line break or control character inside needs the slow path (memoized
+  // check, like the double-quoted fast path).
   if (nextNewline < start) {
     const n = src.indexOf("\n", start);
     nextNewline = n === -1 ? len : n;
   }
-  if (nextNewline < e) return parseSingleQuotedSlow(start);
+  if (nextQuotedControl < start) refreshQuotedControl(start);
+  if (nextNewline < e || nextQuotedControl < e) return parseSingleQuotedSlow(start);
   pos = e + 1;
   return internValue(src.slice(start, e));
 }
@@ -2845,6 +2869,10 @@ function parseSingleQuotedSlow(start: number): string {
       result += foldedBreaks === 1 ? " " : "\n".repeat(foldedBreaks - 1);
       seg = i;
       continue;
+    }
+    if (c < SPACE && c !== TAB) {
+      pos = i;
+      fail("control character is not allowed in a quoted scalar; use an escape");
     }
     i++;
   }
