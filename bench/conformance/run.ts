@@ -7,9 +7,9 @@
  *   pnpm test:suite              # runs both of the above in sequence
  *
  * Scoring:
- *   - positive case (has in.json)  -> PASS iff the parser doesn't throw AND
+ *   - positive case (has in.json, no `error`) -> PASS iff the parser doesn't throw AND
  *     its ordered document sequence deep-equals the expected sequence.
- *   - negative case (has `error`, no in.json) -> PASS iff the parser throws.
+ *   - negative case (has `error`, even beside a stale in.json) -> PASS iff the parser throws.
  *   - neither file present -> unscorable (event-stream-only fixtures with no
  *     JSON representation); skipped identically for all three parsers so the
  *     comparison stays apples-to-apples.

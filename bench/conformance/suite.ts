@@ -146,14 +146,14 @@ function buildCase(id: string, dir: string): TestCase {
   const yaml = readFileSync(join(dir, "in.yaml"), "utf8");
   const description = (readIfExists(join(dir, "===")) ?? "").trim();
 
+  // `error` wins: some snapshot dirs (9MQT/01, DK95/01, DK95/06) keep a stale in.json beside it.
+  if (existsSync(join(dir, "error"))) {
+    return { id, dir, description, yaml, kind: "negative" };
+  }
+
   const inJsonText = readIfExists(join(dir, "in.json"));
   if (inJsonText !== undefined) {
     return { id, dir, description, yaml, kind: "positive", expected: readJsonStream(inJsonText) };
-  }
-
-  const hasError = existsSync(join(dir, "error"));
-  if (hasError) {
-    return { id, dir, description, yaml, kind: "negative" };
   }
 
   return { id, dir, description, yaml, kind: "unscorable" };
