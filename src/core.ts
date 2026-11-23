@@ -288,9 +288,9 @@ let nextBackslash = -1;
  * `nextBackslash`, for the same reason: a quoted-scalar fast path that checked
  * each string with a fresh `indexOf` would rescan newline-free input to its end
  * on every string — O(n²). A lone CR is a line break too (§5.4), so the scalar
- * must fold. We recompute only when the cursor passes a memo, so input without
- * that character pays one `indexOf` in total and input with it one short scan
- * per line. Reset per parse.
+ * must fold (except under `keepBareCR`). We recompute only when the cursor
+ * passes a memo, so input without that character pays one `indexOf` in total
+ * and input with it one short scan per line. Reset per parse.
  */
 let nextNewline = -1;
 let nextCR = -1;
@@ -301,6 +301,7 @@ function hasLineBreak(start: number, end: number): boolean {
     nextNewline = n === -1 ? len : n;
   }
   if (nextNewline < end) return true;
+  if (keepBareCR) return false;
   if (nextCR < start) {
     const r = src.indexOf("\r", start);
     nextCR = r === -1 ? len : r;
@@ -316,6 +317,18 @@ function hasLineBreak(start: number, end: number): boolean {
  * default fast path never scans for controls.
  */
 let rejectQuotedControls = false;
+
+/**
+ * On for the `yaml` shim, which keeps a lone CR inside a quoted scalar as text
+ * (`"a<CR>b"` is `a<CR>b`, as in `yaml` 2.9.0). CRLF is still one break.
+ */
+let keepBareCR = false;
+
+/** Is the character at `i` a line break inside a quoted scalar? */
+function isQuotedBreakAt(i: number): boolean {
+  const c = src.charCodeAt(i);
+  return c === LF || (c === CR && (!keepBareCR || src.charCodeAt(i + 1) === LF));
+}
 
 /** Callers have already ruled out LF and CR in `src[start, end)`. */
 function hasRawControl(start: number, end: number): boolean {
@@ -691,6 +704,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
   valueCache = internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = skipStrictValidation;
   rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
+  keepBareCR = options === yamlDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -715,6 +729,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     rejectQuotedControls = false;
+    keepBareCR = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -749,6 +764,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   valueCache = internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = skipStrictValidation;
   rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
+  keepBareCR = options === yamlDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -765,6 +781,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     rejectQuotedControls = false;
+    keepBareCR = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -2634,8 +2651,7 @@ function foldFlowBreak(i: number): number {
     const indentEnd = i; // s-indent is spaces only; a tab may separate but never indents
     while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
     if (i >= len) fail("unterminated quoted string");
-    const cc = src.charCodeAt(i);
-    const blank = cc === LF || cc === CR;
+    const blank = isQuotedBreakAt(i);
     // Nested in a block node (floor >= 0), continuation lines must sit deeper
     // than the floor (yaml-test-suite QB6E, DK95/01). A blank line may fall
     // short, but a tab on it still counts as indentation: only a tab-free one may.
@@ -2786,6 +2802,7 @@ function parseDoubleQuotedSlow(start: number): string {
           while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
           break;
         case CR:
+          if (keepBareCR && src.charCodeAt(i + 1) !== LF) fail("invalid escape sequence in double-quoted string");
           i++;
           if (i < len && src.charCodeAt(i) === LF) i++;
           while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
@@ -2796,7 +2813,7 @@ function parseDoubleQuotedSlow(start: number): string {
       seg = i;
       continue;
     }
-    if (c === LF || c === CR) {
+    if (isQuotedBreakAt(i)) {
       // Multi-line flow folding. Trim trailing whitespace of the current line
       // from the pending segment (escaped whitespace already lives in `result`,
       // so it is protected), fold the break run, and resume at the continuation
@@ -2872,7 +2889,7 @@ function parseSingleQuotedSlow(start: number): string {
       pos = i + 1;
       return result;
     }
-    if (c === LF || c === CR) {
+    if (isQuotedBreakAt(i)) {
       // Multi-line flow folding — identical to the double-quoted path (single
       // quotes have no escapes, so all whitespace here is raw source text).
       let j = i;

@@ -649,10 +649,21 @@ test("quoted scalars: a bare CR folds like LF; CRLF is one break", () => {
     strictEqual(parse(`${q}a\r\rb${q}`), "a\nb");
     strictEqual(parse(`${q}a\r\r\nb${q}`), "a\nb");
     strictEqual(parse(`${q}a\rb${q}`), jsYamlLoad(`${q}a\rb${q}`));
+    strictEqual(parse(`${q}a\rb${q}`, { strict: true }), "a b");
+    strictEqual(jsYamlCompatLoad(`${q}a\rb${q}`), "a b");
   }
   strictEqual(parse('"a\\\rb"'), parse('"a\\\nb"'));
   strictEqual(parse('"a\\\rb"'), "ab");
-  strictEqual(yamlCompatParse('"a\rb"'), "a b"); // README deviation: yaml keeps the CR
+});
+
+test("quoted scalars: the yaml shim keeps a bare CR as text, as yaml does", () => {
+  // Each shim copies its library (owner decision); yaml keeps a lone CR inside a
+  // quoted scalar as content, while CRLF stays one break.
+  for (const s of ['"a\rb"', "'a\rb'", '"a\r\rb"', 'k: "a\r  b"', 'k: "a\n  b\rc"', 'k: "a\n  \rb"', '[ "a\rb", "c" ]', '"a\r\nb"', '"a\r\r\nb"']) {
+    deepStrictEqual(yamlCompatParse(s), oracleParse(s), JSON.stringify(s));
+  }
+  // A bare CR after a backslash is not a line continuation for yaml.
+  throws(() => yamlCompatParse('"a\\\rb"'), JSON.stringify('"a\\\rb"'));
 });
 
 test("quoted scalars: a raw C0 byte in a flow key that repeats an earlier sibling's key is checked like any key", () => {
