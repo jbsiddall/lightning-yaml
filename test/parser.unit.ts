@@ -649,6 +649,17 @@ test("quoted scalars: a bare CR folds like LF; CRLF is one break", () => {
   strictEqual(parse('"a\\\rb"'), "ab");
 });
 
+test("quoted scalars: a raw C0 byte is rejected in a flow key that repeats an earlier sibling's key", () => {
+  // The flow-mapping key fast path (`fastMatchFlowKey`) matches raw bytes
+  // against the previous sibling's decoded key and must decline a raw control
+  // byte the same way the quoted-scalar scanners do (§5.1 nb-json).
+  for (const s of ['[{"\\x01": 1}, {"\x01": 2}]', '[{"\\x01": 1}, {"\x01x": 2}]', '[{"\\x01": 1}, {"\x01": 2}, {"\\x01": 3}]']) {
+    throws(() => parse(s), YAMLParseError, JSON.stringify(s));
+    throws(() => parseAll(s), YAMLParseError, JSON.stringify(s));
+  }
+  deepStrictEqual(parse('[{"\\x01": 1}, {"\\x01": 2}]'), [{ "\x01": 1 }, { "\x01": 2 }]);
+});
+
 test("regression [8]: block sequence indented at the parent mapping key's column", () => {
   deepStrictEqual(parse("key:\n- a\n- b\nnext: 1\n"), { key: ["a", "b"], next: 1 });
   deepStrictEqual(parse("a:\n- 1\nb:\n- 2\n"), { a: [1], b: [2] });

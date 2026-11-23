@@ -1996,9 +1996,10 @@ function internValue(s: string): string {
 
 /**
  * FastKeyMatch (M7) — flow context.
- * Canonical keys can contain a backslash, quote, or line break produced by
- * decoding or folding. Decline these source characters so parseFlowKey stays
- * responsible for validation; every mismatch leaves pos untouched.
+ * Canonical keys can contain a backslash, quote, line break, or control character
+ * produced by decoding or folding. Decline these source characters (and any raw
+ * C0 byte other than TAB, which the scanner would otherwise accept unchecked) so
+ * parseFlowKey stays responsible for validation; every mismatch leaves pos untouched.
  */
 function fastMatchFlowKey(c: number, ek: string): boolean {
   if (c !== DQUOTE) return false;
@@ -2007,7 +2008,7 @@ function fastMatchFlowKey(c: number, ek: string): boolean {
   let i = 0;
   while (i < n) {
     const raw = src.charCodeAt(q + i);
-    if (raw === BACKSLASH || raw === DQUOTE || raw === LF || raw === CR || raw !== ek.charCodeAt(i)) break;
+    if (raw === BACKSLASH || raw === DQUOTE || (raw < SPACE && raw !== TAB) || raw !== ek.charCodeAt(i)) break;
     i++;
   }
   if (i !== n || src.charCodeAt(q + n) !== DQUOTE) return false;
