@@ -98,7 +98,14 @@ parse('"x\x00y"', { strict: true }); // throws YAMLParseError
 ```
 
 Lenient parsing never changes how a *valid* document is read — it only
-widens what's accepted; `strict: true` narrows it back to the spec.
+widens what's accepted; `strict: true` narrows it back to the spec. The one
+exception is a lone carriage return inside a quoted string: the spec makes it a
+line break, but plain `parse` keeps it as text, and `strict: true` folds it:
+
+```ts
+parse('"a\rb"'); // "a\rb"
+parse('"a\rb"', { strict: true }); // "a b"
+```
 
 ## Merge keys
 

@@ -642,24 +642,31 @@ test("quoted scalars: a raw C0 byte is kept by default and by the yaml shim, rej
   }
 });
 
-test("quoted scalars: a bare CR folds like LF; CRLF is one break", () => {
+test("quoted scalars: strict and the js-yaml shim fold a bare CR; CRLF is one break", () => {
+  const S = { strict: true };
   for (const q of ['"', "'"]) {
-    strictEqual(parse(`${q}a\rb${q}`), "a b");
-    strictEqual(parse(`${q}a\r\nb${q}`), "a b");
-    strictEqual(parse(`${q}a\r\rb${q}`), "a\nb");
-    strictEqual(parse(`${q}a\r\r\nb${q}`), "a\nb");
-    strictEqual(parse(`${q}a\rb${q}`), jsYamlLoad(`${q}a\rb${q}`));
-    strictEqual(parse(`${q}a\rb${q}`, { strict: true }), "a b");
-    strictEqual(jsYamlCompatLoad(`${q}a\rb${q}`), "a b");
+    for (const [s, v] of [[`${q}a\rb${q}`, "a b"], [`${q}a\r\nb${q}`, "a b"], [`${q}a\r\rb${q}`, "a\nb"], [`${q}a\r\r\nb${q}`, "a\nb"]] as const) {
+      strictEqual(parse(s, S), v, JSON.stringify(s));
+      strictEqual(jsYamlCompatLoad(s), v, JSON.stringify(s));
+      strictEqual(jsYamlLoad(s), v, JSON.stringify(s));
+    }
+    for (const s of [`k: ${q}a\rb${q}`, `${q}a\rb${q}: 1`]) {
+      throws(() => parse(s, S), JSON.stringify(s));
+      throws(() => jsYamlCompatLoad(s), JSON.stringify(s));
+      throws(() => jsYamlLoad(s), JSON.stringify(s));
+    }
   }
   strictEqual(parse('"a\\\rb"'), parse('"a\\\nb"'));
   strictEqual(parse('"a\\\rb"'), "ab");
+  strictEqual(parse('"a\\\rb"', S), "ab");
+  strictEqual(jsYamlCompatLoad('"a\\\rb"'), "ab");
 });
 
 test("quoted scalars: the yaml shim keeps a bare CR as text, as yaml does", () => {
   // Each shim copies its library (owner decision); yaml keeps a lone CR inside a
   // quoted scalar as content, while CRLF stays one break.
-  for (const s of ['"a\rb"', "'a\rb'", '"a\r\rb"', 'k: "a\r  b"', 'k: "a\n  b\rc"', 'k: "a\n  \rb"', '[ "a\rb", "c" ]', '"a\r\nb"', '"a\r\r\nb"']) {
+  for (const s of ['"a\rb"', "'a\rb'", '"a\r\rb"', 'k: "a\r  b"', 'k: "a\n  b\rc"', 'k: "a\n  \rb"', '[ "a\rb", "c" ]', '"a\r\nb"', '"a\r\r\nb"', 'k: "a\rb"', '"a\rb": 1', '"a\rb\\n"']) {
+    deepStrictEqual(parse(s), oracleParse(s), JSON.stringify(s));
     deepStrictEqual(yamlCompatParse(s), oracleParse(s), JSON.stringify(s));
   }
   // A bare CR after a backslash is not a line continuation for yaml.
@@ -681,10 +688,10 @@ test("quoted scalars: a raw C0 byte in a flow key that repeats an earlier siblin
 });
 
 test("quoted scalars: line-break memo state from an earlier parse does not hide a bare CR in a later one", () => {
-  strictEqual((parse(`"${"x".repeat(9000)}"`) as string).length, 9000);
-  strictEqual(parse('"a\rb"'), "a b");
-  strictEqual((parse(`'${"y".repeat(9000)}'`) as string).length, 9000);
-  strictEqual(parse("'a\rb'"), "a b");
+  strictEqual((parse(`"${"x".repeat(9000)}"`, { strict: true }) as string).length, 9000);
+  strictEqual(parse('"a\rb"', { strict: true }), "a b");
+  strictEqual((parse(`'${"y".repeat(9000)}'`, { strict: true }) as string).length, 9000);
+  strictEqual(parse("'a\rb'", { strict: true }), "a b");
 });
 
 test("regression [8]: block sequence indented at the parent mapping key's column", () => {

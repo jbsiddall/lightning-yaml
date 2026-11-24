@@ -103,6 +103,7 @@ let SKIP_STRICT_VALIDATION = true;
 
 // Private js-yaml document profile: reject collection-valued keys and binary scalars.
 let jsYamlProfile = false;
+let yamlProfile = false;
 
 /**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
@@ -319,8 +320,10 @@ function hasLineBreak(start: number, end: number): boolean {
 let rejectQuotedControls = false;
 
 /**
- * On for the `yaml` shim, which keeps a lone CR inside a quoted scalar as text
- * (`"a<CR>b"` is `a<CR>b`, as in `yaml` 2.9.0). CRLF is still one break.
+ * A lone CR inside a quoted scalar stays as text (`"a<CR>b"` is `a<CR>b`, as in
+ * `yaml` 2.9.0). On by default and in the `yaml` shim, so default parsing never
+ * pays for the extra scan; off for `strict` and the js-yaml shim, which fold it
+ * to a space like js-yaml (§5.4). CRLF is one break either way.
  */
 let keepBareCR = false;
 
@@ -654,6 +657,9 @@ export interface ParseOptions {
    * requires. Lenient parsing never changes how a *valid*
    * document is interpreted — it only accepts some malformed input the spec
    * calls an error; `strict: true` never accepts anything the default rejects.
+   * One exception: a lone carriage return inside a quoted string is kept as
+   * text by default, but `strict: true` folds it like a line break
+   * ([§5.4](https://yaml.org/spec/1.2.2/#54-line-break-characters)).
    * Default: `false` (lenient).
    */
   strict?: boolean;
@@ -704,7 +710,8 @@ export function parse(text: string, options?: ParseOptions): unknown {
   valueCache = internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = skipStrictValidation;
   rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
-  keepBareCR = options === yamlDocumentOptions;
+  keepBareCR = skipStrictValidation && options !== requiredDocumentOptions;
+  yamlProfile = options === yamlDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -730,6 +737,7 @@ export function parse(text: string, options?: ParseOptions): unknown {
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     rejectQuotedControls = false;
     keepBareCR = false;
+    yamlProfile = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -764,7 +772,8 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   valueCache = internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = skipStrictValidation;
   rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
-  keepBareCR = options === yamlDocumentOptions;
+  keepBareCR = skipStrictValidation && options !== requiredDocumentOptions;
+  yamlProfile = options === yamlDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -782,6 +791,7 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     rejectQuotedControls = false;
     keepBareCR = false;
+    yamlProfile = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -2802,7 +2812,7 @@ function parseDoubleQuotedSlow(start: number): string {
           while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
           break;
         case CR:
-          if (keepBareCR && src.charCodeAt(i + 1) !== LF) fail("invalid escape sequence in double-quoted string");
+          if (yamlProfile && src.charCodeAt(i + 1) !== LF) fail("invalid escape sequence in double-quoted string");
           i++;
           if (i < len && src.charCodeAt(i) === LF) i++;
           while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
