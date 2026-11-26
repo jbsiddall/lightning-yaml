@@ -94,6 +94,9 @@ const BOM = 0xfeff;
  * flipping the flag leaves every well-formed document byte-identical (only throws
  * are dropped), trading strictness for speed/memory and incidentally tolerating
  * some malformed input. A check that would alter a VALID parse does not belong here.
+ * One exception: a lone CR inside quotes. `keepBareCR` is derived from this flag so
+ * the default path skips the scan that folding needs, which makes plain `parse`
+ * keep the CR as text where `strict: true` folds it (§5.4).
  *
  * Default `true` (lenient — these guards are OFF by default). `parse`/`parseAll`
  * set it per call from `options.strict` (`SKIP_STRICT_VALIDATION = options?.strict
@@ -103,7 +106,6 @@ let SKIP_STRICT_VALIDATION = true;
 
 // Private js-yaml document profile: reject collection-valued keys and binary scalars.
 let jsYamlProfile = false;
-let yamlProfile = false;
 
 /**
  * Hard recursion cap. Pure recursive descent would otherwise throw a native
@@ -284,30 +286,22 @@ let flowIndentFloor = -1;
 let nextBackslash = -1;
 
 /**
- * Memoized positions of the next `\n` and the next `\r` at or after the last
- * query point (or `len` once none remain) — the line-break analogue of
- * `nextBackslash`, for the same reason: a quoted-scalar fast path that checked
- * each string with a fresh `indexOf` would rescan newline-free input to its end
- * on every string — O(n²). A lone CR is a line break too (§5.4), so the scalar
- * must fold (except under `keepBareCR`). We recompute only when the cursor
- * passes a memo, so input without that character pays one `indexOf` in total
- * and input with it one short scan per line. Reset per parse.
+ * Memoized position of the next `\n` at or after the last query point (or `len`
+ * once none remains) — the line-break analogue of `nextBackslash`, for the same
+ * reason: a quoted-scalar fast path that checked each string with a fresh
+ * `indexOf` would rescan newline-free input to its end on every string — O(n²).
+ * A lone CR is not tracked: where it must fold (`rejectQuotedControls`), the
+ * callers' `hasRawControl` scan already declines the fast path for any CR.
+ * Reset per parse.
  */
 let nextNewline = -1;
-let nextCR = -1;
 
 function hasLineBreak(start: number, end: number): boolean {
   if (nextNewline < start) {
     const n = src.indexOf("\n", start);
     nextNewline = n === -1 ? len : n;
   }
-  if (nextNewline < end) return true;
-  if (keepBareCR) return false;
-  if (nextCR < start) {
-    const r = src.indexOf("\r", start);
-    nextCR = r === -1 ? len : r;
-  }
-  return nextCR < end;
+  return nextNewline < end;
 }
 
 /**
@@ -590,7 +584,6 @@ function resetForStream(text: string): void {
   depth = 0;
   nextBackslash = -1;
   nextNewline = -1;
-  nextCR = -1;
   lineStart = 0;
   keyCache = new Map();
   keyCacheBytes = 0;
@@ -654,10 +647,10 @@ export interface ParseOptions {
    * and a raw control character (U+0000–U+001F other than tab and line breaks)
    * inside a quoted string ([§5.1](https://yaml.org/spec/1.2.2/#51-character-set)),
    * which is kept in the value. Pass `true` to reject that input as YAML 1.2.2
-   * requires. Lenient parsing never changes how a *valid*
+   * requires. With one exception, lenient parsing never changes how a *valid*
    * document is interpreted — it only accepts some malformed input the spec
    * calls an error; `strict: true` never accepts anything the default rejects.
-   * One exception: a lone carriage return inside a quoted string is kept as
+   * The exception: a lone carriage return inside a quoted string is kept as
    * text by default, but `strict: true` folds it like a line break
    * ([§5.4](https://yaml.org/spec/1.2.2/#54-line-break-characters)).
    * Default: `false` (lenient).
@@ -711,7 +704,6 @@ export function parse(text: string, options?: ParseOptions): unknown {
   SKIP_STRICT_VALIDATION = skipStrictValidation;
   rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
   keepBareCR = skipStrictValidation && options !== requiredDocumentOptions;
-  yamlProfile = options === yamlDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -737,7 +729,6 @@ export function parse(text: string, options?: ParseOptions): unknown {
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     rejectQuotedControls = false;
     keepBareCR = false;
-    yamlProfile = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -773,7 +764,6 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   SKIP_STRICT_VALIDATION = skipStrictValidation;
   rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
   keepBareCR = skipStrictValidation && options !== requiredDocumentOptions;
-  yamlProfile = options === yamlDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -791,7 +781,6 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
     rejectQuotedControls = false;
     keepBareCR = false;
-    yamlProfile = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -2812,7 +2801,6 @@ function parseDoubleQuotedSlow(start: number): string {
           while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
           break;
         case CR:
-          if (yamlProfile && src.charCodeAt(i + 1) !== LF) fail("invalid escape sequence in double-quoted string");
           i++;
           if (i < len && src.charCodeAt(i) === LF) i++;
           while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;

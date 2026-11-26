@@ -669,8 +669,30 @@ test("quoted scalars: the yaml shim keeps a bare CR as text, as yaml does", () =
     deepStrictEqual(parse(s), oracleParse(s), JSON.stringify(s));
     deepStrictEqual(yamlCompatParse(s), oracleParse(s), JSON.stringify(s));
   }
-  // A bare CR after a backslash is not a line continuation for yaml.
-  throws(() => yamlCompatParse('"a\\\rb"'), JSON.stringify('"a\\\rb"'));
+  // Spec §7.3.1: an escaped break joins. yaml 2.9.0 throws here; the shim has
+  // always joined (see the tracking issue), so every mode agrees on "ab".
+  strictEqual(yamlCompatParse('"a\\\rb"'), "ab");
+});
+
+test("quoted scalars: backslash before CRLF joins in every mode", () => {
+  // Pinned: all four agree on "ab" (the yaml shim matches its library here).
+  const s = '"a\\\r\nb"';
+  strictEqual(parse(s), "ab");
+  strictEqual(parse(s, { strict: true }), "ab");
+  strictEqual(yamlCompatParse(s), "ab");
+  strictEqual(jsYamlCompatLoad(s), "ab");
+});
+
+test("quoted scalars: DEL and U+0085 are kept in quotes in every mode, including with an escape", () => {
+  for (const ch of ["\x7f", "\u0085"]) {
+    for (const s of [`"a${ch}b"`, `"a${ch}b\\t"`, `'a${ch}b'`]) {
+      const want = s.includes("\\t") ? `a${ch}b\t` : `a${ch}b`;
+      strictEqual(parse(s), want, JSON.stringify(s));
+      strictEqual(parse(s, { strict: true }), want, JSON.stringify(s));
+      strictEqual(yamlCompatParse(s), want, JSON.stringify(s));
+      strictEqual(jsYamlCompatLoad(s), want, JSON.stringify(s));
+    }
+  }
 });
 
 test("quoted scalars: a raw C0 byte in a flow key that repeats an earlier sibling's key is checked like any key", () => {
@@ -687,7 +709,7 @@ test("quoted scalars: a raw C0 byte in a flow key that repeats an earlier siblin
   deepStrictEqual(parse('[{"\\x01": 1}, {"\\x01": 2}]', { strict: true }), [{ "\x01": 1 }, { "\x01": 2 }]);
 });
 
-test("quoted scalars: line-break memo state from an earlier parse does not hide a bare CR in a later one", () => {
+test("quoted scalars: strict still folds a bare CR after a long CR-free string in an earlier parse", () => {
   strictEqual((parse(`"${"x".repeat(9000)}"`, { strict: true }) as string).length, 9000);
   strictEqual(parse('"a\rb"', { strict: true }), "a b");
   strictEqual((parse(`'${"y".repeat(9000)}'`, { strict: true }) as string).length, 9000);
