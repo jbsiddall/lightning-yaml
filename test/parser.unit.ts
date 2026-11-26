@@ -621,6 +621,101 @@ test("regression [7]: quoted-scalar multi-line flow folding matches the oracle",
   strictEqual(parse('"a\\\tb"'), "a\tb");
 });
 
+test("quoted scalars: a raw C0 byte is kept by default and by the yaml shim, rejected by strict mode and the js-yaml shim", () => {
+  for (const cc of [0x00, 0x01, 0x08, 0x0b, 0x0c, 0x0e, 0x1f]) {
+    const ch = String.fromCharCode(cc);
+    for (const s of [`"a${ch}b"`, `'a${ch}b'`, `"ab${ch}"`, `'ab${ch}'`, `{"a${ch}b": 1}`, `{'a${ch}b': 1}`, `k: "a${ch}b"`, `"a\nb${ch}"`, `'a\nb${ch}'`, `"\\t${ch}"`, `'it''s${ch}'`]) {
+      const label = JSON.stringify(s);
+      deepStrictEqual(parse(s), oracleParse(s), label);
+      deepStrictEqual(yamlCompatParse(s), oracleParse(s), label);
+      throws(() => parse(s, { strict: true }), YAMLParseError, label);
+      throws(() => jsYamlLoad(s), label);
+      throws(() => jsYamlCompatLoad(s), JsYamlCompatException, label);
+      throws(() => jsYamlCompatLoadAll(s), JsYamlCompatException, label);
+    }
+  }
+  for (const ch of ["\t", "\x7f", "\x85"]) {
+    for (const opts of [undefined, { strict: true }]) {
+      strictEqual(parse(`"a${ch}b"`, opts), `a${ch}b`);
+      strictEqual(parse(`'a${ch}b'`, opts), `a${ch}b`);
+    }
+  }
+});
+
+test("quoted scalars: strict and the js-yaml shim fold a bare CR; CRLF is one break", () => {
+  const S = { strict: true };
+  for (const q of ['"', "'"]) {
+    for (const [s, v] of [[`${q}a\rb${q}`, "a b"], [`${q}a\r\nb${q}`, "a b"], [`${q}a\r\rb${q}`, "a\nb"], [`${q}a\r\r\nb${q}`, "a\nb"]] as const) {
+      strictEqual(parse(s, S), v, JSON.stringify(s));
+      strictEqual(jsYamlCompatLoad(s), v, JSON.stringify(s));
+      strictEqual(jsYamlLoad(s), v, JSON.stringify(s));
+    }
+    for (const s of [`k: ${q}a\rb${q}`, `${q}a\rb${q}: 1`]) {
+      throws(() => parse(s, S), JSON.stringify(s));
+      throws(() => jsYamlCompatLoad(s), JSON.stringify(s));
+      throws(() => jsYamlLoad(s), JSON.stringify(s));
+    }
+  }
+  strictEqual(parse('"a\\\rb"'), parse('"a\\\nb"'));
+  strictEqual(parse('"a\\\rb"'), "ab");
+  strictEqual(parse('"a\\\rb"', S), "ab");
+  strictEqual(jsYamlCompatLoad('"a\\\rb"'), "ab");
+});
+
+test("quoted scalars: the yaml shim keeps a bare CR as text, as yaml does", () => {
+  // Each shim copies its library (owner decision); yaml keeps a lone CR inside a
+  // quoted scalar as content, while CRLF stays one break.
+  for (const s of ['"a\rb"', "'a\rb'", '"a\r\rb"', 'k: "a\r  b"', 'k: "a\n  b\rc"', 'k: "a\n  \rb"', '[ "a\rb", "c" ]', '"a\r\nb"', '"a\r\r\nb"', 'k: "a\rb"', '"a\rb": 1', '"a\rb\\n"']) {
+    deepStrictEqual(parse(s), oracleParse(s), JSON.stringify(s));
+    deepStrictEqual(yamlCompatParse(s), oracleParse(s), JSON.stringify(s));
+  }
+  // Spec §7.3.1: an escaped break joins. yaml 2.9.0 throws here; the shim has
+  // always joined (#351), so every mode agrees on "ab".
+  strictEqual(yamlCompatParse('"a\\\rb"'), "ab");
+});
+
+test("quoted scalars: backslash before CRLF joins in every mode", () => {
+  // Pinned: all four agree on "ab" (the yaml shim matches its library here).
+  const s = '"a\\\r\nb"';
+  strictEqual(parse(s), "ab");
+  strictEqual(parse(s, { strict: true }), "ab");
+  strictEqual(yamlCompatParse(s), "ab");
+  strictEqual(jsYamlCompatLoad(s), "ab");
+});
+
+test("quoted scalars: DEL and U+0085 are kept in quotes in every mode, including with an escape", () => {
+  for (const ch of ["\x7f", "\u0085"]) {
+    for (const s of [`"a${ch}b"`, `"a${ch}b\\t"`, `'a${ch}b'`]) {
+      const want = s.includes("\\t") ? `a${ch}b\t` : `a${ch}b`;
+      strictEqual(parse(s), want, JSON.stringify(s));
+      strictEqual(parse(s, { strict: true }), want, JSON.stringify(s));
+      strictEqual(yamlCompatParse(s), want, JSON.stringify(s));
+      strictEqual(jsYamlCompatLoad(s), want, JSON.stringify(s));
+    }
+  }
+});
+
+test("quoted scalars: a raw C0 byte in a flow key that repeats an earlier sibling's key is checked like any key", () => {
+  // The flow-mapping key fast path (`fastMatchFlowKey`) matches raw bytes
+  // against the previous sibling's decoded key, so it must decline a raw control
+  // byte and leave the check to the quoted-scalar scanners (§5.1 nb-json).
+  for (const s of ['[{"\\x01": 1}, {"\x01": 2}]', '[{"\\x01": 1}, {"\x01x": 2}]', '[{"\\x01": 1}, {"\x01": 2}, {"\\x01": 3}]']) {
+    const label = JSON.stringify(s);
+    throws(() => parse(s, { strict: true }), YAMLParseError, label);
+    throws(() => parseAll(s, { strict: true }), YAMLParseError, label);
+    throws(() => jsYamlCompatLoad(s), JsYamlCompatException, label);
+    deepStrictEqual(parse(s), oracleParse(s), label);
+  }
+  deepStrictEqual(parse('[{"\\x01": 1}, {"\\x01": 2}]', { strict: true }), [{ "\x01": 1 }, { "\x01": 2 }]);
+});
+
+test("quoted scalars: strict still folds a bare CR after a long CR-free string in an earlier parse", () => {
+  strictEqual((parse(`"${"x".repeat(9000)}"`, { strict: true }) as string).length, 9000);
+  strictEqual(parse('"a\rb"', { strict: true }), "a b");
+  strictEqual((parse(`'${"y".repeat(9000)}'`, { strict: true }) as string).length, 9000);
+  strictEqual(parse("'a\rb'", { strict: true }), "a b");
+});
+
 test("regression [8]: block sequence indented at the parent mapping key's column", () => {
   deepStrictEqual(parse("key:\n- a\n- b\nnext: 1\n"), { key: ["a", "b"], next: 1 });
   deepStrictEqual(parse("a:\n- 1\nb:\n- 2\n"), { a: [1], b: [2] });

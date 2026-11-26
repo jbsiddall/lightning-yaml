@@ -94,6 +94,9 @@ const BOM = 0xfeff;
  * flipping the flag leaves every well-formed document byte-identical (only throws
  * are dropped), trading strictness for speed/memory and incidentally tolerating
  * some malformed input. A check that would alter a VALID parse does not belong here.
+ * One exception: a lone CR inside quotes. `keepBareCR` is derived from this flag so
+ * the default path skips the scan that folding needs, which makes plain `parse`
+ * keep the CR as text where `strict: true` folds it (§5.4).
  *
  * Default `true` (lenient — these guards are OFF by default). `parse`/`parseAll`
  * set it per call from `options.strict` (`SKIP_STRICT_VALIDATION = options?.strict
@@ -283,15 +286,57 @@ let flowIndentFloor = -1;
 let nextBackslash = -1;
 
 /**
- * Memoized position of the next line break (`\n`) at or after the last query
- * point (or `len` once none remain) — the newline analogue of `nextBackslash`,
- * for the same reason: a quoted-scalar fast path that checked each string for an
- * interior line break via a fresh `indexOf('\n')` would rescan a minified
- * (newline-free) document to its end on every string — O(n²). We recompute only
- * when the cursor passes the memo, so newline-free input pays a single `indexOf`
- * total, and line-broken input pays one short scan per line. Reset per parse.
+ * Memoized position of the next `\n` at or after the last query point (or `len`
+ * once none remains) — the line-break analogue of `nextBackslash`, for the same
+ * reason: a quoted-scalar fast path that checked each string with a fresh
+ * `indexOf` would rescan newline-free input to its end on every string — O(n²).
+ * A lone CR is not tracked: where it must fold (`rejectQuotedControls`), the
+ * callers' `hasRawControl` scan already declines the fast path for any CR.
+ * Reset per parse.
  */
 let nextNewline = -1;
+
+function hasLineBreak(start: number, end: number): boolean {
+  if (nextNewline < start) {
+    const n = src.indexOf("\n", start);
+    nextNewline = n === -1 ? len : n;
+  }
+  return nextNewline < end;
+}
+
+/**
+ * On for `strict: true` and for the js-yaml shim: a raw C0 control other than
+ * TAB inside a quoted scalar is an error (§5.1 nb-json). js-yaml rejects it and
+ * `yaml` accepts it, so each shim copies its library; that is why this is its
+ * own flag and not part of SKIP_STRICT_VALIDATION. Off by default, so the
+ * default fast path never scans for controls.
+ */
+let rejectQuotedControls = false;
+
+/**
+ * A lone CR inside a quoted scalar stays as text (`"a<CR>b"` is `a<CR>b`, as in
+ * `yaml` 2.9.0). On by default and in the `yaml` shim; off for `strict` and the
+ * js-yaml shim, which fold it to a space like js-yaml (§5.4). Those are the modes
+ * where `rejectQuotedControls` is set, and its `hasRawControl` scan is what
+ * routes a CR to the folding slow path, so default parsing never pays for it.
+ * CRLF is one break either way.
+ */
+let keepBareCR = false;
+
+/** Is the character at `i` a line break inside a quoted scalar? */
+function isQuotedBreakAt(i: number): boolean {
+  const c = src.charCodeAt(i);
+  return c === LF || (c === CR && (!keepBareCR || src.charCodeAt(i + 1) === LF));
+}
+
+/** Callers have already ruled out LF and CR in `src[start, end)`. */
+function hasRawControl(start: number, end: number): boolean {
+  for (let i = start; i < end; i++) {
+    const c = src.charCodeAt(i);
+    if (c < SPACE && c !== TAB) return true;
+  }
+  return false;
+}
 
 /**
  * Per-parse key-intern cache. Repeated mapping keys collapse to one
@@ -599,12 +644,17 @@ export interface ParseOptimizations {
 export interface ParseOptions {
   /**
    * By default (`false`, or omitted) lightning-yaml is LENIENT: it tolerates
-   * some spec-invalid block indentation — today, a tab used to indent a block
-   * sequence/mapping (spec [§6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces))
-   * — rather than rejecting it. Pass `true` to restore full YAML 1.2.2
-   * rejection of that input. Lenient parsing never changes how a *valid*
+   * some spec-invalid input rather than rejecting it — today, a tab used to
+   * indent a block sequence/mapping (spec [§6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces)),
+   * and a raw control character (U+0000–U+001F other than tab and line breaks)
+   * inside a quoted string ([§5.1](https://yaml.org/spec/1.2.2/#51-character-set)),
+   * which is kept in the value. Pass `true` to reject that input as YAML 1.2.2
+   * requires. With one exception, lenient parsing never changes how a *valid*
    * document is interpreted — it only accepts some malformed input the spec
    * calls an error; `strict: true` never accepts anything the default rejects.
+   * The exception: a lone carriage return inside a quoted string is kept as
+   * text by default, but `strict: true` folds it like a line break
+   * ([§5.4](https://yaml.org/spec/1.2.2/#54-line-break-characters)).
    * Default: `false` (lenient).
    */
   strict?: boolean;
@@ -654,6 +704,8 @@ export function parse(text: string, options?: ParseOptions): unknown {
   const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = skipStrictValidation;
+  rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
+  keepBareCR = skipStrictValidation && options !== requiredDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -677,6 +729,8 @@ export function parse(text: string, options?: ParseOptions): unknown {
     jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
+    rejectQuotedControls = false;
+    keepBareCR = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -710,6 +764,8 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
   const preserveSuffixDocuments = options === yamlDocumentOptions;
   valueCache = internStrings ? new Map() : null;
   SKIP_STRICT_VALIDATION = skipStrictValidation;
+  rejectQuotedControls = !skipStrictValidation || options === requiredDocumentOptions;
+  keepBareCR = skipStrictValidation && options !== requiredDocumentOptions;
   keyCacheMaxBytes = maxKeyCacheBytes;
   const previousJsYamlProfile = jsYamlProfile;
   try {
@@ -725,6 +781,8 @@ export function parseAll(text: string, options?: ParseOptions): unknown[] {
     jsYamlProfile = previousJsYamlProfile;
     valueCache = null; // don't let the intern cache outlive the call
     SKIP_STRICT_VALIDATION = true; // restore the lenient default
+    rejectQuotedControls = false;
+    keepBareCR = false;
     keyCacheMaxBytes = DEFAULT_KEY_CACHE_MAX_KB * 1024;
   }
 }
@@ -1978,9 +2036,10 @@ function internValue(s: string): string {
 
 /**
  * FastKeyMatch (M7) — flow context.
- * Canonical keys can contain a backslash, quote, or line break produced by
- * decoding or folding. Decline these source characters so parseFlowKey stays
- * responsible for validation; every mismatch leaves pos untouched.
+ * Canonical keys can contain a backslash, quote, line break, or control character
+ * produced by decoding or folding. Decline these source characters (and any raw
+ * C0 byte other than TAB, which the scanner would otherwise accept unchecked) so
+ * parseFlowKey stays responsible for validation; every mismatch leaves pos untouched.
  */
 function fastMatchFlowKey(c: number, ek: string): boolean {
   if (c !== DQUOTE) return false;
@@ -1989,7 +2048,7 @@ function fastMatchFlowKey(c: number, ek: string): boolean {
   let i = 0;
   while (i < n) {
     const raw = src.charCodeAt(q + i);
-    if (raw === BACKSLASH || raw === DQUOTE || raw === LF || raw === CR || raw !== ek.charCodeAt(i)) break;
+    if (raw === BACKSLASH || raw === DQUOTE || (raw < SPACE && raw !== TAB) || raw !== ek.charCodeAt(i)) break;
     i++;
   }
   if (i !== n || src.charCodeAt(q + n) !== DQUOTE) return false;
@@ -2593,8 +2652,7 @@ function foldFlowBreak(i: number): number {
     const indentEnd = i; // s-indent is spaces only; a tab may separate but never indents
     while (i < len && (src.charCodeAt(i) === SPACE || src.charCodeAt(i) === TAB)) i++;
     if (i >= len) fail("unterminated quoted string");
-    const cc = src.charCodeAt(i);
-    const blank = cc === LF || cc === CR;
+    const blank = isQuotedBreakAt(i);
     // Nested in a block node (floor >= 0), continuation lines must sit deeper
     // than the floor (yaml-test-suite QB6E, DK95/01). A blank line may fall
     // short, but a tab on it still counts as indentation: only a tab-free one may.
@@ -2621,15 +2679,11 @@ function parseDoubleQuoted(): string {
     nextBackslash = b === -1 ? len : b;
   }
   if (nextBackslash > e) {
-    // No escape before the closing quote. A line break inside still triggers
-    // multi-line flow folding, so check for one (memoized like `nextBackslash`);
-    // absent both, the value is a single slice — the ~100% case on JSON-shaped
-    // input and why the hop path beats native.
-    if (nextNewline < start) {
-      const n = src.indexOf("\n", start);
-      nextNewline = n === -1 ? len : n;
-    }
-    if (nextNewline > e) {
+    // No escape before the closing quote. A line break inside still needs
+    // folding, and a raw control (strict / js-yaml shim) a rejection, so check
+    // for those; absent them, the value is a single slice — the ~100% case on
+    // JSON-shaped input and why the hop path beats native.
+    if (!hasLineBreak(start, e) && !(rejectQuotedControls && hasRawControl(start, e))) {
       pos = e + 1;
       return internValue(src.slice(start, e));
     }
@@ -2759,7 +2813,7 @@ function parseDoubleQuotedSlow(start: number): string {
       seg = i;
       continue;
     }
-    if (c === LF || c === CR) {
+    if (isQuotedBreakAt(i)) {
       // Multi-line flow folding. Trim trailing whitespace of the current line
       // from the pending segment (escaped whitespace already lives in `result`,
       // so it is protected), fold the break run, and resume at the continuation
@@ -2771,6 +2825,10 @@ function parseDoubleQuotedSlow(start: number): string {
       result += foldedBreaks === 1 ? " " : "\n".repeat(foldedBreaks - 1);
       seg = i;
       continue;
+    }
+    if (c < SPACE && c !== TAB && rejectQuotedControls) {
+      pos = i;
+      fail("control character is not allowed in a quoted scalar; use an escape");
     }
     i++;
   }
@@ -2806,13 +2864,9 @@ function parseSingleQuoted(): string {
   if (e + 1 < len && src.charCodeAt(e + 1) === SQUOTE) {
     return parseSingleQuotedSlow(start); // contains a '' escape
   }
-  // A line break inside triggers multi-line flow folding — divert to the slow
-  // path (memoized newline check, like the double-quoted fast path).
-  if (nextNewline < start) {
-    const n = src.indexOf("\n", start);
-    nextNewline = n === -1 ? len : n;
-  }
-  if (nextNewline < e) return parseSingleQuotedSlow(start);
+  // A line break inside needs folding, and a raw control (strict / js-yaml
+  // shim) a rejection — both take the slow path, as for double quotes.
+  if (hasLineBreak(start, e) || (rejectQuotedControls && hasRawControl(start, e))) return parseSingleQuotedSlow(start);
   pos = e + 1;
   return internValue(src.slice(start, e));
 }
@@ -2835,7 +2889,7 @@ function parseSingleQuotedSlow(start: number): string {
       pos = i + 1;
       return result;
     }
-    if (c === LF || c === CR) {
+    if (isQuotedBreakAt(i)) {
       // Multi-line flow folding — identical to the double-quoted path (single
       // quotes have no escapes, so all whitespace here is raw source text).
       let j = i;
@@ -2845,6 +2899,10 @@ function parseSingleQuotedSlow(start: number): string {
       result += foldedBreaks === 1 ? " " : "\n".repeat(foldedBreaks - 1);
       seg = i;
       continue;
+    }
+    if (c < SPACE && c !== TAB && rejectQuotedControls) {
+      pos = i;
+      fail("control character is not allowed in a quoted scalar; use an escape");
     }
     i++;
   }
