@@ -315,9 +315,11 @@ let rejectQuotedControls = false;
 
 /**
  * A lone CR inside a quoted scalar stays as text (`"a<CR>b"` is `a<CR>b`, as in
- * `yaml` 2.9.0). On by default and in the `yaml` shim, so default parsing never
- * pays for the extra scan; off for `strict` and the js-yaml shim, which fold it
- * to a space like js-yaml (§5.4). CRLF is one break either way.
+ * `yaml` 2.9.0). On by default and in the `yaml` shim; off for `strict` and the
+ * js-yaml shim, which fold it to a space like js-yaml (§5.4). Those are the modes
+ * where `rejectQuotedControls` is set, and its `hasRawControl` scan is what
+ * routes a CR to the folding slow path, so default parsing never pays for it.
+ * CRLF is one break either way.
  */
 let keepBareCR = false;
 

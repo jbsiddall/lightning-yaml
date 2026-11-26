@@ -670,7 +670,7 @@ test("quoted scalars: the yaml shim keeps a bare CR as text, as yaml does", () =
     deepStrictEqual(yamlCompatParse(s), oracleParse(s), JSON.stringify(s));
   }
   // Spec §7.3.1: an escaped break joins. yaml 2.9.0 throws here; the shim has
-  // always joined (see the tracking issue), so every mode agrees on "ab".
+  // always joined (#351), so every mode agrees on "ab".
   strictEqual(yamlCompatParse('"a\\\rb"'), "ab");
 });
 
