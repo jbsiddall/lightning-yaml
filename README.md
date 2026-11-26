@@ -16,7 +16,7 @@ implementing YAML 1.2, passing ~99.2% (370/373) of the official
 compatibility shims for common `yaml` and `js-yaml` calls, ESM + CJS,
 TypeScript types, and **zero runtime dependencies**. See the module references
 for the supported calls and current gaps.
-<!-- js-yaml:5.4.3 yaml:2.9.0 ly:9610a03 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:51dd432 -->
 
 **Two goals, in priority order:** (1) full YAML 1.2 spec compliance, then
 (2) speed and memory within reach of native `JSON.parse`/`JSON.stringify`.
@@ -28,7 +28,7 @@ Everything else is secondary to those two.
   <!-- bench:4ca6140 js-yaml:5.2.1 -->
 - **Spec-compliant.** Faithfully implements YAML 1.2 — passes ~99.2% (370/373) of
   the official yaml-test-suite.
-  <!-- ly:9610a03 -->
+  <!-- ly:51dd432 -->
 - **Compatibility shims.** Common calls are available through `lightning-yaml/yaml`
   and `lightning-yaml/js-yaml`. The shims support selected calls and options;
   unsupported options throw instead of being silently ignored. See
@@ -242,10 +242,10 @@ Remaining YAML 1.2 spec edge cases are tracked through the official suite and
 follow-up issues.
 
 On the pinned official yaml-test-suite snapshot (`data-2022-01-17`), source
-`9610a03` scored **370/373 (99.2%)**, with comparison runs against js-yaml
+`51dd432` scored **370/373 (99.2%)**, with comparison runs against js-yaml
 5.4.3 and yaml 2.9.0. The remaining suite failures are YAML 1.2 spec edge
 cases; the suite does not exercise merge keys (`<<`).
-<!-- js-yaml:5.4.3 yaml:2.9.0 ly:9610a03 -->
+<!-- js-yaml:5.4.3 yaml:2.9.0 ly:51dd432 -->
 
 ## Decisions and deviations
 
@@ -277,7 +277,7 @@ here, treat it as a bug and
   parse('"x\x00y"'); // "x\u0000y" — accepted by default
   parse('"x\x00y"', { strict: true }); // throws
   ```
-  <!-- js-yaml:5.4.3 yaml:2.9.0 -->
+  <!-- js-yaml:5.4.3 yaml:2.9.0 ly:51dd432 -->
 - **A blank line inside a nested quoted value may not hold a tab, unlike
   js-yaml.** [YAML 1.2.2 §6.1](https://yaml.org/spec/1.2.2/#61-indentation-spaces)
   and [§6.4](https://yaml.org/spec/1.2.2/#64-empty-lines) allow only spaces in
